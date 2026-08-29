@@ -1,0 +1,34 @@
+# 公司資料一律不進版控，但保留目錄結構（clone 下來就有正確的資料夾）。
+# 注意：git 無法在「已被排除的目錄」底下重新納入檔案，所以這裡排除的是
+# 檔案（**/*）而不是目錄，再用 !**/ 把目錄本身留下來。
+data/raw/**/*
+data/interim/*
+data/processed/*
+data/outputs/**/*
+!data/**/
+!data/**/.gitkeep
+
+# 回饋表：範本進版控，實際填寫的內容不進
+data/feedback/*
+!data/feedback/sales_feedback_TEMPLATE.csv
+
+# 個人化設定
+config/settings.local.yaml
+config/sketch_jobs.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 模型快取
+*.npy
+*.parquet
+
+# OS
+.DS_Store
+Thumbs.db

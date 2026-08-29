@@ -1,0 +1,4 @@
+sku,style_code,season,category,verdict,reason_tags,reason_text,source,respondent,store_or_region,survey_date,confidence,suggested_action,follow_up_note
+CW24AW-TP-0135,CW24AW-TP-0135,2024AW,TOP,SLOW,F_NECK_OPEN|P_FABRIC_THICK,"客人反映橫開領太寬肩線容易滑掉，冬天布又太厚穿不住，試穿率高但成交低",STORE,王小美,台北信義店,2024-11-15,HIGH,A_REVISE_FIT,建議下季開領縮 1.5cm 並改用薄一號克重
+CW24AW-SK-0208,CW24AW-SK-0208,2024AW,BOTTOM_SKIRT,STAR,P_MATCH_EASY|M_TREND_HIT|P_PATTERN_GOOD,"格紋百褶好搭，客人常一次買兩色，配自家針織上衣成套帶走",SALES,李大明,中區,2024-12-02,HIGH,A_CARRYOVER,建議明年同版型換配色延續，並補中間尺寸備貨
+CW24AW-PT-0311,CW24AW-PT-0311,2024AW,BOTTOM_PANTS,SLOW,S_SIZE_BROKEN|S_OOS_HOT,"其實賣很好但 M 號第三週就斷碼，後面只剩 XS 跟 XL 才變成呆滯",STORE,陳店長,台中三越,2024-12-20,MEDIUM,A_REORDER,這是假滯銷，請採購檢討尺寸配比

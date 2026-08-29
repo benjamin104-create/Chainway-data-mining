@@ -1,0 +1,137 @@
+# ============================================================
+# Chainway 服飾特徵 × 銷售數據 交叉分析平台 — 主設定檔
+# 進公司後只需要改這一個檔案，其餘程式不用動。
+# ============================================================
+
+project:
+  name: "Chainway 服飾設計數據平台"
+  brand_tone: "英倫學院 / 優雅通勤 / 經典格紋"
+  locale: "zh-TW"
+
+# ------------------------------------------------------------
+# 1. 資料夾位置
+#    進公司後把公司資料夾路徑填在這裡（可用絕對路徑，例如
+#    "//NAS/設計部/系統圖" 或 "D:/Chainway/系統圖"）。
+#    留空 = 使用專案內建的 data/raw/... 目錄。
+# ------------------------------------------------------------
+paths:
+  system_images: "data/raw/system_images"     # 系統圖（去背商品照，檔名 = 貨號）
+  tech_packs: "data/raw/tech_packs"           # 裁縫指示書（PDF / 掃描圖 / Excel）
+  pos: "data/raw/pos"                         # POS 進銷存 Excel（可多檔，分季）
+  market_research: "data/raw/market_research" # 市調照片 / 流行線條參考圖
+  knowledge: "data/raw/knowledge"             # 服裝設計專業知識文件
+  feedback: "data/feedback"                   # ★ 人工填寫的暢銷/滯銷理由
+  interim: "data/interim"
+  processed: "data/processed"
+  outputs: "data/outputs"
+
+# ------------------------------------------------------------
+# 2. 貨號（SKU）解析規則
+#    系統圖檔名、裁縫指示書、POS 三邊要靠貨號串起來。
+#    下面的 regex 請依貴司實際貨號格式調整。
+#    範例貨號：CW24AW-TP-0135-BLK  →  style_code = CW24AW-TP-0135
+# ------------------------------------------------------------
+sku:
+  # 從檔名擷取貨號的正規式（第一個群組即為貨號）
+  filename_pattern: "([A-Za-z0-9]{2,}[-_][A-Za-z0-9]+[-_]?[A-Za-z0-9]*)"
+  # 貨號 → 款號（去掉顏色/尺寸尾碼）；設 null 表示貨號即款號
+  style_code_pattern: "^(.*?)(?:[-_](?:BLK|WHT|NVY|BEI|GRY|RED|GRN|PNK|BRN)?)?$"
+  # POS 檔中貨號欄位可能的名稱（大小寫不拘、會自動比對）
+  pos_sku_columns: ["貨號", "商品編號", "品號", "SKU", "款號", "item_no", "style_no"]
+
+# ------------------------------------------------------------
+# 3. 影像特徵（Fashion-CLIP）
+# ------------------------------------------------------------
+clip:
+  model_id: "patrickjohncyh/fashion-clip"   # HuggingFace 模型
+  device: "auto"                            # auto / cpu / cuda / mps
+  batch_size: 16
+  image_size: 224
+  # 影像前處理：系統圖已去背，補白底可讓 CLIP 更穩定
+  pad_to_square: true
+  background: "#FFFFFF"
+  cache_dir: "data/interim/clip_cache"
+
+# ------------------------------------------------------------
+# 4. 銷售績效分級（暢銷 / 普通 / 滯銷）
+#    以「同品類、同季別」為分母做分位數切割，避免大品類壓死小品類。
+# ------------------------------------------------------------
+performance:
+  group_by: ["season", "category"]      # 分組基準
+  primary_metric: "sell_through_rate"   # 售罄率 = 銷量 / 進貨量
+  secondary_metrics: ["net_sales_qty", "net_sales_amount", "gross_margin", "weeks_on_sale"]
+  # 分級門檻（分位數）
+  bands:
+    star: 0.80        # 前 20% → 暢銷（Star）
+    core: 0.50        # 20~50% → 主力（Core）
+    slow: 0.20        # 50~80% → 平銷（Steady）；後 20% → 滯銷（Slow）
+  # 上市未滿這個週數的商品不列入分級（避免新品被誤判滯銷）
+  min_weeks_on_sale: 4
+  # 進貨量低於此數的款不列入分析（樣本太小）
+  min_stock_in: 30
+
+# ------------------------------------------------------------
+# 5. 關聯性分析
+# ------------------------------------------------------------
+analysis:
+  # 卡方 / Cramér's V 的最低樣本數
+  min_samples_per_cell: 5
+  # 顯著水準
+  alpha: 0.05
+  # 每個品類最多輸出幾條關聯結論
+  top_n_findings: 15
+  # 特徵重要度模型（gbdt 需要 scikit-learn；沒裝會自動退回純統計）
+  feature_importance_model: "gbdt"
+
+# ------------------------------------------------------------
+# 6. 以圖反查貨號（Reverse Visual Search）
+# ------------------------------------------------------------
+search:
+  index_backend: "auto"     # auto / faiss / numpy
+  top_k: 12
+  metric: "cosine"
+  # 是否在搜尋結果一併回傳價格與績效分級
+  attach_price: true
+  attach_performance: true
+
+# ------------------------------------------------------------
+# 7. 線稿生成（市調照片 → 機械圖線稿）
+# ------------------------------------------------------------
+sketch:
+  engine: "xdog"            # xdog（推薦） / canny / hed（需額外模型）
+  xdog:
+    sigma: 0.8
+    k: 4.5
+    gamma: 0.97
+    epsilon: -0.1
+    phi: 200
+  line_width: 2
+  output_size: 1600         # 長邊像素
+  vectorize: true           # 是否輸出 SVG（需 potrace 或 Adobe image_vectorize）
+  annotation_font: null     # 中文標註字型路徑，例如 "C:/Windows/Fonts/msjh.ttc"
+  render_palette_colors: 6  # 彩現圖的色彩量化數
+
+# ------------------------------------------------------------
+# 8. 系列企劃（週度波段）
+# ------------------------------------------------------------
+planning:
+  styles_per_year: 450
+  styles_per_week_min: 10
+  styles_per_week_max: 15
+  new_ratio: 0.65           # 新品開發佔比（其餘由 15 年庫存調用）
+  tops_per_bottom: 2.5      # 1 款下身要搭 2.5 款上衣
+  waves:                    # 年度波段
+    - {code: "SS-EARLY", name: "早春", weeks: "W01-W06"}
+    - {code: "SS-MAIN",  name: "春夏主力", weeks: "W07-W18"}
+    - {code: "SS-LATE",  name: "盛夏", weeks: "W19-W26"}
+    - {code: "AW-EARLY", name: "初秋", weeks: "W27-W35"}
+    - {code: "AW-MAIN",  name: "秋冬主力", weeks: "W36-W45"}
+    - {code: "AW-LATE",  name: "深冬/節慶", weeks: "W46-W52"}
+
+# ------------------------------------------------------------
+# 9. 報告輸出
+# ------------------------------------------------------------
+report:
+  formats: ["html", "xlsx"]
+  include_thumbnails: true
+  thumbnail_size: 180

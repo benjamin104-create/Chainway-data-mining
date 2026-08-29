@@ -1,0 +1,165 @@
+# ============================================================
+# ★ 業務／門市市場調查回饋 — 受控詞彙表
+# ------------------------------------------------------------
+# 為什麼要「受控詞彙」而不是讓大家自由填寫？
+#   自由文字沒辦法統計。這裡把常見理由做成固定選項（可複選），
+#   同時保留 reason_text 欄位讓填寫人補充細節。
+#   → 選項可統計、可交叉；文字可閱讀、可佐證。
+#
+# ★ 進公司後請和業務主管一起增刪這份清單（這是最值得花時間的一份設定）。
+# ============================================================
+
+# 判定結果（單選）
+verdicts:
+  - {code: "STAR",   zh: "暢銷",   note: "明顯優於同品類同季平均"}
+  - {code: "OK",     zh: "普通",   note: "符合預期"}
+  - {code: "SLOW",   zh: "滯銷",   note: "明顯落後，需檢討"}
+  - {code: "MIXED",  zh: "兩極",   note: "特定門市/客群很好，其他很差"}
+
+# 回饋來源（單選）
+sources:
+  - {code: "STORE",    zh: "門市店員回報"}
+  - {code: "SALES",    zh: "業務市調"}
+  - {code: "EC",       zh: "電商評論/退貨原因"}
+  - {code: "CS",       zh: "客服客訴"}
+  - {code: "VIP",      zh: "VIP客戶訪談"}
+  - {code: "BUYER",    zh: "採購/加盟主"}
+  - {code: "INTERNAL", zh: "內部設計/企劃判斷"}
+
+# ------------------------------------------------------------
+# 理由標籤（可複選，用 | 分隔多個代碼）
+# 分成六大類，因為「歸因到哪一層」決定了後續要改什麼：
+#   PRODUCT → 改設計 / 改版型
+#   FIT     → 改打版 / 改尺寸表
+#   PRICE   → 改成本結構 / 改定價
+#   SUPPLY  → 改採購 / 改備貨
+#   CHANNEL → 改陳列 / 改通路配比
+#   MARKET  → 改企劃時機 / 改行銷
+# ------------------------------------------------------------
+reason_tags:
+
+  PRODUCT:
+    name_zh: "商品設計面"
+    tags:
+      - {code: "P_COLOR_GOOD",   zh: "顏色討喜"}
+      - {code: "P_COLOR_BAD",    zh: "顏色不受歡迎"}
+      - {code: "P_PATTERN_GOOD", zh: "花色/格紋加分"}
+      - {code: "P_PATTERN_BAD",  zh: "花色太挑人"}
+      - {code: "P_DETAIL_GOOD",  zh: "細節工藝有質感"}
+      - {code: "P_DETAIL_BUSY",  zh: "細節太多顯雜亂"}
+      - {code: "P_TOO_PLAIN",    zh: "太素沒記憶點"}
+      - {code: "P_FABRIC_HAND",  zh: "布料手感佳"}
+      - {code: "P_FABRIC_THICK", zh: "布太厚/太悶"}
+      - {code: "P_FABRIC_THIN",  zh: "布太薄/透"}
+      - {code: "P_FABRIC_WRINKLE", zh: "易皺不好照顧"}
+      - {code: "P_MATCH_EASY",   zh: "好搭配（一衣多穿）"}
+      - {code: "P_MATCH_HARD",   zh: "難搭配"}
+      - {code: "P_STYLE_OFF",    zh: "風格偏離品牌調性"}
+
+  FIT:
+    name_zh: "版型合身度"
+    tags:
+      - {code: "F_FIT_GOOD",     zh: "版型合身修飾好"}
+      - {code: "F_TOO_TIGHT",    zh: "整體偏小/偏緊"}
+      - {code: "F_TOO_LOOSE",    zh: "整體偏大/鬆垮"}
+      - {code: "F_SHOULDER",     zh: "肩線位置不對"}
+      - {code: "F_WAIST_POS",    zh: "腰線位置不對"}
+      - {code: "F_CHEST",        zh: "胸圍卡/撐"}
+      - {code: "F_SLEEVE_LEN",   zh: "袖長不合"}
+      - {code: "F_BODY_LEN",     zh: "衣長不合（顯矮/顯胖）"}
+      - {code: "F_NECK_OPEN",    zh: "開領太大/太小"}
+      - {code: "F_HIP",          zh: "臀圍卡"}
+      - {code: "F_RISE",         zh: "股上/腰位不舒服"}
+      - {code: "F_SIZE_RANGE",   zh: "尺寸級距不足"}
+
+  PRICE:
+    name_zh: "價格與價值感"
+    tags:
+      - {code: "PR_WORTH",       zh: "價格帶合理、CP值高"}
+      - {code: "PR_TOO_HIGH",    zh: "定價偏高"}
+      - {code: "PR_LOOK_CHEAP",  zh: "價格與質感不符"}
+      - {code: "PR_COMPETITOR",  zh: "競品同款更便宜"}
+      - {code: "PR_DISCOUNT_ONLY", zh: "只在打折時才動"}
+
+  SUPPLY:
+    name_zh: "供貨與庫存"
+    tags:
+      - {code: "S_OOS_HOT",      zh: "熱賣但缺貨斷碼"}
+      - {code: "S_LATE",         zh: "到貨太晚錯過檔期"}
+      - {code: "S_OVERBUY",      zh: "備貨過量"}
+      - {code: "S_SIZE_BROKEN",  zh: "尺寸斷碼影響銷售"}
+      - {code: "S_COLOR_MIX",    zh: "顏色配比失衡"}
+      - {code: "S_QC",           zh: "品質瑕疵/退貨多"}
+
+  CHANNEL:
+    name_zh: "通路與陳列"
+    tags:
+      - {code: "C_DISPLAY_GOOD", zh: "陳列位置好/模特兒帶動"}
+      - {code: "C_DISPLAY_BAD",  zh: "陳列位置差沒被看到"}
+      - {code: "C_STAFF_PUSH",   zh: "店員主推"}
+      - {code: "C_STAFF_NOPUSH", zh: "店員不會賣/不熟悉"}
+      - {code: "C_EC_PHOTO",     zh: "電商照片呈現不佳"}
+      - {code: "C_STORE_MISMATCH", zh: "鋪貨門市客群不符"}
+
+  MARKET:
+    name_zh: "市場與時機"
+    tags:
+      - {code: "M_TREND_HIT",    zh: "踩中流行趨勢"}
+      - {code: "M_TREND_MISS",   zh: "流行已退燒"}
+      - {code: "M_SEASON_OFF",   zh: "上市時機與天氣錯配"}
+      - {code: "M_KOL",          zh: "KOL/藝人帶動"}
+      - {code: "M_COMPETITOR",   zh: "競品同期強勢"}
+      - {code: "M_EVENT",        zh: "檔期活動加持"}
+      - {code: "M_WEATHER",      zh: "氣候異常（暖冬/冷春）"}
+
+# ------------------------------------------------------------
+# 建議行動（診斷報告會自動對應，也可人工覆寫）
+# ------------------------------------------------------------
+actions:
+  - {code: "A_REORDER",    zh: "追加返單"}
+  - {code: "A_CARRYOVER",  zh: "列為常青款，下季延續"}
+  - {code: "A_REVISE_FIT", zh: "修版（打版調整）"}
+  - {code: "A_REVISE_FABRIC", zh: "換布/換克重"}
+  - {code: "A_REVISE_COLOR",  zh: "調整配色計畫"}
+  - {code: "A_REPRICE",    zh: "重新定價/調整成本"}
+  - {code: "A_RE_MERCH",   zh: "調整陳列與門市配比"}
+  - {code: "A_TRAIN",      zh: "門市銷售話術訓練"}
+  - {code: "A_DISCONTINUE", zh: "停產不再開發"}
+  - {code: "A_WATCH",      zh: "觀察，資料不足"}
+
+# ------------------------------------------------------------
+# 一致性檢查規則：資料怎麼說 vs 人怎麼說
+# diagnosis.py 會用這張表判斷「量化訊號」與「人工歸因」是否對得上，
+# 對不上的（衝突）才是最值得設計師花時間看的款。
+# ------------------------------------------------------------
+consistency_rules:
+  - rule: "資料判滯銷 + 人填 S_OOS_HOT"
+    verdict_data: "SLOW"
+    tag_any: ["S_OOS_HOT", "S_SIZE_BROKEN", "S_LATE"]
+    conclusion: "假滯銷：實為供貨問題，設計本身不需檢討"
+    action: "A_REORDER"
+  - rule: "資料判滯銷 + 人填版型問題"
+    verdict_data: "SLOW"
+    tag_any: ["F_TOO_TIGHT", "F_TOO_LOOSE", "F_SHOULDER", "F_WAIST_POS", "F_BODY_LEN", "F_NECK_OPEN", "F_RISE"]
+    conclusion: "真滯銷（版型歸因）：同款設計可保留，需修版重出"
+    action: "A_REVISE_FIT"
+  - rule: "資料判滯銷 + 人填價格問題"
+    verdict_data: "SLOW"
+    tag_any: ["PR_TOO_HIGH", "PR_COMPETITOR", "PR_LOOK_CHEAP", "PR_DISCOUNT_ONLY"]
+    conclusion: "真滯銷（價格歸因）：設計不需大改，重新檢討成本與定價"
+    action: "A_REPRICE"
+  - rule: "資料判滯銷 + 人填通路問題"
+    verdict_data: "SLOW"
+    tag_any: ["C_DISPLAY_BAD", "C_STAFF_NOPUSH", "C_EC_PHOTO", "C_STORE_MISMATCH"]
+    conclusion: "假滯銷：商品沒被看到，先調陳列再判生死"
+    action: "A_RE_MERCH"
+  - rule: "資料判暢銷 + 人填折扣才動"
+    verdict_data: "STAR"
+    tag_any: ["PR_DISCOUNT_ONLY"]
+    conclusion: "虛胖暢銷：銷量靠折扣換來，毛利需複查"
+    action: "A_REPRICE"
+  - rule: "資料判暢銷 + 人填品質問題"
+    verdict_data: "STAR"
+    tag_any: ["S_QC"]
+    conclusion: "高風險暢銷：退貨率可能吃掉獲利，追單前先解品質"
+    action: "A_WATCH"

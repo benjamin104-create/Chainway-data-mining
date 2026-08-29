@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chainway 服飾設計數據平台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">Chainway<span>服飾設計數據平台</span></div>
+  <nav id="nav">
+    <button data-view="dashboard" class="active">儀表板</button>
+    <button data-view="association">關聯分析</button>
+    <button data-view="visual">以圖搜款</button>
+    <button data-view="feedback">回饋登錄</button>
+    <button data-view="diagnosis">診斷</button>
+    <button data-view="pattern">版型研究</button>
+    <button data-view="sketch">線稿工作台</button>
+    <button data-view="plan">系列企劃</button>
+  </nav>
+  <div class="status" id="status">連線中…</div>
+</header>
+
+<main>
+
+<!-- ─────────────── 儀表板 ─────────────── -->
+<section id="view-dashboard" class="view active">
+  <h1>儀表板</h1>
+  <p class="lede">先確認資料涵蓋率。任何一項偏低，後面的結論都要打折扣看。</p>
+  <div class="kpis" id="kpis"></div>
+  <h2>績效分級分布</h2>
+  <div class="bands" id="bands"></div>
+  <h2>各季別 × 品類概況</h2>
+  <div id="summaryTable" class="tablewrap"></div>
+</section>
+
+<!-- ─────────────── 關聯分析 ─────────────── -->
+<section id="view-association" class="view">
+  <h1>設計特徵 × 銷售關聯</h1>
+  <p class="lede">哪些設計特徵和「進入暢銷/主力」有關。所有結論都附樣本數，n&lt;20 請當作假設。</p>
+  <div class="controls">
+    <label>品類 <select id="assocCat"><option value="">全部</option></select></label>
+    <label><input type="checkbox" id="assocSig" checked> 只看達統計顯著的</label>
+  </div>
+  <h2>關鍵發現</h2>
+  <div id="findings"></div>
+  <h2>完整關聯表</h2>
+  <div id="assocTable" class="tablewrap"></div>
+</section>
+
+<!-- ─────────────── 以圖搜款 ─────────────── -->
+<section id="view-visual" class="view">
+  <h1>以圖／以文 反查貨號</h1>
+  <p class="lede">上傳市調照、競品照、客人拍的照片，找出自家最相似的款，直接看到貨號、定價與歷史績效。</p>
+  <div class="panelrow">
+    <div class="panel">
+      <h3>上傳圖片搜尋</h3>
+      <div class="dropzone" id="searchDrop">
+        <p>把圖片拖進來，或點擊選擇</p>
+        <input type="file" id="searchFile" accept="image/*" hidden>
+      </div>
+      <img id="searchPreview" class="preview" hidden>
+    </div>
+    <div class="panel">
+      <h3>文字描述搜尋</h3>
+      <p class="hint">不用圖也能找，例如：高腰格紋百褶裙、立領長版風衣</p>
+      <div class="inline">
+        <input type="text" id="searchText" placeholder="輸入款式描述…">
+        <button id="searchTextBtn" class="primary">搜尋</button>
+      </div>
+    </div>
+  </div>
+  <div id="searchResults" class="cardgrid"></div>
+</section>
+
+<!-- ─────────────── ★ 回饋登錄 ─────────────── -->
+<section id="view-feedback" class="view">
+  <h1>市場回饋登錄</h1>
+  <p class="lede">
+    這裡是你自行填入「為什麼這款賣得好／賣不好」的地方。
+    量化數據只能算出「賣得好不好」，填了理由之後，系統才分得出
+    <b>真滯銷（設計問題）</b>、<b>假滯銷（缺貨或陳列問題）</b>、<b>虛胖暢銷（靠折扣換來的）</b>。
+  </p>
+
+  <div class="panelrow">
+    <div class="panel wide">
+      <h3>新增一筆回饋</h3>
+      <form id="fbForm">
+        <div class="grid2">
+          <label>貨號 <span class="req">*</span><input name="sku" required placeholder="CW24AW-TP-0135"></label>
+          <label>季別<input name="season" placeholder="2024AW"></label>
+          <label>品類<select name="category"><option value="">—</option></select></label>
+          <label>判定 <span class="req">*</span><select name="verdict" required></select></label>
+          <label>回饋來源 <span class="req">*</span><select name="source" required></select></label>
+          <label>把握度<select name="confidence">
+            <option value="HIGH">高</option><option value="MEDIUM" selected>中</option><option value="LOW">低</option>
+          </select></label>
+          <label>填寫人<input name="respondent" placeholder="王小美"></label>
+          <label>門市／區域<input name="store_or_region" placeholder="台北信義店"></label>
+          <label>調查日期<input name="survey_date" type="date"></label>
+          <label>建議行動<select name="suggested_action"><option value="">（讓系統推論）</option></select></label>
+        </div>
+
+        <fieldset class="tags">
+          <legend>理由標籤（可複選）<span class="req">*</span></legend>
+          <div id="tagGroups"></div>
+        </fieldset>
+
+        <label class="full">文字說明 <span class="req">*</span>
+          <textarea name="reason_text" rows="4" required
+            placeholder="請寫具體現象，不要只寫「不好賣」。例如：客人反映橫開領太寬，肩線容易滑掉；試穿率高但成交低。"></textarea>
+        </label>
+        <label class="full">後續備註
+          <textarea name="follow_up_note" rows="2" placeholder="例如：建議下季開領縮 1.5cm 並改薄一號克重"></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="submit" class="primary">儲存回饋</button>
+          <a href="/api/feedback/template" class="btn">下載發放用 Excel（含下拉選單）</a>
+        </div>
+        <p class="hint">儲存後會寫進 <code>data/feedback/sales_feedback.csv</code>。
+          要讓診斷與報告反映新資料，請重跑 <code>build → analyze</code>。</p>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>最需要補回饋的款</h3>
+      <p class="hint">績效極端（暢銷/滯銷）但目前沒有任何回饋的款，依影響金額排序。</p>
+      <div id="fbGaps" class="minilist"></div>
+    </div>
+  </div>
+
+  <h2>已登錄回饋</h2>
+  <div id="fbIssues"></div>
+  <div id="fbTable" class="tablewrap"></div>
+</section>
+
+<!-- ─────────────── 診斷 ─────────────── -->
+<section id="view-diagnosis" class="view">
+  <h1>交叉診斷</h1>
+  <p class="lede">資料算出來的績效 vs 現場填寫的理由。兩邊衝突的款最值得開會討論。</p>
+  <div class="kpis" id="diagStats"></div>
+  <div class="controls">
+    <label>優先度 <select id="diagPriority">
+      <option value="">全部</option><option value="HIGH">高</option>
+      <option value="MEDIUM">中</option><option value="LOW">低</option>
+    </select></label>
+  </div>
+  <div id="diagTable" class="tablewrap"></div>
+  <h2>抱怨理由 × 設計特徵 集中度</h2>
+  <p class="lede">把零散的門市抱怨，收斂成能寫進設計規範的證據。</p>
+  <div id="attrTable" class="tablewrap"></div>
+</section>
+
+<!-- ─────────────── 版型研究 ─────────────── -->
+<section id="view-pattern" class="view">
+  <h1>版型分析研究</h1>
+  <p class="lede">歷史暢銷款的版型比例落在哪個區間 —— 這張表可以直接發給版師當打版目標值。</p>
+  <div class="controls">
+    <label>品類 <select id="patCat"><option value="">全部</option></select></label>
+  </div>
+  <h2>甜蜜區間（打版目標值）</h2>
+  <div id="targetTable" class="tablewrap"></div>
+  <h2>歷年版型漂移</h2>
+  <p class="lede">用來抓「不知不覺越做越寬」這類慢性偏移。</p>
+  <div id="driftTable" class="tablewrap"></div>
+</section>
+
+<!-- ─────────────── ★ 線稿工作台 ─────────────── -->
+<section id="view-sketch" class="view">
+  <h1>線稿工作台</h1>
+  <p class="lede">
+    上傳市調照片或流行線條參考圖，系統會裁出重點區域、轉成線稿、輸出 SVG 與平塗彩現圖，
+    並抽出色票。<b>本機演算法產出的是「照片線條化」，適合當描圖底稿與細節參考；</b>
+    要得到乾淨對稱、可入 Tech Pack 的向量機械圖，請用下方產生的 prompt 交給生成式繪圖，或由設計師照描。
+  </p>
+  <div class="panelrow">
+    <div class="panel">
+      <h3>上傳市調圖</h3>
+      <div class="dropzone" id="sketchDrop">
+        <p>把圖片拖進來，或點擊選擇</p>
+        <input type="file" id="sketchFile" accept="image/*" hidden>
+      </div>
+      <label class="inline-check"><input type="checkbox" id="sketchAuto" checked> 自動挑重點區域</label>
+      <label>要抓幾個重點 <input type="number" id="sketchRegions" value="4" min="1" max="8"></label>
+    </div>
+    <div class="panel wide">
+      <h3>機械圖規格產生器</h3>
+      <p class="hint">選好結構 → 產生繁中規格書 + 英文繪圖 prompt。</p>
+      <div class="grid2" id="flatAttrs"></div>
+      <button id="flatBtn" class="primary">產生規格與 Prompt</button>
+      <pre id="flatOut" class="code" hidden></pre>
+    </div>
+  </div>
+  <div id="sketchResults"></div>
+</section>
+
+<!-- ─────────────── 企劃 ─────────────── -->
+<section id="view-plan" class="view">
+  <h1>系列企劃</h1>
+  <p class="lede">把分析結論變成「這一週開哪 10–15 款」。每個建議都附數據依據，設計師保留最後決定權。</p>
+  <div class="controls">
+    <label>週次 <input type="number" id="planWeek" value="1" min="1" max="52"></label>
+    <label>款數 <input type="number" id="planN" value="12" min="6" max="20"></label>
+    <button id="planBtn" class="primary">產生企劃</button>
+    <button id="planCopy" class="btn">複製 Markdown</button>
+  </div>
+  <div id="planOut"></div>
+</section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

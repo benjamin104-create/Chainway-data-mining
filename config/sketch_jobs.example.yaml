@@ -1,0 +1,58 @@
+# ============================================================
+# 市調圖線稿工作單範例
+# 執行：python -m chainway.cli sketch --jobs config/sketch_jobs.yaml
+#
+# box 座標是 0–1 的相對比例：(x1, y1, x2, y2)，左上角為 (0,0)。
+# 不確定要框哪裡時，先跑一次 --auto 讓系統挑，再回來把數字抄進這裡微調。
+# ============================================================
+
+jobs:
+  - id: "2026SS_街拍_立領工裝襯衫"
+    image: "街拍/milan_0312.jpg"        # 相對於 paths.market_research
+    title: "米蘭街拍 — 立領工裝襯衫細節"
+    category: "TOP"
+    fabric: "woven_crisp"
+    attributes:
+      collar: "stand_collar"
+      sleeve: "long_sleeve"
+      silhouette_top: "straight"
+      closure: "buttons"
+      detail_top: "pocket_patch"
+      pattern: "solid"
+    application: |
+      這個立領高度（約 4cm）比我們現行襯衫版高 1cm，視覺上拉長頸線，
+      適合套用到 2026SS 通勤襯衫系列。建議先在既有 CW25SS-SH-01 版型上改領座試版。
+    regions:
+      - {box: [0.28, 0.05, 0.72, 0.34], label: "領口與領座"}
+      - {box: [0.10, 0.34, 0.55, 0.62], label: "胸袋與門襟壓線"}
+      - {box: [0.55, 0.55, 0.95, 0.85], label: "袖口開衩"}
+    notes:
+      - {region: "領口與領座", point: [0.50, 0.30], label: "領座高度",
+         note: "約 4cm，比現行版高 1cm，可拉長頸線"}
+      - {region: "領口與領座", point: [0.62, 0.55], label: "第一顆釦位",
+         note: "下移 1.5cm，開領更俐落，露鎖骨但不失禮"}
+      - {region: "胸袋與門襟壓線", point: [0.35, 0.42], label: "門襟壓線",
+         note: "雙明線 0.6cm，建議沿用我們慣用的車縫規格"}
+      - {region: "袖口開衩", point: [0.48, 0.50], label: "劍型袖衩",
+         note: "長度 14cm，比一般長 2cm，捲袖時線條較好看"}
+
+  - id: "2026SS_流行線條_A字裙擺"
+    image: "趨勢版/ss26_skirt_line.png"
+    title: "流行線條 — A 字裙擺弧度"
+    category: "BOTTOM_SKIRT"
+    fabric: "woven_drape"
+    attributes:
+      skirt_shape: "a_line"
+      skirt_length: "midi"
+      waist_rise: "high_rise"
+      detail_bottom: "pleats"
+      pattern: "check"
+    application: |
+      裙擺展開角度較我們現行版大約 8 度，落在 midi 長度時垂墜感更好。
+      注意：格紋面料要對格，斜裁角度不要超過 15 度，否則對格困難、耗布率上升。
+    regions:
+      - {box: [0.15, 0.10, 0.85, 0.90], label: "整體廓形"}
+    notes:
+      - {point: [0.50, 0.20], label: "腰頭", note: "高腰 4cm 直腰頭，前中不打褶"}
+      - {point: [0.30, 0.75], label: "裙擺角度", note: "展開角較現行版大 8 度"}
+      - {point: [0.70, 0.55], label: "對格基準", note: "側縫需對格，標示前中對位線"}
