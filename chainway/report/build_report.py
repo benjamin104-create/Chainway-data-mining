@@ -103,6 +103,7 @@ def build_html(
     sweet: pd.DataFrame,
     join_audit: pd.DataFrame,
     cfg: Config | None = None,
+    commercial_tables: dict[str, pd.DataFrame] | None = None,
 ) -> str:
     cfg = cfg or get_config()
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -137,6 +138,37 @@ def build_html(
                    '請填寫 <code>data/feedback/sales_feedback.csv</code>，或用網頁後台的「回饋登錄」頁，'
                    '再重跑一次分析 —— 診斷章節會自動生效。</div>')
 
+    ct = commercial_tables or {}
+    no_image = n_img == 0
+    image_note = ("" if not no_image else
+                  '<div class="note"><b>目前沒有影像特徵。</b>第三、四節（設計特徵關聯、版型甜蜜區間）'
+                  '需要系統圖與裁縫指示書才會有內容。下方第二節的商業分析只用 POS 就能成立，'
+                  '兩者互相獨立，影像進來之後這些結論不會作廢。</div>')
+
+    def sec(title: str, key: str, lede: str = "", max_rows: int = 60) -> str:
+        df = ct.get(key)
+        if df is None or df.empty:
+            return ""
+        return (f"<h3>{title}</h3>"
+                + (f'<p class="sub">{lede}</p>' if lede else "")
+                + _table(df, max_rows))
+
+    commercial_html = "".join([
+        sec("2.1 排除稽核（先看這個）", "排除稽核",
+            "被排除的款與原因。排除規則若有錯，後面所有數字都會偏。"),
+        sec("2.2 產品線：經典格紋 vs 一般", "產品線",
+            "格紋是品牌核心，貨號本身即標明產品線，不需要影像判讀。"),
+        sec("2.3 ★ 上市時機的影響", "時機影響",
+            "同一品類在不同月份入庫的表現差距。差距大代表排期比設計更關鍵。"),
+        sec("2.4 上市月份明細", "上市月份", "", 80),
+        sec("2.5 定價帶", "定價帶", "各品類分開切，因為外套與 T 恤的價格帶本來就不同。"),
+        sec("2.6 同一設計跨季重出", "改番號家族",
+            "設計、定價、設計師都相同，只有季節不同 —— 最接近自然實驗的一組對照。"),
+        sec("2.7 設計師", "設計師",
+            "⚠️ 款數與品類組成差異很大，不可直接讀成「誰比較會設計」。"
+            "各人的品類組成一併列出，供判斷可比性。"),
+    ])
+
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>服飾設計特徵 × 銷售關聯分析報告</title><style>{CSS}</style></head><body><div class="wrap">
@@ -144,7 +176,13 @@ def build_html(
 <h1>服飾設計特徵 × 銷售關聯分析報告</h1>
 <p class="sub">{html.escape(cfg.get('project', {}).get('name', ''))}　·　產出時間 {now}</p>
 {_cards(stats)}
+{image_note}
 {fb_note}
+
+<h2>二之前、商業分析（只用 POS，不需影像）</h2>
+<p class="sub">貨號本身已帶品類、產品線與季別，加上報表的定價、設計師、入庫日，
+不必等影像就能回答一批具體問題。</p>
+{commercial_html or '<p class="sub">（無資料）</p>'}
 
 <h2>一、資料涵蓋與串接品質</h2>
 <p class="sub">先看這一節。任何一個環節命中率偏低，後面的結論就要打折扣。</p>

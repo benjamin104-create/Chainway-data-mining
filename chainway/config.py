@@ -42,6 +42,16 @@ def is_absolute_path(raw: str | os.PathLike[str]) -> bool:
     return bool(_WIN_DRIVE_RE.match(s) or _UNC_RE.match(s)) or Path(s).is_absolute()
 
 
+def _is_foreign_windows_path(p: Path) -> bool:
+    """這是 Windows 磁碟機路徑，但目前不是在 Windows 上跑。
+
+    Linux/macOS 無法把 "C:/Users/..." 表示成絕對路徑，直接拿去 mkdir 會在
+    工作目錄底下生出一個名為 "C:" 的相對目錄，資料靜靜地寫到錯的地方。
+    這種錯不會報例外，只會讓人以為程式跑過了。
+    """
+    return os.name != "nt" and bool(_WIN_DRIVE_RE.match(str(p)))
+
+
 def _resolve(raw: str | os.PathLike[str], base: Path | None = None) -> Path:
     """把設定檔裡的一個路徑字串解析成 Path。
 
@@ -100,7 +110,23 @@ class Config:
         """
         for key in OUTPUT_PATH_KEYS:
             if key in self.paths:
-                self.paths[key].mkdir(parents=True, exist_ok=True)
+                p = self.paths[key]
+                if _is_foreign_windows_path(p):
+                    continue
+                p.mkdir(parents=True, exist_ok=True)
+
+    def platform_warnings(self) -> list[str]:
+        """設定的路徑與目前作業系統不相容時的警告。"""
+        out = []
+        for key, p in self.paths.items():
+            if _is_foreign_windows_path(p):
+                out.append(
+                    f"paths.{key} 是 Windows 磁碟機路徑（{p}），但目前不是在 Windows 上執行。"
+                    "\n  這個路徑在此系統會被當成相對路徑，資料讀不到、產出也會落在錯的地方。"
+                    "\n  若你是在 WSL 或 Mac 上跑，請改用該系統看得到的路徑"
+                    "（WSL 為 /mnt/c/...）。")
+                break
+        return out
 
     @property
     def root(self) -> Path | None:

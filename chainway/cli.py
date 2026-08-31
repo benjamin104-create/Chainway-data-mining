@@ -41,6 +41,10 @@ def _warn(msg: str) -> None:
 def cmd_doctor(args) -> int:
     cfg = get_config()
 
+    for w in cfg.platform_warnings():
+        _warn(w)
+        print()
+
     print("\n【1】資料夾檢查")
     root = cfg.root
     if root is not None:
@@ -361,18 +365,33 @@ def cmd_analyze(args) -> int:
         print(f"    回饋涵蓋率 {stats['feedback_coverage']:.0%}｜衝突 {stats['conflicts']} 款"
               f"｜假滯銷 {stats['false_slow']} 款｜真滯銷 {stats['true_slow']} 款")
 
-    print("[6/6] 產生報告…")
+    print("[6/6] 商業分析與報告…")
+    from .analysis import commercial
+    timing = commercial.launch_timing_report(master, cfg)
+    commercial_tables = {
+        "排除稽核": commercial.exclusion_audit(master, cfg),
+        "產品線": commercial.product_line_report(master, cfg),
+        "上市月份": timing,
+        "時機影響": commercial.timing_impact(timing),
+        "定價帶": commercial.price_band_report(master, cfg),
+        "設計師": commercial.designer_report(master, cfg),
+        "改番號家族": pattern.reissue_families(master, cfg),
+    }
+    hits = {k: len(v) for k, v in commercial_tables.items() if v is not None and not v.empty}
+    _ok("商業分析：" + "、".join(f"{k} {n} 列" for k, n in hits.items()))
+
     perf_summary = performance.summary_by_group(master, cfg)
     audit_path = cfg.path("processed") / "join_audit.csv"
     join_audit = pd.read_csv(audit_path) if audit_path.exists() else pd.DataFrame()
 
     html_str = rep.build_html(master, perf_summary, assoc, findings, numeric, importance,
-                              diag, attribution, sweet, join_audit, cfg)
+                              diag, attribution, sweet, join_audit, cfg, commercial_tables)
     tables = {
         "關鍵發現": findings, "屬性關聯": assoc, "版型相關": numeric,
         "特徵重要度": importance, "版型甜蜜區間": targets, "版型漂移": drift,
         "逐款診斷": diag, "理由×特徵": attribution, "待補回饋": gaps,
         "績效概況": perf_summary, "串接稽核": join_audit,
+        **commercial_tables,
     }
     html_path, xlsx_path = rep.save_report(html_str, tables, cfg)
     _ok(f"HTML  {html_path}")
