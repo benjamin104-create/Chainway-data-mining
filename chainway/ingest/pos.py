@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..config import Config, get_config
+from .images import _is_ignored
 
 # 標準欄位 → 可能出現的來源欄位名（比對時忽略大小寫、空白、全半形）
 COLUMN_ALIASES: dict[str, list[str]] = {
@@ -79,19 +80,30 @@ def load_pos(cfg: Config | None = None, root: Path | None = None) -> tuple[pd.Da
     讓你一眼看出哪一年的報表格式需要在 COLUMN_ALIASES 補一筆。
     """
     cfg = cfg or get_config()
-    root = root or cfg.path("pos")
-    if not root.exists():
+    roots = [root] if root is not None else cfg.path_list("pos")
+    existing = [r for r in roots if r.exists()]
+    if not existing:
         raise FileNotFoundError(
-            f"POS 資料夾不存在：{root}\n請在 config/settings.yaml 的 paths.pos 填入公司實際路徑。"
+            "POS 資料夾都不存在：\n  " + "\n  ".join(str(r) for r in roots) +
+            "\n請在 config/settings.yaml 的 paths.pos 填入實際路徑。"
         )
 
     frames: list[pd.DataFrame] = []
     audit_rows: list[dict] = []
 
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in EXCEL_EXTS:
+    files = [p for base in existing for p in sorted(base.rglob("*"))
+             if p.is_file() and p.suffix.lower() in EXCEL_EXTS and not _is_ignored(p, base)]
+    for path in files:
+        try:
+            sheets = _read_any(path)
+        except Exception as exc:   # 壞檔、加密檔不該讓整批匯入中斷
+            audit_rows.append({
+                "file": path.name, "sheet": "", "rows": 0, "status": "ERROR",
+                "note": f"無法開啟：{type(exc).__name__}: {exc}"[:200],
+                "mapped": "", "unmapped": "",
+            })
             continue
-        for sheet, raw in _read_any(path).items():
+        for sheet, raw in sheets.items():
             renamed, mapping, unmapped = map_columns(raw)
             if "sku" not in mapping:
                 audit_rows.append({

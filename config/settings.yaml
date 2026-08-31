@@ -24,19 +24,40 @@ project:
 # 產出類（interim/processed/outputs/feedback）一律留在專案內，
 #         不會寫進你的 root，避免汙染原始資料夾。
 # ------------------------------------------------------------
+# 每一項都可以填「單一資料夾」或「資料夾清單」。同一種資料散在多個
+# 資料夾是常態，填清單就好，不需要為了配合程式去搬檔案。
+#
+# ⚠️ 這裡設定的資料夾一律「只讀不寫」。程式不會修改、移動或刪除你的任何原始檔，
+#    也不會碰 .agents / AGENTS.md / INDEX.md / Codex skill 這些既有的工具設定。
 paths:
   # 你的原始資料根目錄（不使用時整行註解掉，會退回專案內的 data/raw/）
   root: "C:/Users/USER/Desktop/商品設計Raw Data"
 
-  # 以下五項是 root 底下的子資料夾名稱（依你實際的命名調整即可）
-  system_images: "系統圖"          # 去背商品照，檔名 = 貨號
-  tech_packs: "裁縫指示書"          # PDF / 掃描圖 / Excel 尺寸表
-  pos: "POS銷售數據"               # 進銷存 Excel（可多檔，分季）
-  market_research: "市場調研"       # 市調照片 / 流行線條參考圖
-  knowledge: "設計知識"             # 服裝設計專業知識文件
+  # ── 已確認（2026-08 依實際資料夾截圖）─────────────────────
+  system_images: "系統圖"           # ✓ 就在根目錄
+  tech_packs: "裁縫指示書"           # ✓ 就在根目錄
 
-  # 產出類：相對路徑一律相對於專案根目錄，不受 root 影響
-  feedback: "data/feedback"        # ★ 人工填寫的暢銷/滯銷理由
+  # ── 待確認：以下三項的實際位置我還沒看到，先列出可能的候選 ──
+  #    確認方式：執行 `python -m chainway.cli doctor`，
+  #    它會列出實際存在／不存在的資料夾與檔案數，照結果刪掉不對的那幾行即可。
+  pos:                              # 進銷存 Excel（可多檔，分季）
+    - "00_核心資料"
+    - "01_商品"
+  market_research:                  # 市調照片 / 流行線條 / 趨勢參考
+    - "新格紋"
+    - "02_行銷"
+    - "05_案例"
+    - "電子目錄"
+  knowledge:                        # 服裝設計專業知識文件
+    - "00_核心資料"
+    - "04_企劃"
+
+  # 掃描時會自動略過：tmp、.agents 等以點開頭的資料夾、~$ 暫存檔、
+  # Thumbs.db / desktop.ini。「Codex skill」若不想被掃到，
+  # 就不要把它列進上面任何一項即可。
+
+  # ── 產出類：固定在專案內，不受 root 影響，不會寫進你的資料夾 ──
+  feedback: "data/feedback"         # ★ 人工填寫的暢銷/滯銷理由
   interim: "data/interim"
   processed: "data/processed"
   outputs: "data/outputs"

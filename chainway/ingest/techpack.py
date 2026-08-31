@@ -19,7 +19,7 @@ from typing import Any
 import pandas as pd
 
 from ..config import Config, get_config
-from .images import parse_sku
+from .images import _is_ignored, parse_sku
 
 DOC_EXTS = {".xlsx", ".xlsm", ".xls", ".csv", ".pdf", ".png", ".jpg", ".jpeg"}
 _NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
@@ -119,30 +119,31 @@ def _from_image_ocr(path: Path, alias_idx: dict[str, str]) -> dict[str, float]:
 
 def load_tech_packs(cfg: Config | None = None, root: Path | None = None) -> pd.DataFrame:
     cfg = cfg or get_config()
-    root = root or cfg.path("tech_packs")
-    if not root.exists():
+    roots = [root] if root is not None else cfg.path_list("tech_packs")
+    existing = [r for r in roots if r.exists()]
+    if not existing:
         raise FileNotFoundError(
-            f"裁縫指示書資料夾不存在：{root}\n"
-            "請在 config/settings.yaml 的 paths.tech_packs 填入公司實際路徑。"
+            "裁縫指示書資料夾都不存在：\n  " + "\n  ".join(str(r) for r in roots) +
+            "\n請在 config/settings.yaml 的 paths.tech_packs 填入實際路徑。"
         )
 
     alias_idx = _alias_index(cfg)
     rows: list[dict[str, Any]] = []
 
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in DOC_EXTS:
-            continue
+    files = [p for base in existing for p in sorted(base.rglob("*"))
+             if p.is_file() and p.suffix.lower() in DOC_EXTS and not _is_ignored(p, base)]
+    for path in files:
         sku, style_code = parse_sku(path.stem, cfg)
         suffix = path.suffix.lower()
-        if suffix in {".xlsx", ".xlsm", ".xls", ".csv"}:
-            values = _from_table_file(path, alias_idx)
-            method = "table"
-        elif suffix == ".pdf":
-            values = _from_pdf(path, alias_idx)
-            method = "pdf"
-        else:
-            values = _from_image_ocr(path, alias_idx)
-            method = "ocr"
+        try:
+            if suffix in {".xlsx", ".xlsm", ".xls", ".csv"}:
+                values, method = _from_table_file(path, alias_idx), "table"
+            elif suffix == ".pdf":
+                values, method = _from_pdf(path, alias_idx), "pdf"
+            else:
+                values, method = _from_image_ocr(path, alias_idx), "ocr"
+        except Exception as exc:   # 單一份壞掉的指示書不該中斷整批
+            values, method = {}, f"error:{type(exc).__name__}"
 
         rows.append({
             "sku": sku, "style_code": style_code,

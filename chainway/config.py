@@ -62,6 +62,7 @@ class Config:
     taxonomy: dict[str, Any]
     feedback_tags: dict[str, Any]
     paths: dict[str, Path] = field(default_factory=dict)
+    path_lists: dict[str, list[Path]] = field(default_factory=dict)
 
     # -- 便利存取 ------------------------------------------------
     def __getitem__(self, key: str) -> Any:
@@ -71,9 +72,24 @@ class Config:
         return self.settings.get(key, default)
 
     def path(self, key: str) -> Path:
+        """該來源的主要資料夾（設定成多個時取第一個）。
+
+        寫入用途（例如網頁上傳的市調圖）一律用這個，才不會不知道要寫進哪一個。
+        """
         if key not in self.paths:
             raise KeyError(f"settings.yaml 的 paths 沒有定義 '{key}'")
         return self.paths[key]
+
+    def path_list(self, key: str) -> list[Path]:
+        """該來源的所有資料夾。
+
+        一種資料散在多個資料夾是常態（例如市調圖同時放在「新格紋」和
+        「02_行銷」底下），所以 settings.yaml 的每個來源都可以填成清單。
+        讀取用途一律用這個，使用者才不必為了配合程式去搬檔案。
+        """
+        if key in self.path_lists:
+            return self.path_lists[key]
+        return [self.paths[key]] if key in self.paths else []
 
     def ensure_dirs(self) -> None:
         """輸出用目錄不存在就建立。
@@ -91,21 +107,24 @@ class Config:
         return self.paths.get("root")
 
     def describe_paths(self) -> list[dict[str, Any]]:
-        """列出每個路徑的解析結果與存在狀態，供 doctor 與錯誤訊息使用。"""
+        """列出每個路徑的解析結果與存在狀態，供 doctor 與錯誤訊息使用。
+
+        一個來源設定成多個資料夾時，每個資料夾各佔一列。
+        """
         out: list[dict[str, Any]] = []
-        for key in list(SOURCE_PATH_KEYS) + sorted(OUTPUT_PATH_KEYS):
+        for key in SOURCE_KEY_ORDER + sorted(OUTPUT_PATH_KEYS):
             if key not in self.paths:
                 continue
-            p = self.paths[key]
-            exists = p.exists()
-            n_files = sum(1 for f in p.rglob("*") if f.is_file()) if exists else 0
-            out.append({
-                "key": key,
-                "kind": "來源" if key in SOURCE_PATH_KEYS else "產出",
-                "path": p,
-                "exists": exists,
-                "n_files": n_files,
-            })
+            for p in self.path_list(key):
+                exists = p.exists()
+                n_files = sum(1 for f in p.rglob("*") if f.is_file()) if exists else 0
+                out.append({
+                    "key": key,
+                    "kind": "來源" if key in SOURCE_PATH_KEYS else "產出",
+                    "path": p,
+                    "exists": exists,
+                    "n_files": n_files,
+                })
         return out
 
     # -- taxonomy 展開 -------------------------------------------
@@ -160,9 +179,8 @@ class Config:
 
 
 # 這幾個是「公司原始資料」，相對路徑會接在 paths.root 底下。
-SOURCE_PATH_KEYS = frozenset({
-    "system_images", "tech_packs", "pos", "market_research", "knowledge",
-})
+SOURCE_KEY_ORDER = ["system_images", "tech_packs", "pos", "market_research", "knowledge"]
+SOURCE_PATH_KEYS = frozenset(SOURCE_KEY_ORDER)
 # 其餘（中繼檔、產出、回饋表）一律留在專案內，不去汙染使用者的原始資料夾。
 OUTPUT_PATH_KEYS = frozenset({"interim", "processed", "outputs", "feedback"})
 
@@ -179,12 +197,23 @@ def get_config(config_dir: str | None = None) -> Config:
     root = _resolve(raw_root) if raw_root else None
 
     paths: dict[str, Path] = {}
+    path_lists: dict[str, list[Path]] = {}
     for key, value in raw_paths.items():
+        if value is None:
+            continue
         base = root if (key in SOURCE_PATH_KEYS and root is not None) else None
-        paths[key] = _resolve(value, base)
+        # 每個來源都接受「單一字串」或「字串清單」兩種寫法
+        items = value if isinstance(value, (list, tuple)) else [value]
+        resolved = [_resolve(v, base) for v in items if str(v).strip()]
+        if not resolved:
+            continue
+        path_lists[key] = resolved
+        paths[key] = resolved[0]
     if root is not None:
         paths["root"] = root
+        path_lists["root"] = [root]
 
-    cfg = Config(settings=settings, taxonomy=taxonomy, feedback_tags=feedback_tags, paths=paths)
+    cfg = Config(settings=settings, taxonomy=taxonomy, feedback_tags=feedback_tags,
+                 paths=paths, path_lists=path_lists)
     cfg.ensure_dirs()
     return cfg

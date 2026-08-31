@@ -216,8 +216,12 @@ def image(path: str):
     """安全地回傳系統圖：只允許讀取設定中的資料夾底下的檔案。"""
     cfg = get_config()
     target = Path(path).resolve()
-    allowed = [cfg.path(k).resolve() for k in ("system_images", "market_research", "outputs", "tech_packs")]
-    if not any(str(target).startswith(str(a)) for a in allowed):
+    allowed = [p.resolve()
+               for k in ("system_images", "market_research", "outputs", "tech_packs")
+               for p in cfg.path_list(k)]
+    # 用 is_relative_to 而非字串前綴比對：字串比對會讓 /data/outputs_secret
+    # 這種同前綴但不同層的目錄通過檢查。
+    if not any(target == a or target.is_relative_to(a) for a in allowed):
         raise HTTPException(403, "路徑不在允許範圍內")
     if not target.exists():
         raise HTTPException(404, "檔案不存在")
