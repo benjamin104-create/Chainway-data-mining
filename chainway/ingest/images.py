@@ -46,9 +46,11 @@ class ImageRecord:
     style_code: str
     view: str
     folder: str
-    season_code: str      # KA 季號（從所在資料夾推得），查不到為空字串
+    season_code: str      # KA 季號（以貨號為準），查不到為空字串
     season: str           # 可讀季別，例如 "2024秋"
     season_group: str     # "AW" / "SS"
+    folder_season_code: str  # 所在資料夾的季號
+    misfiled: bool        # 貨號季號與資料夾季號不一致（跨季存放）
 
 
 def parse_sku(stem: str, cfg: Config) -> tuple[str, str]:
@@ -98,9 +100,14 @@ def scan_images(cfg: Config | None = None, root: Path | None = None) -> pd.DataF
                 stem_for_sku = stem
             sku, style_code = parse_sku(stem_for_sku, cfg)
             folder = str(path.parent.relative_to(base)) if path.parent != base else ""
-            # 系統圖依季號分資料夾，所以季別優先看資料夾，其次看檔名
-            season_code = cfg.find_season_code(folder) or cfg.find_season_code(path.name) or ""
+            # 季別一律以「貨號本身」為準，資料夾只是備援。
+            # 實際資料夾裡會混放別季的檔（例如 KA1559033 放在 KA158 資料夾），
+            # 若以資料夾為準會把它貼成 2026夏，實際是 2026秋。
+            # INDEX.md 也明講「不要只依頂層季號判定」。
+            season_code = cfg.find_season_code(sku) or cfg.find_season_code(folder) or ""
             info = cfg.season_from_code(season_code) if season_code else None
+            folder_code = cfg.find_season_code(folder) or ""
+            misfiled = bool(folder_code and season_code and folder_code != season_code)
             records.append(
                 ImageRecord(
                     image_path=str(path),
@@ -112,6 +119,8 @@ def scan_images(cfg: Config | None = None, root: Path | None = None) -> pd.DataF
                     season_code=season_code,
                     season=info["label"] if info else "",
                     season_group=info["group"] if info else "",
+                    folder_season_code=folder_code,
+                    misfiled=misfiled,
                 )
             )
 

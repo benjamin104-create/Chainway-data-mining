@@ -39,8 +39,19 @@ class JoinAudit:
 
 
 def _dedupe_on(df: pd.DataFrame, key: str) -> pd.DataFrame:
-    """同一個 key 多列時只留第一列，避免 join 後列數爆炸。"""
-    return df.drop_duplicates(subset=[key], keep="first")
+    """同一個 key 多列時只留一列，避免 join 後列數爆炸。
+
+    指示書一個貨號常有兩份（原始單 + `_追加` 補單）。以「抽到的尺寸欄位較多」
+    為優先，其次取原始單 —— 追加單常只寫異動處，尺寸多半不完整。
+    """
+    d = df
+    if "techpack_variant" in d.columns:
+        d = d.assign(_is_base=(d["techpack_variant"].fillna("") == ""))
+        sort_cols = [c for c in ("extract_fields", "_is_base") if c in d.columns]
+        if sort_cols:
+            d = d.sort_values(sort_cols, ascending=False)
+        d = d.drop(columns=["_is_base"])
+    return d.drop_duplicates(subset=[key], keep="first")
 
 
 def build_master(

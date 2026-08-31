@@ -318,6 +318,86 @@ def _from_image_ocr(path: Path, alias_idx: dict[str, str], cfg: Config) -> dict[
     return _extract(rows, alias_idx, cfg)
 
 
+def _variant_of(stem: str, sku: str) -> str:
+    """檔名在貨號之後多帶的字樣，例如 KA1581001_追加 → 「追加」。
+
+    同一個貨號會有原始單與追加單兩份。追加單是後來的補單，
+    規格可能已修改。兩份都保留，不要靜默只取一份。
+    """
+    rest = stem.replace(sku, "", 1).strip(" _-()（）")
+    return rest[:20]
+
+
+# 內嵌圖的粗略分類。純屬啟發式：實際指示書裡有繡花圖稿、打樣照片、
+# 布樣、核可章等混在一起，沒有欄位標明哪張是哪種，只能從尺寸與格式猜。
+def _guess_image_kind(width: int, height: int, fmt: str, n_colors: int | None) -> str:
+    ratio = width / max(height, 1)
+    if fmt.lower() in ("jpeg", "jpg") and max(width, height) >= 600:
+        return "打樣照片"
+    if max(width, height) < 360 and 0.3 <= ratio <= 2.5:
+        return "布樣"
+    if ratio >= 2.0 and max(width, height) >= 400:
+        return "圖稿/說明"
+    if n_colors is not None and n_colors <= 8 and max(width, height) < 600:
+        return "章戳/標記"
+    return "其他"
+
+
+def extract_techpack_images(path: str | Path, out_dir: str | Path,
+                            sku: str | None = None) -> pd.DataFrame:
+    """把 xlsx 指示書裡的內嵌圖抽出來。
+
+    實際指示書每份含約 10 張圖：繡花圖稿（附線色規格）、打樣照片、
+    布樣、「可生產大貨」核可章。這些比 CLIP 從商品照猜出來的資訊可靠得多 ——
+    布樣是實際布料的照片，繡花圖稿直接寫明線色編號。
+
+    回傳每張圖的路徑與基本資訊。分類欄位是啟發式猜測，需要人工覆核。
+    """
+    import io
+    import zipfile
+
+    path = Path(path)
+    out_dir = Path(out_dir)
+    if path.suffix.lower() not in (".xlsx", ".xlsm"):
+        return pd.DataFrame()   # 舊版 .xls 不是 zip 容器，抽不出來
+
+    sku = sku or path.stem
+    dest = out_dir / sku
+    rows: list[dict[str, Any]] = []
+    try:
+        zf = zipfile.ZipFile(path)
+    except (zipfile.BadZipFile, OSError):
+        return pd.DataFrame()
+
+    with zf:
+        names = [n for n in zf.namelist() if "/media/" in n.lower()]
+        if not names:
+            return pd.DataFrame()
+        dest.mkdir(parents=True, exist_ok=True)
+        for name in sorted(names):
+            data = zf.read(name)
+            target = dest / Path(name).name
+            target.write_bytes(data)
+            w = h = 0
+            fmt = Path(name).suffix.lstrip(".")
+            n_colors = None
+            try:
+                from PIL import Image
+                im = Image.open(io.BytesIO(data))
+                w, h = im.size
+                fmt = (im.format or fmt).lower()
+                if im.mode == "P":
+                    n_colors = len(im.getcolors(4096) or [])
+            except Exception:
+                pass    # .wdp 這類格式 PIL 開不了，仍保留檔案
+            rows.append({
+                "sku": sku, "image_path": str(target), "file_name": target.name,
+                "width": w, "height": h, "format": fmt, "bytes": len(data),
+                "kind_guess": _guess_image_kind(w, h, fmt, n_colors) if w else "無法解析",
+            })
+    return pd.DataFrame(rows)
+
+
 def load_tech_packs(cfg: Config | None = None, root: Path | None = None) -> pd.DataFrame:
     cfg = cfg or get_config()
     roots = [root] if root is not None else cfg.path_list("tech_packs")
@@ -335,6 +415,7 @@ def load_tech_packs(cfg: Config | None = None, root: Path | None = None) -> pd.D
              if p.is_file() and p.suffix.lower() in DOC_EXTS and not _is_ignored(p, base)]
     for path in files:
         sku, style_code = parse_sku(path.stem, cfg)
+        variant = _variant_of(path.stem, sku)
         suffix = path.suffix.lower()
         try:
             if suffix in {".xlsx", ".xlsm", ".xls", ".csv"}:
@@ -348,7 +429,7 @@ def load_tech_packs(cfg: Config | None = None, root: Path | None = None) -> pd.D
 
         size_codes = {f["code"] for f in cfg.taxonomy.get("measurements", {}).get("fields", [])}
         rows.append({
-            "sku": sku, "style_code": style_code,
+            "sku": sku, "style_code": style_code, "techpack_variant": variant,
             "techpack_path": str(path), "extract_method": method,
             "extract_fields": sum(1 for k in values if k in size_codes), **values,
         })

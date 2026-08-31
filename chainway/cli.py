@@ -201,7 +201,25 @@ def cmd_ingest(args) -> int:
             cov = techpack.coverage_report(tp_df, cfg)
             cov.to_csv(interim / "techpack_coverage.csv", index=False, encoding="utf-8-sig")
             _ok(f"{len(tp_df)} 份指示書，平均抽出 {tp_df['extract_fields'].mean():.1f} 個尺寸欄位")
+            if "techpack_variant" in tp_df.columns:
+                extra = tp_df[tp_df["techpack_variant"].fillna("") != ""]
+                if len(extra):
+                    _ok(f"其中 {len(extra)} 份是追加/補單（合併時以尺寸較完整者為準）")
             print(cov.head(8).to_string(index=False))
+
+            if args.extract_images:
+                print("\n[3b] 抽取指示書內嵌圖（繡花圖稿／布樣／打樣照）…")
+                img_dir = cfg.path("outputs") / "techpack_images"
+                frames = [techpack.extract_techpack_images(r["techpack_path"], img_dir, r["sku"])
+                          for _, r in tp_df.iterrows()]
+                frames = [f for f in frames if not f.empty]
+                if frames:
+                    imgs = pd.concat(frames, ignore_index=True)
+                    imgs.to_csv(interim / "techpack_images.csv", index=False, encoding="utf-8-sig")
+                    _ok(f"{len(imgs)} 張圖 → {img_dir}")
+                    print(imgs["kind_guess"].value_counts().to_string())
+                else:
+                    _warn("沒有抽到內嵌圖（舊版 .xls 不是 zip 容器，抽不出來）")
     except FileNotFoundError as e:
         _warn(str(e))
 
@@ -465,7 +483,10 @@ def main(argv: list[str] | None = None) -> int:
     sc.add_argument("--yes", action="store_true", help="根目錄不存在時也一併建立")
     sc.set_defaults(func=cmd_scaffold)
 
-    sub.add_parser("ingest", help="讀取 POS / 系統圖 / 裁縫指示書").set_defaults(func=cmd_ingest)
+    ing = sub.add_parser("ingest", help="讀取 POS / 系統圖 / 裁縫指示書")
+    ing.add_argument("--extract-images", action="store_true",
+                     help="一併抽出指示書內嵌的繡花圖稿、布樣與打樣照")
+    ing.set_defaults(func=cmd_ingest)
 
     e = sub.add_parser("embed", help="Fashion-CLIP 向量與屬性標註")
     e.add_argument("--no-cache", action="store_true", help="忽略快取重新計算")
