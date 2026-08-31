@@ -76,17 +76,58 @@ paths:
 #    範例貨號：CW24AW-TP-0135-BLK  →  style_code = CW24AW-TP-0135
 # ------------------------------------------------------------
 sku:
-  # 從檔名擷取貨號的正規式（第一個群組即為貨號）。
-  # 依 INDEX.md 的搜尋策略：先精確比對完整 KA 貨號，找不到才退回一般格式。
-  # ⚠️ 待確認：我還沒看過完整貨號的實際樣子（KA135 後面接什麼、用什麼分隔）。
-  #    給我三個真實檔名，我就能把這條規則調準。
-  filename_pattern: "(KA\\d{3}[-_ ]?[A-Za-z0-9]+|[A-Za-z0-9]{2,}[-_][A-Za-z0-9]+[-_]?[A-Za-z0-9]*)"
-  # 貨號 → 款號（去掉顏色/尺寸尾碼）；設 null 表示貨號即款號
-  style_code_pattern: "^(.*?)(?:[-_](?:BLK|WHT|NVY|BEI|GRY|RED|GRN|PNK|BRN)?)?$"
+  # 貨號格式（已由 11 份 POS 檔、1,570 筆實際資料驗證，100% 符合）：
+  #
+  #     K A 1 5 8 3 0 0 8
+  #     └┬┘ └─┬─┘ │ └─┬─┘
+  #      │    │   │   └─ 流水號 3 碼
+  #      │    │   └───── 品類碼 1 碼（見下方 category_map）
+  #      │    └───────── 季號 3 碼（158 = 2026夏，見 seasons）
+  #      └────────────── 固定字首 KA
+  #
+  filename_pattern: "(KA\\d{7})"
+  # 沒有顏色／尺寸尾碼，貨號本身即款號
+  style_code_pattern: null
   # POS 檔中貨號欄位可能的名稱（大小寫不拘、會自動比對）
   pos_sku_columns: ["貨號", "商品編號", "品號", "SKU", "款號", "item_no", "style_no"]
   # 從路徑或檔名擷取 KA 季號（系統圖與裁縫指示書都依季號分資料夾）
   season_code_pattern: "KA(\\d{3})"
+
+  # 貨號第 6 碼 → 品類（由 1,570 筆品名交叉驗證得出，命中率見註解）
+  category_digit_index: 5
+  category_map:
+    "1": {category: "TOP",           sub: "梭織上衣/襯衫", note: "127/146 品名含上衣或襯衫"}
+    "2": {category: "BOTTOM_PANTS",  sub: "褲",           note: "154/179 品名含褲"}
+    "3": {category: "TOP",           sub: "棉T/T恤",      note: "273/360，品名多為棉T、帽T"}
+    "4": {category: "BOTTOM_SKIRT",  sub: "裙",           note: "197/201 品名含裙"}
+    "5": {category: null,            sub: "剪接/假兩件",   note: "★待確認：品類分散，改以品名判斷"}
+    "6": {category: "OUTER",         sub: "外套",         note: "140/155 品名含外套"}
+    "7": {category: "DRESS",         sub: "洋裝",         note: "56/72 品名含洋裝"}
+    "8": {category: "ACC",           sub: "配件/生活雜貨", note: "包、毯、保溫瓶、傘等"}
+    "9": {category: "TOP",           sub: "針織",         note: "208/211，品名幾乎都含針織"}
+
+  # 品類碼 5（或品類碼缺漏）時，改以品名關鍵字判斷。順序即優先序。
+  name_category_rules:
+    - {pattern: "洋裝|連身裙|長洋|禮服",           category: "DRESS",          sub: "洋裝"}
+    - {pattern: "外套|大衣|風衣|夾克|斗篷|羽絨",    category: "OUTER",          sub: "外套"}
+    - {pattern: "褲裙",                          category: "BOTTOM_SKIRT",   sub: "褲裙"}
+    - {pattern: "褲",                            category: "BOTTOM_PANTS",   sub: "褲"}
+    - {pattern: "裙",                            category: "BOTTOM_SKIRT",   sub: "裙"}
+    - {pattern: "包|帽子|毯|保溫|傘|杯|鍋|抱枕|手機", category: "ACC",         sub: "配件/生活雜貨"}
+    - {pattern: "針織|毛衣",                      category: "TOP",            sub: "針織"}
+    - {pattern: "棉T|T恤|帽T|長版T",              category: "TOP",            sub: "棉T/T恤"}
+    - {pattern: "上衣|襯衫|背心|罩衫|衫",          category: "TOP",            sub: "梭織上衣/襯衫"}
+
+  # 設計師代號正規化：同一人有多組代號／大小寫不一，不修正會被算成不同人。
+  # （實測：E049/e049 同人 729 筆；E071/e071/M044 同為陳潔如 454 筆）
+  designer_aliases:
+    "E049": "徐嘉欣"
+    "E071": "陳潔如"
+    "M044": "陳潔如"
+    "E086": "李幸真"
+    "E084": "陳可薇"
+    "CW53": "張雅如"
+    "E027": "李佩珊"
 
 # ------------------------------------------------------------
 # 2-1. KA 季號對照表（來源：INDEX.md 2026-08-24「季別與代號對照」）

@@ -13,6 +13,7 @@ from functools import lru_cache
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
+import pandas as pd
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -181,6 +182,55 @@ class Config:
             if code in table:
                 return code
         return None
+
+    # -- 貨號解析 -------------------------------------------------
+    def category_from_sku(self, sku: str, product_name: str = "") -> dict[str, Any]:
+        """由貨號的品類碼判斷品類；品類碼無法決定時改用品名關鍵字。
+
+        回傳 {'category', 'sub_category', 'source'}；兩者都判不出時 category 為 None。
+        """
+        import re as _re
+
+        rules = self.get("sku", {})
+        idx = rules.get("category_digit_index")
+        code = None
+        if idx is not None and isinstance(sku, str) and len(sku) > idx:
+            code = sku[idx]
+        entry = (rules.get("category_map") or {}).get(code) if code else None
+
+        if entry and entry.get("category"):
+            return {"category": entry["category"], "sub_category": entry.get("sub"),
+                    "category_code": code, "source": "SKU"}
+
+        # 品類碼是 5（剪接/假兩件，橫跨多品類）或缺漏 → 看品名
+        for rule in rules.get("name_category_rules") or []:
+            if product_name and _re.search(rule["pattern"], str(product_name)):
+                return {"category": rule["category"], "sub_category": rule.get("sub"),
+                        "category_code": code, "source": "品名"}
+
+        return {"category": None, "sub_category": entry.get("sub") if entry else None,
+                "category_code": code, "source": "未知"}
+
+    def normalize_designer(self, raw: str) -> str:
+        """把「E049 徐嘉欣」「e049 徐嘉欣」「M044 陳潔如」收斂成同一個人名。
+
+        原始資料同一位設計師有多組代號且大小寫不一，不正規化會在分析裡
+        被拆成好幾個人，設計師績效比較就完全失真。
+        """
+        import re as _re
+
+        # 不能寫 `raw or ""`：pd.NA 的布林運算會直接拋 TypeError
+        if raw is None or raw is pd.NA or (isinstance(raw, float) and raw != raw):
+            return ""
+        s = str(raw).strip()
+        if not s or s.lower() in ("nan", "none", "<na>"):
+            return ""
+        aliases = self.get("sku", {}).get("designer_aliases") or {}
+        m = _re.match(r"^([A-Za-z]{1,3}\d{2,3})\s*(.*)$", s)
+        if m:
+            code, name = m.group(1).upper(), m.group(2).strip()
+            return aliases.get(code) or name or code
+        return s
 
     # -- 回饋標籤 -------------------------------------------------
     def reason_tag_label(self, code: str) -> str:

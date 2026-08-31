@@ -10,16 +10,22 @@ import re
 import unicodedata
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from ..config import Config, get_config
 from .images import _is_ignored
 
 # 標準欄位 → 可能出現的來源欄位名（比對時忽略大小寫、空白、全半形）
+# 標準欄位 → 可能出現的來源欄位名。
+# 別名順序即優先序：先命中的先用，所以要把最精確的排前面。
+# 「累進 / 總銷 / 總存」是貴司報表的實際用語，已驗證 累進 = 總銷 + 總存（100% 相符）。
 COLUMN_ALIASES: dict[str, list[str]] = {
     "sku": ["貨號", "商品編號", "品號", "料號", "sku", "item_no", "itemno", "商品貨號"],
     "style_code": ["款號", "款式編號", "style", "style_no", "stylecode"],
     "product_name": ["品名", "商品名稱", "商品名", "name", "描述"],
+    "designer": ["設計師", "設計", "designer"],
+    "rank": ["名次", "排名", "rank"],
     "category": ["品類", "類別", "大類", "商品分類", "category", "class"],
     "sub_category": ["中類", "小類", "次分類", "sub_category"],
     "season": ["季別", "年季", "季節", "波段", "season"],
@@ -28,12 +34,25 @@ COLUMN_ALIASES: dict[str, list[str]] = {
     "list_price": ["定價", "售價", "原價", "牌價", "list_price", "price", "零售價"],
     "avg_selling_price": ["平均售價", "實際售價", "均價", "asp"],
     "cost": ["成本", "進價", "cost"],
-    "stock_in": ["進貨量", "進貨數", "入庫量", "採購數量", "訂購量", "stock_in", "qty_in"],
-    "sales_qty": ["銷售量", "銷貨數量", "銷量", "出貨數", "sales_qty", "qty_sold"],
+    # 累進 = 該款累計投入的總量（= 總銷 + 總存），即真正的分母
+    "stock_in": ["累進", "進貨量", "進貨數", "入庫量", "採購數量", "訂購量", "stock_in", "qty_in"],
+    # 總銷才是與累進、總存對得起來的銷售數；「銷量」另有定義（僅 89% 與總銷相同）
+    "sales_qty": ["總銷", "銷售量", "銷貨數量", "出貨數", "sales_qty", "qty_sold"],
+    "sales_qty_alt": ["銷量"],
     "return_qty": ["退貨量", "退貨數", "return_qty"],
-    "sales_amount": ["銷售金額", "銷貨金額", "營業額", "sales_amount", "amount"],
-    "stock_on_hand": ["庫存量", "期末庫存", "現有庫存", "stock", "on_hand"],
-    "first_sale_date": ["上市日", "首賣日", "上架日", "首次銷售日", "launch_date"],
+    "sales_amount": ["銷貨額", "銷售金額", "銷貨金額", "營業額", "sales_amount", "amount"],
+    # 總存 = 累進 - 總銷，是真正的剩餘量；「庫存」是另一套數（僅 15% 與總存相同）
+    "stock_on_hand": ["總存", "庫存量", "期末庫存", "現有庫存", "stock", "on_hand"],
+    "stock_on_hand_alt": ["庫存"],
+    # 報表已自算售罄率，優先採用他們的官方數字
+    "sell_through_reported": ["銷售率", "售罄率", "sell_through"],
+    "stock_ratio_reported": ["總存佔比", "庫存佔比"],
+    "first_sale_date": ["入庫日", "上市日", "首賣日", "上架日", "首次銷售日", "launch_date"],
+    # ⚠️ 「出貨日」不是最後銷售日 —— 實測 6.2% 的款出貨日早於入庫日，
+    #    中位差僅 14 天，它應是「首次配貨給門市」的日期。拿它算上市週數會得到
+    #    大量 2 週以下甚至負值，讓 min_weeks_on_sale 門檻誤殺近六成商品。
+    #    所以獨立成 ship_date，不參與上市週數計算。
+    "ship_date": ["出貨日", "配貨日"],
     "last_sale_date": ["最後銷售日", "末次銷售日", "last_sale_date"],
     "store": ["門市", "店號", "分店", "通路", "store", "channel"],
     "region": ["區域", "地區", "region"],
@@ -147,35 +166,73 @@ def load_pos(cfg: Config | None = None, root: Path | None = None) -> tuple[pd.Da
     return df, audit
 
 
+def _parse_date(series: pd.Series) -> pd.Series:
+    """日期欄可能是 20260415 這種數字，也可能是真正的日期格式，兩種都要吃。"""
+    s = series.copy()
+    as_num = pd.to_numeric(s, errors="coerce")
+    looks_yyyymmdd = as_num.between(19000101, 21001231).fillna(False)
+    out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
+    if looks_yyyymmdd.any():
+        out[looks_yyyymmdd] = pd.to_datetime(
+            as_num[looks_yyyymmdd].astype("Int64").astype(str), format="%Y%m%d", errors="coerce")
+    rest = ~looks_yyyymmdd
+    if rest.any():
+        out[rest] = pd.to_datetime(s[rest], errors="coerce")
+    return out
+
+
 def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     df["sku"] = df["sku"].astype(str).str.strip()
     df = df[df["sku"].ne("") & df["sku"].str.lower().ne("nan")]
 
+    # 排除「合計：」這類小計／總計列。報表最後一列的累進動輒上萬，
+    # 混進來會讓整季的分母爆掉，所有售罄率跟著失真。
+    df = df[~df["sku"].str.contains("合計|小計|總計|total", case=False, na=False)]
+
+    # 再用貨號格式做一次過濾，但只在「這個格式確實適用於這批資料」時才做。
+    # 若 pattern 只對得上少數列，代表設定的格式跟這份報表不符 ——
+    # 這時把不符的列全丟掉會讓整批資料無聲消失，比留著髒資料更危險。
+    sku_pattern = cfg.get("sku", {}).get("filename_pattern")
+    if sku_pattern and len(df):
+        valid = df["sku"].str.fullmatch(sku_pattern.strip("()"), na=False)
+        if valid.mean() >= 0.5:
+            df = df[valid]
+
     numeric = ["list_price", "avg_selling_price", "cost", "stock_in", "sales_qty",
-               "return_qty", "sales_amount", "stock_on_hand"]
+               "sales_qty_alt", "return_qty", "sales_amount", "stock_on_hand",
+               "stock_on_hand_alt", "sell_through_reported", "stock_ratio_reported", "rank"]
     for col in numeric:
         if col in df.columns:
             df[col] = pd.to_numeric(
-                df[col].astype(str).str.replace(r"[,\s$元]", "", regex=True),
+                df[col].astype(str).str.replace(r"[,\s$元%]", "", regex=True),
                 errors="coerce",
-            )
+            ).astype("float64")
         else:
-            df[col] = pd.NA
+            # 缺漏的數值欄要補 NaN 而非 pd.NA：pd.NA 會讓整欄變成 object dtype，
+            # 後續任何算術再 .astype(float) 都會炸。
+            df[col] = np.nan
 
-    for col in ("first_sale_date", "last_sale_date"):
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-        else:
-            df[col] = pd.NaT
+    for col in ("first_sale_date", "last_sale_date", "ship_date"):
+        df[col] = _parse_date(df[col]) if col in df.columns else pd.NaT
+
+    # 每個報表檔是某個時間點的快照。用該檔中最晚的日期當快照日，
+    # 就能算出「這款到報表產出時已經上架多久」——這是判斷新品的關鍵：
+    # 當季剛入庫的商品銷 0 是正常的，不該被打成滯銷。
+    if "source_file" in df.columns:
+        latest = df[["first_sale_date", "ship_date"]].max(axis=1)
+        df["snapshot_date"] = df.groupby("source_file")[[]].apply(
+            lambda g: latest.loc[g.index].max()).reindex(df["source_file"]).to_numpy()
+    else:
+        df["snapshot_date"] = df[["first_sale_date", "ship_date"]].max(axis=1).max()
 
     for col in ("season", "category", "color", "size", "store", "region",
-                "product_name", "sub_category", "style_code"):
+                "product_name", "sub_category", "style_code", "designer"):
         if col not in df.columns:
             df[col] = pd.NA
         else:
             df[col] = df[col].astype("string").str.strip()
 
-    # style_code 缺就用貨號規則推導
+    # style_code 缺就用貨號規則推導；沒有規則表示貨號本身即款號
     style_pattern = cfg.get("sku", {}).get("style_code_pattern")
     if style_pattern:
         derived = df["sku"].str.extract(style_pattern, expand=False)
@@ -183,7 +240,26 @@ def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     else:
         df["style_code"] = df["style_code"].fillna(df["sku"])
 
-    df["season"] = df["season"].fillna("UNKNOWN").str.upper()
+    # 設計師代號正規化（同一人有多組代號與大小寫）
+    df["designer"] = df["designer"].map(cfg.normalize_designer).replace("", pd.NA)
+
+    # 季別：報表沒有就從貨號的 KA 季號推
+    df["season"] = df["season"].fillna(pd.NA)
+    need = df["season"].isna() | df["season"].isin(["UNKNOWN", ""])
+    if need.any():
+        derived = df.loc[need, "sku"].map(
+            lambda s: (cfg.season_from_code(s[:5]) or {}).get("label"))
+        df.loc[need, "season"] = derived
+    df["season"] = df["season"].fillna("UNKNOWN")
+
+    # 品類：報表沒有就用貨號品類碼，再退回品名關鍵字
+    cat_info = df.apply(
+        lambda r: cfg.category_from_sku(r["sku"], r.get("product_name") or ""), axis=1)
+    df["category"] = df["category"].fillna(pd.Series([c["category"] for c in cat_info], index=df.index))
+    df["sub_category"] = df["sub_category"].fillna(
+        pd.Series([c["sub_category"] for c in cat_info], index=df.index))
+    df["category_source"] = [c["source"] for c in cat_info]
+
     return df.reset_index(drop=True)
 
 
@@ -196,24 +272,50 @@ def aggregate_to_sku_season(df: pd.DataFrame) -> pd.DataFrame:
         "stock_in": "sum", "sales_qty": "sum", "return_qty": "sum",
         "sales_amount": "sum", "stock_on_hand": "sum",
         "list_price": "median", "cost": "median",
-        "first_sale_date": "min", "last_sale_date": "max",
+        "first_sale_date": "min", "last_sale_date": "max", "ship_date": "min",
+        "snapshot_date": "max",
         "product_name": "first", "category": "first", "sub_category": "first",
-        "style_code": "first",
+        "style_code": "first", "designer": "first", "rank": "min",
+        "category_source": "first", "sell_through_reported": "mean",
     }
     agg = {k: v for k, v in agg.items() if k in df.columns}
     out = df.groupby(["sku", "season"], dropna=False).agg(agg).reset_index()
 
     out["net_sales_qty"] = out["sales_qty"].fillna(0) - out["return_qty"].fillna(0)
-    out["return_rate"] = (out["return_qty"] / out["sales_qty"].replace(0, pd.NA)).astype(float)
-    out["sell_through_rate"] = (out["net_sales_qty"] / out["stock_in"].replace(0, pd.NA)).astype(float)
-    out["avg_selling_price"] = (out["sales_amount"] / out["net_sales_qty"].replace(0, pd.NA)).astype(float)
+    out["return_rate"] = (out["return_qty"] / out["sales_qty"].replace(0, np.nan)).astype(float)
+
+    # 售罄率：報表自帶就用他們的官方數字，缺漏才自算。
+    # 兩者不一致時記在 sell_through_diff，差距大的款值得回頭查報表。
+    computed = (out["net_sales_qty"] / out["stock_in"].replace(0, np.nan)).astype(float)
+    if "sell_through_reported" in out.columns and out["sell_through_reported"].notna().any():
+        out["sell_through_rate"] = out["sell_through_reported"].fillna(computed)
+        out["sell_through_diff"] = (out["sell_through_reported"] - computed).abs().round(4)
+    else:
+        out["sell_through_rate"] = computed
+        out["sell_through_diff"] = pd.NA
+
+    # 銷貨額為 0 的款（贈品、未計價）不該算出 0 元均價去汙染折扣統計
+    valid_amount = out["sales_amount"].fillna(0) > 0
+    out["avg_selling_price"] = np.nan
+    out.loc[valid_amount, "avg_selling_price"] = (
+        out.loc[valid_amount, "sales_amount"] / out.loc[valid_amount, "net_sales_qty"].replace(0, np.nan)
+    )
+    out["avg_selling_price"] = out["avg_selling_price"].astype(float)
+
     if "cost" in out.columns:
         out["gross_margin"] = (
-            (out["avg_selling_price"] - out["cost"]) / out["avg_selling_price"].replace(0, pd.NA)
+            (out["avg_selling_price"] - out["cost"]) / out["avg_selling_price"].replace(0, np.nan)
         ).astype(float)
     out["discount_depth"] = (
-        1 - out["avg_selling_price"] / out["list_price"].replace(0, pd.NA)
+        1 - out["avg_selling_price"] / out["list_price"].replace(0, np.nan)
     ).astype(float)
+    # 上市週數：有真正的最後銷售日就用它；沒有（多數情況）就用
+    # 「報表快照日 - 入庫日」，代表這款到報表產出時已經上架多久。
     span = (out["last_sale_date"] - out["first_sale_date"]).dt.days
+    if "snapshot_date" in out.columns:
+        fallback = (out["snapshot_date"] - out["first_sale_date"]).dt.days
+        span = span.fillna(fallback)
     out["weeks_on_sale"] = (span / 7).round(1)
+    # 負值代表日期本身有問題（跨季調撥、補鍵資料），不是真的上架時間
+    out.loc[out["weeks_on_sale"] < 0, "weeks_on_sale"] = np.nan
     return out

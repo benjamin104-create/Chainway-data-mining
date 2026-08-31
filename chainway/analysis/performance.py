@@ -34,7 +34,10 @@ def grade(master: pd.DataFrame, cfg: Config | None = None) -> pd.DataFrame:
     # 排除樣本不足的款
     excluded = pd.Series(False, index=df.index)
     if "weeks_on_sale" in df.columns:
-        excluded |= df["weeks_on_sale"].fillna(0) < perf.get("min_weeks_on_sale", 4)
+        # 只在「算得出上市週數」時才用這個門檻。報表沒有真正的最後銷售日時
+        # weeks_on_sale 會整欄是 NaN，若用 fillna(0) 判斷會把全部商品誤殺。
+        weeks = pd.to_numeric(df["weeks_on_sale"], errors="coerce")
+        excluded |= weeks.notna() & (weeks < perf.get("min_weeks_on_sale", 4))
     if "stock_in" in df.columns:
         excluded |= df["stock_in"].fillna(0) < perf.get("min_stock_in", 30)
     excluded |= df[metric].isna()

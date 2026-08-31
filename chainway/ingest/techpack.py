@@ -16,6 +16,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from ..config import Config, get_config
@@ -164,7 +165,7 @@ def add_derived_ratios(df: pd.DataFrame, cfg: Config | None = None) -> pd.DataFr
         if num in out.columns and den in out.columns:
             out[spec["code"]] = (
                 pd.to_numeric(out[num], errors="coerce")
-                / pd.to_numeric(out[den], errors="coerce").replace(0, pd.NA)
+                / pd.to_numeric(out[den], errors="coerce").replace(0, np.nan)
             ).astype(float).round(4)
         else:
             out[spec["code"]] = pd.NA
