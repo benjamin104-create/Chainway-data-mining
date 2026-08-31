@@ -185,31 +185,52 @@ class Config:
 
     # -- 貨號解析 -------------------------------------------------
     def category_from_sku(self, sku: str, product_name: str = "") -> dict[str, Any]:
-        """由貨號的品類碼判斷品類；品類碼無法決定時改用品名關鍵字。
+        """由貨號的品類碼判斷品類。
 
-        回傳 {'category', 'sub_category', 'source'}；兩者都判不出時 category 為 None。
+        貨號的品類碼是變動長度的：
+            KA155 + 53 + 01   經典格紋線 → 兩碼品類（53=格紋T）+ 兩碼流水
+            KA158 + 3  + 008  一般線     → 一碼品類（3=棉T）  + 三碼流水
+
+        回傳 category / sub_category / product_line / is_gift / source。
+        判不出來時 category 為 None，由呼叫端決定要不要用品名補。
         """
         import re as _re
 
         rules = self.get("sku", {})
         idx = rules.get("category_digit_index")
-        code = None
-        if idx is not None and isinstance(sku, str) and len(sku) > idx:
-            code = sku[idx]
-        entry = (rules.get("category_map") or {}).get(code) if code else None
+        base = {"category": None, "sub_category": None, "category_code": None,
+                "product_line": "一般", "is_gift": False, "source": "未知"}
+        if idx is None or not isinstance(sku, str) or len(sku) <= idx:
+            return base
 
+        d1 = sku[idx]
+        plaid_prefix = rules.get("plaid_prefix", "5")
+
+        # 經典格紋線：品類碼佔兩碼，第二碼才是身體部位
+        if d1 == plaid_prefix and len(sku) > idx + 1:
+            d2 = sku[idx + 1]
+            entry = (rules.get("plaid_category_map") or {}).get(d2)
+            if entry:
+                return {**base, "category": entry["category"], "sub_category": entry.get("sub"),
+                        "category_code": d1 + d2,
+                        "product_line": rules.get("plaid_line_label", "經典格紋"),
+                        "source": "SKU"}
+
+        entry = (rules.get("category_map") or {}).get(d1)
         if entry and entry.get("category"):
-            return {"category": entry["category"], "sub_category": entry.get("sub"),
-                    "category_code": code, "source": "SKU"}
+            return {**base, "category": entry["category"], "sub_category": entry.get("sub"),
+                    "category_code": d1,
+                    "is_gift": bool(entry.get("exclude_from_performance")),
+                    "source": "SKU"}
 
-        # 品類碼是 5（剪接/假兩件，橫跨多品類）或缺漏 → 看品名
+        # 品類碼認不得時退回品名關鍵字
         for rule in rules.get("name_category_rules") or []:
             if product_name and _re.search(rule["pattern"], str(product_name)):
-                return {"category": rule["category"], "sub_category": rule.get("sub"),
-                        "category_code": code, "source": "品名"}
+                return {**base, "category": rule["category"], "sub_category": rule.get("sub"),
+                        "category_code": d1, "source": "品名"}
 
-        return {"category": None, "sub_category": entry.get("sub") if entry else None,
-                "category_code": code, "source": "未知"}
+        return {**base, "category_code": d1,
+                "sub_category": entry.get("sub") if entry else None}
 
     def normalize_designer(self, raw: str) -> str:
         """把「E049 徐嘉欣」「e049 徐嘉欣」「M044 陳潔如」收斂成同一個人名。

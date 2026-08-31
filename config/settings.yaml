@@ -93,18 +93,40 @@ sku:
   # 從路徑或檔名擷取 KA 季號（系統圖與裁縫指示書都依季號分資料夾）
   season_code_pattern: "KA(\\d{3})"
 
-  # 貨號第 6 碼 → 品類（由 1,570 筆品名交叉驗證得出，命中率見註解）
+  # ── 品類碼（貨號第 6 碼起）──────────────────────────────────
+  # 結構是變動長度的，這點很容易看漏：
+  #   5 開頭 → 品類碼「兩碼」，後接 2 碼流水（KA136-51-06）
+  #   其餘   → 品類碼「一碼」，後接 3 碼流水（KA158-3-008）
+  # 5 是「經典格紋（卡其格）」產品線，第二碼才是身體部位。
+  # 已驗證：5 開頭的第二碼只出現 1/2/3/4/6/7/9，完全沒有 5/8/0。
   category_digit_index: 5
   category_map:
     "1": {category: "TOP",           sub: "梭織上衣/襯衫", note: "127/146 品名含上衣或襯衫"}
     "2": {category: "BOTTOM_PANTS",  sub: "褲",           note: "154/179 品名含褲"}
     "3": {category: "TOP",           sub: "棉T/T恤",      note: "273/360，品名多為棉T、帽T"}
     "4": {category: "BOTTOM_SKIRT",  sub: "裙",           note: "197/201 品名含裙"}
-    "5": {category: null,            sub: "剪接/假兩件",   note: "★待確認：品類分散，改以品名判斷"}
     "6": {category: "OUTER",         sub: "外套",         note: "140/155 品名含外套"}
     "7": {category: "DRESS",         sub: "洋裝",         note: "56/72 品名含洋裝"}
-    "8": {category: "ACC",           sub: "配件/生活雜貨", note: "包、毯、保溫瓶、傘等"}
     "9": {category: "TOP",           sub: "針織",         note: "208/211，品名幾乎都含針織"}
+    # 8 字頭是「魅力商品／贈品」，多數為滿額贈。它們不是服飾，
+    # 也不是賣出去的（67% 銷貨額為 0，其他品類只有 11%），
+    # 混進績效分析會出現「吸管杯售罄率 100% 排在暢銷榜前段」這種結論。
+    "8": {category: "GIFT",          sub: "贈品/魅力商品", note: "電風扇、行李箱、購物袋、保溫瓶等",
+          exclude_from_performance: true}
+
+  # 經典格紋產品線：第二碼才是身體部位（品名相符率見 note）
+  plaid_prefix: "5"
+  plaid_category_map:
+    "1": {category: "TOP",          sub: "格紋上衣",  note: "58 款，84% 品名相符"}
+    "2": {category: "BOTTOM_PANTS", sub: "格紋褲",    note: "15 款，100%"}
+    "3": {category: "TOP",          sub: "格紋T",     note: "42 款，62%"}
+    "4": {category: "BOTTOM_SKIRT", sub: "格紋裙",    note: "60 款，100%"}
+    "6": {category: "OUTER",        sub: "格紋外套",  note: "17 款，76%"}
+    "7": {category: "DRESS",        sub: "格紋洋裝",  note: "32 款，97%"}
+    "9": {category: "TOP",          sub: "格紋針織",  note: "4 款，樣本少"}
+  # 格紋是品牌核心，「格紋款 vs 一般款哪個好賣」現在可直接由貨號回答，
+  # 不必等 CLIP 判圖案。product_line 欄位會標成「經典格紋」或「一般」。
+  plaid_line_label: "經典格紋"
 
   # 品類碼 5（或品類碼缺漏）時，改以品名關鍵字判斷。順序即優先序。
   name_category_rules:

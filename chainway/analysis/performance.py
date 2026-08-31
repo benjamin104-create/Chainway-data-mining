@@ -43,6 +43,10 @@ def grade(master: pd.DataFrame, cfg: Config | None = None) -> pd.DataFrame:
     # 樣衣不是商品，讓它們留在榜上會佔滿滯銷清單
     if "is_sample" in df.columns:
         excluded |= df["is_sample"].fillna(False).astype(bool)
+    # 贈品／魅力商品是送的不是賣的：吸管杯累進 600 送出 600、售罄率 100%，
+    # 不排除就會排在暢銷榜前段，但它銷貨額是 0
+    if "is_gift" in df.columns:
+        excluded |= df["is_gift"].fillna(False).astype(bool)
     excluded |= df[metric].isna()
 
     df["perf_excluded"] = excluded

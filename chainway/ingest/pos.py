@@ -311,6 +311,11 @@ def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     df["sub_category"] = df["sub_category"].fillna(
         pd.Series([c["sub_category"] for c in cat_info], index=df.index))
     df["category_source"] = [c["source"] for c in cat_info]
+    df["category_code"] = [c["category_code"] for c in cat_info]
+    # 經典格紋是品牌核心產品線，貨號本身就標明了，不必等 CLIP 判圖案
+    df["product_line"] = [c["product_line"] for c in cat_info]
+    # 贈品／魅力商品：不是賣出去的，售罄率與毛利對它們沒有意義
+    df["is_gift"] = [c["is_gift"] for c in cat_info]
 
     return df.reset_index(drop=True)
 
@@ -331,6 +336,7 @@ def aggregate_to_sku_season(df: pd.DataFrame) -> pd.DataFrame:
         "category_source": "first", "sell_through_reported": "mean",
         "is_sample": "max", "sample_reason": "first", "sample_parent_sku": "first",
         "design_family": "first", "stock_on_hand_alt": "sum",
+        "category_code": "first", "product_line": "first", "is_gift": "max",
     }
     agg = {k: v for k, v in agg.items() if k in df.columns}
     out = df.groupby(["sku", "season"], dropna=False).agg(agg).reset_index()
