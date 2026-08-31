@@ -218,7 +218,16 @@ attributes:
 # 裁縫指示書要抽取的重點尺寸（欄位名 → 標準欄位）
 # 這些數值會轉成「版型指標」參與關聯分析
 # ------------------------------------------------------------
+# ⚠️ 單位：實際指示書用「英吋」且寫成帶分數（22 1/2、13 3/4）。
+#    比例指標不受單位影響，但顯示絕對值時要標對單位。
+#    unit: inch / cm；convert_to_cm 為 true 時會另外產生 *_cm 欄位。
 measurements:
+  unit: "inch"
+  convert_to_cm: true
+  # 尺寸表有多個尺碼欄（34/36/38/40），要取哪一個當基準碼。
+  # "max_qty" = 取預定件數最多的那一碼；也可直接寫 "36" 指定。
+  base_size: "max_qty"
+
   fields:
     - {code: "body_length",   zh: "衣長",   aliases: ["衣長", "後中長", "全長", "body length"]}
     - {code: "shoulder",      zh: "肩寬",   aliases: ["肩寬", "總肩寬", "shoulder"]}
@@ -226,13 +235,44 @@ measurements:
     - {code: "waist",         zh: "腰圍",   aliases: ["腰圍", "腰寬", "waist"]}
     - {code: "hip",           zh: "臀圍",   aliases: ["臀圍", "擺圍", "hip"]}
     - {code: "sleeve_length", zh: "袖長",   aliases: ["袖長", "sleeve length"]}
+    - {code: "sleeve_width",  zh: "袖寬",   aliases: ["袖寬", "sleeve width"]}
     - {code: "sleeve_opening",zh: "袖口",   aliases: ["袖口", "袖籠", "cuff"]}
-    - {code: "neck_width",    zh: "領寬",   aliases: ["領寬", "橫開領", "neck width"]}
-    - {code: "neck_drop",     zh: "領深",   aliases: ["領深", "直開領", "neck drop"]}
-    - {code: "hem_width",     zh: "下擺",   aliases: ["下擺", "擺寬", "hem"]}
+    # 指示書寫成「領( 外 )寬」，正規化後為「領外寬」，兩種都列
+    - {code: "neck_width",    zh: "領寬",   aliases: ["領寬", "領外寬", "橫開領", "neck width"]}
+    - {code: "neck_drop",     zh: "前領深", aliases: ["前領深", "領深", "直開領", "neck drop"]}
+    - {code: "neck_drop_back",zh: "後領深", aliases: ["後領深", "back neck drop"]}
+    # 「下擺」與「下襬」是不同的字，實際檔案用「襬」
+    - {code: "hem_width",     zh: "下擺",   aliases: ["下擺", "下襬", "擺寬", "hem"]}
+    - {code: "armhole",       zh: "掛肩",   aliases: ["掛肩", "袖襱", "armhole"]}
     - {code: "rise",          zh: "股上",   aliases: ["股上", "前浪", "rise"]}
     - {code: "inseam",        zh: "股下",   aliases: ["股下", "內長", "inseam"]}
+    - {code: "skirt_pant_length", zh: "裙/褲長", aliases: ["裙褲長", "裙長", "褲長"]}
     - {code: "leg_opening",   zh: "褲口",   aliases: ["褲口", "腳口", "leg opening"]}
+
+  # 尺寸以外的欄位：這些是「標籤在左、值在右」的表單格，另外抽。
+  # 它們的分析價值不輸尺寸 —— 上市日才是真正的上市時間、
+  # 成份決定布性、總版數是工序複雜度的直接指標。
+  metadata:
+    - {code: "launch_date",    zh: "上市日",   aliases: ["上市日"],       type: "date"}
+    - {code: "stock_in_date",  zh: "入庫日",   aliases: ["入庫日"],       type: "date"}
+    - {code: "due_date",       zh: "交期",     aliases: ["交期"],         type: "date"}
+    - {code: "order_date",     zh: "發單日",   aliases: ["發單製表日", "發單日"], type: "date"}
+    - {code: "sample_no",      zh: "樣號",     aliases: ["樣號"]}
+    - {code: "wave",           zh: "波段",     aliases: ["波段"]}
+    - {code: "series",         zh: "系列",     aliases: ["系列"]}
+    - {code: "brand",          zh: "主品牌",   aliases: ["主品牌"]}
+    - {code: "sub_brand",      zh: "副品牌",   aliases: ["副品牌"]}
+    - {code: "year",           zh: "年度",     aliases: ["年度"],         type: "number"}
+    - {code: "planner",        zh: "企劃",     aliases: ["企劃"]}
+    - {code: "patternmaker",   zh: "打版",     aliases: ["打版"]}
+    - {code: "sample_maker",   zh: "打樣",     aliases: ["打樣"]}
+    - {code: "subcontractor",  zh: "代工",     aliases: ["代工"]}
+    - {code: "fabric_supplier",zh: "本布廠商", aliases: ["廠商"]}
+    - {code: "fabric_no",      zh: "布號",     aliases: ["no", "布號"]}
+    - {code: "composition",    zh: "成份",     aliases: ["成份", "成分"]}
+    - {code: "pattern_pieces", zh: "總版數",   aliases: ["總版數"],       type: "number"}
+    - {code: "labor_cost",     zh: "工資報價", aliases: ["工資報價", "工資/報價"], type: "number"}
+    - {code: "revision_note",  zh: "修正事項", aliases: ["修正事項"]}
 
   # 由原始尺寸推導出來的「版型比例指標」——這才是真正能跨款比較的東西
   derived:
