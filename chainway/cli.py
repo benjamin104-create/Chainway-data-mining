@@ -70,6 +70,27 @@ def cmd_doctor(args) -> int:
         print("  → 請把 settings.yaml 的名稱改成上面實際的名字，")
         print("    或執行 `python -m chainway.cli scaffold` 依設定自動建立這些資料夾。")
 
+    # POS 找不到時，自動在根目錄底下搜尋長得像進銷存的檔案，直接把路徑列出來。
+    # 使用者不必知道「POS 路徑」是什麼意思，看到路徑照抄進設定就好。
+    if root is not None and root.exists() and "pos" in missing:
+        print("\n  自動搜尋進銷存報表中…（檔名含 KA 季號的 Excel）")
+        hits: dict[Path, int] = {}
+        for p in root.rglob("*.xls*"):
+            if p.is_file() and cfg.find_season_code(p.name):
+                hits[p.parent] = hits.get(p.parent, 0) + 1
+        if hits:
+            print("  找到了，請把下面其中一行的路徑填進 settings.yaml 的 paths.pos：")
+            for folder, n in sorted(hits.items(), key=lambda kv: -kv[1])[:5]:
+                try:
+                    rel = folder.relative_to(root)
+                    print(f"    pos: \"{rel.as_posix()}\"      （{n} 個檔案）")
+                except ValueError:
+                    print(f"    pos: \"{folder.as_posix()}\"   （{n} 個檔案）")
+        else:
+            print("  沒找到。進銷存報表可能不在這個根目錄底下 ——")
+            print("  在檔案總管搜尋你的報表檔名（例如 KA158_0828），")
+            print("  在檔案上按右鍵 →「複製檔案位址」，把路徑貼進 paths.pos 即可。")
+
     print("\n【2】套件檢查")
     core = ["pandas", "numpy", "yaml", "openpyxl"]
     optional = {
@@ -414,11 +435,33 @@ def cmd_eval_search(args) -> int:
     from .search.index import VisualIndex, evaluate
 
     cfg = get_config()
-    try:
-        truth = pd.read_csv(args.truth)
-    except (pd.errors.EmptyDataError, FileNotFoundError):
-        _warn(f"讀不到答案檔：{args.truth}\n格式為兩欄 CSV：query_image,true_sku")
-        return 1
+
+    # 零標註模式：指示書裡的打樣照片是同一件衣服的另一張真實照片，
+    # 貨號從檔名就知道。拿它當查詢、看系統圖能不能被找回來，
+    # 完全不需要人工標答案，就能得到第一個準確率數字。
+    if args.self_test:
+        img_csv = cfg.path("interim") / "techpack_images.csv"
+        if not img_csv.exists():
+            _warn("找不到指示書圖片清單。請先執行："
+                  "\n  python -m chainway.cli ingest --extract-images")
+            return 1
+        imgs = pd.read_csv(img_csv)
+        photos = imgs[imgs["kind_guess"] == "打樣照片"]
+        if photos.empty:
+            _warn("指示書裡沒有抓到打樣照片，無法用零標註模式。請改用 --truth 手動標註。")
+            return 1
+        truth = photos.rename(columns={"image_path": "query_image", "sku": "true_sku"})[
+            ["query_image", "true_sku"]]
+        _ok(f"零標註測試集：{len(truth)} 張打樣照片（答案來自指示書檔名）")
+    else:
+        if not args.truth:
+            _warn("請指定 --truth 答案檔，或用 --self-test 跑零標註測試")
+            return 1
+        try:
+            truth = pd.read_csv(args.truth)
+        except (pd.errors.EmptyDataError, FileNotFoundError):
+            _warn(f"讀不到答案檔：{args.truth}\n格式為兩欄 CSV：query_image,true_sku")
+            return 1
     for col in ("query_image", "true_sku"):
         if col not in truth.columns:
             _warn(f"答案檔缺少欄位 '{col}'。格式：query_image,true_sku")
@@ -449,7 +492,8 @@ def cmd_eval_search(args) -> int:
 
     out_dir = cfg.path("outputs") / "eval"
     out_dir.mkdir(parents=True, exist_ok=True)
-    tag = "external" if args.predictions else ("crops" if args.crops else "whole")
+    tag = ("external" if args.predictions
+           else ("selftest" if args.self_test else ("crops" if args.crops else "whole")))
     detail.to_csv(out_dir / f"search_eval_{tag}.csv", index=False, encoding="utf-8-sig")
     _ok(f"逐筆結果 → {out_dir / f'search_eval_{tag}.csv'}")
 
@@ -560,7 +604,9 @@ def main(argv: list[str] | None = None) -> int:
     s.set_defaults(func=cmd_search)
 
     ev = sub.add_parser("eval-search", help="量測以圖搜貨號的準確率（可比較不同系統）")
-    ev.add_argument("--truth", required=True, help="答案檔 CSV：query_image,true_sku")
+    ev.add_argument("--truth", help="答案檔 CSV：query_image,true_sku")
+    ev.add_argument("--self-test", action="store_true",
+                    help="零標註模式：用指示書的打樣照片當查詢，答案取自檔名")
     ev.add_argument("--predictions", help="外部系統的結果 CSV：query_image,rank,sku（省略則用本專案）")
     ev.add_argument("--crops", action="store_true", help="用切塊搜尋（穿搭照建議開）")
     ev.add_argument("--top-k", type=int, default=10)
