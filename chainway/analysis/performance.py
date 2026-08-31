@@ -40,6 +40,9 @@ def grade(master: pd.DataFrame, cfg: Config | None = None) -> pd.DataFrame:
         excluded |= weeks.notna() & (weeks < perf.get("min_weeks_on_sale", 4))
     if "stock_in" in df.columns:
         excluded |= df["stock_in"].fillna(0) < perf.get("min_stock_in", 30)
+    # 樣衣不是商品，讓它們留在榜上會佔滿滯銷清單
+    if "is_sample" in df.columns:
+        excluded |= df["is_sample"].fillna(False).astype(bool)
     excluded |= df[metric].isna()
 
     df["perf_excluded"] = excluded

@@ -181,6 +181,53 @@ def _parse_date(series: pd.Series) -> pd.Series:
     return out
 
 
+def _flag_samples(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
+    """標記樣衣／樣品。
+
+    兩個判準（任一成立即標記）：
+      1. 品名含「樣衣」「樣裙」等字樣
+      2. 累進 ≤ max_qty 且完全沒有銷售 —— 一件兩件又賣不掉，是打樣不是商品
+    另外「1571007樣衣」這種品名會回推母款號，方便追溯。
+    """
+    conf = cfg.get("sku", {}).get("sample_detection") or {}
+    patterns = conf.get("name_patterns") or []
+    max_qty = conf.get("max_qty", 2)
+
+    name = df.get("product_name", pd.Series("", index=df.index)).fillna("").astype(str)
+    by_name = name.str.contains("|".join(patterns), regex=True, na=False) if patterns else pd.Series(False, index=df.index)
+    by_qty = (df["stock_in"].fillna(0) <= max_qty) & (df["sales_qty"].fillna(0) <= 0)
+
+    df["is_sample"] = by_name | by_qty
+    df["sample_reason"] = np.where(by_name, "品名含樣衣字樣",
+                          np.where(by_qty, f"累進≤{max_qty}且無銷售", ""))
+
+    parent_pat = conf.get("parent_in_name_pattern")
+    if parent_pat:
+        found = name.str.extract(parent_pat, expand=False)
+        df["sample_parent_sku"] = np.where(
+            df["is_sample"] & found.notna(), "KA" + found.fillna(""), "")
+    else:
+        df["sample_parent_sku"] = ""
+    return df
+
+
+def _design_family_key(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """同品名 + 同定價 → 同一設計家族（用來辨識改番號重出的款）。"""
+    conf = cfg.get("sku", {}).get("design_family") or {}
+    fields = conf.get("key_fields") or ["product_name", "list_price"]
+    parts = []
+    for f in fields:
+        s = df.get(f, pd.Series("", index=df.index)).astype(str).fillna("")
+        if f == "product_name" and conf.get("normalize_name", True):
+            s = s.str.strip().str.replace(r"\s+", "", regex=True)
+            s = s.map(lambda v: unicodedata.normalize("NFKC", v))
+        parts.append(s)
+    key = parts[0]
+    for p in parts[1:]:
+        key = key + "|" + p
+    return key.where(parts[0].str.len() > 0, other=pd.NA)
+
+
 def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     df["sku"] = df["sku"].astype(str).str.strip()
     df = df[df["sku"].ne("") & df["sku"].str.lower().ne("nan")]
@@ -252,6 +299,11 @@ def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
         df.loc[need, "season"] = derived
     df["season"] = df["season"].fillna("UNKNOWN")
 
+    # 樣衣辨識：樣衣不是商品，混進分析會佔滿滯銷榜
+    df = _flag_samples(df, cfg)
+    # 改番號家族：同品名 + 同定價視為同一設計的不同番號
+    df["design_family"] = _design_family_key(df, cfg)
+
     # 品類：報表沒有就用貨號品類碼，再退回品名關鍵字
     cat_info = df.apply(
         lambda r: cfg.category_from_sku(r["sku"], r.get("product_name") or ""), axis=1)
@@ -277,6 +329,8 @@ def aggregate_to_sku_season(df: pd.DataFrame) -> pd.DataFrame:
         "product_name": "first", "category": "first", "sub_category": "first",
         "style_code": "first", "designer": "first", "rank": "min",
         "category_source": "first", "sell_through_reported": "mean",
+        "is_sample": "max", "sample_reason": "first", "sample_parent_sku": "first",
+        "design_family": "first", "stock_on_hand_alt": "sum",
     }
     agg = {k: v for k, v in agg.items() if k in df.columns}
     out = df.groupby(["sku", "season"], dropna=False).agg(agg).reset_index()

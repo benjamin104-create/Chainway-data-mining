@@ -147,6 +147,79 @@ def silhouette_drift(df: pd.DataFrame, cfg: Config | None = None) -> pd.DataFram
     return out.reset_index(drop=True)
 
 
+def reissue_families(df: pd.DataFrame, cfg: Config | None = None, min_qty: int = 10) -> pd.DataFrame:
+    """同一個設計以不同番號跨季重出時的表現差異。
+
+    這是整份資料裡最接近「自然實驗」的東西：設計、定價、設計師都一樣，
+    只有季節與時機不同。同一款的售罄率若在不同季差距很大，
+    那個差距就不能歸因於設計 —— 它是上市時機造成的。
+
+    沒有這一層，同一個設計會被當成好幾個不同商品重複計算，
+    而且「上錯季節」會被誤判成「設計失敗」。
+    """
+    cfg = cfg or get_config()
+    if "design_family" not in df.columns:
+        return pd.DataFrame()
+
+    pool = df[df["design_family"].notna()]
+    if "is_sample" in pool.columns:
+        pool = pool[~pool["is_sample"].fillna(False).astype(bool)]
+    pool = pool[pool.get("stock_in", pd.Series(0, index=pool.index)).fillna(0) >= min_qty]
+    if pool.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for family, g in pool.groupby("design_family"):
+        if g["sku"].nunique() < 2 or g["season"].nunique() < 2:
+            continue
+        st = g["sell_through_rate"].dropna()
+        if st.empty:
+            continue
+        best = g.loc[g["sell_through_rate"].idxmax()]
+        worst = g.loc[g["sell_through_rate"].idxmin()]
+        rows.append({
+            "design_family": family,
+            "product_name": g["product_name"].iloc[0],
+            "list_price": g["list_price"].iloc[0],
+            "designer": g["designer"].iloc[0],
+            "n_skus": int(g["sku"].nunique()),
+            "seasons": "、".join(sorted(g["season"].dropna().unique())),
+            "best_sku": best["sku"], "best_season": best["season"],
+            "best_sell_through": round(float(best["sell_through_rate"]), 4),
+            "worst_sku": worst["sku"], "worst_season": worst["season"],
+            "worst_sell_through": round(float(worst["sell_through_rate"]), 4),
+            "spread": round(float(st.max() - st.min()), 4),
+            "total_stock_in": float(g["stock_in"].sum()),
+        })
+
+    out = pd.DataFrame(rows)
+    if out.empty:
+        return out
+
+    # 差距大 = 同樣的設計，成敗取決於時機而非設計本身
+    out["verdict"] = np.where(
+        out["spread"] >= 0.4,
+        "★ 時機主導：同款不同季差距懸殊，滯銷那次不應歸咎設計",
+        np.where(out["spread"] >= 0.2, "時機有影響，但設計本身也有作用", "表現穩定，設計是主因"),
+    )
+    out["insight_zh"] = out.apply(
+        lambda r: (f"「{r['product_name']}」以 {r['n_skus']} 個番號跨季重出："
+                   f"{r['best_season']} 售罄 {r['best_sell_through']:.0%}（{r['best_sku']}）"
+                   f"、{r['worst_season']} 僅 {r['worst_sell_through']:.0%}（{r['worst_sku']}），"
+                   f"差距 {r['spread']:.0%}"), axis=1)
+    return out.sort_values("spread", ascending=False).reset_index(drop=True)
+
+
+def sample_report(df: pd.DataFrame, cfg: Config | None = None) -> pd.DataFrame:
+    """被判定為樣衣而排除的清單，供人工覆核（誤判會漏掉真商品）。"""
+    if "is_sample" not in df.columns:
+        return pd.DataFrame()
+    cols = [c for c in ["sku", "season", "product_name", "list_price", "stock_in",
+                        "sales_qty", "sample_reason", "sample_parent_sku", "designer"]
+            if c in df.columns]
+    return df[df["is_sample"].fillna(False).astype(bool)][cols].reset_index(drop=True)
+
+
 def block_clusters(
     meta: pd.DataFrame,
     vecs: np.ndarray,
