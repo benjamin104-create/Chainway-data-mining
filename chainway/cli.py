@@ -40,16 +40,35 @@ def _warn(msg: str) -> None:
 # ------------------------------------------------------------------ doctor
 def cmd_doctor(args) -> int:
     cfg = get_config()
+
     print("\n【1】資料夾檢查")
+    root = cfg.root
+    if root is not None:
+        mark = "✓" if root.exists() else "!"
+        print(f"  {mark} 原始資料根目錄  {root}")
+        if not root.exists():
+            _warn("  根目錄不存在。常見原因：")
+            _warn("    · 路徑打錯（注意中文字與空白，例如「商品設計Raw Data」中間有一個空格）")
+            _warn("    · 在 WSL / macOS 上跑，看不到 Windows 的 C:\\ 磁碟")
+            _warn("    · settings.yaml 裡用了反斜線 \\，請改成正斜線 /")
+        print()
+
     missing = []
-    for key in ("system_images", "tech_packs", "pos", "market_research", "knowledge", "feedback"):
-        p = cfg.path(key)
-        if p.exists():
-            n = sum(1 for _ in p.rglob("*") if _.is_file())
-            _ok(f"{key:16s} {p}  ({n} 個檔案)")
+    for row in cfg.describe_paths():
+        label = f"{row['key']:16s}"
+        if row["exists"]:
+            _ok(f"[{row['kind']}] {label} {row['path']}  ({row['n_files']} 個檔案)")
         else:
-            _warn(f"{key:16s} {p}  ← 不存在")
-            missing.append(key)
+            _warn(f"[{row['kind']}] {label} {row['path']}  ← 不存在")
+            if row["kind"] == "來源":
+                missing.append(row["key"])
+
+    # 根目錄存在但子資料夾對不上時，把實際看到的子資料夾列出來供對照
+    if root is not None and root.exists() and missing:
+        subdirs = sorted(p.name for p in root.iterdir() if p.is_dir())
+        print(f"\n  根目錄底下實際的子資料夾：{('、'.join(subdirs) if subdirs else '（沒有子資料夾）')}")
+        print("  → 請把 settings.yaml 的名稱改成上面實際的名字，")
+        print("    或執行 `python -m chainway.cli scaffold` 依設定自動建立這些資料夾。")
 
     print("\n【2】套件檢查")
     core = ["pandas", "numpy", "yaml", "openpyxl"]
@@ -93,7 +112,49 @@ def cmd_doctor(args) -> int:
         _warn(f"{fp} 尚未建立，執行 `feedback init` 產生")
 
     if missing:
-        print(f"\n→ 請在 config/settings.yaml 的 paths 補上：{', '.join(missing)}")
+        print(f"\n→ 尚未就緒的來源資料夾：{', '.join(missing)}")
+        print("  修正方式：改 config/settings.yaml 的 paths，"
+              "或執行 `python -m chainway.cli scaffold` 建立資料夾")
+    return 0
+
+
+# ------------------------------------------------------------------ scaffold
+def cmd_scaffold(args) -> int:
+    """依 settings.yaml 建立來源資料夾，並在每個夾內放一張說明卡。"""
+    cfg = get_config()
+    root = cfg.root
+    if root is not None and not root.exists():
+        if not args.yes:
+            _warn(f"根目錄不存在：{root}")
+            _warn("確認路徑無誤的話，加上 --yes 讓我一併建立它。")
+            return 1
+        root.mkdir(parents=True, exist_ok=True)
+        _ok(f"已建立根目錄 {root}")
+
+    hints = {
+        "system_images": "放去背商品照，檔名必須含貨號，例如 CW24AW-TP-0135-BLK.png",
+        "tech_packs": "放裁縫指示書，檔名必須含貨號。Excel 尺寸表準確率最高（100%），其次文字型 PDF",
+        "pos": "放 POS 進銷存 Excel，一年一季一個檔都可以，欄位名稱不用統一",
+        "market_research": "放市調照片、街拍、流行線條參考圖，建議依主題分子資料夾",
+        "knowledge": "放服裝設計專業知識文件（領型、人體結構、服裝比例）",
+    }
+    created = 0
+    for row in cfg.describe_paths():
+        if row["kind"] != "來源":
+            continue
+        p = row["path"]
+        if p.exists():
+            _ok(f"已存在  {p}")
+            continue
+        p.mkdir(parents=True, exist_ok=True)
+        (p / "_請把檔案放在這個資料夾.txt").write_text(
+            f"{row['key']}\n\n{hints.get(row['key'], '')}\n\n"
+            f"詳細格式說明見專案的 docs/data_contract.md\n",
+            encoding="utf-8",
+        )
+        _ok(f"已建立  {p}")
+        created += 1
+    print(f"\n共建立 {created} 個資料夾。放好檔案後執行：python -m chainway.cli doctor")
     return 0
 
 
@@ -399,6 +460,11 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("doctor", help="檢查環境、資料夾與套件").set_defaults(func=cmd_doctor)
+
+    sc = sub.add_parser("scaffold", help="依設定建立來源資料夾")
+    sc.add_argument("--yes", action="store_true", help="根目錄不存在時也一併建立")
+    sc.set_defaults(func=cmd_scaffold)
+
     sub.add_parser("ingest", help="讀取 POS / 系統圖 / 裁縫指示書").set_defaults(func=cmd_ingest)
 
     e = sub.add_parser("embed", help="Fashion-CLIP 向量與屬性標註")

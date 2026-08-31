@@ -28,9 +28,16 @@
 ```bash
 pip install -r requirements.txt
 python -m chainway.cli doctor      # 檢查環境、資料夾、套件，缺什麼直接告訴你
+python -m chainway.cli scaffold    # 依設定建立來源資料夾（已有資料夾可略過）
 ```
 
-把公司資料夾路徑填進 `config/settings.yaml` 的 `paths`（支援 `//NAS/...` 網路磁碟），
+資料夾位置設定在 `config/settings.yaml` 的 `paths`，目前指向
+`C:/Users/USER/Desktop/商品設計Raw Data`。改 `root` 一行就能整套換位置，
+也支援 `//NAS/...` 網路磁碟。
+
+> **Windows 路徑請用正斜線 `/`。** YAML 雙引號裡的 `\` 是跳脫字元，
+> `"C:\Users\..."` 會直接解析失敗。詳見 [`docs/data_contract.md`](docs/data_contract.md)。
+
 然後依序：
 
 ```bash

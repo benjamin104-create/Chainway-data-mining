@@ -7,15 +7,20 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = REPO_ROOT / "config"
+
+# Windows 磁碟機路徑（C:\... 或 C:/...）與 UNC 網路路徑（\\NAS\... 或 //NAS/...）
+_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_UNC_RE = re.compile(r"^[\\/]{2}[^\\/]")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -25,10 +30,30 @@ def _read_yaml(path: Path) -> dict[str, Any]:
         return yaml.safe_load(fh) or {}
 
 
-def _resolve(raw: str | os.PathLike[str]) -> Path:
-    """相對路徑相對於 repo root；絕對路徑（含 UNC \\\\NAS\\...）原樣使用。"""
-    p = Path(str(raw)).expanduser()
-    return p if p.is_absolute() else (REPO_ROOT / p)
+def is_absolute_path(raw: str | os.PathLike[str]) -> bool:
+    """跨平台判斷是否為絕對路徑。
+
+    不能只用 `Path(x).is_absolute()`：在 Linux/macOS 上跑時，
+    `Path("C:/Users/...").is_absolute()` 會回傳 False，導致 Windows 路徑
+    被誤當成相對路徑接到 repo 底下。這在 CI、或設定檔被跨平台檢視時會踩到。
+    """
+    s = str(raw)
+    return bool(_WIN_DRIVE_RE.match(s) or _UNC_RE.match(s)) or Path(s).is_absolute()
+
+
+def _resolve(raw: str | os.PathLike[str], base: Path | None = None) -> Path:
+    """把設定檔裡的一個路徑字串解析成 Path。
+
+    絕對路徑（含 Windows 磁碟機與 UNC）原樣使用；
+    相對路徑優先接在 `base`（paths.root）底下，沒有 root 時接在 repo 根目錄。
+    """
+    s = str(raw).strip()
+    if is_absolute_path(s):
+        # 反斜線在非 Windows 平台不是分隔符，先正規化再交給 Path，
+        # 這樣同一份設定檔在 Windows 與 Linux 上解析結果一致。
+        return Path(PureWindowsPath(s).as_posix() if "\\" in s else s).expanduser()
+    p = Path(s).expanduser()
+    return (base / p) if base is not None else (REPO_ROOT / p)
 
 
 @dataclass
@@ -51,10 +76,37 @@ class Config:
         return self.paths[key]
 
     def ensure_dirs(self) -> None:
-        """輸出用目錄不存在就建立（輸入目錄不建，避免掩蓋路徑填錯的問題）。"""
-        for key in ("interim", "processed", "outputs", "feedback"):
+        """輸出用目錄不存在就建立。
+
+        輸入目錄刻意不自動建立 —— 路徑打錯時應該要報錯，
+        而不是默默在錯的地方生出一個空資料夾讓人以為設定對了。
+        """
+        for key in OUTPUT_PATH_KEYS:
             if key in self.paths:
                 self.paths[key].mkdir(parents=True, exist_ok=True)
+
+    @property
+    def root(self) -> Path | None:
+        """使用者的原始資料根目錄（settings.yaml 的 paths.root），沒設定則為 None。"""
+        return self.paths.get("root")
+
+    def describe_paths(self) -> list[dict[str, Any]]:
+        """列出每個路徑的解析結果與存在狀態，供 doctor 與錯誤訊息使用。"""
+        out: list[dict[str, Any]] = []
+        for key in list(SOURCE_PATH_KEYS) + sorted(OUTPUT_PATH_KEYS):
+            if key not in self.paths:
+                continue
+            p = self.paths[key]
+            exists = p.exists()
+            n_files = sum(1 for f in p.rglob("*") if f.is_file()) if exists else 0
+            out.append({
+                "key": key,
+                "kind": "來源" if key in SOURCE_PATH_KEYS else "產出",
+                "path": p,
+                "exists": exists,
+                "n_files": n_files,
+            })
+        return out
 
     # -- taxonomy 展開 -------------------------------------------
     def attributes_for(self, category: str) -> list[str]:
@@ -107,6 +159,14 @@ class Config:
         return out
 
 
+# 這幾個是「公司原始資料」，相對路徑會接在 paths.root 底下。
+SOURCE_PATH_KEYS = frozenset({
+    "system_images", "tech_packs", "pos", "market_research", "knowledge",
+})
+# 其餘（中繼檔、產出、回饋表）一律留在專案內，不去汙染使用者的原始資料夾。
+OUTPUT_PATH_KEYS = frozenset({"interim", "processed", "outputs", "feedback"})
+
+
 @lru_cache(maxsize=1)
 def get_config(config_dir: str | None = None) -> Config:
     cdir = Path(config_dir) if config_dir else CONFIG_DIR
@@ -114,7 +174,17 @@ def get_config(config_dir: str | None = None) -> Config:
     taxonomy = _read_yaml(cdir / "taxonomy.yaml")
     feedback_tags = _read_yaml(cdir / "feedback_tags.yaml")
 
-    paths = {k: _resolve(v) for k, v in (settings.get("paths") or {}).items()}
+    raw_paths = dict(settings.get("paths") or {})
+    raw_root = raw_paths.pop("root", None)
+    root = _resolve(raw_root) if raw_root else None
+
+    paths: dict[str, Path] = {}
+    for key, value in raw_paths.items():
+        base = root if (key in SOURCE_PATH_KEYS and root is not None) else None
+        paths[key] = _resolve(value, base)
+    if root is not None:
+        paths["root"] = root
+
     cfg = Config(settings=settings, taxonomy=taxonomy, feedback_tags=feedback_tags, paths=paths)
     cfg.ensure_dirs()
     return cfg

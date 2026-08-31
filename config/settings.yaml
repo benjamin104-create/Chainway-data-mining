@@ -10,17 +10,33 @@ project:
 
 # ------------------------------------------------------------
 # 1. 資料夾位置
-#    進公司後把公司資料夾路徑填在這裡（可用絕對路徑，例如
-#    "//NAS/設計部/系統圖" 或 "D:/Chainway/系統圖"）。
-#    留空 = 使用專案內建的 data/raw/... 目錄。
+#
+# ⚠️ Windows 路徑一律用「正斜線 /」，不要用反斜線 \
+#    原因：YAML 的雙引號字串裡 \ 是跳脫字元，"C:\Users\..." 的 \U 會被
+#    當成 Unicode 跳脫而直接解析失敗。三種安全寫法：
+#        ✅ "C:/Users/USER/Desktop/商品設計Raw Data"     ← 建議用這種
+#        ✅ 'C:\Users\USER\Desktop\商品設計Raw Data'      ← 單引號也可以
+#        ❌ "C:\Users\USER\Desktop\商品設計Raw Data"      ← 會噴解析錯誤
+#    Python 端一律用 pathlib.Path 處理，正斜線在 Windows 完全正常。
+#
+# root  = 你放原始資料的根目錄。底下五個「來源」若填相對路徑，
+#         就會自動接在 root 底下；填絕對路徑則各自獨立（可以散在不同磁碟）。
+# 產出類（interim/processed/outputs/feedback）一律留在專案內，
+#         不會寫進你的 root，避免汙染原始資料夾。
 # ------------------------------------------------------------
 paths:
-  system_images: "data/raw/system_images"     # 系統圖（去背商品照，檔名 = 貨號）
-  tech_packs: "data/raw/tech_packs"           # 裁縫指示書（PDF / 掃描圖 / Excel）
-  pos: "data/raw/pos"                         # POS 進銷存 Excel（可多檔，分季）
-  market_research: "data/raw/market_research" # 市調照片 / 流行線條參考圖
-  knowledge: "data/raw/knowledge"             # 服裝設計專業知識文件
-  feedback: "data/feedback"                   # ★ 人工填寫的暢銷/滯銷理由
+  # 你的原始資料根目錄（不使用時整行註解掉，會退回專案內的 data/raw/）
+  root: "C:/Users/USER/Desktop/商品設計Raw Data"
+
+  # 以下五項是 root 底下的子資料夾名稱（依你實際的命名調整即可）
+  system_images: "系統圖"          # 去背商品照，檔名 = 貨號
+  tech_packs: "裁縫指示書"          # PDF / 掃描圖 / Excel 尺寸表
+  pos: "POS銷售數據"               # 進銷存 Excel（可多檔，分季）
+  market_research: "市場調研"       # 市調照片 / 流行線條參考圖
+  knowledge: "設計知識"             # 服裝設計專業知識文件
+
+  # 產出類：相對路徑一律相對於專案根目錄，不受 root 影響
+  feedback: "data/feedback"        # ★ 人工填寫的暢銷/滯銷理由
   interim: "data/interim"
   processed: "data/processed"
   outputs: "data/outputs"

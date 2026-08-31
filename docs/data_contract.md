@@ -5,6 +5,56 @@
 
 ---
 
+## 〇、資料夾怎麼設定（Windows）
+
+目前 `config/settings.yaml` 已指向：
+
+```yaml
+paths:
+  root: "C:/Users/USER/Desktop/商品設計Raw Data"
+  system_images: "系統圖"
+  tech_packs: "裁縫指示書"
+  pos: "POS銷售數據"
+  market_research: "市場調研"
+  knowledge: "設計知識"
+```
+
+`root` 底下這五個是**子資料夾名稱**，會自動接在 root 後面。
+子資料夾名稱請改成你電腦上實際的名字；也可以填絕對路徑讓某一項獨立
+（例如 POS 放在 `"D:/財務/進銷存"`，其餘留在桌面）。
+
+### ⚠️ Windows 路徑一定要用正斜線 `/`
+
+YAML 的**雙引號字串**裡反斜線是跳脫字元，`"C:\Users\..."` 的 `\U`
+會被當成 Unicode 跳脫，直接解析失敗（實測會噴 `ScannerError`）。三種寫法：
+
+| 寫法 | 結果 |
+|---|---|
+| `"C:/Users/USER/Desktop/商品設計Raw Data"` | ✅ 建議用這種 |
+| `'C:\Users\USER\Desktop\商品設計Raw Data'` | ✅ 單引號也可以（單引號不做跳脫） |
+| `"C:\Users\USER\Desktop\商品設計Raw Data"` | ❌ 解析錯誤 |
+
+正斜線在 Windows 上完全正常 —— Python 的 `pathlib.Path` 和 Windows API
+兩邊都接受。程式內部一律用 `pathlib.Path` 處理，不做任何字串拼接。
+
+### 產出檔不會寫進你的資料夾
+
+`feedback` / `interim` / `processed` / `outputs` 四項固定留在專案目錄內，
+不受 `root` 影響。你的桌面原始資料夾只會被讀取，不會被寫入。
+
+### 兩個好用的指令
+
+```bash
+python -m chainway.cli doctor     # 檢查路徑；子資料夾對不上時會列出你實際的資料夾名供對照
+python -m chainway.cli scaffold   # 依設定自動建立那五個子資料夾（含放檔說明卡）
+```
+
+`doctor` 在根目錄找不到時會提示三個最常見原因：路徑打錯（注意
+「商品設計Raw Data」中間那個空格）、在 WSL/macOS 上看不到 `C:\`、
+以及用了反斜線。
+
+---
+
 ## 一、四個資料來源
 
 ### 1. 系統圖（去背商品照）→ `paths.system_images`
