@@ -46,6 +46,9 @@ class ImageRecord:
     style_code: str
     view: str
     folder: str
+    season_code: str      # KA 季號（從所在資料夾推得），查不到為空字串
+    season: str           # 可讀季別，例如 "2024秋"
+    season_group: str     # "AW" / "SS"
 
 
 def parse_sku(stem: str, cfg: Config) -> tuple[str, str]:
@@ -94,6 +97,10 @@ def scan_images(cfg: Config | None = None, root: Path | None = None) -> pd.DataF
             else:
                 stem_for_sku = stem
             sku, style_code = parse_sku(stem_for_sku, cfg)
+            folder = str(path.parent.relative_to(base)) if path.parent != base else ""
+            # 系統圖依季號分資料夾，所以季別優先看資料夾，其次看檔名
+            season_code = cfg.find_season_code(folder) or cfg.find_season_code(path.name) or ""
+            info = cfg.season_from_code(season_code) if season_code else None
             records.append(
                 ImageRecord(
                     image_path=str(path),
@@ -101,7 +108,10 @@ def scan_images(cfg: Config | None = None, root: Path | None = None) -> pd.DataF
                     sku=sku,
                     style_code=style_code,
                     view=view,
-                    folder=str(path.parent.relative_to(base)) if path.parent != base else "",
+                    folder=folder,
+                    season_code=season_code,
+                    season=info["label"] if info else "",
+                    season_group=info["group"] if info else "",
                 )
             )
 

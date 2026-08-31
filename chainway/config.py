@@ -155,6 +155,33 @@ class Config:
     def category_codes(self) -> list[str]:
         return list(self.taxonomy.get("categories", {}).keys())
 
+    # -- KA 季號 --------------------------------------------------
+    def season_from_code(self, code: str) -> dict[str, Any] | None:
+        """KA 季號 → {year, term, group, label}。查無此碼回傳 None。
+
+        例：KA135 → {'year': 2024, 'term': '秋', 'group': 'AW', 'label': '2024秋'}
+        """
+        entry = (self.settings.get("seasons") or {}).get(str(code).upper())
+        if not entry:
+            return None
+        return {**entry, "code": str(code).upper(),
+                "label": f"{entry['year']}{entry['term']}"}
+
+    def find_season_code(self, text: str) -> str | None:
+        """從路徑或檔名裡找出 KA 季號，且只認得對照表裡有的碼。
+
+        不做「看到 KA + 三位數就當季號」的寬鬆比對 —— 貨號本身也含 KA，
+        誤判會讓一堆商品被貼上不存在的季別。
+        """
+        import re as _re
+        pattern = self.get("sku", {}).get("season_code_pattern", r"KA(\d{3})")
+        table = self.settings.get("seasons") or {}
+        for m in _re.finditer(pattern, str(text), _re.IGNORECASE):
+            code = f"KA{m.group(1)}"
+            if code in table:
+                return code
+        return None
+
     # -- 回饋標籤 -------------------------------------------------
     def reason_tag_label(self, code: str) -> str:
         for group in self.feedback_tags.get("reason_tags", {}).values():

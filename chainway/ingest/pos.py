@@ -66,6 +66,17 @@ def map_columns(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, str], list[st
     return renamed, mapping, unmapped
 
 
+def _season_from_filename(path: Path, cfg: Config) -> str:
+    """從檔名或所在資料夾推季別。KA 季號優先（那是公司的正式代號）。"""
+    for text in (path.name, str(path.parent)):
+        code = cfg.find_season_code(text)
+        if code:
+            info = cfg.season_from_code(code)
+            return info["label"] if info else code
+    m = re.search(r"(20\d{2})\s*[-_ ]?\s*(SS|AW|春夏|秋冬|Q[1-4])", path.name, re.I)
+    return m.group(0).upper().replace(" ", "") if m else "UNKNOWN"
+
+
 def _read_any(path: Path) -> dict[str, pd.DataFrame]:
     if path.suffix.lower() == ".csv":
         return {"": pd.read_csv(path)}
@@ -116,10 +127,9 @@ def load_pos(cfg: Config | None = None, root: Path | None = None) -> tuple[pd.Da
             sub = renamed[keep].copy()
             sub["source_file"] = path.name
             sub["source_sheet"] = sheet
-            # 季別若報表沒有，嘗試從檔名抓（例如 "2023AW_進銷存.xlsx"）
+            # 季別若報表沒有，依序嘗試：KA 季號 → 一般年季字樣
             if "season" not in sub.columns:
-                m = re.search(r"(20\d{2})\s*[-_ ]?\s*(SS|AW|春夏|秋冬|Q[1-4])", path.name, re.I)
-                sub["season"] = m.group(0).upper().replace(" ", "") if m else "UNKNOWN"
+                sub["season"] = _season_from_filename(path, cfg)
             frames.append(sub)
             audit_rows.append({
                 "file": path.name, "sheet": sheet, "rows": len(raw),
