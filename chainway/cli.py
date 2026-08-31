@@ -394,9 +394,10 @@ def cmd_search(args) -> int:
     cfg = get_config()
     idx = VisualIndex.load(cfg)
     if args.image:
-        res = idx.search_by_image(args.image, args.top_k)
+        res = (idx.search_by_crops(args.image, args.top_k) if args.crops
+               else idx.search_by_image(args.image, args.top_k, args.category))
     elif args.text:
-        res = idx.search_by_text(args.text, args.top_k)
+        res = idx.search_by_text(args.text, args.top_k, args.category)
     elif args.sku:
         res = idx.search_similar(args.sku, args.top_k)
     else:
@@ -404,6 +405,58 @@ def cmd_search(args) -> int:
         return 1
     print()
     print(format_results(res, cfg).to_string(index=False))
+    return 0
+
+
+# ------------------------------------------------------------------ eval-search
+def cmd_eval_search(args) -> int:
+    """用同一把尺量任何一套以圖搜貨號系統的準確率。"""
+    from .search.index import VisualIndex, evaluate
+
+    cfg = get_config()
+    try:
+        truth = pd.read_csv(args.truth)
+    except (pd.errors.EmptyDataError, FileNotFoundError):
+        _warn(f"讀不到答案檔：{args.truth}\n格式為兩欄 CSV：query_image,true_sku")
+        return 1
+    for col in ("query_image", "true_sku"):
+        if col not in truth.columns:
+            _warn(f"答案檔缺少欄位 '{col}'。格式：query_image,true_sku")
+            return 1
+
+    if args.predictions:
+        preds = pd.read_csv(args.predictions)
+        label = f"外部系統（{Path(args.predictions).name}）"
+    else:
+        idx = VisualIndex.load(cfg)
+        rows = []
+        for i, q in enumerate(truth["query_image"], start=1):
+            print(f"  搜尋 {i}/{len(truth)}", end="\r", flush=True)
+            try:
+                res = (idx.search_by_crops(q, args.top_k) if args.crops
+                       else idx.search_by_image(q, args.top_k))
+            except FileNotFoundError:
+                continue
+            for _, r in res.iterrows():
+                rows.append({"query_image": q, "rank": r["rank"], "sku": r["sku"]})
+        print()
+        preds = pd.DataFrame(rows, columns=["query_image", "rank", "sku"])
+        label = "Chainway" + ("（切塊搜尋）" if args.crops else "")
+
+    summary, detail = evaluate(truth, preds)
+    print(f"\n=== {label} ===")
+    print(summary.to_string())
+
+    out_dir = cfg.path("outputs") / "eval"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tag = "external" if args.predictions else ("crops" if args.crops else "whole")
+    detail.to_csv(out_dir / f"search_eval_{tag}.csv", index=False, encoding="utf-8-sig")
+    _ok(f"逐筆結果 → {out_dir / f'search_eval_{tag}.csv'}")
+
+    miss = detail[detail["hit_rank"].isna()]
+    if len(miss):
+        print(f"\n完全沒找到的 {len(miss)} 張（最值得看的失敗案例）：")
+        print(miss[["query_image", "true_sku", "predicted_top1"]].head(10).to_string(index=False))
     return 0
 
 
@@ -502,7 +555,16 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("search", help="以圖／以文反查貨號與價格")
     s.add_argument("--image"); s.add_argument("--text"); s.add_argument("--sku")
     s.add_argument("--top-k", type=int, default=None)
+    s.add_argument("--category", help="限定品類（TOP/BOTTOM_PANTS/…），可大幅提高命中率")
+    s.add_argument("--crops", action="store_true", help="穿搭照：切塊後逐件搜尋")
     s.set_defaults(func=cmd_search)
+
+    ev = sub.add_parser("eval-search", help="量測以圖搜貨號的準確率（可比較不同系統）")
+    ev.add_argument("--truth", required=True, help="答案檔 CSV：query_image,true_sku")
+    ev.add_argument("--predictions", help="外部系統的結果 CSV：query_image,rank,sku（省略則用本專案）")
+    ev.add_argument("--crops", action="store_true", help="用切塊搜尋（穿搭照建議開）")
+    ev.add_argument("--top-k", type=int, default=10)
+    ev.set_defaults(func=cmd_eval_search)
 
     k = sub.add_parser("sketch", help="市調圖 → 線稿 / 彩現 / 標註")
     k.add_argument("--jobs", help="工作單 YAML")

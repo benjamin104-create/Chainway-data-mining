@@ -114,6 +114,60 @@ def strip_caption_band(img, max_frac: float = 0.30, tol: int = 12):
     return img.crop((0, 0, img.width, cut))
 
 
+def split_garments(img, min_gap_frac: float = 0.02, min_panel_frac: float = 0.08,
+                   tol: int = 14) -> list:
+    """把一張系統圖切成單件。
+
+    為什麼一定要切：系統圖一張放 2–4 個配色併排（白 T + 藏青 T），
+    整張丟給 CLIP 得到的是「白色和藏青的兩件衣服」這個混合語意。
+    而查詢端（穿搭照、街拍）通常只有一件。拿混合語意去比對單件，
+    相似度會被稀釋，排名就亂了 —— 這是以圖搜貨號搜不準最大的單一原因。
+
+    切法：找出整欄都是背景色的「走道」，在走道處切開。
+    切不出兩塊以上就原圖返回。
+    """
+    import numpy as np
+
+    a = np.asarray(img.convert("RGB")).astype(np.int16)
+    h, w = a.shape[:2]
+    if w < 60:
+        return [img]
+
+    # 背景色取上緣兩角（商品在中間，上緣角落幾乎必為底色）
+    k = max(2, min(h, w) // 20)
+    bg = np.median(np.concatenate([a[:k, :k].reshape(-1, 3),
+                                   a[:k, -k:].reshape(-1, 3)]), axis=0)
+    col_is_bg = (np.abs(np.median(a, axis=0) - bg).max(axis=1) <= tol)
+
+    # 找出連續的背景走道
+    gaps, start = [], None
+    for x in range(w):
+        if col_is_bg[x] and start is None:
+            start = x
+        elif not col_is_bg[x] and start is not None:
+            gaps.append((start, x)); start = None
+    if start is not None:
+        gaps.append((start, w))
+
+    min_gap = max(3, int(w * min_gap_frac))
+    # 只取「內部」的寬走道當切點，左右外緣的留白不算
+    cuts = [(s + e) // 2 for s, e in gaps if e - s >= min_gap and s > 0 and e < w]
+    if not cuts:
+        return [img]
+
+    bounds = [0, *cuts, w]
+    panels = []
+    for i in range(len(bounds) - 1):
+        x1, x2 = bounds[i], bounds[i + 1]
+        if x2 - x1 < w * min_panel_frac:
+            continue
+        # 該區塊若整片都是背景（純留白），跳過
+        if col_is_bg[x1:x2].mean() > 0.95:
+            continue
+        panels.append(img.crop((x1, 0, x2, h)))
+    return panels if len(panels) >= 2 else [img]
+
+
 def prepare_image(path: str | Path, cfg: Config | None = None):
     """開圖 + 裁掉貨號字幕帶 + 去背後補白底 + 置中補成正方形。
 
@@ -124,7 +178,7 @@ def prepare_image(path: str | Path, cfg: Config | None = None):
 
     cfg = cfg or get_config()
     clip_cfg = cfg.get("clip", {})
-    img = Image.open(path)
+    img = Image.open(path) if not hasattr(path, "mode") else path
     if clip_cfg.get("strip_caption", True):
         img = strip_caption_band(img)
 
@@ -159,7 +213,7 @@ def embed_images(paths: list[str], cfg: Config | None = None, show_progress: boo
     total = len(paths)
     for start in range(0, total, batch_size):
         chunk = paths[start:start + batch_size]
-        images = [prepare_image(p, cfg) for p in chunk]
+        images = [p if hasattr(p, "mode") else prepare_image(p, cfg) for p in chunk]
         inputs = processor(images=images, return_tensors="pt").to(device)
         with torch.no_grad():
             feats = model.get_image_features(**inputs)
@@ -233,12 +287,31 @@ def build_image_embeddings(
     key = _cache_key(paths, cfg.get("clip", {}).get("model_id", ""))
     npy = cache_dir / f"img_{key}.npy"
 
-    if use_cache and npy.exists():
+    meta_pq = cache_dir / f"img_{key}.parquet"
+    if use_cache and npy.exists() and meta_pq.exists():
         log.info("使用快取向量 %s", npy)
-        return df, np.load(npy)
+        return pd.read_parquet(meta_pq), np.load(npy)
 
-    vecs = embed_images(paths, cfg)
+    # 一張系統圖常含多個配色，逐件切開後各自建向量。
+    # 這樣查詢端的單件照片才是跟單件比對，而不是跟一張混合圖比對。
+    if cfg.get("clip", {}).get("split_colorways", True):
+        panels, rows = [], []
+        for i, p in enumerate(paths):
+            prepared = prepare_image(p, cfg)
+            for j, panel in enumerate(split_garments(prepared), start=1):
+                panels.append(panel)
+                rows.append({**df.iloc[i].to_dict(), "panel": j})
+        df = pd.DataFrame(rows)
+        n_split = len(panels) - len(paths)
+        if n_split > 0:
+            log.info("%d 張圖切出 %d 個單件（多切 %d 件）", len(paths), len(panels), n_split)
+        vecs = embed_images(panels, cfg)
+    else:
+        df = df.assign(panel=1)
+        vecs = embed_images(paths, cfg)
+
     np.save(npy, vecs)
+    df.to_parquet(meta_pq, index=False)
     return df, vecs
 
 

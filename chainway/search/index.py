@@ -52,31 +52,79 @@ class VisualIndex:
         return cls(enriched, vecs, cfg)
 
     # ------------------------------------------------------------
-    def _search_vec(self, q: np.ndarray, top_k: int) -> pd.DataFrame:
+    def _search_vec(self, q: np.ndarray, top_k: int, category: str | None = None) -> pd.DataFrame:
         q = q.reshape(1, -1).astype("float32")
         q = q / np.linalg.norm(q, axis=1, keepdims=True)
-        if self._faiss is not None:
-            scores, idx = self._faiss.search(q, min(top_k, len(self.vecs)))
-            scores, idx = scores[0], idx[0]
-        else:
-            sims = (self.vecs @ q.T).ravel()
-            idx = np.argsort(-sims)[:top_k]
-            scores = sims[idx]
+        sims = (self.vecs @ q.T).ravel()
 
+        # 品類過濾：查詢是上衣時，不該讓裙子出現在候選名單裡佔位置。
+        # 貨號第 6 碼已經帶了品類，這個過濾幾乎沒有成本卻能明顯拉高命中率。
+        mask = np.ones(len(sims), dtype=bool)
+        if category and "category" in self.meta.columns:
+            mask = (self.meta["category"] == category).to_numpy()
+            if mask.sum() < 5:      # 該品類樣本太少就不過濾，免得沒結果
+                mask = np.ones(len(sims), dtype=bool)
+
+        # 一個貨號可能有多個配色面板，取該貨號最高分的那一面板代表它，
+        # 否則前十名會被同一款的不同顏色佔滿。
+        order = np.argsort(-np.where(mask, sims, -np.inf))
+        rows, seen = [], set()
+        for i in order:
+            if not mask[i]:
+                break
+            sku = self.meta.iloc[i].get("sku")
+            if sku in seen:
+                continue
+            seen.add(sku)
+            rows.append((i, sims[i]))
+            if len(rows) >= top_k:
+                break
+
+        if not rows:
+            return pd.DataFrame()
+        idx = [i for i, _ in rows]
         out = self.meta.iloc[idx].copy()
-        out.insert(0, "similarity", np.round(scores, 4))
+        out.insert(0, "similarity", np.round([s for _, s in rows], 4))
         out.insert(1, "rank", range(1, len(out) + 1))
         return out.reset_index(drop=True)
 
-    def search_by_image(self, image_path: str | Path, top_k: int | None = None) -> pd.DataFrame:
+    def search_by_image(self, image_path: str | Path, top_k: int | None = None,
+                        category: str | None = None) -> pd.DataFrame:
         top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
         vec = embed_images([str(image_path)], self.cfg, show_progress=False)
-        return self._search_vec(vec[0], top_k)
+        return self._search_vec(vec[0], top_k, category)
 
-    def search_by_text(self, query: str, top_k: int | None = None) -> pd.DataFrame:
+    def search_by_crops(self, image_path: str | Path, top_k: int | None = None,
+                        max_regions: int = 4) -> pd.DataFrame:
+        """穿搭照專用：先把畫面切成幾塊，每塊各自搜尋。
+
+        一張穿搭照裡有上衣＋下身＋外套，整張比對等於拿「一整套」去比對
+        「單件」，必然不準。切開之後每一件各自去找，命中率會差很多。
+        """
+        from ..sketch.lineart import auto_regions, crop_region, load_image
+
+        top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
+        img = load_image(image_path)
+        frames = []
+        for i, box in enumerate(auto_regions(img, max_regions), start=1):
+            crop = crop_region(img, box)
+            from PIL import Image
+            pil = Image.fromarray(crop[:, :, ::-1])
+            vec = embed_images([pil], self.cfg, show_progress=False)
+            res = self._search_vec(vec[0], top_k)
+            if not res.empty:
+                res.insert(0, "region", i)
+                frames.append(res)
+        if not frames:
+            return pd.DataFrame()
+        out = pd.concat(frames, ignore_index=True)
+        return out.sort_values("similarity", ascending=False).reset_index(drop=True)
+
+    def search_by_text(self, query: str, top_k: int | None = None,
+                       category: str | None = None) -> pd.DataFrame:
         top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
         vec = embed_texts([query], self.cfg)
-        return self._search_vec(vec[0], top_k)
+        return self._search_vec(vec[0], top_k, category)
 
     def search_similar(self, sku: str, top_k: int | None = None) -> pd.DataFrame:
         top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
@@ -110,6 +158,59 @@ def _attach_business_columns(meta: pd.DataFrame, cfg: Config) -> pd.DataFrame:
 
     drop = [c for c in cols if c != "sku" and c in meta.columns]
     return meta.drop(columns=drop, errors="ignore").merge(master[cols], on="sku", how="left")
+
+
+def evaluate(truth: pd.DataFrame, predictions: pd.DataFrame,
+             ks: tuple[int, ...] = (1, 5, 10)) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """用同一把尺量任何一套以圖搜貨號系統。
+
+    truth:       欄位 query_image, true_sku（一列一張查詢圖）
+    predictions: 欄位 query_image, rank, sku（一列一個候選，rank 由 1 起）
+
+    回傳 (整體指標, 逐筆結果)。指標包含 Top-K 命中率與 MRR
+    （平均倒數排名 —— 正確答案排第 1 得 1 分、第 2 得 0.5 分，
+    比單看 Top-1 更能反映「有沒有接近」）。
+
+    這支函式刻意不綁定任何搜尋實作：把別套系統的前十名匯成同樣格式，
+    就能跟本專案的結果放在同一張表上比，不用靠感覺爭論誰比較準。
+    """
+    t = truth.copy()
+    t["query_image"] = t["query_image"].astype(str).str.strip()
+    t["true_sku"] = t["true_sku"].astype(str).str.strip().str.upper()
+
+    p = predictions.copy()
+    p["query_image"] = p["query_image"].astype(str).str.strip()
+    p["sku"] = p["sku"].astype(str).str.strip().str.upper()
+    p["rank"] = pd.to_numeric(p["rank"], errors="coerce")
+
+    rows = []
+    for _, r in t.iterrows():
+        cand = p[p["query_image"] == r["query_image"]].sort_values("rank")
+        hit_rank = None
+        for _, c in cand.iterrows():
+            if c["sku"] == r["true_sku"]:
+                hit_rank = int(c["rank"])
+                break
+        rows.append({
+            "query_image": r["query_image"],
+            "true_sku": r["true_sku"],
+            "n_candidates": len(cand),
+            "hit_rank": hit_rank,
+            "top1": hit_rank == 1,
+            "predicted_top1": cand["sku"].iloc[0] if len(cand) else "",
+        })
+    detail = pd.DataFrame(rows)
+
+    n = max(len(detail), 1)
+    summary = {"查詢張數": len(detail),
+               "有候選的張數": int((detail["n_candidates"] > 0).sum())}
+    for k in ks:
+        summary[f"Top-{k} 命中率"] = round(
+            float(detail["hit_rank"].apply(lambda v: v is not None and v <= k).sum() / n), 4)
+    summary["MRR"] = round(
+        float(detail["hit_rank"].apply(lambda v: 1 / v if v else 0).sum() / n), 4)
+    summary["完全沒找到"] = int(detail["hit_rank"].isna().sum())
+    return pd.DataFrame([summary]).T.rename(columns={0: "值"}), detail
 
 
 def format_results(res: pd.DataFrame, cfg: Config | None = None) -> pd.DataFrame:
