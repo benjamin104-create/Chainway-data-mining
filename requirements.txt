@@ -2,7 +2,8 @@
 pandas>=2.0
 numpy>=1.24
 pyyaml>=6.0
-openpyxl>=3.1          # 讀寫 Excel（POS 與回饋表）
+openpyxl>=3.1          # 讀寫 .xlsx（POS 與回饋表）
+xlrd>=2.0              # 讀舊版 .xls（進銷存報表多為此格式）
 pyarrow>=14.0          # parquet 中繼檔
 
 # ── 影像特徵（Fashion-CLIP）───────────────────
