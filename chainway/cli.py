@@ -657,6 +657,93 @@ def cmd_techpack_notes(args) -> int:
     return 0
 
 
+# ------------------------------------------------------- reverse-design
+def cmd_reverse_design(args) -> int:
+    """設計逆向工程：從賣掉的東西反推「為什麼賣」。"""
+    from .analysis import reverse_design as rd
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+    if master.empty:
+        _warn("主表是空的")
+        return 1
+
+    # 只分析已完結、投入量夠的款。尚在銷售期的完銷率還會上升，
+    # 混進來會把新款一律判成滯銷。
+    df = master[master["sell_through_rate"].notna()].copy()
+    if "stock_in" in df.columns:
+        df = df[pd.to_numeric(df["stock_in"], errors="coerce").fillna(0) >= args.min_qty]
+    if "is_gift" in df.columns:
+        df = df[~df["is_gift"].fillna(False).astype(bool)]
+    if "season_term_code" not in df.columns and "sku" in df.columns:
+        df["season_term_code"] = df["sku"].astype(str).str[4]
+    _ok(f"納入分析 {len(df):,} 款（投入 ≥{args.min_qty} 件）")
+
+    feats = rd.candidate_features(df)
+    if not feats:
+        _warn("找不到可用的設計特徵欄位。請先跑 embed（影像屬性）"
+              "與 techpack-notes --build（指示書註記），再重跑 build。")
+        return 1
+    print(f"  特徵欄位 {len(feats)} 個：{'、'.join(feats[:14])}"
+          f"{'…' if len(feats) > 14 else ''}")
+
+    out = cfg.path("outputs") / "reverse_design"
+    out.mkdir(parents=True, exist_ok=True)
+
+    print("\n【1】分層提升度 —— 同一個品類×季別內比較，排除品類混淆")
+    lift = rd.stratified_lift(df, feats)
+    if lift.empty:
+        _warn("沒有任何特徵通過分層門檻（每層至少 6 款、至少 3 層）。"
+              "資料量或特徵覆蓋率可能不足。")
+        return 1
+    lift.to_csv(out / "stratified_lift.csv", index=False, encoding="utf-8-sig")
+
+    robust = rd.robust_findings(lift, min_effect_pt=args.min_effect)
+    print(f"  {len(lift)} 個特徵值中，{len(robust)} 個通過可信度門檻")
+    if not robust.empty:
+        cols = ["特徵", "特徵值", "方向", "平均差異pt", "同向層數", "層數", "n", "證據強度", "代表貨號"]
+        print(robust[[c for c in cols if c in robust.columns]].head(args.top).to_string(index=False))
+        robust.to_csv(out / "robust_findings.csv", index=False, encoding="utf-8-sig")
+    else:
+        print("  （沒有特徵同時滿足「多層同向 + 效果夠大 + 樣本夠」——"
+              "這本身就是結論：目前的特徵都解釋不了完銷差異）")
+
+    print("\n【2】暢銷群指紋 —— 賣最好的那批長什麼樣")
+    fp = rd.bestseller_fingerprint(df, feats)
+    if not fp.empty:
+        print(fp.head(args.top).to_string(index=False))
+        fp.to_csv(out / "bestseller_fingerprint.csv", index=False, encoding="utf-8-sig")
+
+    print("\n【3】特徵組合 —— 扣掉各自效果後，哪些搭在一起才有加成")
+    combo = rd.combo_lift(df, feats[:args.max_combo_features], top=args.top)
+    if not combo.empty:
+        print(combo.to_string(index=False))
+        combo.to_csv(out / "combo_lift.csv", index=False, encoding="utf-8-sig")
+    else:
+        _warn("沒有組合達到樣本下限，資料切太碎")
+
+    if not robust.empty and "season_term_code" in df.columns:
+        print("\n【4】各季佈局建議 —— 有效但目前佔比低的，才是可擴張的方向")
+        terms = cfg.season_terms()
+        for tc in sorted(terms, key=lambda k: terms[k].get("order", 9)):
+            bp = rd.season_blueprint(df, robust, tc, top=args.top)
+            if bp.empty:
+                continue
+            t = terms[tc]
+            print(f"\n  ── {t['name']}（{tc}・{t['sleeve']}）")
+            print("     " + bp.to_string(index=False).replace("\n", "\n     "))
+            bp.to_csv(out / f"blueprint_{tc}.csv", index=False, encoding="utf-8-sig")
+
+    _ok(f"\n全部結果 → {out}")
+    print("  每一列都帶「代表貨號」，可以回頭看實際商品與系統圖。")
+    return 0
+
+
 # ------------------------------------------------------- season-report
 def cmd_season_report(args) -> int:
     """季別診斷報告：每個季別的完銷、袖長對照、上架重疊、銷冠與年度排行。"""
@@ -754,6 +841,14 @@ def main(argv: list[str] | None = None) -> int:
     tn.add_argument("--build", action="store_true",
                     help="同時整理成結構化欄位（格紋配色／裁法／繡法）並存 CSV")
     tn.set_defaults(func=cmd_techpack_notes)
+
+    rdp = sub.add_parser("reverse-design", help="★ 設計逆向工程：暢銷特徵、組合、佈局建議")
+    rdp.add_argument("--min-qty", type=int, default=30, help="投入件數下限（預設 30）")
+    rdp.add_argument("--min-effect", type=float, default=4.0, help="最小效果（百分點，預設 4）")
+    rdp.add_argument("--top", type=int, default=15, help="每張表顯示幾列")
+    rdp.add_argument("--max-combo-features", type=int, default=8,
+                     help="組合挖掘最多用幾個特徵（兩兩配對，數量會平方成長）")
+    rdp.set_defaults(func=cmd_reverse_design)
 
     sr = sub.add_parser("season-report", help="★ 季別完銷診斷報告（含袖長對照）")
     sr.add_argument("--images", nargs="?", const="", default=None,
