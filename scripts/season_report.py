@@ -94,6 +94,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"⚠ 找不到圖片根目錄 {img_root} —— 改為只在卡片下方印圖檔路徑")
             img_root = None
 
+    if img_root:
+        # 3,729 張圖掃過去要幾秒，先講一聲，不然畫面像當掉了
+        print(f"掃描系統圖：{img_root}")
+        n_idx = len(season_report.index_images(img_root))
+        print(f"  對到 {n_idx:,} 個貨號")
+        if n_idx == 0:
+            print("  ⚠ 一個貨號都沒對到 —— 檢查該目錄底下是否有檔名含 KA+7 碼的圖檔")
+
     html = season_report.render(data, img_root)
     # 檔名刻意用 ASCII：Windows 的 .bat 要開這個檔，而批次檔一旦混進
     # 多位元組字元，cmd.exe 會算錯位元組位置並開始執行殘缺的指令片段。

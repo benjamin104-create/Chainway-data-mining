@@ -13,6 +13,7 @@ import base64
 import datetime as dt
 import html
 import io
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,38 @@ def _pct(v: Any, nd: int = 1) -> str:
     return "—" if v is None or v != v else f"{v:.{nd}%}"
 
 
+IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+SKU_RE = re.compile(r"KA\d{7}")
+
+
+def index_images(root: Path) -> dict[str, Path]:
+    """掃一次圖庫，建立 貨號 → 圖檔 的對照。
+
+    刻意不假設檔名格式。實際的系統圖有 KA1583008.jpg、KA1583008-1.jpg、
+    KA1583008 正面.jpg 等多種寫法，也可能多分一層資料夾；只要檔名裡
+    找得到貨號就對得上。用猜路徑的方式做，換個命名慣例就整批落空。
+
+    同一貨號有多張時取檔名最短的 —— 通常是主圖，帶 -1／-2／_02 或
+    「背面」等後綴的是次要角度。
+    """
+    idx: dict[str, Path] = {}
+    if not root or not root.exists():
+        return idx
+    for p in root.rglob("*"):
+        if p.suffix.lower() not in IMAGE_EXTS or not p.is_file():
+            continue
+        if p.name.startswith(("~$", ".")):
+            continue
+        m = SKU_RE.search(p.stem.upper())
+        if not m:
+            continue
+        sku = m.group(0)
+        prev = idx.get(sku)
+        if prev is None or len(p.name) < len(prev.name):
+            idx[sku] = p
+    return idx
+
+
 class SeasonReport:
     def __init__(self, data: dict[str, Any], images_root: Path | None = None):
         self.d = data
@@ -41,6 +74,7 @@ class SeasonReport:
         self.terms = data["terms"]
         self.seasons = data["seasons"]
         self.img_root = Path(images_root) if images_root else None
+        self.img_index = index_images(self.img_root) if self.img_root else {}
         self.years = sorted({s["y"] for s in self.seasons if s["y"]})
         self.yc = {y: YEAR_COLOR[i % len(YEAR_COLOR)] for i, y in enumerate(self.years)}
         self.order = sorted(self.terms, key=lambda k: self.terms[k].get("order", 9))
@@ -60,29 +94,15 @@ class SeasonReport:
         return TERM_COLOR.get(str(tc), FALLBACK)
 
     # -- 縮圖 ------------------------------------------------------
-    def thumb(self, rel: str) -> str | None:
-        """把系統圖轉成內嵌縮圖。找不到檔就回 None，由卡片改印路徑。
+    def thumb(self, sku: str) -> str | None:
+        """把系統圖轉成內嵌縮圖。找不到就回 None，由卡片改印路徑。
 
         報告常常在沒有圖檔的機器上產生（例如遠端）。這時不該讓整份報告
-        失敗，也不該假裝有圖 —— 卡片會改印圖檔路徑讓人自己開檔對照。
+        失敗，也不該假裝有圖 —— 卡片會改印路徑讓人自己開檔對照。
         """
-        if not self.img_root:
+        p = self.img_index.get(sku)
+        if p is None:
             return None
-        p = self.img_root / rel
-        if not p.exists():
-            for alt in (".png", ".JPG", ".jpeg", ".PNG", ".jpg"):
-                q = p.with_suffix(alt)
-                if q.exists():
-                    p = q
-                    break
-            else:
-                # 檔名常帶後綴（KA1583008-1.jpg、KA1583008 正面.jpg），
-                # 精準比對會全數落空，所以退回前綴比對取第一張。
-                hits = sorted(x for x in p.parent.glob(p.stem + "*")
-                              if x.suffix.lower() in (".jpg", ".jpeg", ".png"))
-                if not hits:
-                    return None
-                p = hits[0]
         try:
             from PIL import Image
             im = Image.open(p).convert("RGB")
@@ -93,12 +113,22 @@ class SeasonReport:
         except Exception:
             return None
 
+    def img_path_label(self, sku: str, fallback: str) -> str:
+        """卡片下方那行路徑：找得到就印實際位置，找不到才印預期位置。"""
+        p = self.img_index.get(sku)
+        if p is None:
+            return fallback
+        try:
+            return str(p.relative_to(self.img_root))
+        except ValueError:
+            return str(p)
+
     def cards(self, items: list[dict], rank: bool = False) -> str:
         if not items:
             return '<p class="sub" style="padding:8px 0">（本季無符合條件的款）</p>'
         out = ['<div class="cards">']
         for i, r in enumerate(items, 1):
-            src = self.thumb(r["img"])
+            src = self.thumb(r["sku"])
             pic = (f'<img src="{src}" alt="{e(r["sku"])}">' if src
                    else f'<div class="noimg"><span>系統圖</span>{e(r["sku"])}</div>')
             c = "#1baf7a" if r["st"] >= .8 else (CRIT if r["st"] < .3 else "#2a78d6")
@@ -114,7 +144,8 @@ class SeasonReport:
                 f'<div class="track"><span style="width:{min(r["st"],1)*100:.0f}%;background:{c}"></span></div>'
                 f'<div class="nums">投入 <b>{r["in"]:,}</b>　售出 <b>{r["sold"]:,}</b>　剩 <b>{r["left"]:,}</b></div>'
                 f'<div class="st" style="color:{c}">完銷 {r["st"]:.0%}</div>'
-                f'<div class="path">{e(r["img"])}</div></figcaption></figure>')
+                f'<div class="path">{e(self.img_path_label(r["sku"], r["img"]))}</div>'
+                f'</figcaption></figure>')
         return "\n".join(out) + "</div>"
 
     # -- 圖表 ------------------------------------------------------
