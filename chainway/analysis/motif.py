@@ -152,6 +152,17 @@ PLAID_COLOR: dict[str, str] = {
 }
 
 
+# 排下一季時真正要決定的六件事，拿來跟季別交叉。
+SEASON_ELEMENTS: dict[str, str] = {
+    "熊": BEAR_PATTERN,
+    "牛仔": r"牛仔",
+    "連帽": r"連帽|帽",
+    "全格": PLAID_FORM["全格（整件格紋布）"],
+    "拼接配格": PLAID_FORM["拼接配格（格布接素面）"],
+    "格紋配件": PLAID_FORM["格紋配件（腰帶・領巾・蝴蝶結・披肩）"],
+}
+
+
 # ── 計算 ────────────────────────────────────────────────────────
 def add_body_part(df: pd.DataFrame, *, code_col: str = "category_code") -> pd.DataFrame:
     """加上「部位」與「半身」。部位取品類碼末碼，格紋線因此與一般款同基準。"""
@@ -296,6 +307,59 @@ def stratified_bootstrap(df: pd.DataFrame, mask: Sequence[bool], *,
             "n": int(x.sum()), "重抽次數": int(len(draws))}
 
 
+def cross_lift(pool: pd.DataFrame, a_pat: str, b_pat: str, base: pd.Series, *,
+               labels: tuple[str, str] = ("A", "B"),
+               name_col: str = "product_name",
+               metric: str = "sell_through_rate") -> pd.DataFrame:
+    """兩個元素的四格表，附「相加預期 vs 實際」。
+
+    設計師會問「熊配格紋會不會更好」。四格拆開才答得出來 ——
+    只看「熊且格」的絕對數字沒有意義，要跟「兩者相加應該有多少」比。
+    """
+    names = pool[name_col].fillna("").astype(str)
+    a, b = names.str.contains(a_pat), names.str.contains(b_pat)
+    A, B = labels
+    cells = {f"{A} 且 {B}": a & b, f"{A} 但無{B}": a & ~b,
+             f"{B} 但無{A}": b & ~a, "兩者皆無": ~a & ~b}
+    rows, eff = [], {}
+    for label, m in cells.items():
+        stat = relative_lift(pool[m], base, metric=metric)
+        eff[label] = stat["效果pt"]
+        rows.append({"組合": label, **stat})
+    out = pd.DataFrame(rows)
+    expect = eff[f"{A} 但無{B}"] + eff[f"{B} 但無{A}"] - eff["兩者皆無"]
+    out.attrs["相加預期pt"] = round(expect, 1)
+    out.attrs["交互作用pt"] = round(eff[f"{A} 且 {B}"] - expect, 1)
+    return out
+
+
+def season_grid(df: pd.DataFrame, rules: Mapping[str, str], *,
+                term_col: str = "season_term_code",
+                name_col: str = "product_name",
+                metric: str = "sell_through_rate",
+                min_group: int = 6) -> pd.DataFrame:
+    """季別 × 元素的矩陣。
+
+    關鍵在基準線：每個季別用**它自己的**部位平均當基準，
+    否則秋季（全庫最弱，季均 36%）的每一格都會被季節效應壓成負的，
+    看不出「在秋季內，這個元素相對其他秋季款如何」。
+    """
+    d = add_body_part(df) if "部位" not in df.columns else df
+    d = d[d["部位"].notna() & d[metric].notna()]
+    rows: list[dict[str, Any]] = []
+    for term, sub in d.groupby(d[term_col].astype(str)):
+        base = part_baseline(sub, metric)
+        names = sub[name_col].fillna("").astype(str)
+        for label, pat in rules.items():
+            s = sub[names.str.contains(pat, regex=True)]
+            if len(s) < min_group:
+                continue
+            rows.append({"季別碼": term, "元素": label,
+                         **relative_lift(s, base, metric=metric),
+                         "季均完銷": round(float(sub[metric].mean()), 4)})
+    return pd.DataFrame(rows)
+
+
 def motif_tables(df: pd.DataFrame, *, metric: str = "sell_through_rate",
                  name_col: str = "product_name") -> dict[str, pd.DataFrame]:
     """一次算完熊與格紋的全套拆解。回傳表名 → 表。"""
@@ -320,4 +384,7 @@ def motif_tables(df: pd.DataFrame, *, metric: str = "sell_through_rate",
         "格紋_配色": breakdown(plaid, PLAID_COLOR, **kw),
         "格紋_形式x半身": breakdown_by_half(plaid, PLAID_FORM, base,
                                        name_col=name_col, metric=metric),
+        "熊x格紋": cross_lift(d, BEAR_PATTERN, PLAID_PATTERN, base,
+                           labels=("熊", "格"), name_col=name_col, metric=metric),
+        "季別x元素": season_grid(d, SEASON_ELEMENTS, name_col=name_col, metric=metric),
     }
