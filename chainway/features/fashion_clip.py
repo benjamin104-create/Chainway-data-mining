@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -295,17 +296,47 @@ def build_image_embeddings(
     # 一張系統圖常含多個配色，逐件切開後各自建向量。
     # 這樣查詢端的單件照片才是跟單件比對，而不是跟一張混合圖比對。
     if cfg.get("clip", {}).get("split_colorways", True):
-        panels, rows = [], []
+        # 邊讀邊算，算完就丟。
+        #
+        # 不能先把所有圖解碼進一個 list 再一次送進模型：一張系統圖解開約
+        # 5 MB，3,729 張切件後有五千到八千張，那是幾十 GB，記憶體一定爆。
+        # 這裡只讓 flush_at 張同時存在，其餘都在算完後就釋放。
+        batch_size = int(cfg.get("clip", {}).get("batch_size", 16))
+        flush_at = max(batch_size * 4, 32)
+        rows: list[dict] = []
+        chunks: list[np.ndarray] = []
+        buf_panels: list[Any] = []
+        buf_rows: list[dict] = []
+        total, n_panels = len(paths), 0
+
+        def _flush() -> None:
+            nonlocal buf_panels, buf_rows
+            if not buf_panels:
+                return
+            chunks.append(embed_images(buf_panels, cfg, show_progress=False))
+            rows.extend(buf_rows)
+            buf_panels, buf_rows = [], []
+
         for i, p in enumerate(paths):
-            prepared = prepare_image(p, cfg)
+            try:
+                prepared = prepare_image(p, cfg)
+            except Exception as exc:  # 壞檔、非影像、權限問題都不該中斷整批
+                log.warning("略過讀不進來的圖 %s：%s", p, exc)
+                continue
             for j, panel in enumerate(split_garments(prepared), start=1):
-                panels.append(panel)
-                rows.append({**df.iloc[i].to_dict(), "panel": j})
+                buf_panels.append(panel)
+                buf_rows.append({**df.iloc[i].to_dict(), "panel": j})
+                n_panels += 1
+            if len(buf_panels) >= flush_at:
+                _flush()
+            print(f"  影像特徵 {i + 1}/{total} 張圖 → {n_panels} 個單件", end="\r", flush=True)
+        _flush()
+        print()
+
         df = pd.DataFrame(rows)
-        n_split = len(panels) - len(paths)
-        if n_split > 0:
-            log.info("%d 張圖切出 %d 個單件（多切 %d 件）", len(paths), len(panels), n_split)
-        vecs = embed_images(panels, cfg)
+        if n_panels > total:
+            log.info("%d 張圖切出 %d 個單件（多切 %d 件）", total, n_panels, n_panels - total)
+        vecs = np.vstack(chunks) if chunks else np.zeros((0, 512), dtype="float32")
     else:
         df = df.assign(panel=1)
         vecs = embed_images(paths, cfg)
