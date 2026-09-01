@@ -603,6 +603,24 @@ def cmd_techpack_notes(args) -> int:
     print(f"\n【最常出現的 {min(args.top, len(vocab))} 種寫法】")
     print(vocab.head(args.top).to_string(index=False))
 
+    if args.build:
+        print("\n整理成結構化欄位…")
+        notes = tn.build_notes_table(cfg)
+        if not notes.empty:
+            cols = ["sku", "格紋配色", "格紋裁法", "格紋形式", "繡法", "提及部位", "含格紋"]
+            keep = [c for c in cols if c in notes.columns]
+            notes[keep + ["techpack_path"]].to_csv(
+                out / "techpack_design_notes.csv", index=False, encoding="utf-8-sig")
+            _ok(f"{len(notes)} 份 → {out / 'techpack_design_notes.csv'}")
+            print("\n【擷取到的設計欄位覆蓋率】")
+            for c in keep[1:]:
+                n = notes[c].notna().sum() if c != "含格紋" else int(notes[c].sum())
+                print(f"  {c:<8s} {n:>5d} 份  {n/len(notes):>6.1%}")
+            for c in ("格紋配色", "格紋裁法", "繡法", "提及部位"):
+                if c in notes.columns and notes[c].notna().any():
+                    print(f"\n  ── {c} 分布")
+                    print("     " + notes[c].value_counts().head(10).to_string().replace("\n", "\n     "))
+
     vocab.to_csv(out / "techpack_vocabulary.csv", index=False, encoding="utf-8-sig")
     cov.to_csv(out / "techpack_keyword_coverage.csv", index=False, encoding="utf-8-sig")
     _ok(f"完整清單 → {out / 'techpack_vocabulary.csv'}")
@@ -701,6 +719,8 @@ def main(argv: list[str] | None = None) -> int:
     tn.add_argument("--keywords", help="自訂關鍵字，逗號分隔；預設含 格/配格/對格/門襟/滾邊…")
     tn.add_argument("--top", type=int, default=40, help="畫面上顯示幾種寫法（預設 40）")
     tn.add_argument("--limit", type=int, help="只掃前 N 份，先試跑用")
+    tn.add_argument("--build", action="store_true",
+                    help="同時整理成結構化欄位（格紋配色／裁法／繡法）並存 CSV")
     tn.set_defaults(func=cmd_techpack_notes)
 
     sr = sub.add_parser("season-report", help="★ 季別完銷診斷報告（含袖長對照）")

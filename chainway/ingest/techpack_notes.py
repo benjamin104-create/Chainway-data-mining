@@ -107,6 +107,91 @@ def keyword_coverage(vocab: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# ── 依 3,279 份實際指示書的掃描結果建立（不是猜的）────────────────
+#
+# 掃描發現三件事，直接決定了下面的規則：
+#
+# 1. 「請對格子」/「□請對格子」出現 5,088 次、覆蓋 78.6% 的檔 —— 那是
+#    表單樣板上的縫製要求勾選項，不是這件衣服的設計特徵。當特徵用等於
+#    給八成的款貼同一個標籤，毫無區辨力。必須排除。
+# 2. 「價格」裡有「格」字，801 次純屬關鍵字誤中。必須排除。
+# 3. 位置詞極少：門襟 2.9%、配格 1.3%、領台 0.3%。所以「格紋配置在哪」
+#    多半是畫在線圖上而非寫成文字 —— 要靠抽內嵌圖來看，不能靠文字。
+#
+# 因此這裡只擷取「文字裡真的存在且有區辨力」的東西。
+NOISE_PATTERNS = [
+    r"請對格子", r"對格子", r"價格", r"單價", r"售價", r"成本",
+]
+
+# 格紋配色：使用者辨識流程的第二步（「綠色，我們很少用」）。
+# 這是規格欄位，不是影像推測 —— 準確度不同級。
+PLAID_COLOR_PATTERNS = {
+    "卡其格": r"卡格|卡其格",
+    "藍格": r"藍格",
+    "紅格": r"紅格",
+    "粉格": r"粉格",
+    "綠格": r"綠格",
+    "黑格": r"黑格",
+    "灰格": r"灰格",
+    "咖啡格": r"咖啡格|棕格",
+}
+
+# 裁法：正裁 / 斜裁。斜裁的格子呈 45 度，視覺差異極大。
+PLAID_CUT_PATTERNS = {"正格": r"正格", "斜格": r"斜格|斜卡其格|斜卡其"}
+
+# 格紋的呈現形式（不是位置，是形式）
+PLAID_FORM_PATTERNS = {
+    "格紋布": r"格布(?!色)|格紋布",
+    "格紋織帶": r"格紋織帶|格.{0,4}織帶",
+    "格標": r"格標",
+}
+
+# 繡法：覆蓋 18.5% 的檔，是實打實的工藝差異
+EMBROIDERY_PATTERNS = {
+    "電繡": r"電繡", "貼布繡": r"貼布繡", "繡花": r"繡花",
+    "繡片": r"繡片", "繡雞眼": r"繡雞眼", "刺繡": r"刺繡",
+}
+
+# 位置詞：只收覆蓋率低的。低覆蓋才有區辨力 —— 有寫的那少數幾件才是特例。
+# 刻意不收「袖口」：它覆蓋 62.6%，因為那是尺寸表的欄位名稱，
+# 跟「請對格子」一樣屬於樣板文字，當特徵用會給六成的款貼同一個標籤。
+PLACEMENT_PATTERNS = {
+    "門襟": r"門襟|前襟",      # 2.9%
+    "領台": r"領台|領座",      # 0.3%
+    "下襬": r"下擺|下襬",      # 4.8%
+    "口袋": r"口袋",           # 7.7%
+    "滾邊": r"滾邊",           # 3.6%
+}
+
+
+def _strip_noise(text: str) -> str:
+    for pat in NOISE_PATTERNS:
+        text = re.sub(pat, "", text)
+    return text
+
+
+def classify_notes(cells: list[str]) -> dict[str, Any]:
+    """把一份指示書的文字轉成結構化的設計欄位。
+
+    每一欄都可能是多值（一件衣服可以同時有電繡與貼布繡），
+    以頓號串接，保留全部而不強制單選 —— 硬選一個會丟資訊。
+    """
+    blob = _strip_noise(" ".join(cells))
+    hit = lambda table: [k for k, pat in table.items() if re.search(pat, blob)]
+
+    colors = hit(PLAID_COLOR_PATTERNS)
+    forms = hit(PLAID_FORM_PATTERNS)
+    return {
+        "格紋配色": "、".join(colors) or None,
+        "格紋裁法": "、".join(hit(PLAID_CUT_PATTERNS)) or None,
+        "格紋形式": "、".join(forms) or None,
+        "繡法": "、".join(hit(EMBROIDERY_PATTERNS)) or None,
+        "提及部位": "、".join(hit(PLACEMENT_PATTERNS)) or None,
+        # 有格紋布或格紋織帶或指定了配色，就認定這件用了格紋
+        "含格紋": bool(colors or forms),
+    }
+
+
 def extract_notes(path: str | Path, keywords: list[str] | None = None) -> dict[str, Any]:
     """單一份指示書 → 命中的註記文字，供之後建立配置對照。"""
     keywords = keywords or DEFAULT_KEYWORDS
@@ -131,6 +216,7 @@ def build_notes_table(cfg: Config | None = None, limit: int | None = None) -> pd
             if not m:
                 continue
             rec = extract_notes(path)
+            rec.update(classify_notes(_cells_of(path)))
             rec["sku"] = m.group(1)
             rows.append(rec)
             if limit and len(rows) >= limit:
