@@ -1,285 +1,775 @@
-# ============================================================
-# 服裝品類 × 設計特徵 詞彙表 (Taxonomy)
-# ------------------------------------------------------------
-# 這個檔是整個分析的「共同語言」：
-#   1. Fashion-CLIP 用 zero-shot 方式，把每張系統圖打上這些標籤
-#   2. 統計分析用這些標籤去跑「特徵 ↔ 暢銷/滯銷」關聯
-#   3. 業務回饋表 (sales_feedback.csv) 的下拉選單也來自這裡
-#
-# ★ 進公司後請依貴司實際商品線增刪。改這裡就會全流程生效。
-#   prompt 寫法建議：英文、具體、以 "a photo of ..." 開頭效果最好。
-# ============================================================
-
 categories:
   TOP:
-    name_zh: "上衣"
-    keywords: ["shirt", "blouse", "tee", "knit top", "sweater"]
-    attributes: [collar, sleeve, silhouette_top, closure, fabric_look, pattern, color_family, detail_top, length_top]
+    name_zh: 上衣
+    keywords:
+    - shirt
+    - blouse
+    - tee
+    - knit top
+    - sweater
+    attributes:
+    - collar
+    - sleeve
+    - silhouette_top
+    - closure
+    - fabric_look
+    - pattern
+    - color_family
+    - detail_top
+    - length_top
+    - placket
+    - plaid_placement
   BOTTOM_PANTS:
-    name_zh: "褲子"
-    keywords: ["trousers", "pants", "jeans", "shorts"]
-    attributes: [waist_rise, pants_shape, pants_length, closure, fabric_look, pattern, color_family, detail_bottom]
+    name_zh: 褲子
+    keywords:
+    - trousers
+    - pants
+    - jeans
+    - shorts
+    attributes:
+    - waist_rise
+    - pants_shape
+    - pants_length
+    - closure
+    - fabric_look
+    - pattern
+    - color_family
+    - detail_bottom
+    - plaid_placement
+    - pocket_style
   BOTTOM_SKIRT:
-    name_zh: "裙子"
-    keywords: ["skirt"]
-    attributes: [waist_rise, skirt_shape, skirt_length, closure, fabric_look, pattern, color_family, detail_bottom]
+    name_zh: 裙子
+    keywords:
+    - skirt
+    attributes:
+    - waist_rise
+    - skirt_shape
+    - skirt_length
+    - closure
+    - fabric_look
+    - pattern
+    - color_family
+    - detail_bottom
+    - plaid_placement
   OUTER:
-    name_zh: "外套"
-    keywords: ["coat", "jacket", "blazer", "trench coat"]
-    attributes: [collar, sleeve, silhouette_top, closure, fabric_look, pattern, color_family, detail_top, length_top]
+    name_zh: 外套
+    keywords:
+    - coat
+    - jacket
+    - blazer
+    - trench coat
+    attributes:
+    - collar
+    - sleeve
+    - silhouette_top
+    - closure
+    - fabric_look
+    - pattern
+    - color_family
+    - detail_top
+    - length_top
+    - placket
+    - plaid_placement
+    - pocket_style
   DRESS:
-    name_zh: "洋裝"
-    keywords: ["dress", "one-piece"]
-    attributes: [collar, sleeve, silhouette_dress, waist_rise, skirt_length, closure, fabric_look, pattern, color_family, detail_top]
+    name_zh: 洋裝
+    keywords:
+    - dress
+    - one-piece
+    attributes:
+    - collar
+    - sleeve
+    - silhouette_dress
+    - waist_rise
+    - skirt_length
+    - closure
+    - fabric_look
+    - pattern
+    - color_family
+    - detail_top
+    - plaid_placement
   ACC:
-    name_zh: "配件"
-    keywords: ["scarf", "belt", "bag", "hat"]
-    attributes: [color_family, pattern, fabric_look]
-
-# ------------------------------------------------------------
-# 屬性維度：每個維度是「互斥的一組選項」，CLIP 會挑分數最高的一個
-# ------------------------------------------------------------
+    name_zh: 配件
+    keywords:
+    - scarf
+    - belt
+    - bag
+    - hat
+    attributes:
+    - color_family
+    - pattern
+    - fabric_look
 attributes:
-
   collar:
-    name_zh: "領型"
+    name_zh: 領型
     options:
-      - {code: "round_neck",   zh: "圓領",     prompt: "a garment with a plain round neckline"}
-      - {code: "v_neck",       zh: "V領",      prompt: "a garment with a v-neckline"}
-      - {code: "shirt_collar", zh: "襯衫領",   prompt: "a shirt with a classic pointed shirt collar"}
-      - {code: "stand_collar", zh: "立領",     prompt: "a garment with a mandarin stand collar"}
-      - {code: "peter_pan",    zh: "彼得潘領", prompt: "a garment with a rounded peter pan collar"}
-      - {code: "notch_lapel",  zh: "平駁領",   prompt: "a jacket with a notched lapel"}
-      - {code: "shawl_collar", zh: "青果領",   prompt: "a jacket with a shawl collar"}
-      - {code: "polo_collar",  zh: "POLO領",   prompt: "a polo shirt collar with placket"}
-      - {code: "square_neck",  zh: "方領",     prompt: "a garment with a square neckline"}
-      - {code: "boat_neck",    zh: "一字領",   prompt: "a garment with a wide boat neckline"}
-      - {code: "hooded",       zh: "連帽",     prompt: "a garment with a hood"}
-      - {code: "bow_tie_neck", zh: "領結/綁帶領", prompt: "a blouse with a pussy bow tie neckline"}
-
+    - code: round_neck
+      zh: 圓領
+      prompt: a garment with a plain round neckline
+    - code: v_neck
+      zh: V領
+      prompt: a garment with a v-neckline
+    - code: shirt_collar
+      zh: 襯衫領
+      prompt: a shirt with a classic pointed shirt collar
+    - code: stand_collar
+      zh: 立領
+      prompt: a garment with a mandarin stand collar
+    - code: peter_pan
+      zh: 彼得潘領
+      prompt: a garment with a rounded peter pan collar
+    - code: notch_lapel
+      zh: 平駁領
+      prompt: a jacket with a notched lapel
+    - code: shawl_collar
+      zh: 青果領
+      prompt: a jacket with a shawl collar
+    - code: polo_collar
+      zh: POLO領
+      prompt: a polo shirt collar with placket
+    - code: square_neck
+      zh: 方領
+      prompt: a garment with a square neckline
+    - code: boat_neck
+      zh: 一字領
+      prompt: a garment with a wide boat neckline
+    - code: hooded
+      zh: 連帽
+      prompt: a garment with a hood
+    - code: bow_tie_neck
+      zh: 領結/綁帶領
+      prompt: a blouse with a pussy bow tie neckline
   sleeve:
-    name_zh: "袖型"
+    name_zh: 袖型
     options:
-      - {code: "sleeveless",   zh: "無袖",   prompt: "a sleeveless garment"}
-      - {code: "cap_sleeve",   zh: "蓋袖",   prompt: "a garment with very short cap sleeves"}
-      - {code: "short_sleeve", zh: "短袖",   prompt: "a garment with short sleeves"}
-      - {code: "elbow_sleeve", zh: "五分袖", prompt: "a garment with elbow length sleeves"}
-      - {code: "three_quarter",zh: "七分袖", prompt: "a garment with three quarter length sleeves"}
-      - {code: "long_sleeve",  zh: "長袖",   prompt: "a garment with full long sleeves"}
-      - {code: "puff_sleeve",  zh: "泡泡袖", prompt: "a garment with gathered puff sleeves"}
-      - {code: "bishop_sleeve",zh: "主教袖", prompt: "a garment with bishop sleeves gathered at the cuff"}
-      - {code: "raglan",       zh: "落肩/插肩袖", prompt: "a garment with raglan drop shoulder sleeves"}
-
+    - code: sleeveless
+      zh: 無袖
+      prompt: a sleeveless garment
+    - code: cap_sleeve
+      zh: 蓋袖
+      prompt: a garment with very short cap sleeves
+    - code: short_sleeve
+      zh: 短袖
+      prompt: a garment with short sleeves
+    - code: elbow_sleeve
+      zh: 五分袖
+      prompt: a garment with elbow length sleeves
+    - code: three_quarter
+      zh: 七分袖
+      prompt: a garment with three quarter length sleeves
+    - code: long_sleeve
+      zh: 長袖
+      prompt: a garment with full long sleeves
+    - code: puff_sleeve
+      zh: 泡泡袖
+      prompt: a garment with gathered puff sleeves
+    - code: bishop_sleeve
+      zh: 主教袖
+      prompt: a garment with bishop sleeves gathered at the cuff
+    - code: raglan
+      zh: 落肩/插肩袖
+      prompt: a garment with raglan drop shoulder sleeves
   silhouette_top:
-    name_zh: "上身廓形"
+    name_zh: 上身廓形
     options:
-      - {code: "fitted",    zh: "合身", prompt: "a fitted slim body-conscious top"}
-      - {code: "straight",  zh: "直筒", prompt: "a straight boxy cut top"}
-      - {code: "a_line",    zh: "A字", prompt: "an a-line flared top"}
-      - {code: "oversized", zh: "寬鬆落肩", prompt: "an oversized loose relaxed top"}
-      - {code: "peplum",    zh: "腰擺/魚尾", prompt: "a peplum top flared at the waist"}
-
+    - code: fitted
+      zh: 合身
+      prompt: a fitted slim body-conscious top
+    - code: straight
+      zh: 直筒
+      prompt: a straight boxy cut top
+    - code: a_line
+      zh: A字
+      prompt: an a-line flared top
+    - code: oversized
+      zh: 寬鬆落肩
+      prompt: an oversized loose relaxed top
+    - code: peplum
+      zh: 腰擺/魚尾
+      prompt: a peplum top flared at the waist
   silhouette_dress:
-    name_zh: "洋裝廓形"
+    name_zh: 洋裝廓形
     options:
-      - {code: "a_line",   zh: "A字裙洋裝", prompt: "an a-line dress"}
-      - {code: "sheath",   zh: "直筒窄身",  prompt: "a sheath column dress"}
-      - {code: "fit_flare",zh: "收腰蓬裙",  prompt: "a fit and flare dress with defined waist"}
-      - {code: "shirt_dress", zh: "襯衫洋裝", prompt: "a shirt dress with button placket"}
-      - {code: "wrap",     zh: "綁帶交叉",  prompt: "a wrap dress with crossover front"}
-      - {code: "empire",   zh: "高腰帝國線", prompt: "an empire waist dress"}
-
+    - code: a_line
+      zh: A字裙洋裝
+      prompt: an a-line dress
+    - code: sheath
+      zh: 直筒窄身
+      prompt: a sheath column dress
+    - code: fit_flare
+      zh: 收腰蓬裙
+      prompt: a fit and flare dress with defined waist
+    - code: shirt_dress
+      zh: 襯衫洋裝
+      prompt: a shirt dress with button placket
+    - code: wrap
+      zh: 綁帶交叉
+      prompt: a wrap dress with crossover front
+    - code: empire
+      zh: 高腰帝國線
+      prompt: an empire waist dress
   waist_rise:
-    name_zh: "腰位"
+    name_zh: 腰位
     options:
-      - {code: "high_rise", zh: "高腰", prompt: "high waisted bottoms sitting at the natural waist"}
-      - {code: "mid_rise",  zh: "中腰", prompt: "mid rise bottoms"}
-      - {code: "low_rise",  zh: "低腰", prompt: "low rise bottoms sitting on the hips"}
-
+    - code: high_rise
+      zh: 高腰
+      prompt: high waisted bottoms sitting at the natural waist
+    - code: mid_rise
+      zh: 中腰
+      prompt: mid rise bottoms
+    - code: low_rise
+      zh: 低腰
+      prompt: low rise bottoms sitting on the hips
   pants_shape:
-    name_zh: "褲型"
+    name_zh: 褲型
     options:
-      - {code: "skinny",    zh: "窄管",   prompt: "skinny tight fitting trousers"}
-      - {code: "straight",  zh: "直筒",   prompt: "straight leg trousers"}
-      - {code: "tapered",   zh: "錐形",   prompt: "tapered carrot leg trousers"}
-      - {code: "wide_leg",  zh: "寬管",   prompt: "wide leg palazzo trousers"}
-      - {code: "flare",     zh: "喇叭",   prompt: "flared bootcut trousers"}
-      - {code: "culotte",   zh: "褲裙",   prompt: "culotte cropped wide trousers"}
-
+    - code: skinny
+      zh: 窄管
+      prompt: skinny tight fitting trousers
+    - code: straight
+      zh: 直筒
+      prompt: straight leg trousers
+    - code: tapered
+      zh: 錐形
+      prompt: tapered carrot leg trousers
+    - code: wide_leg
+      zh: 寬管
+      prompt: wide leg palazzo trousers
+    - code: flare
+      zh: 喇叭
+      prompt: flared bootcut trousers
+    - code: culotte
+      zh: 褲裙
+      prompt: culotte cropped wide trousers
   pants_length:
-    name_zh: "褲長"
+    name_zh: 褲長
     options:
-      - {code: "shorts",   zh: "短褲",  prompt: "shorts above the knee"}
-      - {code: "cropped",  zh: "九分",  prompt: "cropped ankle length trousers"}
-      - {code: "full",     zh: "全長",  prompt: "full length trousers"}
-
+    - code: shorts
+      zh: 短褲
+      prompt: shorts above the knee
+    - code: cropped
+      zh: 九分
+      prompt: cropped ankle length trousers
+    - code: full
+      zh: 全長
+      prompt: full length trousers
   skirt_shape:
-    name_zh: "裙型"
+    name_zh: 裙型
     options:
-      - {code: "pencil",    zh: "窄裙",   prompt: "a pencil straight skirt"}
-      - {code: "a_line",    zh: "A字裙", prompt: "an a-line skirt"}
-      - {code: "pleated",   zh: "百褶裙", prompt: "a pleated skirt with knife pleats"}
-      - {code: "wrap",      zh: "一片裙", prompt: "a wrap skirt with overlapping front"}
-      - {code: "tiered",    zh: "蛋糕裙", prompt: "a tiered ruffled skirt"}
-      - {code: "mermaid",   zh: "魚尾裙", prompt: "a mermaid fishtail skirt"}
-
+    - code: pencil
+      zh: 窄裙
+      prompt: a pencil straight skirt
+    - code: a_line
+      zh: A字裙
+      prompt: an a-line skirt
+    - code: pleated
+      zh: 百褶裙
+      prompt: a pleated skirt with knife pleats
+    - code: wrap
+      zh: 一片裙
+      prompt: a wrap skirt with overlapping front
+    - code: tiered
+      zh: 蛋糕裙
+      prompt: a tiered ruffled skirt
+    - code: mermaid
+      zh: 魚尾裙
+      prompt: a mermaid fishtail skirt
   skirt_length:
-    name_zh: "裙長"
+    name_zh: 裙長
     options:
-      - {code: "mini",  zh: "迷你", prompt: "a mini length above the knee"}
-      - {code: "knee",  zh: "及膝", prompt: "a knee length hem"}
-      - {code: "midi",  zh: "midi", prompt: "a midi length below the knee"}
-      - {code: "maxi",  zh: "長版", prompt: "a maxi ankle length hem"}
-
+    - code: mini
+      zh: 迷你
+      prompt: a mini length above the knee
+    - code: knee
+      zh: 及膝
+      prompt: a knee length hem
+    - code: midi
+      zh: midi
+      prompt: a midi length below the knee
+    - code: maxi
+      zh: 長版
+      prompt: a maxi ankle length hem
   length_top:
-    name_zh: "衣長"
+    name_zh: 衣長
     options:
-      - {code: "cropped",   zh: "短版",   prompt: "a cropped short hem ending above the waist"}
-      - {code: "regular",   zh: "標準",   prompt: "a regular hip length hem"}
-      - {code: "longline",  zh: "長版",   prompt: "a longline tunic length hem"}
-
+    - code: cropped
+      zh: 短版
+      prompt: a cropped short hem ending above the waist
+    - code: regular
+      zh: 標準
+      prompt: a regular hip length hem
+    - code: longline
+      zh: 長版
+      prompt: a longline tunic length hem
   closure:
-    name_zh: "閉合方式"
+    name_zh: 閉合方式
     options:
-      - {code: "buttons",      zh: "鈕釦",   prompt: "a garment fastened with buttons"}
-      - {code: "horn_buttons", zh: "牛角釦", prompt: "a garment with toggle horn buttons"}
-      - {code: "zip",          zh: "拉鍊",   prompt: "a garment with a zipper closure"}
-      - {code: "tie_belt",     zh: "綁帶",   prompt: "a garment closed with a tie belt"}
-      - {code: "pullover",     zh: "套頭",   prompt: "a pullover garment with no front opening"}
-      - {code: "double_breasted", zh: "雙排釦", prompt: "a double breasted garment"}
-
+    - code: buttons
+      zh: 鈕釦
+      prompt: a garment fastened with buttons
+    - code: horn_buttons
+      zh: 牛角釦
+      prompt: a garment with toggle horn buttons
+    - code: zip
+      zh: 拉鍊
+      prompt: a garment with a zipper closure
+    - code: tie_belt
+      zh: 綁帶
+      prompt: a garment closed with a tie belt
+    - code: pullover
+      zh: 套頭
+      prompt: a pullover garment with no front opening
+    - code: double_breasted
+      zh: 雙排釦
+      prompt: a double breasted garment
   fabric_look:
-    name_zh: "面料外觀"
+    name_zh: 面料外觀
     options:
-      - {code: "woven_crisp", zh: "梭織挺括", prompt: "crisp structured woven fabric holding its shape"}
-      - {code: "woven_drape", zh: "梭織垂墜", prompt: "soft draping fluid woven fabric"}
-      - {code: "knit_fine",   zh: "細針織",   prompt: "fine gauge smooth knitwear"}
-      - {code: "knit_chunky", zh: "粗針織",   prompt: "chunky cable heavy knitwear"}
-      - {code: "denim",       zh: "丹寧",     prompt: "denim fabric"}
-      - {code: "leather",     zh: "皮革",     prompt: "leather or faux leather"}
-      - {code: "tweed",       zh: "毛呢/斜紋軟呢", prompt: "tweed boucle wool fabric"}
-      - {code: "sheer",       zh: "薄透",     prompt: "sheer translucent lightweight fabric"}
-      - {code: "satin",       zh: "緞面",     prompt: "shiny satin silk fabric"}
-
+    - code: woven_crisp
+      zh: 梭織挺括
+      prompt: crisp structured woven fabric holding its shape
+    - code: woven_drape
+      zh: 梭織垂墜
+      prompt: soft draping fluid woven fabric
+    - code: knit_fine
+      zh: 細針織
+      prompt: fine gauge smooth knitwear
+    - code: knit_chunky
+      zh: 粗針織
+      prompt: chunky cable heavy knitwear
+    - code: denim
+      zh: 丹寧
+      prompt: denim fabric
+    - code: leather
+      zh: 皮革
+      prompt: leather or faux leather
+    - code: tweed
+      zh: 毛呢/斜紋軟呢
+      prompt: tweed boucle wool fabric
+    - code: sheer
+      zh: 薄透
+      prompt: sheer translucent lightweight fabric
+    - code: satin
+      zh: 緞面
+      prompt: shiny satin silk fabric
   pattern:
-    name_zh: "圖案"
+    name_zh: 圖案
     options:
-      - {code: "solid",     zh: "素色",   prompt: "a solid plain colour garment with no pattern"}
-      - {code: "check",     zh: "格紋",   prompt: "a checked plaid tartan pattern"}
-      - {code: "stripe",    zh: "條紋",   prompt: "a striped pattern"}
-      - {code: "floral",    zh: "花卉",   prompt: "a floral print"}
-      - {code: "houndstooth", zh: "千鳥格", prompt: "a houndstooth pattern"}
-      - {code: "herringbone", zh: "人字紋", prompt: "a herringbone twill pattern"}
-      - {code: "dot",       zh: "點點",   prompt: "a polka dot pattern"}
-      - {code: "logo_print",zh: "印花/字母", prompt: "a graphic logo or lettering print"}
-      - {code: "jacquard",  zh: "提花",   prompt: "a jacquard woven texture pattern"}
-
+    - code: solid
+      zh: 素色
+      prompt: a solid plain colour garment with no pattern
+    - code: check
+      zh: 格紋
+      prompt: a checked plaid tartan pattern
+    - code: stripe
+      zh: 條紋
+      prompt: a striped pattern
+    - code: floral
+      zh: 花卉
+      prompt: a floral print
+    - code: houndstooth
+      zh: 千鳥格
+      prompt: a houndstooth pattern
+    - code: herringbone
+      zh: 人字紋
+      prompt: a herringbone twill pattern
+    - code: dot
+      zh: 點點
+      prompt: a polka dot pattern
+    - code: logo_print
+      zh: 印花/字母
+      prompt: a graphic logo or lettering print
+    - code: jacquard
+      zh: 提花
+      prompt: a jacquard woven texture pattern
   color_family:
-    name_zh: "色系"
+    name_zh: 色系
     options:
-      - {code: "black",  zh: "黑",     prompt: "a black garment"}
-      - {code: "white",  zh: "白",     prompt: "a white or off-white garment"}
-      - {code: "beige",  zh: "米/卡其", prompt: "a beige camel khaki garment"}
-      - {code: "grey",   zh: "灰",     prompt: "a grey garment"}
-      - {code: "navy",   zh: "藏青",   prompt: "a navy blue garment"}
-      - {code: "blue",   zh: "藍",     prompt: "a bright or light blue garment"}
-      - {code: "brown",  zh: "棕",     prompt: "a brown chocolate garment"}
-      - {code: "red",    zh: "紅",     prompt: "a red or burgundy garment"}
-      - {code: "pink",   zh: "粉",     prompt: "a pink garment"}
-      - {code: "green",  zh: "綠",     prompt: "a green garment"}
-      - {code: "yellow", zh: "黃",     prompt: "a yellow or mustard garment"}
-      - {code: "purple", zh: "紫",     prompt: "a purple lilac garment"}
-
+    - code: black
+      zh: 黑
+      prompt: a black garment
+    - code: white
+      zh: 白
+      prompt: a white or off-white garment
+    - code: beige
+      zh: 米/卡其
+      prompt: a beige camel khaki garment
+    - code: grey
+      zh: 灰
+      prompt: a grey garment
+    - code: navy
+      zh: 藏青
+      prompt: a navy blue garment
+    - code: blue
+      zh: 藍
+      prompt: a bright or light blue garment
+    - code: brown
+      zh: 棕
+      prompt: a brown chocolate garment
+    - code: red
+      zh: 紅
+      prompt: a red or burgundy garment
+    - code: pink
+      zh: 粉
+      prompt: a pink garment
+    - code: green
+      zh: 綠
+      prompt: a green garment
+    - code: yellow
+      zh: 黃
+      prompt: a yellow or mustard garment
+    - code: purple
+      zh: 紫
+      prompt: a purple lilac garment
   detail_top:
-    name_zh: "上身細節"
+    name_zh: 上身細節
     options:
-      - {code: "none",        zh: "無明顯細節", prompt: "a minimal clean garment with no decorative detail"}
-      - {code: "ruffle",      zh: "荷葉邊",   prompt: "a garment with ruffle frill trim"}
-      - {code: "pleats_bust", zh: "胸前打褶", prompt: "a garment with pintuck pleats on the front"}
-      - {code: "princess_seam", zh: "公主線", prompt: "a garment with princess seams"}
-      - {code: "pocket_patch",zh: "貼式口袋", prompt: "a garment with patch pockets"}
-      - {code: "embroidery",  zh: "刺繡",     prompt: "a garment with embroidery"}
-      - {code: "lace",        zh: "蕾絲",     prompt: "a garment with lace trim"}
-      - {code: "contrast_trim", zh: "配色滾邊", prompt: "a garment with contrast colour trim or piping"}
-      - {code: "shoulder_pad",zh: "墊肩",     prompt: "a garment with structured shoulder pads"}
-
+    - code: none
+      zh: 無明顯細節
+      prompt: a minimal clean garment with no decorative detail
+    - code: ruffle
+      zh: 荷葉邊
+      prompt: a garment with ruffle frill trim
+    - code: pleats_bust
+      zh: 胸前打褶
+      prompt: a garment with pintuck pleats on the front
+    - code: princess_seam
+      zh: 公主線
+      prompt: a garment with princess seams
+    - code: pocket_patch
+      zh: 貼式口袋
+      prompt: a garment with patch pockets
+    - code: embroidery
+      zh: 刺繡
+      prompt: a garment with embroidery
+    - code: lace
+      zh: 蕾絲
+      prompt: a garment with lace trim
+    - code: contrast_trim
+      zh: 配色滾邊
+      prompt: a garment with contrast colour trim or piping
+    - code: shoulder_pad
+      zh: 墊肩
+      prompt: a garment with structured shoulder pads
   detail_bottom:
-    name_zh: "下身細節"
+    name_zh: 下身細節
     options:
-      - {code: "none",        zh: "無明顯細節", prompt: "plain minimal bottoms"}
-      - {code: "pleats",      zh: "打褶",   prompt: "bottoms with front pleats"}
-      - {code: "side_slit",   zh: "開衩",   prompt: "bottoms with a side or front slit"}
-      - {code: "belt_loops",  zh: "腰帶環", prompt: "bottoms with belt loops and a belt"}
-      - {code: "elastic_waist", zh: "鬆緊腰", prompt: "bottoms with an elastic gathered waistband"}
-      - {code: "cargo_pocket",zh: "工裝口袋", prompt: "cargo pockets on the leg"}
-      - {code: "cuffed_hem",  zh: "反摺褲口", prompt: "cuffed turn-up hem"}
-
-# ------------------------------------------------------------
-# 裁縫指示書要抽取的重點尺寸（欄位名 → 標準欄位）
-# 這些數值會轉成「版型指標」參與關聯分析
-# ------------------------------------------------------------
-# ⚠️ 單位：實際指示書用「英吋」且寫成帶分數（22 1/2、13 3/4）。
-#    比例指標不受單位影響，但顯示絕對值時要標對單位。
-#    unit: inch / cm；convert_to_cm 為 true 時會另外產生 *_cm 欄位。
+    - code: none
+      zh: 無明顯細節
+      prompt: plain minimal bottoms
+    - code: pleats
+      zh: 打褶
+      prompt: bottoms with front pleats
+    - code: side_slit
+      zh: 開衩
+      prompt: bottoms with a side or front slit
+    - code: belt_loops
+      zh: 腰帶環
+      prompt: bottoms with belt loops and a belt
+    - code: elastic_waist
+      zh: 鬆緊腰
+      prompt: bottoms with an elastic gathered waistband
+    - code: cargo_pocket
+      zh: 工裝口袋
+      prompt: cargo pockets on the leg
+    - code: cuffed_hem
+      zh: 反摺褲口
+      prompt: cuffed turn-up hem
+  placket:
+    name_zh: 門襟
+    options:
+    - code: none
+      zh: 無門襟
+      prompt: a pullover garment with no front placket or opening
+    - code: plain
+      zh: 素面門襟
+      prompt: a garment with a plain self-fabric front placket
+    - code: contrast
+      zh: 撞色門襟
+      prompt: a garment with a contrasting colour front placket band
+    - code: check_placket
+      zh: 格紋門襟
+      prompt: a garment with a checked tartan plaid front placket band
+    - code: zip_exposed
+      zh: 外露拉鍊門襟
+      prompt: a garment with an exposed visible front zipper
+    - code: zip_hidden
+      zh: 隱藏式門襟
+      prompt: a garment with a concealed hidden front closure
+    - code: piping
+      zh: 滾邊門襟
+      prompt: a garment with contrast piping along the front opening
+  plaid_placement:
+    name_zh: 格紋配置
+    options:
+    - code: no_plaid
+      zh: 無格紋
+      prompt: a garment with no checked or plaid element at all
+    - code: allover
+      zh: 全身格紋
+      prompt: a garment made entirely of checked tartan plaid fabric
+    - code: placket
+      zh: 門襟格紋
+      prompt: a solid colour garment with a checked plaid front placket band only
+    - code: collar
+      zh: 領口格紋
+      prompt: a solid colour garment with a checked plaid collar or neckline only
+    - code: cuff_hem
+      zh: 袖口下襬格紋
+      prompt: a solid colour garment with checked plaid cuffs or hem trim only
+    - code: pocket
+      zh: 口袋格紋
+      prompt: a solid colour garment with a checked plaid pocket only
+    - code: lining
+      zh: 內裡格紋
+      prompt: a garment showing a checked plaid lining inside
+    - code: panel
+      zh: 拼接格紋
+      prompt: a garment with a large checked plaid panel pieced into a solid body
+  pocket_style:
+    name_zh: 口袋樣式
+    options:
+    - code: none
+      zh: 無口袋
+      prompt: a garment with no visible pockets
+    - code: patch
+      zh: 貼式口袋
+      prompt: a garment with patch pockets sewn on the outside
+    - code: welt
+      zh: 挖袋
+      prompt: a garment with welt slit pockets
+    - code: flap
+      zh: 蓋式口袋
+      prompt: a garment with flap pockets
+    - code: slant
+      zh: 斜插袋
+      prompt: a garment with slanted side pockets
+    - code: cargo
+      zh: 工裝口袋
+      prompt: a garment with large cargo bellows pockets
+    - code: zip_pocket
+      zh: 拉鍊口袋
+      prompt: a garment with zippered pockets
 measurements:
-  unit: "inch"
+  unit: inch
   convert_to_cm: true
-  # 尺寸表有多個尺碼欄（34/36/38/40），要取哪一個當基準碼。
-  # "max_qty" = 取預定件數最多的那一碼；也可直接寫 "36" 指定。
-  base_size: "max_qty"
-
+  base_size: max_qty
   fields:
-    - {code: "body_length",   zh: "衣長",   aliases: ["衣長", "後中長", "全長", "body length"]}
-    - {code: "shoulder",      zh: "肩寬",   aliases: ["肩寬", "總肩寬", "shoulder"]}
-    - {code: "chest",         zh: "胸圍",   aliases: ["胸圍", "胸寬", "chest", "bust"]}
-    - {code: "waist",         zh: "腰圍",   aliases: ["腰圍", "腰寬", "waist"]}
-    - {code: "hip",           zh: "臀圍",   aliases: ["臀圍", "擺圍", "hip"]}
-    - {code: "sleeve_length", zh: "袖長",   aliases: ["袖長", "sleeve length"]}
-    - {code: "sleeve_width",  zh: "袖寬",   aliases: ["袖寬", "sleeve width"]}
-    - {code: "sleeve_opening",zh: "袖口",   aliases: ["袖口", "袖籠", "cuff"]}
-    # 指示書寫成「領( 外 )寬」，正規化後為「領外寬」，兩種都列
-    - {code: "neck_width",    zh: "領寬",   aliases: ["領寬", "領外寬", "橫開領", "neck width"]}
-    - {code: "neck_drop",     zh: "前領深", aliases: ["前領深", "領深", "直開領", "neck drop"]}
-    - {code: "neck_drop_back",zh: "後領深", aliases: ["後領深", "back neck drop"]}
-    # 「下擺」與「下襬」是不同的字，實際檔案用「襬」
-    - {code: "hem_width",     zh: "下擺",   aliases: ["下擺", "下襬", "擺寬", "hem"]}
-    - {code: "armhole",       zh: "掛肩",   aliases: ["掛肩", "袖襱", "armhole"]}
-    - {code: "rise",          zh: "股上",   aliases: ["股上", "前浪", "rise"]}
-    - {code: "inseam",        zh: "股下",   aliases: ["股下", "內長", "inseam"]}
-    - {code: "skirt_pant_length", zh: "裙/褲長", aliases: ["裙褲長", "裙長", "褲長"]}
-    - {code: "leg_opening",   zh: "褲口",   aliases: ["褲口", "腳口", "leg opening"]}
-
-  # 尺寸以外的欄位：這些是「標籤在左、值在右」的表單格，另外抽。
-  # 它們的分析價值不輸尺寸 —— 上市日才是真正的上市時間、
-  # 成份決定布性、總版數是工序複雜度的直接指標。
+  - code: body_length
+    zh: 衣長
+    aliases:
+    - 衣長
+    - 後中長
+    - 全長
+    - body length
+  - code: shoulder
+    zh: 肩寬
+    aliases:
+    - 肩寬
+    - 總肩寬
+    - shoulder
+  - code: chest
+    zh: 胸圍
+    aliases:
+    - 胸圍
+    - 胸寬
+    - chest
+    - bust
+  - code: waist
+    zh: 腰圍
+    aliases:
+    - 腰圍
+    - 腰寬
+    - waist
+  - code: hip
+    zh: 臀圍
+    aliases:
+    - 臀圍
+    - 擺圍
+    - hip
+  - code: sleeve_length
+    zh: 袖長
+    aliases:
+    - 袖長
+    - sleeve length
+  - code: sleeve_width
+    zh: 袖寬
+    aliases:
+    - 袖寬
+    - sleeve width
+  - code: sleeve_opening
+    zh: 袖口
+    aliases:
+    - 袖口
+    - 袖籠
+    - cuff
+  - code: neck_width
+    zh: 領寬
+    aliases:
+    - 領寬
+    - 領外寬
+    - 橫開領
+    - neck width
+  - code: neck_drop
+    zh: 前領深
+    aliases:
+    - 前領深
+    - 領深
+    - 直開領
+    - neck drop
+  - code: neck_drop_back
+    zh: 後領深
+    aliases:
+    - 後領深
+    - back neck drop
+  - code: hem_width
+    zh: 下擺
+    aliases:
+    - 下擺
+    - 下襬
+    - 擺寬
+    - hem
+  - code: armhole
+    zh: 掛肩
+    aliases:
+    - 掛肩
+    - 袖襱
+    - armhole
+  - code: rise
+    zh: 股上
+    aliases:
+    - 股上
+    - 前浪
+    - rise
+  - code: inseam
+    zh: 股下
+    aliases:
+    - 股下
+    - 內長
+    - inseam
+  - code: skirt_pant_length
+    zh: 裙/褲長
+    aliases:
+    - 裙褲長
+    - 裙長
+    - 褲長
+  - code: leg_opening
+    zh: 褲口
+    aliases:
+    - 褲口
+    - 腳口
+    - leg opening
   metadata:
-    - {code: "launch_date",    zh: "上市日",   aliases: ["上市日"],       type: "date"}
-    - {code: "stock_in_date",  zh: "入庫日",   aliases: ["入庫日"],       type: "date"}
-    - {code: "due_date",       zh: "交期",     aliases: ["交期"],         type: "date"}
-    - {code: "order_date",     zh: "發單日",   aliases: ["發單製表日", "發單日"], type: "date"}
-    - {code: "sample_no",      zh: "樣號",     aliases: ["樣號"]}
-    - {code: "wave",           zh: "波段",     aliases: ["波段"]}
-    - {code: "series",         zh: "系列",     aliases: ["系列"]}
-    - {code: "brand",          zh: "主品牌",   aliases: ["主品牌"]}
-    - {code: "sub_brand",      zh: "副品牌",   aliases: ["副品牌"]}
-    - {code: "year",           zh: "年度",     aliases: ["年度"],         type: "number"}
-    - {code: "planner",        zh: "企劃",     aliases: ["企劃"]}
-    - {code: "patternmaker",   zh: "打版",     aliases: ["打版"]}
-    - {code: "sample_maker",   zh: "打樣",     aliases: ["打樣"]}
-    - {code: "subcontractor",  zh: "代工",     aliases: ["代工"]}
-    - {code: "fabric_supplier",zh: "本布廠商", aliases: ["廠商"]}
-    - {code: "fabric_no",      zh: "布號",     aliases: ["no", "布號"]}
-    - {code: "composition",    zh: "成份",     aliases: ["成份", "成分"]}
-    - {code: "pattern_pieces", zh: "總版數",   aliases: ["總版數"],       type: "number"}
-    - {code: "labor_cost",     zh: "工資報價", aliases: ["工資報價", "工資/報價"], type: "number"}
-    - {code: "revision_note",  zh: "修正事項", aliases: ["修正事項"]}
-
-  # 由原始尺寸推導出來的「版型比例指標」——這才是真正能跨款比較的東西
+  - code: launch_date
+    zh: 上市日
+    aliases:
+    - 上市日
+    type: date
+  - code: stock_in_date
+    zh: 入庫日
+    aliases:
+    - 入庫日
+    type: date
+  - code: due_date
+    zh: 交期
+    aliases:
+    - 交期
+    type: date
+  - code: order_date
+    zh: 發單日
+    aliases:
+    - 發單製表日
+    - 發單日
+    type: date
+  - code: sample_no
+    zh: 樣號
+    aliases:
+    - 樣號
+  - code: wave
+    zh: 波段
+    aliases:
+    - 波段
+  - code: series
+    zh: 系列
+    aliases:
+    - 系列
+  - code: brand
+    zh: 主品牌
+    aliases:
+    - 主品牌
+  - code: sub_brand
+    zh: 副品牌
+    aliases:
+    - 副品牌
+  - code: year
+    zh: 年度
+    aliases:
+    - 年度
+    type: number
+  - code: planner
+    zh: 企劃
+    aliases:
+    - 企劃
+  - code: patternmaker
+    zh: 打版
+    aliases:
+    - 打版
+  - code: sample_maker
+    zh: 打樣
+    aliases:
+    - 打樣
+  - code: subcontractor
+    zh: 代工
+    aliases:
+    - 代工
+  - code: fabric_supplier
+    zh: 本布廠商
+    aliases:
+    - 廠商
+  - code: fabric_no
+    zh: 布號
+    aliases:
+    - 'no'
+    - 布號
+  - code: composition
+    zh: 成份
+    aliases:
+    - 成份
+    - 成分
+  - code: pattern_pieces
+    zh: 總版數
+    aliases:
+    - 總版數
+    type: number
+  - code: labor_cost
+    zh: 工資報價
+    aliases:
+    - 工資報價
+    - 工資/報價
+    type: number
+  - code: revision_note
+    zh: 修正事項
+    aliases:
+    - 修正事項
   derived:
-    - {code: "chest_waist_ratio", zh: "胸腰比",   formula: "chest / waist"}
-    - {code: "waist_hip_ratio",   zh: "腰臀比",   formula: "waist / hip"}
-    - {code: "hem_chest_ratio",   zh: "擺胸比",   formula: "hem_width / chest"}
-    - {code: "shoulder_chest_ratio", zh: "肩胸比", formula: "shoulder / chest"}
-    - {code: "sleeve_body_ratio", zh: "袖身比",   formula: "sleeve_length / body_length"}
-    - {code: "neck_open_ratio",   zh: "開領比",   formula: "neck_width / shoulder"}
-    - {code: "leg_taper_ratio",   zh: "褲管收度", formula: "leg_opening / hip"}
+  - code: chest_waist_ratio
+    zh: 胸腰比
+    formula: chest / waist
+  - code: waist_hip_ratio
+    zh: 腰臀比
+    formula: waist / hip
+  - code: hem_chest_ratio
+    zh: 擺胸比
+    formula: hem_width / chest
+  - code: shoulder_chest_ratio
+    zh: 肩胸比
+    formula: shoulder / chest
+  - code: sleeve_body_ratio
+    zh: 袖身比
+    formula: sleeve_length / body_length
+  - code: neck_open_ratio
+    zh: 開領比
+    formula: neck_width / shoulder
+  - code: leg_taper_ratio
+    zh: 褲管收度
+    formula: leg_opening / hip
