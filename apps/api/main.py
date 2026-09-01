@@ -196,7 +196,14 @@ async def search_image(file: UploadFile = File(...), top_k: int = Form(12)) -> d
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
     try:
-        res = _index_cache["vindex"].search_by_image(tmp_path, top_k)
+        # 預設走切塊搜尋：使用者丟進來的多半是穿搭照或街拍，整張比對會讓
+        # 目標單品只佔一到兩成畫面（實測薄荷綠外套只佔 10.5%），相似度被
+        # 背景與其他單品稀釋。切塊裡包含「整張」，所以單件去背圖也不會變差。
+        idx = _index_cache["vindex"]
+        if cfg.get("search", {}).get("use_crops", True):
+            res = idx.search_by_crops(tmp_path, top_k)
+        else:
+            res = idx.search_by_image(tmp_path, top_k)
     finally:
         Path(tmp_path).unlink(missing_ok=True)
     return {"rows": _clean(res)}

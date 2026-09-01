@@ -20,6 +20,27 @@ from ..config import Config, get_config
 from ..features.fashion_clip import embed_images, embed_texts, load_embeddings
 
 
+def _center_and_normalise(vecs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """扣掉資料集平均再重新正規化 —— 解決 CLIP 的「什麼都很像什麼」。
+
+    CLIP 的向量全部擠在一個很窄的錐體裡：實測拿一件外套去查，前六名的
+    相似度是 86.7 / 85.1 / 84.7 / 83.9 / 83.9 —— 整個排名擠在 3 個百分點內。
+    在這種尺度下，差 0.5% 就換位置，排名等於在讀雜訊。
+
+    原因是所有向量都帶著一個共同的偏移量（錐體的軸）。那個共同成分不帶
+    任何區辨資訊，卻佔了餘弦相似度的絕大部分。扣掉整批的平均向量之後，
+    剩下的才是「這一件和那一件哪裡不同」，相似度才會散開。
+
+    這是檢索領域的標準作法（centering / whitening），不改模型、不需重算
+    向量，只是換一個比較的原點。
+    """
+    center = vecs.mean(axis=0, keepdims=True).astype("float32")
+    out = vecs - center
+    norms = np.linalg.norm(out, axis=1, keepdims=True)
+    out = out / np.where(norms == 0, 1, norms)
+    return out.astype("float32"), center
+
+
 class VisualIndex:
     def __init__(self, meta: pd.DataFrame, vecs: np.ndarray, cfg: Config | None = None):
         if len(meta) != len(vecs):
@@ -27,10 +48,21 @@ class VisualIndex:
         self.cfg = cfg or get_config()
         self.meta = meta.reset_index(drop=True)
         self.vecs = vecs.astype("float32")
+        self._center = None
+        if self.cfg.get("search", {}).get("center_embeddings", True):
+            self.vecs, self._center = _center_and_normalise(self.vecs)
         self._faiss = None
         backend = self.cfg.get("search", {}).get("index_backend", "auto")
         if backend in ("auto", "faiss"):
             self._try_faiss(strict=(backend == "faiss"))
+
+    def _prepare_query(self, q: np.ndarray) -> np.ndarray:
+        """把查詢向量放進與索引相同的空間。"""
+        q = q.reshape(1, -1).astype("float32")
+        if self._center is not None:
+            q = q - self._center
+        n = np.linalg.norm(q, axis=1, keepdims=True)
+        return q / np.where(n == 0, 1, n)
 
     def _try_faiss(self, strict: bool = False) -> None:
         try:
@@ -52,9 +84,11 @@ class VisualIndex:
         return cls(enriched, vecs, cfg)
 
     # ------------------------------------------------------------
-    def _search_vec(self, q: np.ndarray, top_k: int, category: str | None = None) -> pd.DataFrame:
-        q = q.reshape(1, -1).astype("float32")
-        q = q / np.linalg.norm(q, axis=1, keepdims=True)
+    def _search_vec(self, q: np.ndarray, top_k: int, category: str | None = None,
+                    in_index_space: bool = False) -> pd.DataFrame:
+        # in_index_space：向量已經是索引裡的那一份（search_similar 的情況），
+        # 再置中一次等於扣兩次平均，比對出來的鄰居會整個跑掉。
+        q = q.reshape(1, -1).astype("float32") if in_index_space else self._prepare_query(q)
         sims = (self.vecs @ q.T).ravel()
 
         # 品類過濾：查詢是上衣時，不該讓裙子出現在候選名單裡佔位置。
@@ -95,30 +129,56 @@ class VisualIndex:
         return self._search_vec(vec[0], top_k, category)
 
     def search_by_crops(self, image_path: str | Path, top_k: int | None = None,
-                        max_regions: int = 4) -> pd.DataFrame:
-        """穿搭照專用：先把畫面切成幾塊，每塊各自搜尋。
+                        category: str | None = None) -> pd.DataFrame:
+        """穿搭照專用：切成幾個區塊各自搜尋，同一貨號取最高分。
 
-        一張穿搭照裡有上衣＋下身＋外套，整張比對等於拿「一整套」去比對
-        「單件」，必然不準。切開之後每一件各自去找，命中率會差很多。
+        一張穿搭照裡有上衣、下身、外套，外加臉、腿與背景。整張壓成一個
+        向量等於拿「一整套加背景」去比對「單件去背圖」，目標只佔三成畫面，
+        相似度被稀釋 —— 這是穿搭照搜不準最主要的原因。
+
+        聚合方式是「每個貨號取它在所有區塊裡的最佳分數」，不是把各區塊的
+        結果接起來排序。接起來會讓同一款因為出現在多個區塊而洗版，
+        把其他候選擠掉。
+
+        區塊裡一定包含「整張」，所以查詢圖若本來就是單件去背圖，
+        結果不會比 search_by_image 差。
         """
-        from ..sketch.lineart import auto_regions, crop_region, load_image
+        from PIL import Image
+
+        from .regions import garment_regions
 
         top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
-        img = load_image(image_path)
-        frames = []
-        for i, box in enumerate(auto_regions(img, max_regions), start=1):
-            crop = crop_region(img, box)
-            from PIL import Image
-            pil = Image.fromarray(crop[:, :, ::-1])
-            vec = embed_images([pil], self.cfg, show_progress=False)
-            res = self._search_vec(vec[0], top_k)
-            if not res.empty:
-                res.insert(0, "region", i)
-                frames.append(res)
-        if not frames:
+        img = image_path if hasattr(image_path, "mode") else Image.open(image_path)
+        regions = garment_regions(img.convert("RGB"))
+        if not regions:
+            return self.search_by_image(image_path, top_k, category)
+
+        names = [n for n, _ in regions]
+        vecs = embed_images([c for _, c in regions], self.cfg, show_progress=False)
+
+        best: dict[str, tuple[float, int, str]] = {}   # sku → (分數, 索引列, 命中區塊)
+        for name, v in zip(names, vecs):
+            res = self._search_vec(v, top_k * 3, category)
+            for _, r in res.iterrows():
+                sku = r["sku"]
+                prev = best.get(sku)
+                if prev is None or r["similarity"] > prev[0]:
+                    best[sku] = (float(r["similarity"]), int(r.name), name)
+
+        if not best:
             return pd.DataFrame()
-        out = pd.concat(frames, ignore_index=True)
-        return out.sort_values("similarity", ascending=False).reset_index(drop=True)
+        ranked = sorted(best.items(), key=lambda kv: -kv[1][0])[:top_k]
+        rows = []
+        for sku, (sim, _, name) in ranked:
+            hit = self.meta.index[self.meta["sku"] == sku]
+            row = self.meta.loc[hit[0]].to_dict()
+            row["similarity"] = round(sim, 4)
+            row["命中區塊"] = name
+            rows.append(row)
+        out = pd.DataFrame(rows)
+        out.insert(0, "similarity", out.pop("similarity"))
+        out.insert(1, "rank", range(1, len(out) + 1))
+        return out
 
     def search_by_text(self, query: str, top_k: int | None = None,
                        category: str | None = None) -> pd.DataFrame:
@@ -131,7 +191,7 @@ class VisualIndex:
         hits = self.meta.index[self.meta["sku"] == sku].tolist()
         if not hits:
             raise KeyError(f"索引中找不到貨號 {sku}")
-        res = self._search_vec(self.vecs[hits[0]], top_k + 1)
+        res = self._search_vec(self.vecs[hits[0]], top_k + 1, in_index_space=True)
         return res[res["sku"] != sku].reset_index(drop=True)
 
 
