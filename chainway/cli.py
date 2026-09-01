@@ -520,6 +520,34 @@ def cmd_eval_search(args) -> int:
     if len(miss):
         print(f"\n完全沒找到的 {len(miss)} 張（最值得看的失敗案例）：")
         print(miss[["query_image", "true_sku", "predicted_top1"]].head(10).to_string(index=False))
+
+    # 一個數字沒辦法告訴你要修哪裡。把「查詢圖 → 正解 → 前三名」並排畫出來，
+    # 才分得出是抽圖抽錯、資料缺漏、還是排名不對 —— 三者的解法完全不同。
+    if args.report:
+        from .report import eval_report, season_report
+
+        img_root = None
+        for key in ("system_images",):
+            for p_ in cfg.path_list(key):
+                if p_.exists():
+                    img_root = p_.parent
+                    break
+        sku_images = season_report.index_images(img_root) if img_root else {}
+        kinds = None
+        img_csv = cfg.path("interim") / "techpack_images.csv"
+        if img_csv.exists():
+            kinds = pd.read_csv(img_csv)["kind_guess"].value_counts()
+
+        html = eval_report.build(detail, sku_images, kinds=kinds,
+                                 limit=args.report_limit, summary=summary)
+        out_html = out_dir / f"search_eval_{tag}.html"
+        out_html.write_text(html, encoding="utf-8")
+        _ok(f"逐張診斷報告 → {out_html}")
+        no_gallery = int(sum(1 for s_ in detail["true_sku"] if s_ not in sku_images))
+        if no_gallery:
+            _warn(f"其中 {no_gallery} 張的正解貨號在索引裡沒有系統圖 —— "
+                  "這些不論用什麼演算法都找不到，屬於資料缺漏而非檢索問題")
+        print("  用瀏覽器打開它，先看「查詢圖」那一欄是不是衣服照片。")
     return 0
 
 
@@ -699,6 +727,10 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--self-test", action="store_true",
                     help="零標註模式：用指示書的打樣照片當查詢，答案取自檔名")
     ev.add_argument("--predictions", help="外部系統的結果 CSV：query_image,rank,sku（省略則用本專案）")
+    ev.add_argument("--report", action="store_true",
+                    help="★ 產生逐張對照的 HTML 診斷報告")
+    ev.add_argument("--report-limit", type=int, default=60,
+                    help="診斷報告裡列出幾張（預設 60）")
     ev.add_argument("--crops", action="store_true", help="用切塊搜尋（穿搭照建議開）")
     ev.add_argument("--top-k", type=int, default=10)
     ev.set_defaults(func=cmd_eval_search)
