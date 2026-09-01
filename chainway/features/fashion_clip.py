@@ -203,6 +203,39 @@ def prepare_image(path: str | Path, cfg: Config | None = None):
     return img
 
 
+def _to_embedding(out, model, kind: str):
+    """把 get_image_features / get_text_features 的回傳統一成向量張量。
+
+    transformers 在版本之間改過這個回傳型別：
+      舊版  直接回傳投影後的張量 (n, 512)
+      新版  回傳整個 vision/text model 的輸出（BaseModelOutputWithPooling），
+            投影層要呼叫端自己套
+
+    只寫死其中一種，換一個 transformers 版本就會炸在
+    `'BaseModelOutputWithPooling' object has no attribute 'norm'`，
+    而且要跑完模型下載才看得到，代價很高。所以兩種都吃。
+
+    注意一定要套投影層而不是直接用 pooler_output：pooler_output 是投影前的
+    768 維，影像與文字各自在不同空間，拿去做 zero-shot 屬性標註會全錯。
+    """
+    import torch
+
+    if torch.is_tensor(out):
+        return out
+    emb = getattr(out, "image_embeds" if kind == "image" else "text_embeds", None)
+    if emb is not None:
+        return emb
+    pooled = getattr(out, "pooler_output", None)
+    if pooled is None and isinstance(out, (tuple, list)) and out:
+        pooled = out[1] if len(out) > 1 else out[0]
+    if pooled is None:
+        raise TypeError(
+            f"無法從 {type(out).__name__} 取出 {kind} 向量 —— "
+            f"transformers 版本可能又改了回傳格式，請回報這行訊息")
+    proj = model.visual_projection if kind == "image" else model.text_projection
+    return proj(pooled)
+
+
 def embed_images(paths: list[str], cfg: Config | None = None, show_progress: bool = True) -> np.ndarray:
     """回傳 L2 正規化後的影像向量矩陣 (n, dim)。"""
     cfg = cfg or get_config()
@@ -217,7 +250,7 @@ def embed_images(paths: list[str], cfg: Config | None = None, show_progress: boo
         images = [p if hasattr(p, "mode") else prepare_image(p, cfg) for p in chunk]
         inputs = processor(images=images, return_tensors="pt").to(device)
         with torch.no_grad():
-            feats = model.get_image_features(**inputs)
+            feats = _to_embedding(model.get_image_features(**inputs), model, "image")
         feats = feats / feats.norm(dim=-1, keepdim=True)
         vectors.append(feats.cpu().numpy().astype("float32"))
         if show_progress:
@@ -235,7 +268,7 @@ def embed_texts(texts: list[str], cfg: Config | None = None) -> np.ndarray:
     import torch
     inputs = processor(text=texts, return_tensors="pt", padding=True, truncation=True).to(device)
     with torch.no_grad():
-        feats = model.get_text_features(**inputs)
+        feats = _to_embedding(model.get_text_features(**inputs), model, "text")
     feats = feats / feats.norm(dim=-1, keepdim=True)
     return feats.cpu().numpy().astype("float32")
 
