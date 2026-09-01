@@ -744,6 +744,64 @@ def cmd_reverse_design(args) -> int:
     return 0
 
 
+# ------------------------------------------------------- motif
+def cmd_motif(args) -> int:
+    """熊與格紋的位置・形式・比例拆解 —— 比「有沒有」細一級的問題。"""
+    from .analysis import motif
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    df = master[master["sell_through_rate"].notna()].copy()
+    if "stock_in" in df.columns:
+        df = df[pd.to_numeric(df["stock_in"], errors="coerce").fillna(0) >= args.min_qty]
+    if "is_gift" in df.columns:
+        df = df[~df["is_gift"].fillna(False).astype(bool)]
+    if "season_term_code" not in df.columns and "sku" in df.columns:
+        df["season_term_code"] = df["sku"].astype(str).str[4]
+
+    tables = motif.motif_tables(df)
+    parts = tables["部位基準"]
+    _ok(f"納入 {len(df):,} 款；部位基準完銷率："
+        + "、".join(f"{r['部位']} {r['完銷率']:.1%}" for _, r in parts.iterrows()))
+
+    out = cfg.path("outputs") / "motif"
+    out.mkdir(parents=True, exist_ok=True)
+    cols = ["分類", "半身", "n", "效果pt", "低pt", "高pt", "可用",
+            "完銷率", "上半身", "下半身", "全身", "代表貨號", "代表品名"]
+    for name, t in tables.items():
+        if t.empty:
+            continue
+        t.to_csv(out / f"{name}.csv", index=False, encoding="utf-8-sig")
+        if name == "部位基準":
+            continue
+        print(f"\n== {name}")
+        print(t[[c for c in cols if c in t.columns]].to_string(index=False))
+
+    # 整體提升度的區間 —— 「款數少會不會失真」只有重抽能回答
+    print("\n== 整體（部位×季別分層後重抽 2,000 次）")
+    names = df["product_name"].fillna("").astype(str)
+    d = motif.add_body_part(df)
+    checks = {"熊圖騰": names.str.contains(motif.BEAR_PATTERN),
+              "品名含格": names.str.contains(motif.PLAID_PATTERN),
+              "牛仔": names.str.contains("牛仔")}
+    if "product_line" in df.columns:
+        checks["經典格紋線"] = df["product_line"].astype(str).eq("經典格紋")
+    for label, mask in checks.items():
+        r = motif.stratified_bootstrap(d, mask.to_numpy())
+        print(f"  {label:8s} n={r['n']:4d}  {r['效果pt']:+6.1f}pt"
+              f"  95% [{r['低pt']:+.1f}, {r['高pt']:+.1f}]  翻向比例 {r['翻向比例']}")
+
+    _ok(f"\n全部結果 → {out}")
+    print("  「可用 = False」代表區間跨過 0：只能當方向，不能當結論。")
+    return 0
+
+
 # ------------------------------------------------------- season-report
 def cmd_season_report(args) -> int:
     """季別診斷報告：每個季別的完銷、袖長對照、上架重疊、銷冠與年度排行。"""
@@ -849,6 +907,10 @@ def main(argv: list[str] | None = None) -> int:
     rdp.add_argument("--max-combo-features", type=int, default=8,
                      help="組合挖掘最多用幾個特徵（兩兩配對，數量會平方成長）")
     rdp.set_defaults(func=cmd_reverse_design)
+
+    mo = sub.add_parser("motif", help="★ 熊／格紋的位置・形式・比例拆解（附信賴區間）")
+    mo.add_argument("--min-qty", type=int, default=30, help="投入件數下限（預設 30）")
+    mo.set_defaults(func=cmd_motif)
 
     sr = sub.add_parser("season-report", help="★ 季別完銷診斷報告（含袖長對照）")
     sr.add_argument("--images", nargs="?", const="", default=None,
