@@ -1,58 +1,50 @@
 @echo off
-chcp 65001 >nul
 setlocal
 rem ===================================================================
-rem  Kinloch Anderson - Season sell-through report
-rem  Double-click to run. First run takes 3-5 min (installing packages),
-rem  after that about 30 seconds.
+rem  Kinloch Anderson - season sell-through report
 rem
-rem  Data folder is set in config\settings.yaml -> paths.root
-rem  Currently: C:/Users/USER/Desktop/商品設計Raw Data
+rem  Double-click to run. First run takes 3-5 minutes (installing
+rem  packages); after that about 30 seconds.
+rem
+rem  The data folder is set in config\settings.yaml under paths.root
+rem
+rem  IMPORTANT: keep this file pure ASCII. cmd.exe mis-parses batch
+rem  files that mix "chcp 65001" with multi-byte characters - it loses
+rem  bytes and starts executing fragments of later lines.
 rem ===================================================================
 cd /d "%~dp0"
+
+rem -- Find Python 3.10+. "where python" is not enough: Windows ships a
+rem    Store stub called python.exe that just opens the Store.
 set "PY="
-
-rem -- Find a working Python. "where python" is not enough: Windows ships
-rem    a Store stub named python.exe that just opens the Store and exits 9009.
-for %%P in (py.exe python.exe) do (
-    if not defined PY (
-        %%P -c "import sys;raise SystemExit(0 if sys.version_info>=(3,10) else 1)" >nul 2>nul
-        if not errorlevel 1 set "PY=%%P"
-    )
-)
-
-if not defined PY (
-    echo.
-    echo  [X] No usable Python 3.10+ found.
-    echo.
-    echo      Install from https://www.python.org/downloads/
-    echo      IMPORTANT: tick "Add Python to PATH" on the first screen.
-    echo.
-    echo      If you already installed it, the "python" command may be
-    echo      pointing at the Microsoft Store stub. Turn it off at:
-    echo      Settings ^> Apps ^> Advanced ^> App execution aliases
-    echo      -^> switch OFF both "python.exe" and "python3.exe"
-    echo.
-    pause
-    exit /b 1
-)
+py -3 -c "import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)" >nul 2>nul
+if not errorlevel 1 set "PY=py -3"
+if defined PY goto havepy
+python -c "import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)" >nul 2>nul
+if not errorlevel 1 set "PY=python"
+:havepy
+if not defined PY goto nopython
 
 set "VPY=.venv\Scripts\python.exe"
+if exist "%VPY%" goto ready
 
-if not exist "%VPY%" (
-    echo.
-    echo  [1/3] First run - creating an isolated Python environment...
-    %PY% -m venv .venv
-    if errorlevel 1 goto :fail
-    echo  [2/3] Installing packages, please wait 3-5 minutes...
-    "%VPY%" -m pip install --upgrade pip -q
-    "%VPY%" -m pip install pandas numpy pyyaml openpyxl xlrd pyarrow Pillow -q
-    if errorlevel 1 goto :fail
-) else (
-    echo  [1/3] Environment ready
-    echo  [2/3] Packages already installed
-)
+echo.
+echo  [1/3] First run - creating an isolated Python environment...
+%PY% -m venv .venv
+if errorlevel 1 goto fail
+if not exist "%VPY%" goto fail
+echo  [2/3] Installing packages, please wait 3-5 minutes...
+"%VPY%" -m pip install --upgrade pip -q
+"%VPY%" -m pip install pandas numpy pyyaml openpyxl xlrd pyarrow Pillow -q
+if errorlevel 1 goto fail
+goto build
 
+:ready
+echo.
+echo  [1/3] Environment ready
+echo  [2/3] Packages already installed
+
+:build
 echo.
 echo  [3/3] Checking folders and building the report...
 echo  ==================================================================
@@ -60,20 +52,37 @@ echo  ==================================================================
 echo  ==================================================================
 echo.
 "%VPY%" scripts\season_report.py --images
-if errorlevel 1 goto :fail
+if errorlevel 1 goto fail
 
 echo.
 echo  Done. Opening the report...
-start "" "data\outputs\reports\季別完銷診斷.html"
+start "" "%CD%\data\outputs\reports\season_report.html"
 echo  Report folder: %CD%\data\outputs\reports
+echo.
 pause
 exit /b 0
 
+:nopython
+echo.
+echo  [X] No usable Python 3.10 or newer was found.
+echo.
+echo      Install it from https://www.python.org/downloads/
+echo      On the FIRST install screen, tick "Add Python to PATH".
+echo.
+echo      If Python is already installed but typing "python" opens the
+echo      Microsoft Store, turn off the Store aliases:
+echo        Settings ^> Apps ^> Advanced app settings
+echo        ^> App execution aliases
+echo        ^> switch OFF both "python.exe" and "python3.exe"
+echo.
+pause
+exit /b 1
+
 :fail
 echo.
-echo  [X] Something failed above.
-echo      Copy the whole window (right-click ^> Select All ^> Enter)
-echo      and paste it back to Claude - that is enough to diagnose it.
+echo  [X] Something above failed.
+echo      Right-click the window title ^> Edit ^> Select All ^> Enter
+echo      to copy everything, then paste it back to Claude.
 echo.
 pause
 exit /b 1

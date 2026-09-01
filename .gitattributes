@@ -1,0 +1,10 @@
+# Windows 批次檔一定要用 CRLF。LF 行尾會讓 cmd.exe 的 goto/標籤失效，
+# 症狀是跳不到標籤、或把後面的行當成命令執行，錯誤訊息完全看不出原因。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 其餘一律 LF
+*.py   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf

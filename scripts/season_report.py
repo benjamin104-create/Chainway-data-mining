@@ -11,7 +11,7 @@
   --images <根目錄>   把系統圖縮圖內嵌進報告（預設用 settings.yaml 的 paths.root）
   --no-images         明確不要縮圖，只印圖檔路徑
   --data <JSON>       跳過重算，直接用先前存下的資料集重畫
-  --out <HTML>        輸出位置（預設 data/outputs/reports/季別完銷診斷.html）
+  --out <HTML>        輸出位置（預設 data/outputs/reports/season_report.html）
 """
 from __future__ import annotations
 
@@ -95,7 +95,10 @@ def main(argv: list[str] | None = None) -> int:
             img_root = None
 
     html = season_report.render(data, img_root)
-    out = Path(args.out) if args.out else outputs / "季別完銷診斷.html"
+    # 檔名刻意用 ASCII：Windows 的 .bat 要開這個檔，而批次檔一旦混進
+    # 多位元組字元，cmd.exe 會算錯位元組位置並開始執行殘缺的指令片段。
+    # 報告標題仍是中文，只有檔名避開。
+    out = Path(args.out) if args.out else outputs / "season_report.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
 
