@@ -221,19 +221,63 @@ def _to_embedding(out, model, kind: str):
     import torch
 
     if torch.is_tensor(out):
-        return out
-    emb = getattr(out, "image_embeds" if kind == "image" else "text_embeds", None)
-    if emb is not None:
-        return emb
-    pooled = getattr(out, "pooler_output", None)
-    if pooled is None and isinstance(out, (tuple, list)) and out:
-        pooled = out[1] if len(out) > 1 else out[0]
-    if pooled is None:
-        raise TypeError(
-            f"無法從 {type(out).__name__} 取出 {kind} 向量 —— "
-            f"transformers 版本可能又改了回傳格式，請回報這行訊息")
-    proj = model.visual_projection if kind == "image" else model.text_projection
-    return proj(pooled)
+        candidate = out
+    else:
+        candidate = getattr(out, "image_embeds" if kind == "image" else "text_embeds", None)
+        if candidate is None:
+            candidate = getattr(out, "pooler_output", None)
+        if candidate is None:
+            try:                   # ModelOutput 可索引，但不是 tuple 子類
+                candidate = out[1]
+            except Exception:
+                candidate = None
+
+    proj = getattr(model, "visual_projection" if kind == "image" else "text_projection", None)
+
+    if torch.is_tensor(candidate) and candidate.dim() == 2 and proj is not None:
+        # 靠維度判斷該不該投影，不要靠 transformers 版本。
+        #
+        # 實測：某些版本的 pooler_output 已經是投影後的 512 維，再套一次
+        # 768→512 的線性層就會炸在
+        #   RuntimeError: mat1 and mat2 shapes cannot be multiplied (16x512 and 768x512)
+        # 其他版本給的是投影前的 768 維，非投影不可。
+        # 版本會再改，維度不會 —— 所以判斷條件放在維度上。
+        width = candidate.shape[-1]
+        # 先比 out_features 再比 in_features，順序不能反。
+        # CLIP 的文字投影層是 512→512，進出同寬，兩個條件會同時成立。
+        # get_*_features 的合約是回傳「最終」向量，所以同寬時要當成已投影。
+        # 反過來寫會多投影一次 —— 而且不會報錯，只是讓文字向量悄悄偏掉，
+        # 搜尋照樣有結果、排名卻沒有意義，這種錯最難發現。
+        if width == getattr(proj, "out_features", None):
+            return candidate
+        if width == getattr(proj, "in_features", None):
+            return proj(candidate)
+
+    if torch.is_tensor(candidate) and candidate.dim() == 2:
+        return candidate
+
+    raise TypeError(
+        "無法從 transformers 的回傳取出 " + kind + " 向量。\n"
+        "  回傳型別：" + type(out).__name__ + "\n"
+        "  取到的候選：" + _shape_of(candidate) + "\n"
+        "  投影層：" + (f"{proj.in_features}→{proj.out_features}" if proj is not None else "無") + "\n"
+        "  transformers 版本：" + _transformers_version() + "\n"
+        "  請把這整段回報。")
+
+
+def _shape_of(x) -> str:
+    if x is None:
+        return "無"
+    shape = getattr(x, "shape", None)
+    return str(tuple(shape)) if shape is not None else type(x).__name__
+
+
+def _transformers_version() -> str:
+    try:
+        import transformers
+        return transformers.__version__
+    except Exception:
+        return "未知"
 
 
 def embed_images(paths: list[str], cfg: Config | None = None, show_progress: bool = True) -> np.ndarray:
