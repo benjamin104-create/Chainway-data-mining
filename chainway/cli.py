@@ -575,6 +575,42 @@ def cmd_plan(args) -> int:
     return 0
 
 
+# -------------------------------------------------------- techpack-notes
+def cmd_techpack_notes(args) -> int:
+    """先看貴司的指示書實際怎麼寫設計註記，再決定怎麼分類。
+
+    格紋配置寫在指示書上 —— 那是設計師下的規格，不是推測。與其讓
+    Fashion-CLIP 猜「格紋在門襟還是領口」，不如直接讀原始文件。
+    但要讀之前得先知道用詞，所以這個指令只做一件事：把實際用語攤出來。
+    """
+    from .ingest import techpack_notes as tn
+
+    cfg = get_config()
+    kws = [k.strip() for k in args.keywords.split(",")] if args.keywords else None
+    print(f"\n掃描裁縫指示書…（關鍵字：{'、'.join(kws or tn.DEFAULT_KEYWORDS)}）")
+    vocab = tn.scan_vocabulary(cfg, kws, limit=args.limit)
+    scanned = vocab.attrs.get("scanned_files", 0)
+    if vocab.empty:
+        _warn(f"掃了 {scanned} 份指示書，沒有任何一格含這些關鍵字。"
+              "\n  可能是關鍵字不對，用 --keywords 換一組再試。")
+        return 1
+
+    out = cfg.path("interim")
+    cov = tn.keyword_coverage(vocab)
+    _ok(f"掃描 {scanned} 份指示書，命中 {len(vocab)} 種不同的寫法")
+    print("\n【關鍵字覆蓋率】哪些詞真的常用，值得建對照表：")
+    print(cov.to_string(index=False))
+    print(f"\n【最常出現的 {min(args.top, len(vocab))} 種寫法】")
+    print(vocab.head(args.top).to_string(index=False))
+
+    vocab.to_csv(out / "techpack_vocabulary.csv", index=False, encoding="utf-8-sig")
+    cov.to_csv(out / "techpack_keyword_coverage.csv", index=False, encoding="utf-8-sig")
+    _ok(f"完整清單 → {out / 'techpack_vocabulary.csv'}")
+    print("\n把這份清單給我，我依實際用詞建「格紋配置」對照表 —— "
+          "不用猜的，也不必靠影像模型推測。")
+    return 0
+
+
 # ------------------------------------------------------- season-report
 def cmd_season_report(args) -> int:
     """季別診斷報告：每個季別的完銷、袖長對照、上架重疊、銷冠與年度排行。"""
@@ -660,6 +696,12 @@ def main(argv: list[str] | None = None) -> int:
     pl.add_argument("--week", type=int); pl.add_argument("--year", action="store_true")
     pl.add_argument("--n", type=int, default=None, help="當週款數（預設依 settings）")
     pl.set_defaults(func=cmd_plan)
+
+    tn = sub.add_parser("techpack-notes", help="★ 掃描指示書的設計註記用詞（格紋配置等）")
+    tn.add_argument("--keywords", help="自訂關鍵字，逗號分隔；預設含 格/配格/對格/門襟/滾邊…")
+    tn.add_argument("--top", type=int, default=40, help="畫面上顯示幾種寫法（預設 40）")
+    tn.add_argument("--limit", type=int, help="只掃前 N 份，先試跑用")
+    tn.set_defaults(func=cmd_techpack_notes)
 
     sr = sub.add_parser("season-report", help="★ 季別完銷診斷報告（含袖長對照）")
     sr.add_argument("--images", nargs="?", const="", default=None,
