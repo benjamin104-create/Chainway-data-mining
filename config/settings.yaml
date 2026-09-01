@@ -164,34 +164,51 @@ sku:
     "E027": "李佩珊"
 
 # ------------------------------------------------------------
-# 2-1. KA 季號對照表（來源：INDEX.md 2026-08-24「季別與代號對照」）
-#      末碼規則：5=秋 6=冬 7=春 8=夏
+# 2-1. 季別碼 → 季名與袖長
+#      季號的末碼即季別碼。袖長是「季別層級」的屬性（貴司提供），
+#      不是逐款判定 —— 報表只有 15.8% 的上衣在品名裡寫了袖長，
+#      靠品名做長短袖分析會有 84% 的缺漏，用季別碼才涵蓋全部。
+#
+#      ⚠️ 這是季別的預設袖型，不代表該季每一款都是這個袖長。
+#         若某季含例外款（如秋季的長袖外套），仍會計入該季統計。
+#         要做到逐款袖長，需跑 embed 讓 Fashion-CLIP 判系統圖。
+# ------------------------------------------------------------
+season_terms:
+  "7": {name: "早春", sleeve: "長袖", group: "SS", order: 1}
+  "8": {name: "夏",   sleeve: "短袖", group: "SS", order: 2}
+  "5": {name: "秋",   sleeve: "短袖", group: "AW", order: 3}
+  "6": {name: "冬",   sleeve: "長袖", group: "AW", order: 4}
+
+# ------------------------------------------------------------
+# KA 季號對照表（來源：INDEX.md 2026-08-24「季別與代號對照」）
+#      末碼規則見上方 season_terms：7=早春 8=夏 5=秋 6=冬
 #      系統圖與裁縫指示書的資料夾名多為季號，靠這張表就能自動補上季別，
 #      不必等 POS 報表有季別欄位。
+#      term / group 由末碼自動帶入，這裡只需要維護年份。
 # ------------------------------------------------------------
 seasons:
   KA106: {year: 2021, term: "冬", group: "AW"}
-  KA107: {year: 2021, term: "春", group: "SS"}
+  KA107: {year: 2021, term: "早春", group: "SS"}
   KA108: {year: 2021, term: "夏", group: "SS"}
   KA115: {year: 2022, term: "秋", group: "AW"}
   KA116: {year: 2022, term: "冬", group: "AW"}
-  KA117: {year: 2022, term: "春", group: "SS"}
+  KA117: {year: 2022, term: "早春", group: "SS"}
   KA118: {year: 2022, term: "夏", group: "SS"}
   KA125: {year: 2023, term: "秋", group: "AW"}
   KA126: {year: 2023, term: "冬", group: "AW"}
-  KA127: {year: 2023, term: "春", group: "SS"}
+  KA127: {year: 2023, term: "早春", group: "SS"}
   KA128: {year: 2023, term: "夏", group: "SS"}
   KA135: {year: 2024, term: "秋", group: "AW"}
   KA136: {year: 2024, term: "冬", group: "AW"}
-  KA137: {year: 2024, term: "春", group: "SS"}
+  KA137: {year: 2024, term: "早春", group: "SS"}
   KA138: {year: 2024, term: "夏", group: "SS"}
   KA145: {year: 2025, term: "秋", group: "AW"}
   KA146: {year: 2025, term: "冬", group: "AW"}
-  KA147: {year: 2025, term: "春", group: "SS"}
+  KA147: {year: 2025, term: "早春", group: "SS"}
   KA148: {year: 2025, term: "夏", group: "SS"}
   KA155: {year: 2026, term: "秋", group: "AW"}
   KA156: {year: 2026, term: "冬", group: "AW"}
-  KA157: {year: 2026, term: "春", group: "SS"}
+  KA157: {year: 2026, term: "早春", group: "SS"}
   KA158: {year: 2026, term: "夏", group: "SS"}
 
 # ------------------------------------------------------------

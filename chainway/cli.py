@@ -575,6 +575,24 @@ def cmd_plan(args) -> int:
     return 0
 
 
+# ------------------------------------------------------- season-report
+def cmd_season_report(args) -> int:
+    """季別診斷報告：每個季別的完銷、袖長對照、上架重疊、銷冠與年度排行。"""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from scripts import season_report as runner
+
+    argv: list[str] = []
+    if args.no_images:
+        argv.append("--no-images")
+    elif args.images is not None:
+        argv += ["--images", args.images] if args.images else ["--images"]
+    if args.data:
+        argv += ["--data", args.data]
+    if args.out:
+        argv += ["--out", args.out]
+    return runner.main(argv)
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -642,6 +660,14 @@ def main(argv: list[str] | None = None) -> int:
     pl.add_argument("--week", type=int); pl.add_argument("--year", action="store_true")
     pl.add_argument("--n", type=int, default=None, help="當週款數（預設依 settings）")
     pl.set_defaults(func=cmd_plan)
+
+    sr = sub.add_parser("season-report", help="★ 季別完銷診斷報告（含袖長對照）")
+    sr.add_argument("--images", nargs="?", const="", default=None,
+                    help="系統圖根目錄；不給值就用 settings.yaml 的 paths.root")
+    sr.add_argument("--no-images", action="store_true", help="不要內嵌縮圖，只印路徑")
+    sr.add_argument("--data", help="用先前存下的資料集 JSON 重畫，不重算")
+    sr.add_argument("--out", help="HTML 輸出位置")
+    sr.set_defaults(func=cmd_season_report)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)

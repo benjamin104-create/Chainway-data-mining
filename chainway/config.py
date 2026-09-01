@@ -183,16 +183,36 @@ class Config:
         return list(self.taxonomy.get("categories", {}).keys())
 
     # -- KA 季號 --------------------------------------------------
-    def season_from_code(self, code: str) -> dict[str, Any] | None:
-        """KA 季號 → {year, term, group, label}。查無此碼回傳 None。
+    def season_terms(self) -> dict[str, dict[str, Any]]:
+        """季別碼 → {name, sleeve, group, order}。7=早春長袖／8=夏短袖／
+        5=秋短袖／6=冬長袖（貴司提供，可在 settings.yaml 調整）。"""
+        return {str(k): v for k, v in (self.settings.get("season_terms") or {}).items()}
 
-        例：KA135 → {'year': 2024, 'term': '秋', 'group': 'AW', 'label': '2024秋'}
+    def season_from_code(self, code: str) -> dict[str, Any] | None:
+        """KA 季號 → 該季的完整標示。查無此碼回傳 None。
+
+        例：KA135 → {'year': 2024, 'term': '秋', 'term_code': '5',
+                     'sleeve': '短袖', 'group': 'AW', 'order': 3,
+                     'label': '2024秋', 'full_label': '2024秋（KA135・5・短袖）'}
+
+        季名與袖長一律由末碼查 season_terms，seasons 表裡的 term 只是
+        給人看的備援 —— 兩邊若不一致，以 season_terms 為準，才不會出現
+        同一個碼在不同表裡叫不同名字。
         """
-        entry = (self.settings.get("seasons") or {}).get(str(code).upper())
+        code = str(code).upper()
+        entry = (self.settings.get("seasons") or {}).get(code)
         if not entry:
             return None
-        return {**entry, "code": str(code).upper(),
-                "label": f"{entry['year']}{entry['term']}"}
+        term_code = code[-1]
+        t = self.season_terms().get(term_code, {})
+        term = t.get("name") or entry.get("term", "")
+        out = {**entry, "code": code, "term": term, "term_code": term_code,
+               "sleeve": t.get("sleeve"), "order": t.get("order", 9),
+               "group": t.get("group", entry.get("group")),
+               "label": f"{entry['year']}{term}"}
+        bits = "・".join(x for x in (code, term_code, t.get("sleeve")) if x)
+        out["full_label"] = f"{out['label']}（{bits}）"
+        return out
 
     def find_season_code(self, text: str) -> str | None:
         """從路徑或檔名裡找出 KA 季號，且只認得對照表裡有的碼。
