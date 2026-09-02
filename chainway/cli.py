@@ -544,8 +544,9 @@ def cmd_eval_search(args) -> int:
 
         html = eval_report.build(detail, sku_images, kinds=kinds,
                                  limit=args.report_limit, summary=summary)
+        from .report.document import write as write_doc
         out_html = out_dir / f"search_eval_{tag}.html"
-        out_html.write_text(html, encoding="utf-8")
+        write_doc(out_html, html)
         _ok(f"逐張診斷報告 → {out_html}")
         no_gallery = int(sum(1 for s_ in detail["true_sku"] if s_ not in sku_images))
         if no_gallery:
@@ -918,8 +919,8 @@ def cmd_reclassify_images(args) -> int:
 
     sheet = cfg.path("outputs") / "eval" / "圖片分類覆核.html"
     sheet.parent.mkdir(parents=True, exist_ok=True)
-    sheet.write_text(contact_sheet.build(out, per_kind=args.per_kind),
-                     encoding="utf-8")
+    from .report.document import write as write_doc
+    write_doc(sheet, contact_sheet.build(out, per_kind=args.per_kind))
     _ok(f"覆核用接觸表 → {sheet}")
     print("  打開它，看每一類的圖是不是真的長那樣。分錯就跟我說是哪一類。")
     return 0
@@ -986,7 +987,8 @@ def cmd_inventory(args) -> int:
             width, quality = int(width * 0.75), max(60, quality - 5)
             _warn(f"{label} {size/1048576:.1f} MB 超過 {args.max_mb} MB，"
                   f"縮圖降為 {width}px 重試")
-        path.write_text(html, encoding="utf-8")
+        from .report.document import write as write_doc
+        size = write_doc(path, html)
         _ok(f"{label} → {path.name}　（{size/1048576:.1f} MB，縮圖 {width}px）")
 
     if args.split:

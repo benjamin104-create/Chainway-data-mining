@@ -108,7 +108,8 @@ def main(argv: list[str] | None = None) -> int:
     # 報告標題仍是中文，只有檔名避開。
     out = Path(args.out) if args.out else outputs / "season_report.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+    from chainway.report.document import write as write_doc
+    write_doc(out, html)
 
     n_img = html.count("data:image/jpeg;base64,")
     print(f"\n✓ 報告已產生：{out}")
