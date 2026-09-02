@@ -807,6 +807,59 @@ def cmd_motif(args) -> int:
 
 
 
+
+# ------------------------------------------------------- color
+def cmd_color(args) -> int:
+    """量一張照片的顏色，並對到色卡上的色號。
+
+    沒有色卡就只報客觀值（HEX / L*a*b*）—— 不用我自己編的色系名稱冒充規格。
+    """
+    from .search import colorcard
+
+    cfg = get_config()
+
+    if args.scan_codes:
+        from .ingest.techpack_notes import scan_color_codes
+        tbl = scan_color_codes(cfg, limit=args.limit)
+        print(f"\n掃描 {tbl.attrs.get('scanned_files', 0):,} 份指示書，"
+              f"看色號實際上怎麼寫：\n")
+        print(tbl.to_string(index=False))
+        out = cfg.path("outputs") / "color" / "色號寫法盤點.csv"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tbl.to_csv(out, index=False, encoding="utf-8-sig")
+        _ok(f"\n→ {out}")
+        if tbl["出現在幾份指示書"].max() == 0:
+            _warn("指示書的文字裡沒有找到任何色號寫法。"
+                  "色號可能是寫在圖上或另有色卡檔案 —— "
+                  "有色卡的話用 --card 指定，我就能直接比對。")
+        return 0
+
+    card = None
+    if args.card:
+        card = colorcard.load_card(args.card)
+        _ok(f"色卡載入 {len(card)} 個色號")
+
+    if not args.image:
+        _warn("請指定 --image 要量的照片，或用 --scan-codes 盤點指示書裡的色號寫法")
+        return 1
+
+    from PIL import Image
+    with Image.open(args.image) as im:
+        im.load()
+        rows = colorcard.measure(im, card, n_colors=args.n_colors)
+    if not rows:
+        _warn("量不出顏色 —— 這張圖可能太小或整張都是背景")
+        return 1
+
+    print(f"\n{args.image}\n")
+    print(pd.DataFrame(rows).to_string(index=False))
+    if card is None:
+        print("\n  「概略色系」只是為了讀起來方便，不是規格。"
+              "\n  要精確對到色號，用 --card 指定色卡（CSV 或 Excel，"
+              "需含色號欄與 HEX 欄或 L/a/b 三欄）。")
+    return 0
+
+
 # ------------------------------------------------------- reclassify-images
 def cmd_reclassify_images(args) -> int:
     """重新判斷抽出來的指示書圖是什麼，並產生一張可以覆核的接觸表。
@@ -1042,6 +1095,15 @@ def main(argv: list[str] | None = None) -> int:
     rdp.add_argument("--max-combo-features", type=int, default=8,
                      help="組合挖掘最多用幾個特徵（兩兩配對，數量會平方成長）")
     rdp.set_defaults(func=cmd_reverse_design)
+
+    co = sub.add_parser("color", help="★ 量照片的顏色並對到色號（ΔE2000）")
+    co.add_argument("--image", help="要量的照片")
+    co.add_argument("--card", help="色卡檔（CSV/Excel）：色號欄 + HEX 欄或 L/a/b 三欄")
+    co.add_argument("--n-colors", type=int, default=3, help="取幾個主色（預設 3）")
+    co.add_argument("--scan-codes", action="store_true",
+                    help="盤點指示書裡實際用了哪種色號寫法（先做這個）")
+    co.add_argument("--limit", type=int, help="盤點時只掃前 N 份")
+    co.set_defaults(func=cmd_color)
 
     rc = sub.add_parser("reclassify-images",
                         help="★ 重新判斷指示書抽出來的圖是什麼（照片／布樣／線稿／章戳）")

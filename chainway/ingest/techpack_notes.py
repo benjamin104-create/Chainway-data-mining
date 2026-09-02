@@ -224,3 +224,62 @@ def build_notes_table(cfg: Config | None = None, limit: int | None = None) -> pd
             if limit and len(rows) >= limit:
                 return pd.DataFrame(rows)
     return pd.DataFrame(rows)
+
+
+# ── 色號 ────────────────────────────────────────────────────────
+# 一樣先盤點再分類：不預設貴司用哪一套色號系統，先看指示書上實際寫什麼。
+# 收得寬一點（Pantone TCX、TPX、TPG、色票號、內部編碼），
+# 掃完看哪一種真的出現，再決定用哪一種當比對基準。
+COLOR_CODE_PATTERNS = {
+    "Pantone TCX/TPX/TPG": r"\b\d{2}-\d{4}\s*(?:TCX|TPX|TPG|tcx|tpx|tpg)\b",
+    "Pantone 數字碼": r"(?:PANTONE|Pantone|PT|P\.?T\.?)\s*[:：]?\s*\d{3,4}\s*[CUcu]?\b",
+    "色號欄位": r"(?:色號|色碼|顏色編號|COLOR\s*(?:NO|CODE)|COL\.?\s*NO)\s*[:：]?\s*([A-Za-z0-9\-#]{2,12})",
+    "六位色碼": r"#[0-9A-Fa-f]{6}\b",
+    "線色編號": r"(?:線色|繡線|車線)\s*[:：]?\s*([A-Za-z0-9\-]{2,10})",
+}
+
+
+def scan_color_codes(cfg: Config | None = None, limit: int | None = None) -> pd.DataFrame:
+    """掃過指示書，回報哪一種色號寫法真的存在、各出現多少次。
+
+    這一步不做比對、不建對照，只回答一個問題：**貴司的色號寫在哪、長什麼樣**。
+    知道了才談得上「用色號判斷正確顏色」——
+    否則就是拿我猜的色系名稱冒充規格，跟先前把品類碼 5 推論錯是同一種毛病。
+    """
+    cfg = cfg or get_config()
+    files: list[Path] = []
+    for root in cfg.path_list("tech_packs"):
+        if root.exists():
+            files += [p for p in root.rglob("*.xls*")
+                      if p.is_file() and not p.name.startswith(("~$", "."))]
+    if limit:
+        files = files[:limit]
+
+    hits: Counter[str] = Counter()
+    files_with: Counter[str] = Counter()
+    samples: dict[str, list[str]] = {k: [] for k in COLOR_CODE_PATTERNS}
+    scanned = 0
+    for path in files:
+        cells = _cells_of(path)
+        if not cells:
+            continue
+        scanned += 1
+        blob = " ".join(cells)
+        for kind, pat in COLOR_CODE_PATTERNS.items():
+            found = re.findall(pat, blob)
+            if found:
+                hits[kind] += len(found)
+                files_with[kind] += 1
+                for f in found[:3]:
+                    v = f if isinstance(f, str) else str(f)
+                    if len(samples[kind]) < 12 and v not in samples[kind]:
+                        samples[kind].append(v)
+
+    rows = [{"色號寫法": k, "出現次數": hits.get(k, 0),
+             "出現在幾份指示書": files_with.get(k, 0),
+             "佔掃描檔比例": round(files_with.get(k, 0) / max(scanned, 1), 3),
+             "實際樣本": "、".join(samples[k])[:120]}
+            for k in COLOR_CODE_PATTERNS]
+    out = pd.DataFrame(rows).sort_values("出現在幾份指示書", ascending=False)
+    out.attrs["scanned_files"] = scanned
+    return out.reset_index(drop=True)
