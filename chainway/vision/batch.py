@@ -1,0 +1,111 @@
+"""把定位跑過整個影像庫，產出「款號 → 設計重點位置」的表。
+
+## 這張表是幹嘛的
+
+品名只有 13% 寫了位置，所以位置分析一直做不起來。這張表補上那一塊：
+每一款系統圖跑一次，得到設計重點的分區、座標、佔比。
+之後「熊在胸前 vs 熊在口袋哪個好賣」才有資料可算。
+
+## 一定要附證明圖
+
+定位是啟發式的，宣稱準確率沒有意義 —— 要人看。所以除了 CSV 之外
+還產出一張抽樣的對照表：原圖 + 框出偵測到的區域 + 判到的分區。
+框畫錯了一眼就看得出來，比任何數字都直接。
+
+先前的教訓：圖片分類我用「JPEG 且 >600px」判打樣照片，
+自己覺得合理就上線了，結果整個評測建立在錯的標籤上。
+這次先讓人看。
+"""
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+
+from ..config import Config, get_config
+from .locate import CLAIM_OVERLAP, locate
+
+SKU_RE = re.compile(r"(KA\d{7})", re.I)
+EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+
+def _category_of(sku: str, cfg: Config) -> str | None:
+    """貨號 → 部位。分區依部位而定，長褲與上衣的上三分之一意義完全不同。"""
+    info = cfg.category_from_sku(sku) if hasattr(cfg, "category_from_sku") else None
+    if isinstance(info, dict):
+        code = str(info.get("category_code") or "")
+        return {"1": "梭織上衣", "2": "褲", "3": "棉T", "4": "裙",
+                "6": "外套", "7": "洋裝", "9": "針織"}.get(code[-1:])
+    return None
+
+
+def run(cfg: Config | None = None, *, limit: int | None = None,
+        progress: bool = True) -> pd.DataFrame:
+    """掃過系統圖，回傳每一款的設計重點位置。"""
+    from PIL import Image
+
+    cfg = cfg or get_config()
+    files: list[Path] = []
+    for root in cfg.path_list("system_images"):
+        if root.exists():
+            files += [p for p in root.rglob("*")
+                      if p.is_file() and p.suffix.lower() in EXTS
+                      and not p.name.startswith(("~$", "."))]
+    files.sort()
+    if limit:
+        files = files[:limit]
+
+    rows: list[dict[str, Any]] = []
+    for i, p in enumerate(files, start=1):
+        if progress and i % 100 == 0:
+            print(f"  定位 {i}/{len(files)}", end="\r", flush=True)
+        m = SKU_RE.search(p.stem)
+        if not m:
+            continue
+        sku = m.group(1).upper()
+        cat = _category_of(sku, cfg)
+        try:
+            with Image.open(p) as im:
+                im.load()
+                res = locate(im, cat)
+        except Exception:
+            continue
+        if not res["裝飾"]:
+            rows.append({"款號": sku, "部位": cat, "image_path": str(p),
+                         "分區": "素色", "x": None, "y": None,
+                         "面積佔衣服": 0.0, "重疊比例": None,
+                         "可宣稱": False, "描述": res["描述"]})
+            continue
+        t = res["裝飾"][0]
+        rows.append({
+            "款號": sku, "部位": cat, "image_path": str(p),
+            "分區": t["主要分區"] if t["可宣稱"] else "跨區未定",
+            "x": t["x"], "y": t["y"],
+            "面積佔衣服": t["面積佔衣服"],
+            "寬佔比": t["寬佔比"], "高佔比": t["高佔比"],
+            "重疊比例": t["重疊比例"],
+            "可宣稱": t["可宣稱"],
+            "分區重疊": "、".join(f"{n} {v:.0%}" for n, v in t["分區重疊"]),
+            "裝飾塊數": len(res["裝飾"]),
+            "描述": res["描述"],
+        })
+    if progress:
+        print()
+    return pd.DataFrame(rows)
+
+
+def summary(df: pd.DataFrame) -> pd.DataFrame:
+    """分區分布 —— 用來檢查有沒有整批倒向某一區（那通常代表規則壞了）。"""
+    if df.empty:
+        return df
+    g = (df.groupby("分區")
+           .agg(款數=("款號", "nunique"),
+                平均佔比=("面積佔衣服", "mean"),
+                可宣稱比例=("可宣稱", "mean"))
+           .sort_values("款數", ascending=False)
+           .reset_index())
+    g["平均佔比"] = g["平均佔比"].round(4)
+    g["可宣稱比例"] = g["可宣稱比例"].round(3)
+    return g

@@ -977,6 +977,56 @@ def cmd_color(args) -> int:
     return 0
 
 
+
+# ------------------------------------------------------- locate
+def cmd_locate(args) -> int:
+    """從系統圖量出「設計重點在衣服的哪個位置」。
+
+    品名只有 13% 寫了位置，位置分析一直做不起來。這一步補上那塊資料。
+    """
+    from .vision import batch, locate as loc
+    from .report import locate_sheet, document
+
+    cfg = get_config()
+
+    if args.image:
+        from PIL import Image
+        with Image.open(args.image) as im:
+            im.load()
+            res = loc.locate(im, args.category)
+        print(f"\n{args.image}")
+        print(f"  {res['描述']}\n")
+        for i, t in enumerate(res["裝飾"], start=1):
+            print(f"  [{i}] x={t['x']} y={t['y']}  佔衣服 {t['面積佔衣服']:.1%}"
+                  f"  寬{t['寬佔比']:.2f} 高{t['高佔比']:.2f}")
+            print("      分區重疊：" + "、".join(
+                f"{n} {v:.0%}" for n, v in t["分區重疊"]))
+        return 0
+
+    df = batch.run(cfg, limit=args.limit)
+    if df.empty:
+        _warn("沒有讀到系統圖。確認 settings.yaml 的 paths.system_images。")
+        return 1
+    _ok(f"定位完成 {len(df):,} 張，{df['款號'].nunique():,} 個款號")
+
+    out = cfg.path("outputs") / "locate"
+    out.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out / "設計重點位置.csv", index=False, encoding="utf-8-sig")
+
+    print("\n分區分布：")
+    print(batch.summary(df).to_string(index=False))
+    claimed = df["可宣稱"].mean()
+    print(f"\n  敢宣稱分區的比例 {claimed:.0%}"
+          f"（其餘是素色或跨區，刻意不硬歸類）")
+
+    sheet = out / "定位覆核.html"
+    document.write(sheet, locate_sheet.build(df, per_zone=args.per_zone))
+    _ok(f"逐張證明圖 → {sheet}")
+    print("  藍框是偵測到的設計重點、灰框是衣服範圍。")
+    print("  框畫錯或分區判錯的，跟我說是哪一號 —— 這份報表是要讓您否定它的。")
+    return 0
+
+
 # ------------------------------------------------------- reclassify-images
 def cmd_reclassify_images(args) -> int:
     """重新判斷抽出來的指示書圖是什麼，並產生一張可以覆核的接觸表。
@@ -1229,6 +1279,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="盤點指示書裡實際用了哪種色號寫法（先做這個）")
     co.add_argument("--limit", type=int, help="盤點時只掃前 N 份")
     co.set_defaults(func=cmd_color)
+
+    lo = sub.add_parser("locate", help="★ 從系統圖量出設計重點在衣服的哪個位置")
+    lo.add_argument("--image", help="只看單一張圖")
+    lo.add_argument("--category", help="部位（梭織上衣／棉T／針織／外套／褲／裙／洋裝）")
+    lo.add_argument("--limit", type=int, help="只處理前 N 張，先試跑用")
+    lo.add_argument("--per-zone", type=int, default=12,
+                    help="覆核圖每一分區顯示幾件（預設 12）")
+    lo.set_defaults(func=cmd_locate)
 
     rc = sub.add_parser("reclassify-images",
                         help="★ 重新判斷指示書抽出來的圖是什麼（照片／布樣／線稿／章戳）")
