@@ -820,7 +820,34 @@ def cmd_color(args) -> int:
     cfg = get_config()
 
     if args.scan_codes:
+        from .ingest.color_discovery import scan_filenames
         from .ingest.techpack_notes import scan_color_codes
+
+        print("\n【1】檔名裡的色號 —— 貨號後面接了什麼")
+        print("     POS 的 9 碼貨號拆開驗過：KA + 季別(3) + 品類(1，格紋線佔 2)")
+        print("     + 流水號，沒有配色的位置。所以色號最可能在檔名上。\n")
+        found = scan_filenames(cfg, limit=args.limit)
+        if not found:
+            _warn("系統圖與指示書資料夾都找不到，無法掃檔名")
+        for k, t in found.items():
+            a = t.attrs
+            print(f"  ── {k}：{a['檔案總數']:,} 個檔，其中 {a['含貨號的']:,} 個含貨號，"
+                  f"{a['不同貨號']:,} 個不同貨號（平均每貨號 {a['平均每貨號檔數']} 檔）")
+            if t.empty:
+                print("     （沒有檔名含貨號）")
+                continue
+            print(t.to_string(index=False))
+            print()
+            out = cfg.path("outputs") / "color" / f"檔名後綴_{k}.csv"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            t.to_csv(out, index=False, encoding="utf-8-sig")
+            _ok(f"→ {out}")
+        print("\n  看「後綴樣式」那一欄：如果有一列的樣式是 -## 或 _##，"
+              "\n  而且「當兩位數色號_落在10-92」接近 1，那就是色號。"
+              "\n  把那一列的樣式告訴我，我就能把每張系統圖對到色號 ——"
+              "\n  那等於幾千個有標準答案的樣本，可以真的量準確率並校準調子。")
+
+        print("\n【2】指示書文字裡的色號寫法")
         tbl = scan_color_codes(cfg, limit=args.limit)
         print(f"\n掃描 {tbl.attrs.get('scanned_files', 0):,} 份指示書，"
               f"看色號實際上怎麼寫：\n")
