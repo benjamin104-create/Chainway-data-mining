@@ -834,19 +834,35 @@ def cmd_color(args) -> int:
                   "有色卡的話用 --card 指定，我就能直接比對。")
         return 0
 
+    from .search import colorcode
+
     card = None
     if args.card:
         card = colorcard.load_card(args.card)
         _ok(f"色卡載入 {len(card)} 個色號")
+    else:
+        cov = colorcode.coverage()
+        _ok(f"用貴司的兩位數色號表：{cov['有名稱的']} 個有名稱的色號，"
+            f"已填實際色值 {cov['已填實際色值']} 個（{cov['填寫率']:.0%}）")
 
     if not args.image:
         _warn("請指定 --image 要量的照片，或用 --scan-codes 盤點指示書裡的色號寫法")
         return 1
 
     from PIL import Image
+    from .search.palette import palette
+
     with Image.open(args.image) as im:
         im.load()
-        rows = colorcard.measure(im, card, n_colors=args.n_colors)
+        if card is not None:
+            rows = colorcard.measure(im, card, n_colors=args.n_colors)
+        else:
+            table = colorcode.load_table()
+            rows = []
+            for lab, weight in palette(im, args.n_colors):
+                rec = {"佔比": round(float(weight), 3)}
+                rec.update(colorcode.classify(lab, table))
+                rows.append(rec)
     if not rows:
         _warn("量不出顏色 —— 這張圖可能太小或整張都是背景")
         return 1
@@ -854,9 +870,12 @@ def cmd_color(args) -> int:
     print(f"\n{args.image}\n")
     print(pd.DataFrame(rows).to_string(index=False))
     if card is None:
-        print("\n  「概略色系」只是為了讀起來方便，不是規格。"
-              "\n  要精確對到色號，用 --card 指定色卡（CSV 或 Excel，"
-              "需含色號欄與 HEX 欄或 L/a/b 三欄）。")
+        print("\n  色相族（十位數）從照片判很穩，實測 21 個標準色 21 個正確。")
+        print("  調子（個位數）目前是推算的，還沒有實際色值可以比對 ——")
+        print("  實測會把藏青判成暗藍、卡其判成淺黃，請不要直接採用。")
+        print("  要讓調子也準：在 config/color_codes.yaml 的色號底下加")
+        print("    lab: [L, a, b]   或   hex: \"#RRGGBB\"")
+        print("  只填常用的那幾個也可以，沒填的就不參與比對。")
     return 0
 
 
