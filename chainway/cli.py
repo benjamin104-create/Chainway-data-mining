@@ -864,6 +864,39 @@ def cmd_color(args) -> int:
 
     from .search import colorcode
 
+    if args.validate:
+        from .search import color_validate as cv
+
+        res = cv.run(cfg, limit=args.limit)
+        if res["pairs"].empty:
+            _warn("檔名裡沒有解析到色號。先跑 --scan-codes 看檔名長什麼樣，"
+                  "\n     或確認系統圖的檔名是否帶完整品號（例如 KA115100170F）。")
+            return 1
+        _ok(f"檔名解析到 {len(res['pairs']):,} 筆（款號×色號×圖檔）")
+        d, sm = res["detail"], res["summary"]
+        if not sm.get("筆數"):
+            _warn("解析到的色號都不在色卡上，無法比對")
+            return 1
+        print("\n【驗證】拿貨號裡的色號當標準答案")
+        for k, v in sm.items():
+            print(f"  {k:14s} {v}")
+        out = cfg.path("outputs") / "color"
+        out.mkdir(parents=True, exist_ok=True)
+        d.to_csv(out / "色號驗證_逐筆.csv", index=False, encoding="utf-8-sig")
+
+        per = res["per_code"]
+        print("\n【逐色號】看哪些色號系統性偏掉了")
+        cols = ["色號", "名稱", "款×色數", "圖片數", "色號正確率", "色相族正確率",
+                "色卡HEX", "商品中位HEX", "色卡vs商品ΔE", "可校準"]
+        print(per[[c for c in cols if c in per.columns]].head(30).to_string(index=False))
+        per.to_csv(out / "色號驗證_逐色號.csv", index=False, encoding="utf-8-sig")
+
+        n = cv.write_calibration(per, out / "校準建議.yaml")
+        _ok(f"\n{n} 個色號樣本數足夠，校準建議 → {out / '校準建議.yaml'}")
+        print("  那份是「用實際商品照推回來的色值」，比印刷色卡少一層 CMYK 誤差。")
+        print("  看過覺得合理再貼進 config/color_codes.yaml —— 我不自動覆寫。")
+        return 0
+
     card = None
     if args.card:
         card = colorcard.load_card(args.card)
@@ -1148,6 +1181,8 @@ def main(argv: list[str] | None = None) -> int:
     co.add_argument("--image", help="要量的照片")
     co.add_argument("--card", help="色卡檔（CSV/Excel）：色號欄 + HEX 欄或 L/a/b 三欄")
     co.add_argument("--n-colors", type=int, default=3, help="取幾個主色（預設 3）")
+    co.add_argument("--validate", action="store_true",
+                    help="★ 拿貨號裡的色號當標準答案，驗證量色準不準並產生校準建議")
     co.add_argument("--scan-codes", action="store_true",
                     help="盤點指示書裡實際用了哪種色號寫法（先做這個）")
     co.add_argument("--limit", type=int, help="盤點時只掃前 N 份")

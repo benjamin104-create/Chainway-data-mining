@@ -114,6 +114,8 @@ echo   Step 4 of 4  -  building the illustrated list
 echo  ==================================================================
 rem Find out where the colour code lives (filenames / tech-pack text).
 "%VPY%" -m chainway.cli color --scan-codes
+rem Use the colour code in the item number as ground truth to check colour reading.
+"%VPY%" -m chainway.cli color --validate
 rem Re-classify the extracted tech-pack images by content, not by file size.
 "%VPY%" -m chainway.cli reclassify-images
 rem One file per series with big thumbnails, plus a combined file.

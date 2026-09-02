@@ -35,8 +35,31 @@ import pandas as pd
 from ..config import Config, get_config
 
 SKU_RE = re.compile(r"(KA\d{7})", re.I)
+# 完整品號 = 款號(KA+7碼) + 色號(2碼) + 尺寸。ERP「貨品追蹤簡表」直接證實：
+#   KA115100170F   -> KA1151001 + 70 米白 + F（均碼，字母）
+#   KA11510025636  -> KA1151002 + 56 藏青 + 36（數字尺寸）
+#   KA11510026038  -> KA1151002 + 60 粉紫 + 38
+# 尺寸兩種形態都要收；色號一律兩碼，所以先切色號再切尺寸不會有歧義。
+ITEM_RE = re.compile(r"(KA\d{7})(\d{2})([A-Za-z]{1,3}|\d{1,3})?", re.I)
+# 檔名與報表的分隔符寫法不一，先正規化再解析，一種規則吃所有寫法
+SEP_RE = re.compile(r"[-_\s./]+")
 # 兩位數色號的樣子：10–92。收得寬一點，篩選留給人做。
 TWO_DIGIT = re.compile(r"(?<!\d)([1-9][0-9])(?!\d)")
+
+
+def parse_item_code(text: str) -> dict[str, str] | None:
+    """完整品號 → {款號, 色號, 尺寸}。只有款號就回傳色號為空字串。
+
+    刻意不在找不到色號時猜一個 —— POS 報表的貨號本來就只有款號，
+    那不是缺漏，是它的粒度就是款。硬補一個色號會讓後面的驗證失去意義。
+    """
+    flat = SEP_RE.sub("", str(text))
+    m = ITEM_RE.search(flat)
+    if not m:
+        s = SKU_RE.search(flat)
+        return {"款號": s.group(1).upper(), "色號": "", "尺寸": ""} if s else None
+    return {"款號": m.group(1).upper(), "色號": m.group(2),
+            "尺寸": (m.group(3) or "").upper()}
 
 
 def _suffix_of(stem: str) -> str:
@@ -107,26 +130,30 @@ def scan_filenames(cfg: Config | None = None, *,
 
 
 def build_sku_color_map(cfg: Config | None = None, *,
-                        pattern: str = r"[-_ ]?(\d{2})$",
-                        key: str = "system_images") -> pd.DataFrame:
-    """用確認過的後綴規則，把檔名解析成 (貨號, 色號, 圖檔路徑)。
+                        key: str = "system_images",
+                        pattern: str | None = None) -> pd.DataFrame:
+    """檔名 → (款號, 色號, 尺寸, 圖檔路徑)。
 
-    pattern 只在**人看過 scan_filenames 的結果、確認規則之後**才該指定。
-    預設值只是最常見的猜測，不保證適用 —— 所以這支函式不會被自動呼叫。
+    預設吃 ERP 的完整品號格式（KA115100170F），連寫或用 - _ 空白分隔都收。
+    貴司若還有別的寫法，先跑 scan_filenames 看清楚，再用 pattern 覆寫。
     """
     cfg = cfg or get_config()
-    rx = re.compile(pattern)
+    rx = re.compile(pattern) if pattern else None
     rows = []
     for root in [r for r in cfg.path_list(key) if r.exists()]:
         for p in root.rglob("*"):
             if not p.is_file() or p.name.startswith(("~$", ".")):
                 continue
-            m = SKU_RE.search(p.stem)
-            if not m:
-                continue
-            c = rx.search(_suffix_of(p.stem))
-            if not c:
-                continue
-            rows.append({"sku": m.group(1).upper(), "色號": c.group(1),
-                         "image_path": str(p)})
+            if rx is not None:
+                m = SKU_RE.search(p.stem)
+                c = rx.search(_suffix_of(p.stem)) if m else None
+                if not (m and c):
+                    continue
+                rec = {"款號": m.group(1).upper(), "色號": c.group(1), "尺寸": ""}
+            else:
+                # 分隔符不影響語意，先拿掉再解析，一種規則吃三種寫法
+                rec = parse_item_code(p.stem)
+                if not rec or not rec["色號"]:
+                    continue
+            rows.append({**rec, "image_path": str(p)})
     return pd.DataFrame(rows)
