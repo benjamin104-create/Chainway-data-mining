@@ -232,7 +232,7 @@ CSS = """
  --b5:#66b0f0;--b4:#2a70bd;--b3:#9a9284;--b2:#efa94f;--b1:#d34f57;--b0:#6f6a5f}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.75;
- font-family:"Noto Sans TC",-apple-system,"Segoe UI",system-ui,sans-serif}
+ font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC",-apple-system,"Segoe UI",system-ui,sans-serif}
 .page{max-width:1360px;margin:0 auto;padding:0 22px 110px}
 .sett{height:9px;border:none;margin:0;background:repeating-linear-gradient(90deg,
  var(--navy) 0 22px,var(--wine) 22px 30px,var(--navy) 30px 40px,var(--ochre) 40px 43px,
@@ -241,7 +241,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-heigh
 header.mast{padding:52px 0 22px}
 .eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;
  letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
-h1{font-family:"Noto Serif TC",Georgia,serif;font-weight:700;
+h1{font-family:"Noto Serif TC","Source Han Serif TC","PMingLiU","Songti TC",Georgia,serif;font-weight:700;
  font-size:clamp(27px,4.4vw,40px);line-height:1.25;margin:0 0 14px;text-wrap:balance}
 .dek{font-size:16px;color:var(--ink2);max-width:62ch;margin:0 0 8px}
 
@@ -255,10 +255,10 @@ nav.jump a:hover,nav.jump a:focus-visible{color:var(--ink);border-color:var(--in
 nav.jump a:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
 
 section{padding-top:44px;scroll-margin-top:56px}
-h2{font-family:"Noto Serif TC",Georgia,serif;font-size:24px;font-weight:700;margin:0 0 4px}
+h2{font-family:"Noto Serif TC","Source Han Serif TC","PMingLiU","Songti TC",Georgia,serif;font-size:24px;font-weight:700;margin:0 0 4px}
 h2 .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;
  color:var(--wine);letter-spacing:.1em;display:block;margin-bottom:7px;font-weight:500}
-h3{font-family:"Noto Serif TC",Georgia,serif;font-size:18px;margin:34px 0 2px;font-weight:600}
+h3{font-family:"Noto Serif TC","Source Han Serif TC","PMingLiU","Songti TC",Georgia,serif;font-size:18px;margin:34px 0 2px;font-weight:600}
 h3 .cnt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;
  color:var(--ink3);font-weight:400;margin-left:8px}
 p{margin:0 0 13px;max-width:66ch}

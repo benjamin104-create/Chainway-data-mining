@@ -474,7 +474,7 @@ def render(data: dict[str, Any], images_root: Path | None = None) -> str:
  --ink3:#847f75;--line:#33312b;--line2:#26251f;--navy:#8fb3dd;--crit:#e66767}
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);
- font-family:"Noto Sans TC",-apple-system,"Segoe UI",sans-serif;
+ font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC",-apple-system,"Segoe UI",system-ui,sans-serif;
  font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
 .wrap{max-width:900px;margin:0 auto;padding:52px 24px 110px}
 h1{font-family:"Noto Serif TC",serif;font-weight:700;font-size:28px;line-height:1.4;

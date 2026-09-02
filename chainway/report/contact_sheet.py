@@ -84,11 +84,11 @@ def build(df: pd.DataFrame, *, per_kind: int = 24,
  --ink2:#B3AB99;--ink3:#847C6B;--rule:#38332A;--rule2:#2B271F;--wine:#C08A93}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.75;
- font-family:"Noto Sans TC",-apple-system,"Segoe UI",sans-serif}}
+ font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC",-apple-system,"Segoe UI",system-ui,sans-serif}}
 .page{{max-width:1200px;margin:0 auto;padding:48px 22px 100px}}
-h1{{font-family:"Noto Serif TC",Georgia,serif;font-size:30px;margin:0 0 10px}}
+h1{{font-family:"Noto Serif TC","Source Han Serif TC","PMingLiU","Songti TC",Georgia,serif;font-size:30px;margin:0 0 10px}}
 .dek{{color:var(--ink2);max-width:62ch;margin:0 0 24px}}
-h2{{font-family:"Noto Serif TC",Georgia,serif;font-size:21px;margin:44px 0 2px}}
+h2{{font-family:"Noto Serif TC","Source Han Serif TC","PMingLiU","Songti TC",Georgia,serif;font-size:21px;margin:44px 0 2px}}
 h2 .n{{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink3);
  font-weight:400;margin-left:10px}}
 .sub{{font-size:13px;color:var(--ink2);margin:0 0 12px;max-width:64ch}}

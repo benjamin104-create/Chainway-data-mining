@@ -120,7 +120,7 @@ def build(detail: pd.DataFrame, sku_images: dict[str, Path], *,
  --line:#33312b;--good:#199e70;--bad:#e66767}}}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.7;
- font-family:"Noto Sans TC",-apple-system,"Segoe UI",sans-serif}}
+ font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC",-apple-system,"Segoe UI",system-ui,sans-serif}}
 .wrap{{max-width:1100px;margin:0 auto;padding:44px 22px 90px}}
 h1{{font-size:26px;margin:0 0 8px}} h2{{font-size:19px;margin:44px 0 6px}}
 .sub{{color:var(--ink2);font-size:13.5px;margin:0 0 10px}}
