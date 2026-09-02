@@ -1225,6 +1225,162 @@ def cmd_rangeplan(args) -> int:
     return 0
 
 
+# ---------------------------------------------------------- counter-form
+def cmd_counter_form(args) -> int:
+    """產生專櫃回填表單：一頁式、看照片勾選、匯出成回饋 CSV。
+
+    表單本身是單檔 HTML，照片內嵌，離線可用 —— 專櫃的網路與設備
+    不能假設，能不能填得完比欄位齊不齊重要。
+    """
+    import yaml
+
+    from .report import counter_form as cf, document, inventory_report as ir
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    tags_path = Path("config/feedback_tags.yaml")
+    if not tags_path.exists():
+        _warn(f"找不到詞彙表 {tags_path}")
+        return 1
+    tags = yaml.safe_load(tags_path.read_text(encoding="utf-8"))
+
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    df = master.copy()
+    col = next((c for c in ("季別", "season_label", "season")
+                if c in df.columns), None)
+    season_label = args.season
+    if args.season and col:
+        df = df[df[col].astype(str).str.contains(args.season, na=False)]
+    elif args.latest and col:
+        # 一鍵檔是純 ASCII 的（cmd.exe 混到多位元組字元會吃掉位元組），
+        # 所以季別名稱「2026秋」沒辦法寫進 .bat。用「自動取最新一季」
+        # 取代讓人手動打季名，順便省掉每季改檔案這件事。
+        order = next((c for c in ("上架起日", "first_sale_date", "季序")
+                      if c in df.columns), None)
+        if order:
+            latest = df.sort_values(order).iloc[-1][col]
+        else:
+            latest = sorted(df[col].dropna().astype(str).unique())[-1]
+        df = df[df[col].astype(str) == str(latest)]
+        season_label = str(latest)
+        _ok(f"自動選了最新的一季：{season_label}")
+    if "is_gift" in df.columns:
+        df = df[~df["is_gift"].fillna(False).astype(bool)]
+    if df.empty:
+        _warn("篩選後沒有款可以放進表單")
+        return 1
+
+    # 一次給專櫃三十款以內。巡一輪要填得完，填不完的表單等於沒有表單。
+    df = df.head(args.limit)
+
+    images: dict = {}
+    if not args.no_images:
+        images = ir.index_images([r for r in cfg.path_list("system_images") if r])
+        _ok(f"影像庫索引到 {len(images):,} 個貨號")
+
+    def pick(row, *names):
+        for n in names:
+            if n in row and pd.notna(row[n]) and str(row[n]).strip():
+                return str(row[n])
+        return ""
+
+    prods = []
+    for _, r in df.iterrows():
+        sku = pick(r, "款號", "style_code", "sku")
+        if not sku:
+            continue
+        path = images.get(sku)
+        prods.append({
+            "sku": sku,
+            "style_code": sku,
+            "name": pick(r, "品名", "product_name", "name"),
+            "category": pick(r, "品類", "category"),
+            "season": pick(r, "季別", "season_label", "season"),
+            "image": cf.thumb(path) if path else None,
+        })
+
+    have = sum(1 for p in prods if p["image"])
+    _ok(f"表單收錄 {len(prods)} 款，其中 {have} 款有照片")
+    if have < len(prods):
+        _warn(f"{len(prods) - have} 款沒有比對到照片，仍會列出但只有貨號")
+
+    out = (Path(args.out) if args.out
+           else cfg.path("outputs") / f"專櫃回填表單_{season_label or '全部'}.html")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(document.as_document(cf.build(
+        prods, tags, period=season_label, store_hint=args.store or "")),
+        encoding="utf-8")
+    _ok(f"表單：{out}")
+    print("  用 LINE／Email 把這個檔案發給專櫃，用手機打開就能填。")
+    print("  填完按「匯出 CSV」，回收後併進 data/feedback/sales_feedback.csv。")
+    return 0
+
+
+# ----------------------------------------------------------- calibration
+def cmd_calibration(args) -> int:
+    """專櫃當時說的，後來對了嗎 —— 答對率與把握程度的校準。"""
+    from .analysis import calibration as cal
+    from .ingest.feedback import load_feedback
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    fb = load_feedback(cfg)
+    if fb.empty:
+        _warn("還沒有任何回饋。先用 counter-form 產生表單發給專櫃。")
+        return 1
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    out = master.rename(columns={"sell_through_rate": "售罄率"}).copy()
+    key = next((c for c in ("款號", "style_code", "sku") if c in out.columns), None)
+    if key is None or "售罄率" not in out.columns:
+        _warn("主表缺少款號或售罄率欄位")
+        return 1
+    out = out[out["售罄率"].notna()].rename(columns={key: "sku"})
+
+    scored = cal.score(fb, out)
+    s = cal.summary(scored)
+    if not s["可評分"]:
+        _warn(s["說明"] + "。通常是回饋的貨號還沒進主表，或那一季還沒賣完。")
+        return 1
+
+    print(f"\n對得上的回饋 {s['筆數']:,} 筆／{s['人數']} 人／{s['款數']:,} 款")
+    print(f"  整體答對率 {s['整體答對率']:.1%}"
+          f"（全猜「普通」的基準線 {s['全猜普通的答對率']:.1%}）")
+    print(f"  Brier {s['整體Brier']:.3f}（越低越好）　方向相反 {s['方向相反']} 筆")
+    if s["整體答對率"] <= s["全猜普通的答對率"]:
+        _warn("答對率沒有贏過基準線 —— 目前這批回饋還沒比「什麼都不填」多出資訊。")
+
+    print("\n把握程度校準：")
+    print(cal.by_confidence(scored).round(3).to_string(index=False))
+    print("\n每個人：")
+    r = cal.by_respondent(scored)
+    print(r.round(3).to_string(index=False))
+    if (~r["資料足夠"]).any():
+        print(f"  （筆數少於 {cal.MIN_RESPONSES} 的不給分數 ——"
+              f" 三款答對兩款不是 67%，是還不知道）")
+
+    tags = cal.by_tag(scored)
+    if not tags.empty:
+        print("\n理由標籤事後成立比例：")
+        print(tags.round(3).to_string(index=False))
+
+    dest = cfg.path("outputs") / "專櫃判斷校準"
+    dest.mkdir(parents=True, exist_ok=True)
+    scored.to_csv(dest / "逐筆.csv", index=False, encoding="utf-8-sig")
+    r.to_csv(dest / "每人.csv", index=False, encoding="utf-8-sig")
+    _ok(f"明細：{dest}")
+    return 0
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -1376,6 +1532,21 @@ def main(argv: list[str] | None = None) -> int:
     rgp.add_argument("--data", help="彙總資料集 JSON；預設用 season-report 產出的那份")
     rgp.add_argument("--out", help="HTML 輸出位置")
     rgp.set_defaults(func=cmd_rangeplan)
+
+    ctf = sub.add_parser("counter-form", help="★ 產生專櫃回填表單（一頁式、看照片勾選）")
+    ctf.add_argument("--season", default="", help="只放某一季，例：2026秋")
+    ctf.add_argument("--latest", action="store_true",
+                     help="自動取最新一季（一鍵檔用這個 —— .bat 打不了中文季名）")
+    ctf.add_argument("--limit", type=int, default=30,
+                     help="最多收錄幾款（預設 30 —— 巡一輪要填得完）")
+    ctf.add_argument("--store", default="", help="門市提示文字")
+    ctf.add_argument("--no-images", action="store_true", help="不內嵌照片")
+    ctf.add_argument("--out", help="HTML 輸出位置")
+    ctf.set_defaults(func=cmd_counter_form)
+
+    cbn = sub.add_parser("calibration",
+                         help="★ 專櫃判斷校準：當時說的後來對了嗎")
+    cbn.set_defaults(func=cmd_calibration)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)
