@@ -38,41 +38,55 @@ from typing import Any, Sequence
 
 import numpy as np
 
+from ..imageio import to_rgb
+
 # 白底的門檻。棚拍背景有陰影與漸層，太嚴會把衣服邊緣切掉
-BG_TOL = 26
+BG_TOL = 55
 # 一塊區域要佔衣服這麼多比例才算「設計重點」，再小多半是鈕釦或雜訊
 MIN_BLOB_FRAC = 0.004
-# 與衣服主色差多少才算不同（LAB 的 ΔE 概念，這裡用簡化的歐氏距離）
-DEV_THRESHOLD = 18.0
+# 與衣服主色差多少才算「另一塊東西」。
+# 實拍照有陰影與皺褶，門檻太低會把陰影當成裝飾；改成依衣服本身的
+# 色彩離散度自動調整，只把「明顯不是同一塊布」的留下來。
+DEV_MIN = 45.0
+DEV_MAD_K = 6.0
 # 分析用的縮圖尺寸。位置是相對的，不需要原解析度，而且要跑幾千張
 WORK_SIZE = 320
 
 
 def _to_array(img) -> np.ndarray:
-    im = img.convert("RGB")
+    im = to_rgb(img).copy()
     im.thumbnail((WORK_SIZE, WORK_SIZE))
     return np.asarray(im).astype(np.float64)
 
 
 def garment_mask(img) -> tuple[np.ndarray, tuple[int, int, int, int]]:
-    """回傳 (衣服遮罩, 衣服外框)。外框是 (x1, y1, x2, y2)。
+    """回傳 (衣服遮罩, 衣服外框)。
 
-    背景色取四角中位數而不是寫死白色 —— 系統圖多半白底，
-    但偶爾是淺灰或米色，寫死會整張判成前景。
+    背景色取**整圈邊框**的中位數，不只四角 —— 實拍照片的四角可能剛好
+    是陰影或另一件衣服的一角，整圈穩得多。
+
+    再取最大的連通區域當衣服。實拍照裡除了衣服還有牆面反光、吊牌、
+    另一件衣服的邊角，全部算進來會讓「衣服主色」被污染。
     """
     a = _to_array(img)
     h, w = a.shape[:2]
-    k = max(3, min(h, w) // 20)
-    bg = np.median(np.concatenate([
-        a[:k, :k].reshape(-1, 3), a[:k, -k:].reshape(-1, 3),
-        a[-k:, :k].reshape(-1, 3), a[-k:, -k:].reshape(-1, 3)]), axis=0)
-    mask = np.abs(a - bg).max(axis=2) > BG_TOL
+    r = max(3, min(h, w) // 40)
+    ring = np.concatenate([a[:r].reshape(-1, 3), a[-r:].reshape(-1, 3),
+                           a[:, :r].reshape(-1, 3), a[:, -r:].reshape(-1, 3)])
+    bg = np.median(ring, axis=0)
+    fg = np.linalg.norm(a - bg, axis=2) > BG_TOL
 
-    rows = np.where(mask.mean(axis=1) > 0.02)[0]
-    cols = np.where(mask.mean(axis=0) > 0.02)[0]
-    if len(rows) < 4 or len(cols) < 4:
+    labels = _label(fg)
+    if labels.max() == 0:
+        return fg, (0, 0, w, h)
+    sizes = np.bincount(labels.ravel())
+    sizes[0] = 0
+    mask = labels == int(sizes.argmax())
+
+    ys, xs = np.nonzero(mask)
+    if len(ys) < 50:
         return mask, (0, 0, w, h)
-    return mask, (int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1)
+    return mask, (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
 
 
 # 分區依品類而定。數值是「在衣服外框裡的相對範圍」(y起, y迄, x起, x迄)。
@@ -133,52 +147,60 @@ def _erode(mask: np.ndarray, k: int = 3) -> np.ndarray:
     return out
 
 
-def find_decorations(img, *, dev_threshold: float = DEV_THRESHOLD,
-                     min_frac: float = MIN_BLOB_FRAC) -> list[dict[str, Any]]:
-    """找出衣服上與主色不同的區域。
+def find_decorations(img, *, min_frac: float = MIN_BLOB_FRAC) -> list[dict[str, Any]]:
+    """找出衣服上「明顯不是同一塊布」的區域。
 
-    主色取遮罩內的中位數而不是平均 —— 平均會被大面積的裝飾拉走，
-    中位數對「大部分是素色、局部有圖案」這個情境穩定得多。
+    門檻自動調整：取衣服內部色彩對主色的偏差中位數（MAD），
+    再乘一個係數。素色衣服的 MAD 很小，門檻就低、抓得到細緻的繡花；
+    格紋或印花滿版的衣服 MAD 很大，門檻自動升高，才不會整件都判成裝飾。
+    寫死一個門檻在這兩種衣服之間必然有一種會壞掉。
     """
     a = _to_array(img)
     mask, (x1, y1, x2, y2) = garment_mask(img)
-    inside = _erode(mask, 3)
-    inside[:y1] = inside[y2:] = False
-    inside[:, :x1] = inside[:, x2:] = False
-    if inside.sum() < 200:
+    core = _erode(mask, 6)
+    if core.sum() < 200:
+        core = _erode(mask, 2)
+    if core.sum() < 100:
         return []
 
-    base = np.median(a[inside], axis=0)
+    base = np.median(a[core], axis=0)
     dev = np.linalg.norm(a - base, axis=2)
-    blob = inside & (dev > dev_threshold)
-    total = inside.sum()
+    mad = float(np.median(dev[core])) or 1.0
+    thr = max(DEV_MIN, mad * DEV_MAD_K)
+
+    blob = core & (dev > thr)
+    total = int(core.sum())
     if blob.sum() < total * min_frac:
         return []
 
     labels = _label(blob)
-    out = []
     bw, bh = max(x2 - x1, 1), max(y2 - y1, 1)
+    out = []
     for lab in range(1, labels.max() + 1):
         sel = labels == lab
         area = int(sel.sum())
         if area < total * min_frac:
             continue
         ys, xs = np.nonzero(sel)
-        cy, cx = ys.mean(), xs.mean()
+        # 吊架、掛勾、吊牌會從衣服輪廓的最上緣冒出來。真正的設計元素
+        # （連領口滾邊也是）不會頂到剪影的最上緣。標記而不是直接丟掉 ——
+        # 判斷交給人，程式只負責把證據攤開。
+        hanger_like = bool(ys.min() <= y1 + 2)
         out.append({
             "面積佔衣服": round(area / total, 4),
-            # 正規化到衣服外框內：0 是最上／最左，1 是最下／最右
-            "y": round(float((cy - y1) / bh), 3),
-            "x": round(float((cx - x1) / bw), 3),
+            "y": round(float((ys.mean() - y1) / bh), 3),
+            "x": round(float((xs.mean() - x1) / bw), 3),
             "高佔比": round(float((ys.max() - ys.min() + 1) / bh), 3),
             "寬佔比": round(float((xs.max() - xs.min() + 1) / bw), 3),
             "平均色": [round(float(v), 1) for v in a[sel].mean(axis=0)],
+            "疑似吊架": hanger_like,
             "_bbox_norm": (round(float((xs.min() - x1) / bw), 3),
                            round(float((ys.min() - y1) / bh), 3),
                            round(float((xs.max() - x1) / bw), 3),
                            round(float((ys.max() - y1) / bh), 3)),
         })
-    return sorted(out, key=lambda d: -d["面積佔衣服"])
+    # 疑似吊架的一律排到後面，不讓它佔走「主要設計重點」的位置
+    return sorted(out, key=lambda d: (d["疑似吊架"], -d["面積佔衣服"]))
 
 
 def _label(mask: np.ndarray) -> np.ndarray:
@@ -264,16 +286,58 @@ def zone_overlap(blob: dict[str, Any], category: str | None
 CLAIM_OVERLAP = 0.55
 
 
-def locate(img, category: str | None = None, *, top: int = 3) -> dict[str, Any]:
+def is_garment_shot(img) -> tuple[bool, str]:
+    """這張圖是不是一件完整的衣服。不是的話，位置這個問題本身就沒有意義。
+
+    定位假設「畫面裡有一件衣服，而且看得到它的輪廓」。拿那 10 張真實圖一驗，
+    這個假設在多數圖上根本不成立，而定位照樣給出斬釘截鐵的答案：
+
+        格紋布料特寫    → 「設計重點在胸前（重疊 100%）」
+        另一塊布料特寫  → 「設計重點在左袖（重疊 100%）」
+        繡花規格頁      → 「設計重點在腰腹（重疊 91%）」
+
+    量測本身沒壞 —— 布紋上確實有一塊顏色不同的區域，它確實落在畫面上三分之一。
+    壞的是「畫面上三分之一 = 胸前」這個前提。一個會對非衣服的圖給出高信心
+    答案的定位，跑完整個影像庫之後產出的位置分析，錯得無聲無息。
+
+    所以定位前先擋一道，判斷依據跟圖片分類同一套（`ingest.image_kind`），
+    不另立一套會漂移的規則。
+    """
+    from ..ingest.image_kind import _stats, HAS_BG_EDGE, HAS_BG_RING_SD
+
+    try:
+        s = _stats(img)
+    except Exception:
+        return False, "圖片讀不到，無法判斷"
+    if s["edge_bg"] < HAS_BG_EDGE or s["ring_sd"] > HAS_BG_RING_SD:
+        return False, "畫面沒有背景，看起來是布料或細部特寫，不是整件衣服"
+    if s["aspect"] < 1.0:
+        return False, "主體是橫向的，看起來是版面或規格頁，不是一件直立的衣服"
+    return True, ""
+
+
+def locate(img, category: str | None = None, *, top: int = 3,
+           gate: bool = True) -> dict[str, Any]:
     """一張系統圖 → 設計重點在哪裡。
 
     回傳
         裝飾   由大到小的區塊，每塊帶座標、佔比、重疊分區
         描述   一句話，措辭與證據強度一致（重疊不夠就不說「在某區」）
+
+    `gate=False` 只在覆核工具裡用 —— 用來看「如果不擋，它會答成什麼樣」。
     """
-    blobs = find_decorations(img)[:top]
-    if not blobs:
-        return {"裝飾": [], "描述": "整件素色，沒有偵測到明顯的局部設計"}
+    if gate:
+        ok, why = is_garment_shot(img)
+        if not ok:
+            return {"裝飾": [], "描述": f"不判位置：{why}", "非衣物": True}
+    blobs = find_decorations(img)
+    real = [b for b in blobs if not b["疑似吊架"]]
+    if not real:
+        note = ("整件素色，沒有偵測到明顯的局部設計" if not blobs
+                else "只偵測到疑似吊架／吊牌，衣服本身沒有明顯的局部設計")
+        return {"裝飾": [], "描述": note,
+                "疑似非衣物": [b for b in blobs if b["疑似吊架"]][:2]}
+    blobs = real[:top]
 
     items = []
     for b in blobs:

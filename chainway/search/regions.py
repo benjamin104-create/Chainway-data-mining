@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..imageio import to_rgb
+
 # 邊界顏色與背景的容差。棚拍背景有漸層與陰影，抓太緊會把人的邊緣也切掉。
 BG_TOL = 26
 # 一列／一欄裡有多少比例不是背景，才算「有東西」
@@ -42,7 +44,7 @@ def subject_bbox(img) -> tuple[int, int, int, int]:
     抓不到就回傳整張圖 —— 去背的系統圖本身幾乎全是背景，
     這時硬切反而會切壞，原圖返回才是對的。
     """
-    a = np.asarray(img.convert("RGB")).astype(np.int16)
+    a = np.asarray(to_rgb(img)).astype(np.int16)
     h, w = a.shape[:2]
     fg = np.abs(a - _bg_color(a)).max(axis=2) > BG_TOL
 

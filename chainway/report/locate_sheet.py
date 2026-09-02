@@ -32,12 +32,18 @@ def e(s: Any) -> str:
 def _draw(path: str, row: pd.Series, category: str | None) -> str | None:
     """把偵測到的區域框在原圖上。框是畫在縮圖上的，不動原檔。"""
     try:
-        from PIL import Image, ImageDraw
-        from ..vision.locate import garment_mask, find_decorations, zones_for
+        from PIL import ImageDraw
+        from ..imageio import load_rgb
+        from ..vision.locate import garment_mask, find_decorations
 
-        with Image.open(path) as im:
-            im = im.convert("RGB")
-            im.load()
+        im = load_rgb(path)
+        if str(row.get("分區")) == "非衣物":
+            # 被擋下來的圖照樣要看得到原圖 —— 擋錯了（把真的衣服照片
+            # 判成布樣）是這道閘門最危險的失誤，而且只有看圖才發現得了。
+            im.thumbnail((THUMB, int(THUMB * 1.4)))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=76)
+            return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
         _, (x1, y1, x2, y2) = garment_mask(im)
         blobs = find_decorations(im)
         # garment_mask 在縮圖座標系工作，畫框前要換算回原圖比例
@@ -82,10 +88,15 @@ def build(df: pd.DataFrame, *, per_zone: int = PER_ZONE) -> str:
                 f'<figure>{pic}<figcaption><b>{e(r["款號"])}</b>'
                 f'<span>{e(r.get("部位") or "")}　{e(coord)}</span>'
                 f'<i>{e(r.get("分區重疊") or "")}</i></figcaption></figure>')
+        hint = ('<b>這一區是被擋下來、不做位置判讀的圖。</b>'
+                '這裡應該只有布料特寫、規格頁、章戳。'
+                '如果您在這裡看到一件完整的衣服，那就是擋錯了 —— 跟我說是哪一號。'
+                if zone == "非衣物" else
+                '<b>藍框是偵測到的設計重點，灰框是衣服範圍。</b>'
+                '框畫錯的、或分區判錯的，跟我說是哪一號。')
         blocks.append(
             f'<section><h2>{e(zone)}<span class="n">{sub["款號"].nunique():,} 款</span></h2>'
-            f'<p class="sub">隨機抽 {len(show)} 件。<b>藍框是偵測到的設計重點，'
-            f'灰框是衣服範圍。</b>框畫錯的、或分區判錯的，跟我說是哪一號。</p>'
+            f'<p class="sub">隨機抽 {len(show)} 件。{hint}</p>'
             f'<div class="grid">{"".join(cells)}</div></section>')
 
     tbl = "".join(

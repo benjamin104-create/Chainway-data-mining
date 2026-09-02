@@ -73,8 +73,12 @@ def run(cfg: Config | None = None, *, limit: int | None = None,
         except Exception:
             continue
         if not res["裝飾"]:
+            # 「非衣物」與「素色」要分開記。前者是這張圖不該問位置，
+            # 後者是問了、答案是沒有局部設計。混在一起，素色的比例會被
+            # 一堆布樣特寫灌水，而位置分析的分母就錯了。
+            zone = "非衣物" if res.get("非衣物") else "素色"
             rows.append({"款號": sku, "部位": cat, "image_path": str(p),
-                         "分區": "素色", "x": None, "y": None,
+                         "分區": zone, "x": None, "y": None,
                          "面積佔衣服": 0.0, "重疊比例": None,
                          "可宣稱": False, "描述": res["描述"]})
             continue

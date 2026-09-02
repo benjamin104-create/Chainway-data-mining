@@ -33,6 +33,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
+from ..imageio import to_rgb
+
 from .regions import subject_bbox
 
 # 取幾個主色。一件衣服常有主色加配色（格紋、拼接），只取一個會丟資訊；
@@ -73,7 +75,7 @@ def _grey_world(a: np.ndarray) -> np.ndarray:
 
 def garment_pixels(img, *, white_balance: bool = True) -> np.ndarray:
     """回傳衣服區域的像素 (N,3)，已剔除背景。"""
-    small = img.convert("RGB")
+    small = to_rgb(img).copy()
     small.thumbnail((220, 220))
     a = np.asarray(small).astype(np.float64)
     if white_balance:
