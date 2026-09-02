@@ -84,9 +84,21 @@ def build(df: pd.DataFrame, *, per_zone: int = PER_ZONE) -> str:
                    else '<div class="no">開不了</div>')
             coord = ("" if pd.isna(r.get("x"))
                      else f"x{r['x']:.2f} y{r['y']:.2f}　佔{r['面積佔衣服']:.1%}")
+            # 版型屬性與比例值並列。只給標籤，覆核的人沒有東西可以指著說
+            # 「這個數字不對」—— 上一次「熊在口袋」就是敗在中間那一步
+            # 沒有攤開來。
+            shape = "、".join(str(r[k]) for k in ("領型", "袖長", "衣長")
+                              if k in r and pd.notna(r.get(k)))
+            nums = "　".join(
+                f"{lab}{r[k]}" for lab, k in
+                (("領深", "領深比"), ("領寬", "領寬比"), ("袖", "袖長比"),
+                 ("衣長", "衣長比"))
+                if k in r and pd.notna(r.get(k)))
             cells.append(
                 f'<figure>{pic}<figcaption><b>{e(r["款號"])}</b>'
                 f'<span>{e(r.get("部位") or "")}　{e(coord)}</span>'
+                f'{f"<u>{e(shape)}</u>" if shape else ""}'
+                f'{f"<i>{e(nums)}</i>" if nums else ""}'
                 f'<i>{e(r.get("分區重疊") or "")}</i></figcaption></figure>')
         hint = ('<b>這一區是被擋下來、不做位置判讀的圖。</b>'
                 '這裡應該只有布料特寫、規格頁、章戳。'
@@ -137,6 +149,7 @@ figcaption{{padding:6px 8px;font-size:11px;line-height:1.5;
 figcaption b{{display:block;font-size:12px}}
 figcaption span{{display:block;color:var(--ink2);font-size:10px}}
 figcaption i{{display:block;color:var(--ink3);font-size:9.5px;font-style:normal}}
+figcaption u{{display:block;color:var(--pos);font-size:10.5px;text-decoration:none;font-weight:500}}
 table{{border-collapse:collapse;background:var(--panel);border:1px solid var(--rule);
  border-radius:4px;font-size:14px;min-width:400px;margin:8px 0 4px}}
 th,td{{padding:8px 14px;border-bottom:1px solid var(--rule2);text-align:left}}
@@ -160,6 +173,10 @@ tr:last-child td{{border-bottom:none}}
 CLIP 只負責回答那一塊「是什麼」。各自做自己擅長的。</p>
 <p><b>分區依部位而定，不用固定九宮格。</b>長褲的上三分之一是腰與大腿，
 上衣的上三分之一是領與肩 —— 同一個格子意義完全不同。</p>
+<p><b>版型是量出來的，不是猜的。</b>領型看輪廓上緣中間那個缺口有多深多寬，
+袖長看肩線到最寬處（袖口）的距離，衣長看肩線到下擺 —— 三個比例的分母
+都是身寬，因為身寬跟領、袖都無關，是圖裡唯一穩定的尺標。
+藍字是判定，灰字是量到的比例；比例對不上判定的，那是門檻要改。</p>
 <p><b>重疊不到 {CLAIM_OVERLAP:.0%} 就不宣稱歸屬。</b>
 「在口袋附近」不等於「在口袋」。那種情況會歸到「跨區未定」，
 並附上座標與各區重疊比例，讓人自己判斷。</p>

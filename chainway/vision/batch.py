@@ -25,7 +25,18 @@ from typing import Any
 import pandas as pd
 
 from ..config import Config, get_config
+from ..imageio import load_rgb
+from . import silhouette
 from .locate import CLAIM_OVERLAP, locate
+
+# 版型屬性帶進表裡的欄位。標籤與量到的比例一起帶 ——
+# 只有標籤的話，覆核的人沒有東西可以指著說「這個數字不對」。
+SIL_COLS = ("領型", "領深比", "領寬比", "袖長", "袖長比",
+            "衣長", "衣長比", "肩寬px", "身寬px")
+
+
+def _sil_cols(sil: dict[str, Any]) -> dict[str, Any]:
+    return {c: sil.get(c) for c in SIL_COLS}
 
 SKU_RE = re.compile(r"(KA\d{7})", re.I)
 EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
@@ -43,9 +54,7 @@ def _category_of(sku: str, cfg: Config) -> str | None:
 
 def run(cfg: Config | None = None, *, limit: int | None = None,
         progress: bool = True) -> pd.DataFrame:
-    """掃過系統圖，回傳每一款的設計重點位置。"""
-    from PIL import Image
-
+    """掃過系統圖，回傳每一款的設計重點位置與版型屬性。"""
     cfg = cfg or get_config()
     files: list[Path] = []
     for root in cfg.path_list("system_images"):
@@ -67,9 +76,13 @@ def run(cfg: Config | None = None, *, limit: int | None = None,
         sku = m.group(1).upper()
         cat = _category_of(sku, cfg)
         try:
-            with Image.open(p) as im:
-                im.load()
-                res = locate(im, cat)
+            im = load_rgb(p)
+            res = locate(im, cat)
+            # 版型與位置量的是同一張圖、同一個遮罩，一起算比較便宜，
+            # 而且兩者必須來自同一張圖 —— 分開跑很容易一個用系統圖、
+            # 一個用打樣照，屬性就對不起來了。
+            sil = ({} if res.get("非衣物")
+                   else silhouette.measure(im, cat))
         except Exception:
             continue
         if not res["裝飾"]:
@@ -80,7 +93,8 @@ def run(cfg: Config | None = None, *, limit: int | None = None,
             rows.append({"款號": sku, "部位": cat, "image_path": str(p),
                          "分區": zone, "x": None, "y": None,
                          "面積佔衣服": 0.0, "重疊比例": None,
-                         "可宣稱": False, "描述": res["描述"]})
+                         "可宣稱": False, "描述": res["描述"],
+                         **_sil_cols(sil)})
             continue
         t = res["裝飾"][0]
         rows.append({
@@ -94,6 +108,7 @@ def run(cfg: Config | None = None, *, limit: int | None = None,
             "分區重疊": "、".join(f"{n} {v:.0%}" for n, v in t["分區重疊"]),
             "裝飾塊數": len(res["裝飾"]),
             "描述": res["描述"],
+            **_sil_cols(sil),
         })
     if progress:
         print()

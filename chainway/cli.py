@@ -990,12 +990,22 @@ def cmd_locate(args) -> int:
     cfg = get_config()
 
     if args.image:
-        from PIL import Image
-        with Image.open(args.image) as im:
-            im.load()
-            res = loc.locate(im, args.category)
+        from .imageio import load_rgb
+        from .vision import attributes
+
+        im = load_rgb(args.image)
+        a = attributes.describe(im, args.category)
         print(f"\n{args.image}")
-        print(f"  {res['描述']}\n")
+        print(f"  {attributes.one_line(a)}\n")
+        if not a.get("可判讀"):
+            return 0
+        for k in ("領型", "領深比", "領寬比", "袖長", "袖長比",
+                  "衣長", "衣長比", "肩寬px", "身寬px",
+                  "量測色號", "量測HEX", "色號ΔE", "色號依據"):
+            if a.get(k) is not None:
+                print(f"  {k:8s} {a[k]}")
+        res = loc.locate(im, args.category)
+        print()
         for i, t in enumerate(res["裝飾"], start=1):
             print(f"  [{i}] x={t['x']} y={t['y']}  佔衣服 {t['面積佔衣服']:.1%}"
                   f"  寬{t['寬佔比']:.2f} 高{t['高佔比']:.2f}")
