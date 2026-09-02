@@ -826,9 +826,13 @@ def cmd_inventory(args) -> int:
 
     images: dict = {}
     if not args.no_images:
-        roots = [Path(args.images)] if args.images else (
-            cfg.path_list("system_images") + [cfg.path("root")])
-        images = ir.index_images([r for r in roots if r])
+        if args.images:
+            images = ir.index_images([Path(args.images)])
+        else:
+            images = ir.index_images([r for r in cfg.path_list("system_images") if r])
+            if not images and cfg.path("root"):
+                _warn("系統圖資料夾裡沒有比對到貨號，改掃整個根目錄（會慢一些）")
+                images = ir.index_images([cfg.path("root")])
         _ok(f"影像庫索引到 {len(images):,} 個貨號")
         if not images:
             _warn("沒有比對到任何貨號的圖檔；報表照樣會產出，只是沒有縮圖。"
@@ -838,27 +842,47 @@ def cmd_inventory(args) -> int:
         info = cfg.season_from_code(str(sku)[:5]) or {}
         return info.get("full_label") or info.get("label") or ""
 
-    out = Path(args.out) if args.out else (
-        cfg.path("outputs") / "inventory" / "熊牛仔格紋_進銷存清單.html")
-    out.parent.mkdir(parents=True, exist_ok=True)
+    outdir = (Path(args.out).parent if args.out else
+              cfg.path("outputs") / "inventory")
+    outdir.mkdir(parents=True, exist_ok=True)
 
-    # 大小守門：縮圖太大會產生一個開不了的檔案。與其事後才發現，
-    # 不如自動降階並在報表與終端機上講明白，而不是靜靜地產出壞檔。
-    budget = args.max_mb * 1024 * 1024
-    width, quality = args.thumb, 72
-    for attempt in range(4):
-        html = ir.build(df, images, thumb_width=width, quality=quality,
-                        season_labeller=season_label,
-                        only=args.series.split(",") if args.series else None)
-        size = len(html.encode("utf-8"))
-        if size <= budget or not images:
-            break
-        width, quality = int(width * 0.72), max(58, quality - 5)
-        _warn(f"檔案 {size/1048576:.1f} MB 超過 {args.max_mb} MB，"
-              f"縮圖降為 {width}px 重試")
-    out.write_text(html, encoding="utf-8")
-    _ok(f"報表 → {out}　（{size/1048576:.1f} MB，縮圖 {width}px）")
-    print("  用瀏覽器打開；滑鼠移到圖上會放大。")
+    def write_one(path: Path, only, label: str) -> None:
+        """寫出一個檔，必要時把縮圖降階直到符合大小上限。
+
+        縮圖太大會產生一個開得很慢或開不起來的檔案。與其事後才發現，
+        不如自動降階並在終端機講明白 —— 不要靜靜地產出一個壞檔。
+        """
+        budget = args.max_mb * 1024 * 1024
+        width, quality = args.thumb, 74
+        for _ in range(4):
+            html = ir.build(df, images, thumb_width=width, quality=quality,
+                            season_labeller=season_label, only=only)
+            size = len(html.encode("utf-8"))
+            if size <= budget or not images:
+                break
+            width, quality = int(width * 0.75), max(60, quality - 5)
+            _warn(f"{label} {size/1048576:.1f} MB 超過 {args.max_mb} MB，"
+                  f"縮圖降為 {width}px 重試")
+        path.write_text(html, encoding="utf-8")
+        _ok(f"{label} → {path.name}　（{size/1048576:.1f} MB，縮圖 {width}px）")
+
+    if args.split:
+        # 一個系列一個檔：每個檔小很多，縮圖就能放大。
+        # 1,136 款塞在同一頁時，縮圖被壓到看不清楚才是本末倒置。
+        names = {"bear": "熊系列", "denim": "牛仔系列",
+                 "plaidline": "經典格紋線", "plaidother": "格紋元素"}
+        picked = ([s.strip() for s in args.series.split(",")] if args.series
+                  else list(names))
+        for key in picked:
+            if key not in names:
+                _warn(f"沒有這個系列：{key}（可用：{'、'.join(names)}）")
+                continue
+            write_one(outdir / f"{names[key]}_進銷存清單.html", [key], names[key])
+    else:
+        out = Path(args.out) if args.out else outdir / "熊牛仔格紋_進銷存清單.html"
+        write_one(out, args.series.split(",") if args.series else None, "報表")
+
+    print(f"  用瀏覽器打開；滑鼠移到圖上會放大。資料夾：{outdir}")
     return 0
 
 
@@ -974,9 +998,11 @@ def main(argv: list[str] | None = None) -> int:
     iv.add_argument("--no-images", action="store_true", help="不要縮圖，只出數字（檔案很小）")
     iv.add_argument("--series", help="只出指定系列，逗號分隔："
                                      "bear,denim,plaidline,plaidother")
-    iv.add_argument("--thumb", type=int, default=300, help="縮圖存檔寬度（預設 300px）")
-    iv.add_argument("--max-mb", type=float, default=14.0,
-                    help="檔案大小上限；超過會自動把縮圖降階重做（預設 14 MB）")
+    iv.add_argument("--thumb", type=int, default=380, help="縮圖存檔寬度（預設 380px）")
+    iv.add_argument("--max-mb", type=float, default=45.0,
+                    help="檔案大小上限；超過會自動把縮圖降階重做（預設 45 MB）")
+    iv.add_argument("--split", action="store_true",
+                    help="每個系列各出一個檔。檔案較小、縮圖可以更大，建議搭配 --thumb 500")
     iv.add_argument("--out", help="HTML 輸出位置")
     iv.set_defaults(func=cmd_inventory)
 

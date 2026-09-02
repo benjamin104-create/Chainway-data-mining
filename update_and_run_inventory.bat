@@ -112,6 +112,9 @@ echo.
 echo  ==================================================================
 echo   Step 4 of 4  -  building the illustrated list
 echo  ==================================================================
+rem One file per series with big thumbnails, plus a combined file.
+"%VPY%" -m chainway.cli inventory --split --thumb 500
+if errorlevel 1 goto fail
 "%VPY%" -m chainway.cli inventory
 if errorlevel 1 goto fail
 
