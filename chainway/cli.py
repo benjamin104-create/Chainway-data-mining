@@ -1186,6 +1186,45 @@ def cmd_season_report(args) -> int:
     return runner.main(argv)
 
 
+# ------------------------------------------------------------- rangeplan
+def cmd_rangeplan(args) -> int:
+    """商品規劃展開圖：各品類各季該開幾款，用過去五年那一格的實際表現回答。
+
+    只吃 season-report 產出的彙總資料集，不需要影像庫，所以在哪一台
+    機器上都跑得起來。
+    """
+    from .analysis import rangeplan as rp
+    from .report import document, rangeplan_report as rr
+
+    cfg = get_config()
+    src = Path(args.data) if args.data else Path(rp.DATASET)
+    if not src.exists():
+        _warn(f"找不到資料集 {src}。先跑：python -m chainway.cli season-report")
+        return 1
+
+    t = rp.tables(src)
+    g, s = t["展開"], t["季"]
+    sep, sim = t["秋分離"], t["試算"]
+
+    print(f"\n展開現況（{t['meta']['analysed']:,} 款 / 19 季）：")
+    show = g[["品類", "季別", "款數", "佔該季款位", "售罄率", "售罄落差"]].copy()
+    for c in ("佔該季款位", "售罄率", "售罄落差"):
+        show[c] = g[c].map(lambda v: f"{v:.1%}")
+    print(show.to_string(index=False))
+
+    if sep.get("完全分離"):
+        print(f"\n  秋季最好的一年 {sep['最好']:.1%}，"
+              f"仍低於其他季別最差的一年 {sep['其他最差']:.1%} —— 完全分離。")
+    print(f"  五年秋季投入 {sim['投入']:,} 件，賣掉 {sim['實際賣出']:,}，"
+          f"剩 {sim['累積剩餘']:,}。")
+
+    out = Path(args.out) if args.out else cfg.path("outputs") / "商品規劃展開圖.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(document.as_document(rr.build(t)), encoding="utf-8")
+    _ok(f"展開圖：{out}")
+    return 0
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -1332,6 +1371,11 @@ def main(argv: list[str] | None = None) -> int:
     sr.add_argument("--data", help="用先前存下的資料集 JSON 重畫，不重算")
     sr.add_argument("--out", help="HTML 輸出位置")
     sr.set_defaults(func=cmd_season_report)
+
+    rgp = sub.add_parser("rangeplan", help="★ 商品規劃展開圖（各品類各季該開幾款）")
+    rgp.add_argument("--data", help="彙總資料集 JSON；預設用 season-report 產出的那份")
+    rgp.add_argument("--out", help="HTML 輸出位置")
+    rgp.set_defaults(func=cmd_rangeplan)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)
