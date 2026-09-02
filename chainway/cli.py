@@ -465,7 +465,11 @@ def cmd_eval_search(args) -> int:
                   "\n  python -m chainway.cli ingest --extract-images")
             return 1
         imgs = pd.read_csv(img_csv)
-        photos = imgs[imgs["kind_guess"] == "打樣照片"]
+        kind_col = "kind" if "kind" in imgs.columns else "kind_guess"
+        if kind_col == "kind_guess":
+            _warn("圖片分類還是舊的（只看檔案格式與尺寸，會把布樣與線稿都當成"
+                  "打樣照片）。建議先跑：python -m chainway.cli reclassify-images")
+        photos = imgs[imgs[kind_col] == "打樣照片"]
         if photos.empty:
             _warn("指示書裡沒有抓到打樣照片，無法用零標註模式。請改用 --truth 手動標註。")
             return 1
@@ -802,6 +806,53 @@ def cmd_motif(args) -> int:
     return 0
 
 
+
+# ------------------------------------------------------- reclassify-images
+def cmd_reclassify_images(args) -> int:
+    """重新判斷抽出來的指示書圖是什麼，並產生一張可以覆核的接觸表。
+
+    抽圖很慢（要解壓縮數千個 xlsx），分類很快。分開跑，調門檻才不用重抽。
+    """
+    from .ingest import image_kind
+    from .report import contact_sheet
+
+    cfg = get_config()
+    csv = cfg.path("interim") / "techpack_images.csv"
+    if not csv.exists():
+        _warn("找不到圖片清單。請先執行："
+              "\n  python -m chainway.cli ingest --extract-images")
+        return 1
+    imgs = pd.read_csv(csv)
+    if args.limit:
+        imgs = imgs.head(args.limit)
+    _ok(f"重新判斷 {len(imgs):,} 張圖…")
+
+    out = image_kind.classify_frame(imgs, strict_photo=not args.loose)
+    counts = out["kind"].value_counts()
+    print("\n新的分類：")
+    print(counts.to_string())
+    if "kind_guess" in out.columns:
+        print("\n舊分類（只看檔案格式與尺寸）：")
+        print(out["kind_guess"].value_counts().to_string())
+        moved = int((out["kind"] != out["kind_guess"]).sum())
+        print(f"\n有 {moved:,} 張換了分類（{moved/max(len(out),1):.0%}）")
+        was = out[(out["kind_guess"] == "打樣照片") & (out["kind"] != "打樣照片")]
+        if len(was):
+            _warn(f"其中 {len(was):,} 張原本被當成打樣照片，其實不是 —— "
+                  "這些就是把以圖搜貨號評測分數拉低的元凶")
+
+    out.to_csv(csv, index=False, encoding="utf-8-sig")
+    _ok(f"已更新 {csv}")
+
+    sheet = cfg.path("outputs") / "eval" / "圖片分類覆核.html"
+    sheet.parent.mkdir(parents=True, exist_ok=True)
+    sheet.write_text(contact_sheet.build(out, per_kind=args.per_kind),
+                     encoding="utf-8")
+    _ok(f"覆核用接觸表 → {sheet}")
+    print("  打開它，看每一類的圖是不是真的長那樣。分錯就跟我說是哪一類。")
+    return 0
+
+
 # ------------------------------------------------------- inventory
 def cmd_inventory(args) -> int:
     """熊／牛仔／格紋各系列的款號 × 進銷存清單，含縮圖。"""
@@ -991,6 +1042,15 @@ def main(argv: list[str] | None = None) -> int:
     rdp.add_argument("--max-combo-features", type=int, default=8,
                      help="組合挖掘最多用幾個特徵（兩兩配對，數量會平方成長）")
     rdp.set_defaults(func=cmd_reverse_design)
+
+    rc = sub.add_parser("reclassify-images",
+                        help="★ 重新判斷指示書抽出來的圖是什麼（照片／布樣／線稿／章戳）")
+    rc.add_argument("--limit", type=int, help="只處理前 N 張，先試跑用")
+    rc.add_argument("--loose", action="store_true",
+                    help="放寬「打樣照片」的認定；預設從嚴，寧可漏收不要誤收")
+    rc.add_argument("--per-kind", type=int, default=24,
+                    help="接觸表每一類顯示幾張（預設 24）")
+    rc.set_defaults(func=cmd_reclassify_images)
 
     iv = sub.add_parser("inventory", help="★ 熊／牛仔／格紋的款號 × 進銷存清單（含縮圖）")
     iv.add_argument("--min-qty", type=int, default=30, help="投入件數下限（預設 30）")

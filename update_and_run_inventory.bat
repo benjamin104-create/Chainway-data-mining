@@ -112,6 +112,8 @@ echo.
 echo  ==================================================================
 echo   Step 4 of 4  -  building the illustrated list
 echo  ==================================================================
+rem Re-classify the extracted tech-pack images by content, not by file size.
+"%VPY%" -m chainway.cli reclassify-images
 rem One file per series with big thumbnails, plus a combined file.
 "%VPY%" -m chainway.cli inventory --split --thumb 500
 if errorlevel 1 goto fail
