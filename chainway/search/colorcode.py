@@ -143,9 +143,12 @@ def classify(lab: np.ndarray, table: dict[str, Any] | None = None) -> dict[str, 
     fam, fam_name, fam_conf = family_of(lab, table)
     codes = table.get("codes", {})
 
-    # 這一族有哪些格子填了實際顏色值
+    # 有實際色值時，比對整張色卡而不是先用色相猜的族篩一次。
+    # 先篩會出事：軍綠(45)的色相落在黃色區，用色相族當閘門就永遠比不到
+    # 綠色那一列，把自己的色票餵回去都會答錯（實測 64%）。
+    # 色相族是「沒有色值時的退路」，不該凌駕於真正的量測之上。
     measured = {c: _lab_of(e) for c, e in codes.items()
-                if c.startswith(fam) and _lab_of(e) is not None}
+                if _lab_of(e) is not None}
 
     out: dict[str, Any] = {
         "HEX": lab_to_hex(lab),
@@ -166,6 +169,9 @@ def classify(lab: np.ndarray, table: dict[str, Any] | None = None) -> dict[str, 
         best = cands[0]
         de = float(delta_e_2000(lab, measured[best].reshape(1, 3))[0])
         out["色號"] = best
+        # 族別以比對到的色號為準，不是色相猜的那個
+        fam_of_best = table["families"].get(best[0], {})
+        out["色相族"] = f"{best[0]} {fam_of_best.get('name', '')}".strip()
         out["名稱"] = codes[best].get("zh") or codes[best].get("en") or ""
         out["ΔE2000"] = round(de, 2)
         out["依據"] = "比對色卡實際值"
