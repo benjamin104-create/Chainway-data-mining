@@ -802,6 +802,66 @@ def cmd_motif(args) -> int:
     return 0
 
 
+# ------------------------------------------------------- inventory
+def cmd_inventory(args) -> int:
+    """熊／牛仔／格紋各系列的款號 × 進銷存清單，含縮圖。"""
+    from .report import inventory_report as ir
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    df = master[master["sell_through_rate"].notna()].copy()
+    if "stock_in" in df.columns:
+        df = df[pd.to_numeric(df["stock_in"], errors="coerce").fillna(0) >= args.min_qty]
+    if "is_gift" in df.columns:
+        df = df[~df["is_gift"].fillna(False).astype(bool)]
+    if df.empty:
+        _warn("篩選後沒有資料")
+        return 1
+
+    images: dict = {}
+    if not args.no_images:
+        roots = [Path(args.images)] if args.images else (
+            cfg.path_list("system_images") + [cfg.path("root")])
+        images = ir.index_images([r for r in roots if r])
+        _ok(f"影像庫索引到 {len(images):,} 個貨號")
+        if not images:
+            _warn("沒有比對到任何貨號的圖檔；報表照樣會產出，只是沒有縮圖。"
+                  "可用 --images 指定系統圖資料夾。")
+
+    def season_label(sku: str) -> str:
+        info = cfg.season_from_code(str(sku)[:5]) or {}
+        return info.get("full_label") or info.get("label") or ""
+
+    out = Path(args.out) if args.out else (
+        cfg.path("outputs") / "inventory" / "熊牛仔格紋_進銷存清單.html")
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    # 大小守門：縮圖太大會產生一個開不了的檔案。與其事後才發現，
+    # 不如自動降階並在報表與終端機上講明白，而不是靜靜地產出壞檔。
+    budget = args.max_mb * 1024 * 1024
+    width, quality = args.thumb, 72
+    for attempt in range(4):
+        html = ir.build(df, images, thumb_width=width, quality=quality,
+                        season_labeller=season_label,
+                        only=args.series.split(",") if args.series else None)
+        size = len(html.encode("utf-8"))
+        if size <= budget or not images:
+            break
+        width, quality = int(width * 0.72), max(58, quality - 5)
+        _warn(f"檔案 {size/1048576:.1f} MB 超過 {args.max_mb} MB，"
+              f"縮圖降為 {width}px 重試")
+    out.write_text(html, encoding="utf-8")
+    _ok(f"報表 → {out}　（{size/1048576:.1f} MB，縮圖 {width}px）")
+    print("  用瀏覽器打開；滑鼠移到圖上會放大。")
+    return 0
+
+
 # ------------------------------------------------------- season-report
 def cmd_season_report(args) -> int:
     """季別診斷報告：每個季別的完銷、袖長對照、上架重疊、銷冠與年度排行。"""
@@ -907,6 +967,18 @@ def main(argv: list[str] | None = None) -> int:
     rdp.add_argument("--max-combo-features", type=int, default=8,
                      help="組合挖掘最多用幾個特徵（兩兩配對，數量會平方成長）")
     rdp.set_defaults(func=cmd_reverse_design)
+
+    iv = sub.add_parser("inventory", help="★ 熊／牛仔／格紋的款號 × 進銷存清單（含縮圖）")
+    iv.add_argument("--min-qty", type=int, default=30, help="投入件數下限（預設 30）")
+    iv.add_argument("--images", help="系統圖資料夾；不給就用 settings.yaml 的路徑")
+    iv.add_argument("--no-images", action="store_true", help="不要縮圖，只出數字（檔案很小）")
+    iv.add_argument("--series", help="只出指定系列，逗號分隔："
+                                     "bear,denim,plaidline,plaidother")
+    iv.add_argument("--thumb", type=int, default=300, help="縮圖存檔寬度（預設 300px）")
+    iv.add_argument("--max-mb", type=float, default=14.0,
+                    help="檔案大小上限；超過會自動把縮圖降階重做（預設 14 MB）")
+    iv.add_argument("--out", help="HTML 輸出位置")
+    iv.set_defaults(func=cmd_inventory)
 
     mo = sub.add_parser("motif", help="★ 熊／格紋的位置・形式・比例拆解（附信賴區間）")
     mo.add_argument("--min-qty", type=int, default=30, help="投入件數下限（預設 30）")
