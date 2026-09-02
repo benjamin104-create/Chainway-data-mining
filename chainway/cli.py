@@ -864,6 +864,37 @@ def cmd_color(args) -> int:
 
     from .search import colorcode
 
+    if args.import_map:
+        from .ingest import color_master as cm
+
+        new = cm.parse_export(args.import_map)
+        if new.empty:
+            _warn("這個檔裡找不到帶色號的完整品號（例如 KA115100170F）。"
+                  "\n     只有款號的報表沒有顏色資訊 —— 請匯出含完整品號的那一種。")
+            return 1
+        _ok(f"解析到 {len(new):,} 筆（款號×色號×尺寸），"
+            f"{new['款號'].nunique():,} 個款號")
+        st = cm.merge_into_master(new, cfg)
+        print(f"  併入主檔：{st['併入前']:,} → {st['併入後']:,}（新增 {st['新增']:,}）")
+        print(f"  目前 {st['款號數']:,} 個款號，單色款 {st['單色款']:,}、"
+              f"多色款 {st['多色款']:,}")
+        _ok(f"→ {st['路徑']}")
+        print("  只取貨號、尺寸、顏色三欄；進銷存數字一概不碰，"
+              "\n  避免同一款出現兩套互相矛盾的銷售數字。")
+
+        # 順手看一下這批用了哪些顏色 —— 匯入完最該確認的就是「合不合理」
+        from .search import colorcode
+        t = colorcode.load_table()
+        vc = new["色號"].value_counts()
+        bad = [c for c in vc.index if c not in t["codes"]]
+        print(f"\n  不同色號 {len(vc)} 種，"
+              + (f"其中 {len(bad)} 種不在色號表上：{bad}" if bad
+                 else "全部都在色號表上"))
+        top = [f"{c} {t['codes'].get(c, {}).get('zh', '')}({vc[c]})"
+               for c in vc.index[:12]]
+        print("  用最多的：" + "、".join(top))
+        return 0
+
     if args.validate:
         from .search import color_validate as cv
 
@@ -1187,6 +1218,9 @@ def main(argv: list[str] | None = None) -> int:
     co.add_argument("--image", help="要量的照片")
     co.add_argument("--card", help="色卡檔（CSV/Excel）：色號欄 + HEX 欄或 L/a/b 三欄")
     co.add_argument("--n-colors", type=int, default=3, help="取幾個主色（預設 3）")
+    co.add_argument("--import-map", metavar="檔案",
+                    help="★ 匯入含完整品號的報表，建立款號×色號×尺寸對照主檔"
+                         "（只取貨號/尺寸/顏色，不碰進銷存）")
     co.add_argument("--erp", help="ERP 匯出的報表（含貨品編號與顏色），"
                                   "用來建立款號×色號的標準答案")
     co.add_argument("--validate", action="store_true",
