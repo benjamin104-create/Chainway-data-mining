@@ -181,9 +181,49 @@ def write_calibration(per: pd.DataFrame, path: str | Path) -> int:
     return len(ok)
 
 
-def run(cfg=None, *, limit: int | None = None) -> dict[str, Any]:
-    """完整流程：檔名 → 量色 → 驗證 → 逐色號校準建議。"""
-    pairs = build_sku_color_map(cfg)
+def run(cfg=None, *, limit: int | None = None,
+        erp: str | None = None) -> dict[str, Any]:
+    """完整流程：取得款號×色號 → 量色 → 驗證 → 逐色號校準建議。
+
+    色號的來源有兩個，優先用 ERP 匯出檔：那是系統裡的事實。
+    檔名只有在命名規則帶色號時才有用 —— 貴司的系統圖檔名只到款，
+    所以實務上多半要走 ERP 這條。
+    """
+    from ..ingest.color_discovery import read_erp_export
+
+    if erp:
+        emap = read_erp_export(erp)
+        if emap.empty:
+            return {"pairs": emap, "detail": pd.DataFrame(),
+                    "summary": {"筆數": 0}, "per_code": pd.DataFrame(),
+                    "note": "ERP 匯出檔裡找不到帶色號的品號"}
+        # ERP 給的是「款×色」，圖片是「款」一張 —— 用款號接起來。
+        # 同一款有多個顏色時，那一款的圖無法判斷是哪一色，必須排除，
+        # 否則等於拿一張圖去對三個不同的標準答案，量到的準確率沒有意義。
+        n_color = emap.groupby("款號")["色號"].nunique()
+        single = set(n_color[n_color == 1].index)
+        uniq = (emap[emap["款號"].isin(single)]
+                .drop_duplicates(subset=["款號", "色號"]))
+        imgs = build_sku_color_map(cfg, pattern=None)
+        if imgs.empty:
+            from ..ingest.color_discovery import SKU_RE
+            from ..config import get_config
+            cfg2 = cfg or get_config()
+            rows = []
+            for root in [r for r in cfg2.path_list("system_images") if r.exists()]:
+                for p in root.rglob("*"):
+                    if p.is_file() and not p.name.startswith(("~$", ".")):
+                        m = SKU_RE.search(p.stem)
+                        if m:
+                            rows.append({"款號": m.group(1).upper(),
+                                         "image_path": str(p)})
+            imgs = pd.DataFrame(rows)
+        pairs = imgs.merge(uniq[["款號", "色號", "尺寸"]], on="款號", how="inner")
+        pairs.attrs["來源"] = "ERP"
+        pairs.attrs["單色款"] = len(single)
+        pairs.attrs["多色款排除"] = int((n_color > 1).sum())
+    else:
+        pairs = build_sku_color_map(cfg)
     if pairs.empty:
         return {"pairs": pairs, "detail": pd.DataFrame(),
                 "summary": {"筆數": 0}, "per_code": pd.DataFrame()}

@@ -867,10 +867,16 @@ def cmd_color(args) -> int:
     if args.validate:
         from .search import color_validate as cv
 
-        res = cv.run(cfg, limit=args.limit)
+        res = cv.run(cfg, limit=args.limit, erp=args.erp)
         if res["pairs"].empty:
-            _warn("檔名裡沒有解析到色號。先跑 --scan-codes 看檔名長什麼樣，"
-                  "\n     或確認系統圖的檔名是否帶完整品號（例如 KA115100170F）。")
+            from .ingest.color_discovery import diagnose_filenames
+            _warn("檔名裡沒有色號，所以無法用檔名建立標準答案。實際掃描結果：")
+            print("     " + diagnose_filenames(cfg))
+            print("\n  色號存在貴司的 ERP 裡（貨品追蹤簡表的「顏色/尺寸」欄），"
+                  "\n  不在檔案層。要讓驗證跑起來，從 ERP 匯出一份含"
+                  "\n  「貨品編號 + 顏色」的報表，再執行："
+                  "\n      python -m chainway.cli color --validate --erp 匯出檔.xlsx"
+                  "\n  欄位名稱不用整理，我會自己找。")
             return 1
         _ok(f"檔名解析到 {len(res['pairs']):,} 筆（款號×色號×圖檔）")
         d, sm = res["detail"], res["summary"]
@@ -1181,6 +1187,8 @@ def main(argv: list[str] | None = None) -> int:
     co.add_argument("--image", help="要量的照片")
     co.add_argument("--card", help="色卡檔（CSV/Excel）：色號欄 + HEX 欄或 L/a/b 三欄")
     co.add_argument("--n-colors", type=int, default=3, help="取幾個主色（預設 3）")
+    co.add_argument("--erp", help="ERP 匯出的報表（含貨品編號與顏色），"
+                                  "用來建立款號×色號的標準答案")
     co.add_argument("--validate", action="store_true",
                     help="★ 拿貨號裡的色號當標準答案，驗證量色準不準並產生校準建議")
     co.add_argument("--scan-codes", action="store_true",

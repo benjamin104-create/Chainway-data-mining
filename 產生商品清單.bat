@@ -103,7 +103,10 @@ echo.
 echo  ==================================================================
 echo   Step 3 of 4  -  rebuilding the data tables
 echo  ==================================================================
-"%VPY%" -m chainway.cli ingest
+rem --extract-images pulls the photos embedded in the tech packs. Slow the
+rem first time (thousands of xlsx to unzip) but the image classifier and the
+rem search evaluation both need them.
+"%VPY%" -m chainway.cli ingest --extract-images
 if errorlevel 1 goto fail
 "%VPY%" -m chainway.cli build
 if errorlevel 1 goto fail

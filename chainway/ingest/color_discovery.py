@@ -157,3 +157,105 @@ def build_sku_color_map(cfg: Config | None = None, *,
                     continue
             rows.append({**rec, "image_path": str(p)})
     return pd.DataFrame(rows)
+
+
+def diagnose_filenames(cfg: Config | None = None) -> str:
+    """掃完檔名之後，講清楚色號在不在檔名裡、不在的話下一步是什麼。
+
+    「找不到，請再跑一次掃描」是最沒用的錯誤訊息 —— 掃描已經跑過了，
+    答案就在結果裡。與其叫人再試一次，不如直接把結論講出來。
+    """
+    found = scan_filenames(cfg)
+    if not found:
+        return "系統圖與指示書資料夾都找不到，無法判斷。"
+
+    lines = []
+    for key, t in found.items():
+        if t.empty:
+            continue
+        a = t.attrs
+        no_suffix = t[t["後綴樣式"] == "（沒有後綴）"]["檔數"].sum()
+        share = no_suffix / max(a["含貨號的"], 1)
+        looks_like_code = t[t["當兩位數色號_落在10-92"] >= 0.8]["檔數"].sum()
+        if share >= 0.9:
+            lines.append(
+                f"{key}：{a['含貨號的']:,} 個含貨號的檔裡，{no_suffix:,} 個"
+                f"（{share:.0%}）貨號後面什麼都沒有 —— 檔名只到款，不含配色。"
+                f"平均每貨號 {a['平均每貨號檔數']} 檔，也印證了是一款一張而非一色一張。")
+        elif looks_like_code:
+            lines.append(
+                f"{key}：有 {looks_like_code:,} 個檔的後綴長得像兩位數色號，"
+                f"可以拿來對照。")
+        else:
+            lines.append(
+                f"{key}：後綴大多不是色號（多為日期、廠商名或張數編號），"
+                f"最常見的樣式是 {t.iloc[0]['後綴樣式']}。")
+    return "\n     ".join(lines)
+
+
+# ERP 匯出的欄名不保證統一，所以認得多種寫法；認不出來就退回掃全表找完整品號
+ITEM_COLS = ["貨品編號", "貨號", "品號", "商品編號", "item", "item_code", "sku"]
+COLOR_COLS = ["顏色", "顏色/尺寸", "色號", "color", "colour"]
+SIZE_COLS = ["尺寸", "size"]
+
+
+def read_erp_export(path: str | Path) -> pd.DataFrame:
+    """從 ERP 匯出的報表建立 (款號, 色號, 尺寸) 對照。
+
+    兩條路徑，先試前者：
+
+      1. 有一欄是完整品號（KA115100170F）→ 直接拆
+      2. 有「貨號」與「顏色」兩欄 → 從顏色欄取兩位數色號
+
+    第二條路要小心：ERP 的顏色欄長成「5636  藏青」，前四碼是色號+尺寸，
+    後面才是色名。所以取「開頭的兩位數」而不是「任何兩位數」——
+    色名裡若出現數字（例如「3號藍」）會誤抓。
+    """
+    p = Path(path)
+    frames = []
+    if p.suffix.lower() in (".xls", ".xlsx", ".xlsm"):
+        sheets = pd.read_excel(p, sheet_name=None, dtype=str)
+        frames = list(sheets.values())
+    else:
+        frames = [pd.read_csv(p, dtype=str)]
+
+    rows = []
+    for df in frames:
+        if df is None or df.empty:
+            continue
+        cols = {str(c).strip(): c for c in df.columns}
+        item_col = next((cols[k] for k in cols
+                         for n in ITEM_COLS if n.lower() == k.lower()), None)
+        color_col = next((cols[k] for k in cols
+                          for n in COLOR_COLS if n.lower() == k.lower()), None)
+        size_col = next((cols[k] for k in cols
+                         for n in SIZE_COLS if n.lower() == k.lower()), None)
+
+        if item_col is not None:
+            for v in df[item_col].dropna().astype(str):
+                rec = parse_item_code(v)
+                if rec and rec["色號"]:
+                    rows.append(rec)
+
+        if color_col is not None and item_col is not None:
+            for _, r in df[[item_col, color_col]].dropna().iterrows():
+                sku = SKU_RE.search(str(r[item_col]))
+                # 顏色欄長成「5636 藏青」或「70F  米白」：色號兩碼，
+                # 之後是尺寸（數字或字母），再之後才是色名
+                m = re.match(r"\s*(\d{2})(\d{1,3}|[A-Za-z]{1,3})?",
+                             str(r[color_col]))
+                if sku and m:
+                    rows.append({"款號": sku.group(1).upper(), "色號": m.group(1),
+                                 "尺寸": m.group(2) or (str(r[size_col]).strip()
+                                                      if size_col else "")})
+
+        if item_col is None and color_col is None:
+            # 認不出欄名就掃全表找完整品號 —— 匯出檔常常沒有乾淨的標題列
+            for v in df.astype(str).to_numpy().ravel():
+                rec = parse_item_code(v)
+                if rec and rec["色號"]:
+                    rows.append(rec)
+
+    out = pd.DataFrame(rows).drop_duplicates()
+    out.attrs["source"] = str(p)
+    return out
