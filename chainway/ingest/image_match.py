@@ -236,8 +236,14 @@ def _by_season(master: pd.DataFrame, col: str,
 
 
 def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
-             sku_col: str | None = None) -> dict[str, Any]:
-    """主表 × 影像庫 → 對不上的原因分類。"""
+             sku_col: str | None = None,
+             techpack_dir: Path | None = None) -> dict[str, Any]:
+    """主表 × 影像庫 → 對不上的原因分類。
+
+    `techpack_dir` 給了的話，會多回報一件事：這些沒有系統圖的款，
+    有多少其實在裁縫指示書裡是有圖的。那是完全不同的處境 ——
+    「沒有系統圖」要去要圖，「系統圖沒有但指示書裡有」只要改用那批圖就好。
+    """
     idx = scan_images(roots)
     col = sku_col or next(
         (c for c in ("款號", "style_code", "sku") if c in master.columns), None)
@@ -262,6 +268,14 @@ def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
                      "原因": why, "影像庫裡疑似的檔名": ev})
     miss = pd.DataFrame(rows)
 
+    # 指示書抽出來的圖，是以貨號為資料夾名存放的
+    tp: set[str] = set()
+    if techpack_dir and Path(techpack_dir).exists():
+        tp = {d.name.upper() for d in Path(techpack_dir).iterdir()
+              if d.is_dir() and any(d.iterdir())}
+    if tp and not miss.empty:
+        miss["指示書裡有圖"] = miss["款號"].str.upper().isin(tp)
+
     # 反向：影像庫有、主表沒有
     extra = sorted(k for k in idx["strict"] if k.upper() not in known)
 
@@ -280,6 +294,9 @@ def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
         # 而只看總數 688 分不出來。
         "缺圖季別分佈": (_by_season(master, col, miss) if not miss.empty
                          else pd.DataFrame()),
+        "指示書可補的款": (int(miss["指示書裡有圖"].sum())
+                           if not miss.empty and "指示書裡有圖" in miss
+                           else 0),
         "影像庫有但主表沒有": extra,
         "認不出貨號的檔案": [p.name for p in idx["unnamed"]],
         "被跳過的影像格式": [p.name for p in idx["skipped_other"]],

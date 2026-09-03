@@ -234,17 +234,34 @@ def cmd_ingest(args) -> int:
 
             if args.extract_images:
                 print("\n[3b] 抽取指示書內嵌圖（繡花圖稿／布樣／打樣照）…")
+                from .ingest.xls_images import extract_any
+
                 img_dir = cfg.path("outputs") / "techpack_images"
-                frames = [techpack.extract_techpack_images(r["techpack_path"], img_dir, r["sku"])
+                # 新舊格式都走 extract_any。舊版 .xls 不是 zip，
+                # 原本整批被跳過 —— 那些款既沒系統圖、指示書的圖也抽不出來，
+                # 於是在整套系統裡等於不存在，而且沒有任何錯誤訊息。
+                frames = [extract_any(r["techpack_path"], img_dir, r["sku"])
                           for _, r in tp_df.iterrows()]
                 frames = [f for f in frames if not f.empty]
+                exts = (tp_df["techpack_path"].astype(str)
+                        .str.rsplit(".", n=1).str[-1].str.lower()
+                        .value_counts())
+                print("  指示書格式：" + "、".join(
+                    f"{k} {v:,} 份" for k, v in exts.items()))
                 if frames:
                     imgs = pd.concat(frames, ignore_index=True)
-                    imgs.to_csv(interim / "techpack_images.csv", index=False, encoding="utf-8-sig")
-                    _ok(f"{len(imgs)} 張圖 → {img_dir}")
-                    print(imgs["kind_guess"].value_counts().to_string())
+                    imgs.to_csv(interim / "techpack_images.csv", index=False,
+                                encoding="utf-8-sig")
+                    _ok(f"{len(imgs):,} 張圖／{imgs['sku'].nunique():,} 款 → {img_dir}")
+                    if "source" in imgs.columns:
+                        old_n = imgs[imgs["source"] == "xls"]["sku"].nunique()
+                        if old_n:
+                            _ok(f"其中 {old_n:,} 款來自舊版 .xls"
+                                f"（以前這些是抽不出來的）")
+                    if "kind_guess" in imgs.columns:
+                        print(imgs["kind_guess"].value_counts().to_string())
                 else:
-                    _warn("沒有抽到內嵌圖（舊版 .xls 不是 zip 容器，抽不出來）")
+                    _warn("一張內嵌圖都沒抽到。指示書可能是 PDF 或掃描檔。")
     except FileNotFoundError as e:
         _warn(str(e))
 
@@ -1482,7 +1499,8 @@ def cmd_image_audit(args) -> int:
     if args.search:
         roots = [Path(s) for s in args.search]
         print(f"（改用指定的資料夾）")
-    r = diagnose(master, roots)
+    r = diagnose(master, roots,
+                 techpack_dir=cfg.path("outputs") / "techpack_images")
     print(f"\n主表 {r['主表款數']:,} 款　影像庫 {r['影像庫貨號數']:,} 個貨號")
     print(f"  對得上 {r['對上']:,}（{r['對上'] / max(r['主表款數'], 1):.1%}）"
           f"　對不上 {r['對不上']:,}")
@@ -1508,6 +1526,11 @@ def cmd_image_audit(args) -> int:
         n = len(r["認不出貨號的檔案"])
         print(f"\n檔名裡認不出貨號：{n:,} 個檔案"
               f"（例：{r['認不出貨號的檔案'][0]}）")
+
+    if r.get("指示書可補的款"):
+        n = r["指示書可補的款"]
+        print(f"\n這些沒有系統圖的款裡，有 {n:,} 款在裁縫指示書裡是有圖的。")
+        print("  那是完全不同的處境 —— 不必去要圖，改用指示書抽出來的那批就好。")
 
     ss = r.get("缺圖季別分佈")
     if ss is not None and not ss.empty:
