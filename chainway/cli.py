@@ -1469,6 +1469,73 @@ def cmd_counter_form(args) -> int:
     return 0
 
 
+# ------------------------------------------------------------- silhouette
+def cmd_silhouette(args) -> int:
+    """版型 × 銷售：領型、袖長、衣長跟賣不賣得動有沒有關係。
+
+    先驗量測準不準（拿品名當免費的驗證集），驗不過的屬性不給售罄率比較。
+    """
+    from .analysis import silhouette_sales as ss
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    src = Path(args.data) if args.data else (
+        cfg.path("outputs") / "locate" / "設計重點位置.csv")
+    if not src.exists():
+        _warn(f"找不到量測表 {src}。先跑：python -m chainway.cli locate")
+        return 1
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    measured = pd.read_csv(src)
+    res = ss.analyse(measured, master)
+    if not res.get("可分析"):
+        _warn(res.get("說明", "算不出來"))
+        return 1
+
+    print("\n" + ss.one_line(res))
+    print("\n量測準不準（拿品名有寫的那些款當答案）：")
+    for attr, a in res["準確率"].items():
+        mark = "✓" if a.get("可信") else "✗"
+        print(f"  {mark} {attr}：{a['說明']}")
+
+    if not res["落差"]:
+        _warn("沒有任何一個版型屬性驗得過，所以不給售罄率的比較。"
+              "\n  這不是沒有結果 —— 是量測還不夠準，"
+              "先看 locate 的定位覆核，把量錯的地方修好再跑。")
+    for attr, t in res["落差"].items():
+        print(f"\n{attr}（相對同部位平均，附 bootstrap 95% 區間）：")
+        show = t.copy()
+        show["區間"] = [f"{lo:+.1f} ~ {hi:+.1f}"
+                        for lo, hi in zip(t["區間下限"], t["區間上限"])]
+        show["值得看"] = ["" if x else "★" for x in t["跨過0"]]
+        print(show[["值", "款數", "季數", "相對同部位", "區間", "值得看"]]
+              .to_string(index=False))
+
+    out = cfg.path("outputs") / "版型銷售關係"
+    out.mkdir(parents=True, exist_ok=True)
+    for attr, t in res["落差"].items():
+        t.to_csv(out / f"{attr}.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame([
+        {"屬性": a, "品名有寫的款數": v.get("品名有寫的款數"),
+         "準確率": v.get("準確率"), "猜最常見的準確率": v.get("猜最常見的準確率"),
+         "可信": v.get("可信"), "說明": v.get("說明")}
+        for a, v in res["準確率"].items()
+    ]).to_csv(out / "量測準確率.csv", index=False, encoding="utf-8-sig")
+    # 錯的實例一定要落地。準確率是一個數字，說不出「錯在哪一種情況」，
+    # 而要修量測就得看實例。
+    for attr, a in res["準確率"].items():
+        bad = a.get("錯的實例")
+        if bad is not None and len(bad):
+            bad.to_csv(out / f"{attr}_量錯的實例.csv", index=False,
+                       encoding="utf-8-sig")
+    _ok(f"結果 → {out}")
+    return 0
+
+
 # ------------------------------------------------------- customer-survey
 def cmd_customer_survey(args) -> int:
     """客戶意見調查：流程設計 + 表單預覽 + 題目稿；也負責匯入回收檔。"""
@@ -2040,6 +2107,11 @@ def main(argv: list[str] | None = None) -> int:
     ctf.add_argument("--no-images", action="store_true", help="不內嵌照片")
     ctf.add_argument("--out", help="HTML 輸出位置")
     ctf.set_defaults(func=cmd_counter_form)
+
+    slh = sub.add_parser("silhouette",
+                         help="★ 版型 × 銷售：領型／袖長／衣長跟賣不賣得動的關係")
+    slh.add_argument("--data", help="量測表 CSV；預設用 locate 產出的那份")
+    slh.set_defaults(func=cmd_silhouette)
 
     cus = sub.add_parser("customer-survey",
                          help="★ 客戶意見調查：流程、表單預覽、題目稿、匯入回收檔")
