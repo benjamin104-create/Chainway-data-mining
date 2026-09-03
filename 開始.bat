@@ -119,6 +119,8 @@ echo    4   Image audit              (why some styles have no photo)
 echo    5   Range plan               (how many styles per category)
 echo    6   Season report            (sell-through by season)
 echo.
+echo    7   Open the overview page (what exists, how fresh, what is stuck)
+echo.
 echo    0   Quit
 echo.
 set "C="
@@ -129,6 +131,7 @@ if "%C%"=="3" goto j3
 if "%C%"=="4" goto j4
 if "%C%"=="5" goto j5
 if "%C%"=="6" goto j6
+if "%C%"=="7" goto j7
 if "%C%"=="0" goto bye
 goto menu
 
@@ -186,7 +189,18 @@ if errorlevel 1 goto oops
 start "" "%CD%\data\outputs"
 goto done
 
+:j7
+echo.
+"%VPY%" -m chainway.cli overview
+rem The overview filename is Chinese and this file must stay pure ASCII,
+rem so open the folder instead - the line above prints the full path.
+start "" "%CD%\data\outputs"
+goto done
+
 :done
+rem Regenerate the overview every time, so it always reflects the last run
+rem rather than a snapshot from whenever it happened to be built.
+"%VPY%" -m chainway.cli overview
 echo.
 echo  ------------------------------------------------------------------
 echo   Finished. Scroll up to read or screenshot the numbers, then press

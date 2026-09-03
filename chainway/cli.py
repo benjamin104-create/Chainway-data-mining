@@ -1660,6 +1660,33 @@ def cmd_tidy(args) -> int:
     return 0
 
 
+# ------------------------------------------------------------- overview
+def cmd_overview(args) -> int:
+    """報表總覽：一頁看完系統現在有什麼、資料多新、卡在哪。"""
+    from .report import document, overview as ov
+
+    cfg = get_config()
+    rows = None
+    try:
+        from .merge.build_master import load_master
+        rows = len(load_master(cfg))
+    except Exception:
+        pass
+
+    out = Path(args.out) if args.out else cfg.path("outputs") / "報表總覽.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        document.as_document(ov.build(cfg, master_rows=rows, base=out.parent)),
+        encoding="utf-8")
+    todo = ov.todos(cfg)
+    if todo:
+        print(f"\n還有 {len(todo)} 件事需要您做：")
+        for i, x in enumerate(todo, 1):
+            print(f"  {i}. {x['要做的事']}")
+    _ok(f"總覽：{out}")
+    return 0
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -1837,6 +1864,10 @@ def main(argv: list[str] | None = None) -> int:
     ia.add_argument("--search", action="append", metavar="資料夾",
                     help="改到別的資料夾找（可重複給多個）")
     ia.set_defaults(func=cmd_image_audit)
+
+    ovp = sub.add_parser("overview", help="★ 報表總覽（一頁看完有什麼、多新、卡在哪）")
+    ovp.add_argument("--out", help="HTML 輸出位置")
+    ovp.set_defaults(func=cmd_overview)
 
     td = sub.add_parser("tidy", help="刪掉已被選單取代的舊一鍵檔")
     td.set_defaults(func=cmd_tidy)
