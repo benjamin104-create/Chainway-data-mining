@@ -112,12 +112,13 @@ rem already ingested by the inventory batch file.
 "%VPY%" -m chainway.cli build
 if errorlevel 1 goto fail
 
-rem --latest picks the most recent season on its own. Season names are
-rem Chinese and this file has to stay pure ASCII, so it cannot be typed
-rem in here - that is what --latest is for.
+rem --new-weeks 2 = only the styles that went on shelf in the last two
+rem weeks. That is what the counter can actually have new observations
+rem about; asking about a style launched six months ago gets an
+rem impression, not an observation.
 rem --limit 30 keeps it to one walk round the floor; a form nobody
 rem finishes is the same as no form at all.
-"%VPY%" -m chainway.cli counter-form --latest --limit 30
+"%VPY%" -m chainway.cli counter-form --new-weeks 2 --limit 30
 if errorlevel 1 goto fail
 
 set "OUT=%CD%\data\outputs"
