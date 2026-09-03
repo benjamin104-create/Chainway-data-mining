@@ -1,13 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 rem ===================================================================
-rem  Kinloch Anderson - product list with photos (inventory report)
+rem  Kinloch Anderson - one file, one menu. Everything lives here.
 rem
-rem  Double-click this file. It does everything:
-rem    1. downloads the latest code from GitHub (no git needed)
-rem    2. creates / reuses the Python environment
-rem    3. rebuilds the data tables from your POS files
-rem    4. builds the illustrated list and opens it
+rem  Double-click this file. It updates itself, then shows a menu.
+rem  Nothing else in this folder needs to be run - the other .bat files
+rem  are obsolete and can be deleted.
 rem
 rem  Your data folder and your config\settings.yaml are never touched.
 rem
@@ -16,7 +14,7 @@ rem  mix code pages with multi-byte characters - it drops bytes and
 rem  starts executing fragments of later lines.
 rem ===================================================================
 cd /d "%~dp0"
-title Kinloch Anderson - inventory report
+title Kinloch Anderson
 
 set "REPO=benjamin104-create/Chainway-data-mining"
 set "BRANCH=claude/fashion-sales-design-platform-vabg76"
@@ -24,7 +22,7 @@ set "ZIPURL=https://codeload.github.com/%REPO%/zip/refs/heads/%BRANCH%"
 
 echo.
 echo  ==================================================================
-echo   Step 1 of 4  -  downloading the latest code
+echo   Updating the program
 echo  ==================================================================
 
 set "TMPX=%TEMP%\ka_update"
@@ -61,7 +59,7 @@ rd /s /q "%TMPX%" 2>nul
 
 echo.
 echo  ==================================================================
-echo   Step 2 of 4  -  Python environment
+echo   Python environment
 echo  ==================================================================
 
 set "VPY=.venv\Scripts\python.exe"
@@ -84,7 +82,7 @@ echo   Installing packages - this takes 3 to 5 minutes, please wait...
 "%VPY%" -m pip install --upgrade pip -q
 "%VPY%" -m pip install pandas numpy pyyaml openpyxl xlrd pyarrow Pillow -q
 if errorlevel 1 goto fail
-goto rebuild
+goto menu
 
 :haveenv
 echo   Environment found. Checking packages...
@@ -93,53 +91,120 @@ if not errorlevel 1 goto ready
 echo   Some packages are missing, installing...
 "%VPY%" -m pip install pandas numpy pyyaml openpyxl xlrd pyarrow Pillow -q
 if errorlevel 1 goto fail
-goto rebuild
+goto menu
 
 :ready
 echo   Packages already installed.
 
-:rebuild
+rem Remove the older one-click files this menu replaces. Batch files must
+rem stay pure ASCII, so they cannot name the Chinese filenames themselves -
+rem Python does the deleting. The list is hard-coded, never a wildcard.
+"%VPY%" -m chainway.cli tidy
+
+:menu
+cls
 echo.
 echo  ==================================================================
-echo   Step 3 of 4  -  rebuilding the data tables
+echo    Kinloch Anderson   -   what do you want to do?
 echo  ==================================================================
-rem --extract-images pulls the photos embedded in the tech packs. Slow the
-rem first time (thousands of xlsx to unzip) but the image classifier and the
-rem search evaluation both need them.
+echo.
+echo    1   Rebuild everything and open the product list
+echo        (POS + tech packs, photos, colours, motif positions.
+echo         Slow. Run it when the source data changed.)
+echo.
+echo    2   Counter feedback form    (this week's new arrivals)
+echo    3   Counter calibration      (was their call right?)
+echo.
+echo    4   Image audit              (why some styles have no photo)
+echo    5   Range plan               (how many styles per category)
+echo    6   Season report            (sell-through by season)
+echo.
+echo    0   Quit
+echo.
+set "C="
+set /p C=  Type a number and press Enter:  
+if "%C%"=="1" goto j1
+if "%C%"=="2" goto j2
+if "%C%"=="3" goto j3
+if "%C%"=="4" goto j4
+if "%C%"=="5" goto j5
+if "%C%"=="6" goto j6
+if "%C%"=="0" goto bye
+goto menu
+
+:j1
+echo.
 "%VPY%" -m chainway.cli ingest --extract-images
-if errorlevel 1 goto fail
+if errorlevel 1 goto oops
 "%VPY%" -m chainway.cli build
-if errorlevel 1 goto fail
-
-echo.
-echo  ==================================================================
-echo   Step 4 of 4  -  building the illustrated list
-echo  ==================================================================
-rem Find out where the colour code lives (filenames / tech-pack text).
+if errorlevel 1 goto oops
 "%VPY%" -m chainway.cli color --scan-codes
-rem Read each garment photo: where the motif sits (chest / hem / pocket),
-rem plus neckline, sleeve length and body length measured from the outline.
-rem Non-garment pictures (fabric swatches, spec pages, stamps) are skipped.
 "%VPY%" -m chainway.cli locate
-rem Use the colour code in the item number as ground truth to check colour reading.
 "%VPY%" -m chainway.cli color --validate
-rem Re-classify the extracted tech-pack images by content, not by file size.
 "%VPY%" -m chainway.cli reclassify-images
-rem One file per series with big thumbnails, plus a combined file.
 "%VPY%" -m chainway.cli inventory --split --thumb 500
-if errorlevel 1 goto fail
 "%VPY%" -m chainway.cli inventory
-if errorlevel 1 goto fail
+start "" "%CD%\data\outputs\inventory"
+goto done
 
-set "OUT=%CD%\data\outputs\inventory"
+:j2
 echo.
-echo   Done. Opening the report...
-start "" "%OUT%"
-for %%F in ("%OUT%\*.html") do start "" "%%F"
+"%VPY%" -m chainway.cli build
+if errorlevel 1 goto oops
+"%VPY%" -m chainway.cli counter-form --new-weeks 2 --limit 30
+if errorlevel 1 goto oops
+start "" "%CD%\data\outputs"
+goto done
+
+:j3
 echo.
-echo   The file is in: %OUT%
+"%VPY%" -m chainway.cli build
+if errorlevel 1 goto oops
+"%VPY%" -m chainway.cli calibration
+goto done
+
+:j4
+echo.
+"%VPY%" -m chainway.cli build
+if errorlevel 1 goto oops
+"%VPY%" -m chainway.cli image-audit
+if errorlevel 1 goto oops
+start "" "%CD%\data\outputs"
+goto done
+
+:j5
+echo.
+"%VPY%" -m chainway.cli rangeplan
+if errorlevel 1 goto oops
+start "" "%CD%\data\outputs"
+goto done
+
+:j6
+echo.
+"%VPY%" -m chainway.cli season-report
+if errorlevel 1 goto oops
+start "" "%CD%\data\outputs"
+goto done
+
+:done
+echo.
+echo  ------------------------------------------------------------------
+echo   Finished. Scroll up to read or screenshot the numbers, then press
+echo   a key to go back to the menu.
+echo  ------------------------------------------------------------------
 echo.
 pause
+goto menu
+
+:oops
+echo.
+echo   [X] That step stopped with an error. The reason is a few lines up.
+echo       Screenshot the whole window and send it over.
+echo.
+pause
+goto menu
+
+:bye
 exit /b 0
 
 :nodownload

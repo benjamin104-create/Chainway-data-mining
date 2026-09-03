@@ -1602,6 +1602,39 @@ def cmd_image_audit(args) -> int:
     return 0
 
 
+# ---------------------------------------------------------------- tidy
+# 這些一鍵檔已經被 開始.bat 的選單取代。清單寫死 —— 絕不用萬用字元刪檔，
+# 那會把使用者自己放的檔案一起掃掉。
+OBSOLETE_BATS = [
+    "產生商品清單.bat", "產生專櫃表單.bat", "專櫃判斷校準.bat", "影像稽核.bat",
+    "update_and_run_inventory.bat", "run_report.bat", "run_search.bat",
+    "執行報告.bat",
+]
+
+
+def cmd_tidy(args) -> int:
+    """刪掉已經被選單取代的舊一鍵檔。
+
+    為什麼要程式來刪：.bat 檔本身必須是純 ASCII（cmd 混到多位元組字元會
+    吃掉位元組），所以 .bat 裡寫不出中文檔名，刪不掉這幾個檔。
+    而 GitHub 下載那一步是用 robocopy 覆蓋，不會刪除已經不存在的檔 ——
+    不主動清，使用者的資料夾只會愈長愈多，那正是要解決的問題。
+    """
+    root = Path.cwd()
+    gone = []
+    for name in OBSOLETE_BATS:
+        f = root / name
+        if f.is_file():
+            try:
+                f.unlink()
+                gone.append(name)
+            except OSError as exc:
+                _warn(f"刪不掉 {name}：{exc}")
+    if gone:
+        _ok(f"清掉 {len(gone)} 個已被選單取代的舊檔：{'、'.join(gone)}")
+    return 0
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -1779,6 +1812,9 @@ def main(argv: list[str] | None = None) -> int:
     ia.add_argument("--search", action="append", metavar="資料夾",
                     help="改到別的資料夾找（可重複給多個）")
     ia.set_defaults(func=cmd_image_audit)
+
+    td = sub.add_parser("tidy", help="刪掉已被選單取代的舊一鍵檔")
+    td.set_defaults(func=cmd_tidy)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)
