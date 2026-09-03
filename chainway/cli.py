@@ -1509,6 +1509,21 @@ def cmd_image_audit(args) -> int:
         print(f"\n檔名裡認不出貨號：{n:,} 個檔案"
               f"（例：{r['認不出貨號的檔案'][0]}）")
 
+    ss = r.get("缺圖季別分佈")
+    if ss is not None and not ss.empty:
+        print("\n依季別看缺圖（比例比總數重要）：")
+        print(f"  {'季別':<8}{'總款數':>7}{'缺圖':>7}{'比例':>8}  主要原因")
+        for _, row in ss.iterrows():
+            flag = "  ←整季幾乎都沒有" if row["缺圖比例"] >= 0.9 else ""
+            print(f"  {row['季別碼']:<8}{row['總款數']:>7,}{row['缺圖']:>7,}"
+                  f"{row['缺圖比例']:>8.0%}  {row['主要原因']}{flag}")
+        whole = ss[ss["缺圖比例"] >= 0.9]
+        if not whole.empty:
+            print(f"\n  有 {len(whole)} 季幾乎整季沒圖"
+                  f"（{'、'.join(whole['季別碼'])}）。")
+            print("  這不是命名規則的問題 —— 是那幾季的圖沒放進這個資料夾，"
+                  "多半還留在 ERP 伺服器上。")
+
     if r.get("貨號在資料夾上的"):
         print(f"\n另外有 {r['貨號在資料夾上的']:,} 個貨號是寫在資料夾名稱上、"
               f"不在檔名裡。")
@@ -1531,6 +1546,8 @@ def cmd_image_audit(args) -> int:
     dest = cfg.path("outputs") / "影像比對稽核"
     dest.mkdir(parents=True, exist_ok=True)
     r["明細"].to_csv(dest / "對不上的款.csv", index=False, encoding="utf-8-sig")
+    if ss is not None and not ss.empty:
+        ss.to_csv(dest / "缺圖季別分佈.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame({"貨號": r["影像庫有但主表沒有"]}).to_csv(
         dest / "影像庫有但主表沒有.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame({"檔名": r["認不出貨號的檔案"]}).to_csv(

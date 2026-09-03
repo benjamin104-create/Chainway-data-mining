@@ -214,6 +214,27 @@ def _reason(sku: str, idx: dict[str, Any],
     return "影像庫裡沒有這一款", ""
 
 
+def _by_season(master: pd.DataFrame, col: str,
+               miss: pd.DataFrame) -> pd.DataFrame:
+    """每一季有多少款、缺幾款、缺的原因以哪一種為主。
+
+    比例比絕對數重要：某一季 120 款缺 118 款，跟某一季 300 款缺 20 款，
+    是完全不同的兩件事，但在總數裡看起來都只是「一些款缺圖」。
+    """
+    s = master[col].astype(str).str.upper().str.extract(r"(KA\d{3})")[0]
+    total = s.value_counts().rename_axis("季別碼").reset_index(name="總款數")
+    gone = (miss["季別碼"].value_counts().rename_axis("季別碼")
+            .reset_index(name="缺圖"))
+    out = total.merge(gone, on="季別碼", how="left").fillna({"缺圖": 0})
+    out["缺圖"] = out["缺圖"].astype(int)
+    out["缺圖比例"] = out["缺圖"] / out["總款數"]
+    main = (miss.groupby("季別碼")["原因"]
+                .agg(lambda x: x.value_counts().index[0])
+                .rename("主要原因").reset_index())
+    return (out.merge(main, on="季別碼", how="left")
+               .sort_values("季別碼").reset_index(drop=True))
+
+
 def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
              sku_col: str | None = None) -> dict[str, Any]:
     """主表 × 影像庫 → 對不上的原因分類。"""
@@ -236,7 +257,9 @@ def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
         if sku.upper() in idx["strict"]:
             continue
         why, ev = _reason(sku, idx, known)
-        rows.append({"款號": sku, "原因": why, "影像庫裡疑似的檔名": ev})
+        sm = re.search(r"KA(\d{3})", sku.upper())
+        rows.append({"款號": sku, "季別碼": f"KA{sm.group(1)}" if sm else "",
+                     "原因": why, "影像庫裡疑似的檔名": ev})
     miss = pd.DataFrame(rows)
 
     # 反向：影像庫有、主表沒有
@@ -251,6 +274,12 @@ def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
         "原因統計": (miss["原因"].value_counts().rename_axis("原因")
                      .reset_index(name="款數") if not miss.empty
                      else pd.DataFrame()),
+        # 依季別看缺圖。缺的款如果集中在某幾季，那就不是命名規則的問題，
+        # 是那幾季的圖根本沒放進這個資料夾（例如只同步了近幾季，
+        # 舊季還留在 ERP 伺服器上）。這兩種原因的處理方式完全不同，
+        # 而只看總數 688 分不出來。
+        "缺圖季別分佈": (_by_season(master, col, miss) if not miss.empty
+                         else pd.DataFrame()),
         "影像庫有但主表沒有": extra,
         "認不出貨號的檔案": [p.name for p in idx["unnamed"]],
         "被跳過的影像格式": [p.name for p in idx["skipped_other"]],
