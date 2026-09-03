@@ -100,15 +100,17 @@ def _howto(menu: str) -> str:
     return "指令 " + html.escape(menu)
 
 
-def check_menu(bat: Path = Path("開始.bat")) -> list[str]:
-    """總覽說的「選單 N」和一鍵檔實際的第 N 項對得上嗎。
+def check_menu(bat: Path = Path("開始.bat"),
+               readme: Path = Path("README.md")) -> list[str]:
+    """選單編號在三個地方各寫一份，這裡確認它們一致。
 
-    這頁會叫人「按選單 6」。編號一旦漂掉，按下去跑的是別的東西 ——
-    不會報錯，只會跑出不相干的結果，然後人以為系統壞了。
-    這一節在這次改版裡漂掉兩次，所以改成用程式看，不用眼睛看。
+    三份：一鍵檔（真正會執行的）、這一頁（會叫人「按選單 6」）、
+    README（人隔一陣子回來會先讀的）。編號一旦漂掉，按下去跑的是別的
+    東西 —— 不會報錯，只會跑出不相干的結果，然後人以為系統壞了。
 
-    回傳不一致的說明（空的代表沒問題）。找不到一鍵檔就當作沒問題 ——
-    這個檢查是輔助，不該讓總覽因為它產不出來。
+    這一節在改版裡漂掉兩次，第三次是 README 沒跟著改。所以改成用程式看，
+    不用眼睛看。回傳不一致的說明（空的代表沒問題）。
+    檔案不在就當作沒問題 —— 這個檢查是輔助，不該讓總覽因為它產不出來。
     """
     import re
 
@@ -121,9 +123,24 @@ def check_menu(bat: Path = Path("開始.bat")) -> list[str]:
     have = set(re.findall(r'^if "%C%"=="(\d)" goto', text, re.M))
     if not have:
         return []
+
+    out: list[str] = []
     want = {menu for _, _, _, menu, _ in REPORTS if menu.isdigit()}
-    missing = sorted(want - have)
-    return [f"總覽叫人按選單 {n}，但 {bat.name} 沒有這一項" for n in missing]
+    out += [f"總覽叫人按選單 {n}，但 {bat.name} 沒有這一項"
+            for n in sorted(want - have)]
+
+    if readme.exists():
+        try:
+            rd = readme.read_text(encoding="utf-8")
+        except OSError:
+            return out
+        listed = set(re.findall(r"^  (\d)   ", rd, re.M))
+        if listed and listed != have:
+            out += [f"README 列了選單 {n}，但 {bat.name} 沒有這一項"
+                    for n in sorted(listed - have)]
+            out += [f"{bat.name} 有選單 {n}，但 README 沒列"
+                    for n in sorted(have - listed)]
+    return out
 
 
 def e(s: Any) -> str:
