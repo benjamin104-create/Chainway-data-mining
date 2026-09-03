@@ -1437,6 +1437,113 @@ def cmd_counter_form(args) -> int:
     return 0
 
 
+# ------------------------------------------------------------ duplicates
+def _dup_from_master(cfg) -> "pd.DataFrame | None":
+    """主表 → 重複偵測要的六個欄位。沒有主表就回 None，改吃彙總資料集。"""
+    from .merge.build_master import load_master
+
+    try:
+        m = load_master(cfg)
+    except FileNotFoundError:
+        return None
+    ren = {"product_name": "品名", "category": "品類", "season": "季別",
+           "sell_through_rate": "售罄率"}
+    # 貨號只認一個來源。主表同時有 style_code 與 sku 時兩個都改名成「款號」，
+    # 會變成兩個同名欄位，之後 d["款號"] 拿到的是 DataFrame 不是 Series，
+    # 錯誤訊息完全指不到這裡。
+    key = next((c for c in ("style_code", "sku", "款號") if c in m.columns), None)
+    if key is not None:
+        ren[key] = "款號"
+    d = m.rename(columns={k: v for k, v in ren.items() if k in m.columns})
+    if "品名" not in d.columns:
+        return None
+    keep = [c for c in ("款號", "品名", "品類", "季別", "售罄率")
+            if c in d.columns]
+    return d[keep]
+
+
+def _dup_from_dataset(path: Path) -> "pd.DataFrame | None":
+    """退而求其次：season-report 的彙總資料集，只有暢銷款。
+
+    暢銷款是**被選出來的樣本**，拿它算「重複的比例有多高」會偏高
+    —— 賣得好的款本來就比較容易被延續。所以這條路只用來看
+    「有哪幾組」，不用來看比例，CLI 會把這件事印出來。
+    """
+    import json
+
+    if not path.exists():
+        return None
+    d = json.loads(path.read_text(encoding="utf-8"))
+    rows = [r for v in d.get("champs", {}).values() for r in v]
+    if not rows:
+        return None
+    return pd.DataFrame(rows).rename(columns={
+        "sku": "款號", "nm": "品名", "cat": "品類",
+        "se": "季別", "st": "售罄率", "img": "圖"})
+
+
+def cmd_duplicates(args) -> int:
+    """重複款偵測：這一季要開的，是不是三年前做過了。"""
+    from .analysis import duplicates as dup
+    from .report import document, duplicates_report as dr
+
+    if args.self_test:
+        bad = dup.check()
+        for b in bad:
+            _warn(b)
+        if not bad:
+            _ok(f"{len(dup.CASES)} 個已知案例全部通過")
+        return 1 if bad else 0
+
+    cfg = get_config()
+    df = _dup_from_master(cfg)
+    partial = False
+    if df is None:
+        df = _dup_from_dataset(Path(args.data) if args.data
+                               else Path("data/outputs/reports/season_dataset.json"))
+        partial = df is not None
+    if df is None:
+        _warn("沒有資料可以比對。先跑 build（主表）或 season-report（彙總資料集）。")
+        return 1
+    if partial:
+        _warn(f"沒有主表，改用彙總資料集裡的 {len(df)} 款暢銷款。"
+              "\n  暢銷款是被選出來的樣本 —— 可以看有哪幾組重複，"
+              "不能拿來算重複的比例。")
+
+    res = dup.find(df)
+    print("\n" + dup.summarise(res))
+    if res.get("組數"):
+        print(f"  詞彙：{res['詞彙來源']}（{res['詞彙數']} 個詞）"
+              f"　殘字拆開 {res.get('殘字拆開的指紋', 0)} 個指紋")
+        for _, r in res["分組"].iterrows():
+            print(f"\n[{r['判定']}] {r['說明']}")
+            for m in r["明細"]:
+                st = m.get("售罄率")
+                st = f"{st:.0%}" if isinstance(st, (int, float)) else "—"
+                print(f"    {m.get('款號',''):<12}{str(m.get('季別','')):<9}"
+                      f"售罄 {st:>4}  {m.get('品名','')}")
+
+    # 圖是這份報表的重點 —— 指紋一樣不代表衣服長得一樣，
+    # 沒有圖，人就沒辦法否決它。找不到影像庫照樣出報表，但要說出來。
+    images: dict[str, Path] = {}
+    if not args.no_images:
+        from .report.inventory_report import index_images
+
+        roots = [r for r in cfg.path_list("system_images") if r]
+        images = index_images(roots) if roots else {}
+        if not images:
+            _warn("沒有讀到系統圖（settings.yaml 的 paths.system_images），"
+                  "報表只會有貨號與品名。指紋一樣不代表衣服長得一樣，"
+                  "沒有圖就沒辦法確認。")
+
+    out = Path(args.out) if args.out else cfg.path("outputs") / "重複款偵測.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(document.as_document(dr.build(res, images=images)),
+                   encoding="utf-8")
+    _ok(f"報表：{out}")
+    return 0
+
+
 # ----------------------------------------------------------- calibration
 def cmd_calibration(args) -> int:
     """專櫃當時說的，後來對了嗎 —— 答對率與把握程度的校準。"""
@@ -1853,6 +1960,15 @@ def main(argv: list[str] | None = None) -> int:
     ctf.add_argument("--no-images", action="store_true", help="不內嵌照片")
     ctf.add_argument("--out", help="HTML 輸出位置")
     ctf.set_defaults(func=cmd_counter_form)
+
+    dup = sub.add_parser("duplicates",
+                         help="★ 重複款偵測：這一季要開的是不是做過了")
+    dup.add_argument("--data", help="沒有主表時改吃這份彙總資料集 JSON")
+    dup.add_argument("--no-images", action="store_true", help="不內嵌照片")
+    dup.add_argument("--self-test", action="store_true",
+                     help="只跑已知案例，不讀資料（改門檻之後用這個驗）")
+    dup.add_argument("--out", help="HTML 輸出位置")
+    dup.set_defaults(func=cmd_duplicates)
 
     cbn = sub.add_parser("calibration",
                          help="★ 專櫃判斷校準：當時說的後來對了嗎")
