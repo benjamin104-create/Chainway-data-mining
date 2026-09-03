@@ -107,13 +107,29 @@ def build(products: Sequence[dict[str, Any]], tags_cfg: dict[str, Any], *,
           period: str = "", store_hint: str = "") -> str:
     """products 每筆要有 sku、name、category、season，image 可有可無。"""
     tags = _split_tags(tags_cfg)
-    verdicts = tags_cfg.get("verdicts", [])
-    sources = tags_cfg.get("sources", [])
+    # 專櫃個人意見取代原本的 verdict。詞彙沒了就退回舊的 verdicts，
+    # 讓沒更新 config 的人也開得起來。
+    views = tags_cfg.get("staff_views") or tags_cfg.get("verdicts", [])
     payload = json.dumps({
-        "products": list(products), "tags": tags, "verdicts": verdicts,
-        "sources": sources, "polarity": VERDICT_POLARITY,
-        "period": period,
+        "products": list(products), "tags": tags, "views": views,
+        "signals": tags_cfg.get("customer_signals", []),
+        "selfBuy": tags_cfg.get("staff_self_buy") or {},
+        "stores": tags_cfg.get("stores") or [],
+        "sources": tags_cfg.get("sources", []),
+        "polarity": VERDICT_POLARITY, "period": period,
     }, ensure_ascii=False)
+
+    # 櫃點有清單就用下拉。自由填寫會出現「台北信義店／信義店／信義 A11」
+    # 三種寫法指同一個櫃，之後「哪一櫃看得比較準」就永遠算不出來 ——
+    # 而那正是這份資料最有用的分析之一。
+    if payload_stores := (tags_cfg.get("stores") or []):
+        opts = "".join(f'<option value="{e(s)}">{e(s)}</option>'
+                       for s in payload_stores)
+        store_field = (f'<select id="store"><option value="">請選擇</option>'
+                       f'{opts}</select>')
+    else:
+        store_field = (f'<input id="store" '
+                       f'placeholder="{e(store_hint) or "例：台北信義店"}">')
 
     # 刻意不載字體 CDN。這張表要在專櫃的網路下開，也要能離線開 ——
     # 一個擋住渲染的外部樣式表，在訊號差的地方就是白畫面好幾秒，
@@ -158,6 +174,11 @@ h1{{font-size:24px;margin:0 0 4px;font-weight:700}}
 .meta b{{display:block;font-size:14.5px;line-height:1.35}}
 .meta span{{display:block;color:var(--ink3);font-size:11.5px;
  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}}
+.lab.pad{{padding:0 11px;margin:6px 0 5px}}
+.chips.pad{{padding:0 11px}}
+.chips.sig button{{font-size:12.5px;padding:6px 9px;min-height:34px}}
+.chips.selfbuy{{margin:-4px 0 12px}}
+.chips.selfbuy button{{font-size:13px}}
 .vrow{{display:flex;gap:5px;padding:7px 9px 9px}}
 .vrow button{{flex:1;padding:11px 2px;font-size:14px;font-weight:600;cursor:pointer;
  border:1px solid var(--rule);border-radius:7px;background:var(--paper);
@@ -224,6 +245,9 @@ footer button.go{{background:var(--acc);color:#fff;border-color:transparent}}
     看起來像壞掉。窄螢幕改直排：卡片變高，但每一顆都點得到、讀得完。 */
  .conf{{flex-direction:column;gap:4px}}
  .conf button{{min-height:38px;font-size:13.5px}}
+ /* 四個判定並排在 190px 寬的卡片上，「賣得好」會折成兩行。
+    改成 2x2 —— 折行的按鈕看起來像壞掉，而這是整張表最常被點的地方。 */
+ .vrow{{display:grid;grid-template-columns:1fr 1fr;gap:5px}}
 }}
 </style>
 <div class="page">
@@ -234,8 +258,7 @@ footer button.go{{background:var(--acc);color:#fff;border-color:transparent}}
 點了暢或滯才會展開理由，那時候再填。</p>
 <div class="who">
 <div><label for="who">填表人</label><input id="who" placeholder="您的姓名"></div>
-<div><label for="store">門市／區域</label><input id="store"
- placeholder="{e(store_hint) or '例：台北信義店'}"></div>
+<div><label for="store">哪一櫃</label>{store_field}</div>
 <div><label for="src">身分</label><select id="src"></select></div>
 <div><label for="date">日期</label><input id="date" type="date"></div>
 </div>
@@ -283,6 +306,16 @@ function chip(code, zh, sku) {{
     aria-pressed="${{on}}">${{zh}}</button>`;
 }}
 
+function signalHTML(p) {{
+  // 客戶意見先問，專櫃意見後問 —— 順序有意義。先讓店員回想這兩週
+  // 客人做了什麼，再問自己的判斷；反過來問，自己的判斷會先定錨，
+  // 客人的反應就被記憶重寫成「支持我的看法」的版本。
+  const s = S[p.sku] || {{}};
+  return D.signals.map(g =>
+    `<button type="button" data-sig="${{g.code}}" data-sku="${{p.sku}}"
+      aria-pressed="${{s.signal === g.code}}">${{g.zh}}</button>`).join("");
+}}
+
 function detailHTML(p) {{
   const s = S[p.sku] || {{}};
   const pol = D.polarity[s.verdict] || "both";
@@ -297,16 +330,22 @@ function detailHTML(p) {{
   const cf = [["HIGH", "很有把握"], ["MEDIUM", "還算確定"], ["LOW", "不太確定"]]
     .map(([c, zh]) => `<button type="button" data-conf="${{c}}" data-sku="${{p.sku}}"
       aria-pressed="${{s.confidence === c}}">${{zh}}</button>`).join("");
+  const sb = D.selfBuy && D.selfBuy.code
+    ? `<div class="chips selfbuy"><button type="button" data-tag="${{D.selfBuy.code}}"
+        data-sku="${{p.sku}}"
+        aria-pressed="${{(s.tags || []).includes(D.selfBuy.code)}}"
+        >${{D.selfBuy.zh}}</button></div>` : "";
   return `
     <p class="need ${{s.verdict && !s.confidence ? "show" : ""}}"
        id="need-${{p.sku}}">↓ 還差把握程度</p>
-    <div class="lab">把握程度<i>必填</i></div>
+    <div class="lab">您對這個判斷有多少把握<i>必填</i></div>
     <div class="conf">${{cf}}</div>
-    <div class="lab">理由<i>選填，可複選</i></div>
+    ${{sb}}
+    <div class="lab">為什麼<i>選填，可複選</i></div>
     <div class="chips">${{chips}}</div>
     <details class="more"><summary>更多理由</summary>${{more}}</details>
     <div class="lab">補充<i>選填</i></div>
-    <textarea data-note="${{p.sku}}" placeholder="客人怎麼說的？"
+    <textarea data-note="${{p.sku}}" placeholder="客人原話、或您想補的一句"
       >${{(s.note || "").replace(/</g, "&lt;")}}</textarea>`;
 }}
 
@@ -316,14 +355,17 @@ function render() {{
     const img = p.image
       ? `<img src="${{p.image}}" alt="" loading="lazy">`
       : `<div class="noimg">沒有照片</div>`;
-    const vb = D.verdicts.map(v =>
+    const vb = D.views.map(v =>
       `<button type="button" data-v="${{v.code}}" data-sku="${{p.sku}}"
         aria-pressed="${{s.verdict === v.code}}" title="${{v.note || ""}}"
         >${{v.zh}}</button>`).join("");
     return `<div class="card ${{isDone(s) ? "done" : ""}}" data-card="${{p.sku}}">
       ${{img}}
       <div class="meta"><b>${{p.name || ""}}</b>
-        <span>${{p.sku}}　${{p.category || ""}}　${{p.season || ""}}</span></div>
+        <span>${{p.sku}}${{p.color ? "　" + p.color : ""}}　${{p.category || ""}}</span></div>
+      <div class="lab pad">客人的反應<i>單選</i></div>
+      <div class="chips pad sig">${{signalHTML(p)}}</div>
+      <div class="lab pad">您自己怎麼看<i>單選</i></div>
       <div class="vrow">${{vb}}</div>
       <div class="detail ${{s.verdict ? "open" : ""}}">${{s.verdict ? detailHTML(p) : ""}}</div>
     </div>`;
@@ -339,6 +381,8 @@ function redrawCard(sku) {{
   card.classList.toggle("done", isDone(s));
   card.querySelectorAll(".vrow button").forEach(b =>
     b.setAttribute("aria-pressed", String(s.verdict === b.dataset.v)));
+  card.querySelectorAll(".sig button").forEach(b =>
+    b.setAttribute("aria-pressed", String(s.signal === b.dataset.sig)));
   const d = card.querySelector(".detail");
   d.classList.toggle("open", !!s.verdict);
   d.innerHTML = s.verdict ? detailHTML(p) : "";
@@ -353,6 +397,10 @@ document.addEventListener("click", ev => {{
     // 再點一次同一個判定就取消 —— 點錯了要收得回來
     S[sku].verdict = S[sku].verdict === b.dataset.v ? "" : b.dataset.v;
     if (!S[sku].verdict) {{ delete S[sku].confidence; }}
+    save(); redrawCard(sku);
+  }} else if (b.dataset.sig && sku) {{
+    S[sku] = S[sku] || {{}};
+    S[sku].signal = S[sku].signal === b.dataset.sig ? "" : b.dataset.sig;
     save(); redrawCard(sku);
   }} else if (b.dataset.conf && sku) {{
     S[sku] = S[sku] || {{}};
@@ -380,7 +428,7 @@ document.addEventListener("input", ev => {{
 // 對不上的話匯進系統會靜靜地錯位，不會報錯。
 const COLS = ["sku","style_code","season","category","verdict","reason_tags",
   "reason_text","source","respondent","store_or_region","survey_date",
-  "confidence","suggested_action","follow_up_note"];
+  "confidence","suggested_action","follow_up_note","customer_signal"];
 
 function q(v) {{
   v = (v == null ? "" : String(v));
@@ -398,7 +446,7 @@ function csv() {{
     if (!isDone(s)) continue;
     lines.push([p.sku, p.style_code || p.sku, p.season || "", p.category || "",
       s.verdict, (s.tags || []).join("|"), s.note || "", src, who, store,
-      date, s.confidence, "", ""].map(q).join(","));
+      date, s.confidence, "", "", s.signal || ""].map(q).join(","));
   }}
   return lines.join("\\n");
 }}

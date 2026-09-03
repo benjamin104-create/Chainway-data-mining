@@ -21,10 +21,13 @@ from ..config import Config, get_config
 
 FEEDBACK_FILE = "sales_feedback.csv"
 
+# customer_signal 是後加的（第 15 欄）。加在最後而不是插在中間 ——
+# 舊的 CSV 少了這一欄仍然讀得進來（load_feedback 會補空字串），
+# 插在中間的話舊檔會整排錯位，而且不會報錯。
 COLUMNS = [
     "sku", "style_code", "season", "category", "verdict", "reason_tags",
     "reason_text", "source", "respondent", "store_or_region", "survey_date",
-    "confidence", "suggested_action", "follow_up_note",
+    "confidence", "suggested_action", "follow_up_note", "customer_signal",
 ]
 
 CONFIDENCE_LEVELS = ["HIGH", "MEDIUM", "LOW"]
@@ -94,6 +97,13 @@ def validate_feedback(df: pd.DataFrame, cfg: Config | None = None) -> pd.DataFra
     valid_sources = {s["code"] for s in cfg.feedback_tags.get("sources", [])}
     valid_tags = {t["code"] for t in cfg.all_reason_tags()}
     valid_actions = {a["code"] for a in cfg.feedback_tags.get("actions", [])}
+    # 專櫃表單第二版用 staff_views 當 verdict；兩份清單都算合法，
+    # 舊資料（verdicts）與新資料（staff_views）要能並存在同一個檔裡。
+    valid_verdicts |= {v["code"] for v in cfg.feedback_tags.get("staff_views", [])}
+    valid_signals = {s["code"] for s in cfg.feedback_tags.get("customer_signals", [])}
+    self_buy = cfg.feedback_tags.get("staff_self_buy") or {}
+    if self_buy.get("code"):
+        valid_tags = set(valid_tags) | {self_buy["code"]}
 
     issues: list[dict[str, Any]] = []
     for i, row in df.iterrows():
@@ -107,8 +117,15 @@ def validate_feedback(df: pd.DataFrame, cfg: Config | None = None) -> pd.DataFra
             problems.append(f"未知理由標籤：{', '.join(unknown)}")
         if row["suggested_action"] and row["suggested_action"].upper() not in valid_actions:
             problems.append(f"suggested_action '{row['suggested_action']}' 不在允許清單")
-        if not row["reason_tag_list"] and not str(row["reason_text"]).strip():
-            problems.append("理由標籤與文字說明皆空白，這筆無法用於診斷")
+        sig = str(row.get("customer_signal", "") or "").upper()
+        if sig and valid_signals and sig not in valid_signals:
+            problems.append(f"customer_signal '{sig}' 不在允許清單")
+        # 客戶意見本身就是可用的內容，所以三者皆空才算這筆用不上。
+        # 只有客戶意見、沒有理由標籤是合理的填法：店員看到客人問了很多次，
+        # 但說不出為什麼 —— 那也是資料。
+        if (not row["reason_tag_list"] and not str(row["reason_text"]).strip()
+                and not sig):
+            problems.append("客戶意見、理由標籤與文字說明皆空白，這筆無法用於診斷")
         if problems:
             issues.append({"row": int(i) + 2, "sku": row["sku"], "issues": "；".join(problems)})
     return pd.DataFrame(issues)

@@ -1254,9 +1254,29 @@ def cmd_counter_form(args) -> int:
     col = next((c for c in ("季別", "season_label", "season")
                 if c in df.columns), None)
     season_label = args.season
+
+    # 當週新上市優先。專櫃表單問的是「這兩週櫃上發生什麼事」，
+    # 拿整季三百款去問，店員對半年前上市的款根本沒有新的觀察，
+    # 填出來的是印象不是觀察。
+    if args.new_weeks:
+        dcol = next((c for c in ("上架日", "上架起日", "first_sale_date",
+                                 "launch_date", "銷售起日") if c in df.columns), None)
+        if dcol is None:
+            _warn("主表沒有上架日期欄位，無法只取新上市 —— 改用季別篩選")
+        else:
+            d = pd.to_datetime(df[dcol], errors="coerce")
+            end = d.max()
+            if pd.isna(end):
+                _warn(f"{dcol} 全部解析不出日期，改用季別篩選")
+            else:
+                start = end - pd.Timedelta(weeks=args.new_weeks)
+                df = df[d.between(start, end)]
+                season_label = (f"{start.date()}~{end.date()} 新上市")
+                _ok(f"取最近 {args.new_weeks} 週上市：{season_label}，{len(df)} 款")
+
     if args.season and col:
         df = df[df[col].astype(str).str.contains(args.season, na=False)]
-    elif args.latest and col:
+    elif args.latest and col and not args.new_weeks:
         # 一鍵檔是純 ASCII 的（cmd.exe 混到多位元組字元會吃掉位元組），
         # 所以季別名稱「2026秋」沒辦法寫進 .bat。用「自動取最新一季」
         # 取代讓人手動打季名，順便省掉每季改檔案這件事。
@@ -1278,10 +1298,17 @@ def cmd_counter_form(args) -> int:
     # 一次給專櫃三十款以內。巡一輪要填得完，填不完的表單等於沒有表單。
     df = df.head(args.limit)
 
+    # 只掃 system_images。專櫃表單要的是系統圖 —— 白底、正面、看得出版型；
+    # 指示書裡抽出來的打樣照與布樣特寫放上去，店員認不出是哪一款。
     images: dict = {}
     if not args.no_images:
-        images = ir.index_images([r for r in cfg.path_list("system_images") if r])
-        _ok(f"影像庫索引到 {len(images):,} 個貨號")
+        roots = [r for r in cfg.path_list("system_images") if r]
+        images = ir.index_images(roots)
+        if not images:
+            _warn("系統圖資料夾裡沒有比對到貨號。確認 settings.yaml 的 "
+                  "paths.system_images —— 表單會只有貨號沒有圖。")
+        else:
+            _ok(f"系統圖索引到 {len(images):,} 個貨號")
 
     def pick(row, *names):
         for n in names:
@@ -1299,6 +1326,7 @@ def cmd_counter_form(args) -> int:
             "sku": sku,
             "style_code": sku,
             "name": pick(r, "品名", "product_name", "name"),
+            "color": pick(r, "色號", "顏色", "color_code", "color"),
             "category": pick(r, "品類", "category"),
             "season": pick(r, "季別", "season_label", "season"),
             "image": cf.thumb(path) if path else None,
@@ -1535,6 +1563,8 @@ def main(argv: list[str] | None = None) -> int:
 
     ctf = sub.add_parser("counter-form", help="★ 產生專櫃回填表單（一頁式、看照片勾選）")
     ctf.add_argument("--season", default="", help="只放某一季，例：2026秋")
+    ctf.add_argument("--new-weeks", type=int, default=0, metavar="N",
+                     help="只放最近 N 週上市的款（專櫃表單建議用這個）")
     ctf.add_argument("--latest", action="store_true",
                      help="自動取最新一季（一鍵檔用這個 —— .bat 打不了中文季名）")
     ctf.add_argument("--limit", type=int, default=30,
