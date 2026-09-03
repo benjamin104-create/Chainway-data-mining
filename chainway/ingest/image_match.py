@@ -86,16 +86,38 @@ def scan_images(roots: Iterable[Path]) -> dict[str, Any]:
             elif ext in OTHER_IMAGE_EXTS:
                 skipped_other.append(p)
 
-    strict: dict[str, Path] = {}
+    # 格式被擋掉、但貨號認得出來的。少了這個索引，一張 psd 會被報成
+    # 「影像庫裡沒有這一款」—— 那會讓人跑去要一張其實已經存在的圖。
+    other_by_sku: dict[str, Path] = {}
+    for p in skipped_other:
+        for part in (p.name, *reversed(p.parent.parts)):
+            om = STRICT.search(part)
+            if om:
+                other_by_sku.setdefault(om.group(0), p)
+                break
+
+    strict: dict[str, Path] = {}         # 檔名裡有貨號（現行規則）
+    by_folder: dict[str, Path] = {}      # 貨號只出現在資料夾名稱上
     norm_hits: dict[str, Path] = {}      # 正規化後的檔名 → 檔案
     digits: dict[str, Path] = {}         # 檔名裡的七位數字 → 檔案
     prefix6: dict[str, list[Path]] = {}  # 前六位 → 檔案
-    unnamed: list[Path] = []             # 認不出任何貨號的
+    unnamed: list[Path] = []             # 檔名與路徑都認不出貨號的
+    folders: Counter[str] = Counter()    # 圖分佈在哪些資料夾
 
     for p in files:
+        folders[str(p.parent)] += 1
         m = STRICT.search(p.name)
         if m:
             strict.setdefault(m.group(0), p)
+        else:
+            # 貨號可能寫在資料夾上：系統圖\KA118\KA1185113\正面.jpg
+            # 檔名是「正面.jpg」，貨號在上一層。只讀檔名就一張都對不到，
+            # 而這種整批的失敗看起來會像「圖不見了」。
+            for part in reversed(p.parent.parts):
+                fm = STRICT.search(part)
+                if fm:
+                    by_folder.setdefault(fm.group(0), p)
+                    break
         n = _norm(p.name)
         norm_hits.setdefault(n, p)
         found = False
@@ -104,10 +126,14 @@ def scan_images(roots: Iterable[Path]) -> dict[str, Any]:
             prefix6.setdefault(d.group(1)[:6], []).append(p)
             found = True
         if not found and not m:
-            unnamed.append(p)
+            # 資料夾上有貨號的就不算「認不出」
+            if not any(STRICT.search(x) for x in p.parent.parts):
+                unnamed.append(p)
 
     return {"files": files, "ext_count": ext_count,
             "skipped_other": skipped_other, "strict": strict,
+            "by_folder": by_folder, "folders": folders,
+            "other_by_sku": other_by_sku,
             "norm": norm_hits, "digits": digits, "prefix6": prefix6,
             "unnamed": unnamed}
 
@@ -140,25 +166,31 @@ def _reason(sku: str, idx: dict[str, Any],
     if up in idx["strict"]:
         return "", ""
 
-    # 第 1 層：只差大小寫。要比原始檔名，不能比正規化後的字串 ——
+    # 第 1 層：貨號寫在資料夾名稱上，不在檔名裡。
+    # 放第一個判 —— 這是整批性的失誤（一種歸檔習慣影響幾百款），
+    # 而且修法最單純：索引改讀完整路徑就好，一張圖都不用動。
+    if up in idx.get("by_folder", {}):
+        return "貨號在資料夾名稱裡，不在檔名裡", str(idx["by_folder"][up])
+
+    # 第 2 層：只差大小寫。要比原始檔名，不能比正規化後的字串 ——
     # 正規化把分隔符號也去掉了，兩種原因會混在一起，而它們的修法不同
     # （大小寫改一行程式，分隔符號要決定改程式還是改檔名）。
     for key, p in idx["norm"].items():
         if up in p.name.upper():
             return "大小寫不同", p.name
 
-    # 第 2 層：去掉分隔符號與全形之後才對得上
+    # 第 3 層：去掉分隔符號與全形之後才對得上
     n = _norm(sku)
     for key, p in idx["norm"].items():
         if n in key:
             return "檔名有分隔符號或全形字", p.name
 
-    # 第 3 層：只比數字
+    # 第 4 層：只比數字
     m = re.search(r"(\d{7})", up)
     if m and m.group(1) in idx["digits"]:
         return "檔名沒有 KA 前綴", idx["digits"][m.group(1)].name
 
-    # 第 4 層：只差一碼的「孤兒圖」。
+    # 第 5 層：只差一碼的「孤兒圖」。
     #
     # 一開始寫的是「前六位相同」，抓不到最常見的情形 ——
     # 1551006 打成 1551096，前六位就已經不同了。改用編輯距離：
@@ -171,6 +203,13 @@ def _reason(sku: str, idx: dict[str, Any],
         for code, cand in idx["orphans"].items():
             if _one_off(m.group(1), code):
                 return "有一張很像的圖，貨號差一碼", cand.name
+
+    # 最後才問：是不是有圖、只是格式不收。放最後 —— 前面每一層都是
+    # 「規則對得上但寫法不同」，這一層是「規則對得上但檔案打不開」，
+    # 修法完全不同（要轉檔或擴充支援的格式，不是改比對規則）。
+    if up in idx.get("other_by_sku", {}):
+        f = idx["other_by_sku"][up]
+        return f"有圖但格式不收（{f.suffix.lower()}）", str(f)
 
     return "影像庫裡沒有這一款", ""
 
@@ -216,4 +255,55 @@ def diagnose(master: pd.DataFrame, roots: Iterable[Path], *,
         "認不出貨號的檔案": [p.name for p in idx["unnamed"]],
         "被跳過的影像格式": [p.name for p in idx["skipped_other"]],
         "副檔名統計": idx["ext_count"],
+        "資料夾分佈": idx["folders"],
+        "貨號在資料夾上的": len(idx.get("by_folder", {})),
     }
+
+
+def hunt(sku: str, roots: Iterable[Path], *, limit: int = 40) -> dict[str, Any]:
+    """追一個貨號：在指定的資料夾裡把所有沾得上邊的檔案找出來。
+
+    分類報表回答的是「整批為什麼對不上」，這一支回答「我明明有這一張，
+    為什麼你找不到」。兩者的差別在於：這裡不套現行規則，
+    什麼都撈，然後告訴人現行規則會不會收它，以及為什麼不收。
+
+    刻意連非影像檔也列出來 —— 找到 `KA1185113.psd` 卻沒有 jpg，
+    本身就是答案。
+    """
+    up = sku.upper().strip()
+    m = re.search(r"(\d{7})", up)
+    digits = m.group(1) if m else ""
+    nsku = _norm(up)
+
+    hits: list[dict[str, Any]] = []
+    scanned = 0
+    for root in roots:
+        if not root or not Path(root).exists():
+            continue
+        for p in Path(root).rglob("*"):
+            if not p.is_file():
+                continue
+            scanned += 1
+            full = _norm(str(p))
+            if nsku not in full and (not digits or digits not in full):
+                continue
+            in_name = bool(STRICT.search(p.name)) and up in p.name.upper()
+            ext_ok = p.suffix.lower() in IMAGE_EXTS
+            if in_name and ext_ok:
+                why = "現行規則收得到"
+            elif not ext_ok:
+                why = (f"格式不收（{p.suffix or '沒有副檔名'}）"
+                       if p.suffix.lower() in OTHER_IMAGE_EXTS
+                       else f"不是影像檔（{p.suffix or '沒有副檔名'}）")
+            elif up in p.name.upper():
+                why = "檔名有貨號但不合現行規則（大小寫或分隔符號）"
+            elif any(up in x.upper() for x in p.parent.parts):
+                why = "貨號在資料夾名稱上，不在檔名裡"
+            else:
+                why = "只有數字對得上，沒有 KA 前綴"
+            hits.append({"路徑": str(p), "檔名": p.name,
+                         "副檔名": p.suffix.lower(), "判定": why})
+            if len(hits) >= limit:
+                break
+    return {"貨號": up, "掃過檔案數": scanned,
+            "找到": pd.DataFrame(hits) if hits else pd.DataFrame()}

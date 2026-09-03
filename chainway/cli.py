@@ -1444,10 +1444,29 @@ def cmd_image_audit(args) -> int:
     每一種寫法差異的修法完全不同（改程式／改檔名／去要圖），
     所以先分類，再決定修哪一邊。
     """
-    from .ingest.image_match import diagnose
+    from .ingest.image_match import diagnose, hunt
     from .merge.build_master import load_master
 
     cfg = get_config()
+
+    # 追一個貨號。整批報表回答「為什麼對不上」，這個回答
+    # 「我明明有這一張，為什麼你找不到」—— 那是不同的問題。
+    if args.sku:
+        roots = [Path(r) for r in (args.search or [])] or [
+            r for r in cfg.path_list("system_images") if r]
+        print(f"\n在 {'、'.join(str(r) for r in roots)} 裡找 {args.sku}")
+        h = hunt(args.sku, roots)
+        print(f"掃過 {h['掃過檔案數']:,} 個檔案")
+        if h["找到"].empty:
+            _warn("完全找不到含這個貨號的檔案。"
+                  "圖可能不在這個資料夾（例如在 ERP 伺服器上），"
+                  "或檔名與資料夾都沒有寫貨號。")
+            print("  可以指定別的資料夾再找一次："
+                  "image-audit --sku <貨號> --search \"D:\\某個資料夾\"")
+        else:
+            print(h["找到"].to_string(index=False))
+        return 0
+
     try:
         master = load_master(cfg)
     except FileNotFoundError:
@@ -1460,6 +1479,9 @@ def cmd_image_audit(args) -> int:
         return 1
     print(f"\n掃描：{'、'.join(str(r) for r in roots)}")
 
+    if args.search:
+        roots = [Path(s) for s in args.search]
+        print(f"（改用指定的資料夾）")
     r = diagnose(master, roots)
     print(f"\n主表 {r['主表款數']:,} 款　影像庫 {r['影像庫貨號數']:,} 個貨號")
     print(f"  對得上 {r['對上']:,}（{r['對上'] / max(r['主表款數'], 1):.1%}）"
@@ -1486,6 +1508,19 @@ def cmd_image_audit(args) -> int:
         n = len(r["認不出貨號的檔案"])
         print(f"\n檔名裡認不出貨號：{n:,} 個檔案"
               f"（例：{r['認不出貨號的檔案'][0]}）")
+
+    if r.get("貨號在資料夾上的"):
+        print(f"\n另外有 {r['貨號在資料夾上的']:,} 個貨號是寫在資料夾名稱上、"
+              f"不在檔名裡。")
+        print("  這是整批性的歸檔習慣，修法最單純：索引改讀完整路徑，"
+              "一張圖都不用動。")
+
+    fold = r.get("資料夾分佈") or {}
+    if fold:
+        top = sorted(fold.items(), key=lambda kv: -kv[1])[:8]
+        print(f"\n圖分佈在 {len(fold):,} 個資料夾，最多的幾個：")
+        for path, n in top:
+            print(f"  {n:>6,}　{path}")
 
     if r["被跳過的影像格式"]:
         n = len(r["被跳過的影像格式"])
@@ -1681,6 +1716,9 @@ def main(argv: list[str] | None = None) -> int:
 
     ia = sub.add_parser("image-audit",
                         help="★ 查為什麼有些款找不到系統圖（分類 + 實例）")
+    ia.add_argument("--sku", help="只追一個貨號：它到底在哪、為什麼沒被收")
+    ia.add_argument("--search", action="append", metavar="資料夾",
+                    help="改到別的資料夾找（可重複給多個）")
     ia.set_defaults(func=cmd_image_audit)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
