@@ -114,13 +114,14 @@ echo         Slow. Run it when the source data changed.)
 echo.
 echo    2   Counter feedback form    (this week's new arrivals)
 echo    3   Counter calibration      (was their call right?)
+echo    4   Customer survey          (LINE flow, form, question sheet)
 echo.
-echo    4   Image audit              (why some styles have no photo)
-echo    5   Range plan               (how many styles per category)
-echo    6   Season report            (sell-through by season)
-echo    7   Duplicate styles         (is this one already done before?)
+echo    5   Image audit              (why some styles have no photo)
+echo    6   Range plan               (how many styles per category)
+echo    7   Season report            (sell-through by season)
+echo    8   Duplicate styles         (is this one already done before?)
 echo.
-echo    8   Open the overview page (what exists, how fresh, what is stuck)
+echo    9   Open the overview page (what exists, how fresh, what is stuck)
 echo.
 echo    0   Quit
 echo.
@@ -134,6 +135,7 @@ if "%C%"=="5" goto j5
 if "%C%"=="6" goto j6
 if "%C%"=="7" goto j7
 if "%C%"=="8" goto j8
+if "%C%"=="9" goto j9
 if "%C%"=="0" goto bye
 goto menu
 
@@ -170,6 +172,13 @@ goto done
 
 :j4
 echo.
+"%VPY%" -m chainway.cli customer-survey
+if errorlevel 1 goto oops
+start "" "%CD%\data\outputs"
+goto done
+
+:j5
+echo.
 "%VPY%" -m chainway.cli build
 if errorlevel 1 goto oops
 "%VPY%" -m chainway.cli image-audit
@@ -177,28 +186,28 @@ if errorlevel 1 goto oops
 start "" "%CD%\data\outputs"
 goto done
 
-:j5
+:j6
 echo.
 "%VPY%" -m chainway.cli rangeplan
 if errorlevel 1 goto oops
 start "" "%CD%\data\outputs"
 goto done
 
-:j6
+:j7
 echo.
 "%VPY%" -m chainway.cli season-report
 if errorlevel 1 goto oops
 start "" "%CD%\data\outputs"
 goto done
 
-:j7
+:j8
 echo.
 "%VPY%" -m chainway.cli duplicates
 if errorlevel 1 goto oops
 start "" "%CD%\data\outputs"
 goto done
 
-:j8
+:j9
 echo.
 "%VPY%" -m chainway.cli overview
 rem The overview filename is Chinese and this file must stay pure ASCII,

@@ -1437,6 +1437,48 @@ def cmd_counter_form(args) -> int:
     return 0
 
 
+# ------------------------------------------------------- customer-survey
+def cmd_customer_survey(args) -> int:
+    """客戶意見調查：流程設計 + 表單預覽 + 題目稿；也負責匯入回收檔。"""
+    from .ingest import customer_feedback as cf
+    from .report import customer_survey as cs, document
+
+    cfg = get_config()
+    survey = cs.load(args.config) if args.config else cs.load()
+
+    if args.import_file:
+        src = Path(args.import_file)
+        if not src.exists():
+            _warn(f"找不到 {src}")
+            return 1
+        df, audit = cf.read_export(src, survey)
+        print(f"\n{audit['檔案']}：{audit['列數']} 列，"
+              f"其中 {audit['有發票號碼']} 列有發票號碼")
+        print("  對到的欄位：")
+        for k, v in audit["對到的欄位"].items():
+            print(f"    {v:<18} ← {k}")
+        # 對不到的一定要印出來。題目改字、換工具，欄名就變了，
+        # 而寫死欄名的程式會在某個月默默收到零筆 —— 零筆不會報錯。
+        if audit["對不到的欄位"]:
+            _warn("這幾欄對不到，沒有收進來：\n    "
+                  + "\n    ".join(audit["對不到的欄位"])
+                  + "\n  題目改過字的話，請更新 ingest/customer_feedback.py "
+                    "的 FIELD_HINTS。")
+        added, dup = cf.append(df, cf.feedback_path(cfg))
+        _ok(f"收進 {added} 筆" + (f"，略過重複 {dup} 筆" if dup else ""))
+        print(f"  累積檔：{cf.feedback_path(cfg)}")
+        return 0
+
+    out = Path(args.out) if args.out else cfg.path("outputs") / "客戶意見調查.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(document.as_document(cs.build(survey)), encoding="utf-8")
+    _ok(f"流程與表單：{out}")
+    print("  這一頁是流程設計與表單預覽 —— 表單本身收不到回覆。")
+    print("  收件請用 LINE 官方帳號問卷或 Google 表單，頁面第五段有題目稿。")
+    print("  回收後：python -m chainway.cli customer-survey --import 匯出檔.csv")
+    return 0
+
+
 # ------------------------------------------------------------ duplicates
 def _dup_from_master(cfg) -> "pd.DataFrame | None":
     """主表 → 重複偵測要的六個欄位。沒有主表就回 None，改吃彙總資料集。"""
@@ -1785,6 +1827,8 @@ def cmd_overview(args) -> int:
     out.write_text(
         document.as_document(ov.build(cfg, master_rows=rows, base=out.parent)),
         encoding="utf-8")
+    for msg in ov.check_menu():
+        _warn(msg)
     todo = ov.todos(cfg)
     if todo:
         print(f"\n還有 {len(todo)} 件事需要您做：")
@@ -1960,6 +2004,14 @@ def main(argv: list[str] | None = None) -> int:
     ctf.add_argument("--no-images", action="store_true", help="不內嵌照片")
     ctf.add_argument("--out", help="HTML 輸出位置")
     ctf.set_defaults(func=cmd_counter_form)
+
+    cus = sub.add_parser("customer-survey",
+                         help="★ 客戶意見調查：流程、表單預覽、題目稿、匯入回收檔")
+    cus.add_argument("--import", dest="import_file", metavar="檔案",
+                     help="匯入 LINE／Google 表單匯出的 CSV")
+    cus.add_argument("--config", help="改用別份題目設定（預設 config/customer_survey.yaml）")
+    cus.add_argument("--out", help="HTML 輸出位置")
+    cus.set_defaults(func=cmd_customer_survey)
 
     dup = sub.add_parser("duplicates",
                          help="★ 重複款偵測：這一季要開的是不是做過了")
