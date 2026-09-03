@@ -55,12 +55,6 @@ Top-1 1.29% 量到的是測試集壞掉，不是檢索能力差。
 真正的覆核要靠 `reclassify-images` 產出的對照表 —— 那份表就是為了讓人
 一眼否定它而做的。
 
-## 這件事的成本不對稱
-
-漏判一張真的打樣照片：測試集少一題，沒有損失。
-誤判一張布樣成打樣照片：評測分數被拉低，而且會讓人以為模型不行。
-
-所以門檻刻意偏嚴。`STRICT_PHOTO` 關掉可以放寬，但預設是嚴的。
 """
 from __future__ import annotations
 
@@ -87,6 +81,39 @@ LINEART_SAT = 22
 PHOTO_FILL_MIN = 0.12
 PHOTO_FILL_MAX = 0.94
 PHOTO_MIN_PX = 400
+
+
+# 檔頭特徵 → 格式名稱。用來把「無法解析」講清楚是什麼。
+# 788 張「無法解析」等於 788 張沒有身分的圖，看起來像是壞檔；
+# 講得出名字之後才知道是要修、要轉檔、還是根本不用理。
+MAGIC: list[tuple[bytes, str, str]] = [
+    (b"II\xbc\x01", "JPEG XR (.wdp)",
+     "Office 存的備用格式，同一份指示書裡通常有一張內容相同的 PNG/JPEG"),
+    (b"II\xbc\x00", "JPEG XR (.wdp)",
+     "Office 存的備用格式，同一份指示書裡通常有一張內容相同的 PNG/JPEG"),
+    (b"8BPS", "Photoshop (.psd)", "要轉檔才讀得到"),
+    (b"%PDF", "PDF", "是文件不是圖，要另外處理"),
+    (b"\x00\x00\x01\x00", "Windows 圖示 (.ico)", "多半是介面裝飾，不是商品圖"),
+    (b"RIFF", "RIFF 容器（可能是 webp 或音訊）", ""),
+    (b"\x1a\x45\xdf\xa3", "Matroska/WebM", "是影片不是圖"),
+    (b"OggS", "Ogg", "是影音不是圖"),
+    (b"PK\x03\x04", "zip 容器", "可能是被誤存成圖的 Office 檔"),
+]
+
+
+def sniff(path: str | Path) -> tuple[str, str]:
+    """PIL 開不了的時候，用檔頭認出它是什麼。回傳 (格式, 說明)。"""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(16)
+    except OSError:
+        return "讀不到檔案", ""
+    for magic, name, note in MAGIC:
+        if head.startswith(magic):
+            return name, note
+    if not head:
+        return "空檔案", "0 位元組"
+    return f"不認得的格式（前 4 bytes {head[:4].hex(' ')}）", ""
 
 
 def _background(a: np.ndarray) -> tuple[float, float]:
@@ -157,7 +184,9 @@ def classify(path: str | Path, *, strict_photo: bool = True) -> tuple[str, dict[
             im.load()
             s = _stats(im)
     except Exception as exc:                      # .wdp 等格式 PIL 開不了
-        return "無法解析", {"error": type(exc).__name__}
+        fmt, note = sniff(path)
+        return f"無法解析：{fmt}", {"error": type(exc).__name__,
+                                    "sniffed": fmt, "note": note}
 
     longest = max(s["w"], s["h"])
     has_bg = (s["edge_bg"] >= HAS_BG_EDGE and s["ring_sd"] <= HAS_BG_RING_SD)

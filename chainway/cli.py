@@ -1088,6 +1088,25 @@ def cmd_reclassify_images(args) -> int:
             _warn(f"其中 {len(was):,} 張原本被當成打樣照片，其實不是 —— "
                   "這些就是把以圖搜貨號評測分數拉低的元凶")
 
+    # 「無法解析」現在會講出是什麼格式。真正要緊的不是有幾張讀不到，
+    # 而是有沒有哪一款「只有」讀不到的圖 —— 那一款才是真的沒有影像可用。
+    bad = out[out["kind"].astype(str).str.startswith("無法解析")]
+    if len(bad):
+        print(f"\n讀不到的 {len(bad):,} 張，實際格式是：")
+        fmt = bad["kind"].str.replace("無法解析：", "", regex=False)
+        for k, v in fmt.value_counts().items():
+            print(f"  {v:>6,}　{k}")
+        if "sku" in out.columns:
+            good = set(out.loc[~out.index.isin(bad.index), "sku"].dropna())
+            only_bad = sorted(set(bad["sku"].dropna()) - good)
+            if only_bad:
+                _warn(f"其中 {len(only_bad):,} 款「只有」讀不到的圖，"
+                      f"等於沒有影像可用：{'、'.join(only_bad[:8])}"
+                      f"{'…' if len(only_bad) > 8 else ''}")
+            else:
+                _ok("沒有任何一款只剩讀不到的圖 —— "
+                    "每一款都還有至少一張讀得到的，所以這些張不影響後續分析。")
+
     out.to_csv(csv, index=False, encoding="utf-8-sig")
     _ok(f"已更新 {csv}")
 
