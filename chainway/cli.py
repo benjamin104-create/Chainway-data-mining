@@ -1151,6 +1151,38 @@ def cmd_inventory(args) -> int:
         _warn("篩選後沒有資料")
         return 1
 
+    if args.stock_gap:
+        # 這條路刻意不出 HTML、不做縮圖 —— 產出是一張要拿去現場的清單，
+        # 印出來或用 Excel 開，不是拿來讀的報表。
+        from .analysis import stock_gap as sg
+
+        g = sg.gap(df)
+        s = sg.summarise(g)
+        if not s.get("可分析"):
+            _warn(s.get("說明", "算不出來"))
+            return 1
+        print("\n" + sg.one_line(s))
+        print(f"  完全相同 {s['完全相同']:,} 款；"
+              f"差 {sg.TOL_UNITS} 件以內或不到投入量 {sg.TOL_RATIO:.0%} 的"
+              f"當作對得上，共 {s['對得上']:,} 款。")
+        top = sg.worth_counting(g, top=args.gap_top)
+        if top.empty:
+            _ok("沒有需要盤點的款")
+            return 0
+        print(f"\n值得走一趟的前 {len(top)} 款（按差的件數排，盤點成本按件算）：")
+        show = top.copy()
+        if "差額比" in show.columns:
+            show["差額比"] = show["差額比"].map(
+                lambda v: "—" if pd.isna(v) else f"{v:.0%}")
+        print(show.to_string(index=False))
+        out = cfg.path("outputs") / "庫存對不上的款.csv"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        sg.worth_counting(g, top=10 ** 9).to_csv(
+            out, index=False, encoding="utf-8-sig")
+        _ok(f"完整清單：{out}")
+        print("  這份不說哪個數字是對的 —— 那要現場才知道，不是再算一次。")
+        return 0
+
     images: dict = {}
     if not args.no_images:
         if args.images:
@@ -1970,6 +2002,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="檔案大小上限；超過會自動把縮圖降階重做（預設 45 MB）")
     iv.add_argument("--split", action="store_true",
                     help="每個系列各出一個檔。檔案較小、縮圖可以更大，建議搭配 --thumb 500")
+    iv.add_argument("--stock-gap", action="store_true",
+                    help="只列兩個庫存數字對不上的款（該去盤點哪幾件）")
+    iv.add_argument("--gap-top", type=int, default=30, metavar="N",
+                    help="--stock-gap 在畫面上列前幾款（預設 30；CSV 是全部）")
     iv.add_argument("--out", help="HTML 輸出位置")
     iv.set_defaults(func=cmd_inventory)
 

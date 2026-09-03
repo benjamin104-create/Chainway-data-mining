@@ -37,7 +37,11 @@ from typing import Any
 # 報表登錄簿。這張表本身就是「這套系統有哪些東西」的地圖 ——
 # 新增報表卻忘了登錄，它就不會出現在總覽頁上，等於沒做。
 #
-# 欄位：(相對 outputs 的樣式, 標題, 這份在回答什麼, 選單項, 幾天算過期)
+# 欄位：(相對 outputs 的樣式, 標題, 這份在回答什麼, 怎麼產生, 幾天算過期)
+#
+# 「怎麼產生」是數字時代表一鍵檔的第幾項；是 "-" 代表還沒排程；
+# 其他字串就當成要打的指令原樣印出來 —— 不是每一份都值得占一個選單項，
+# 但每一份都要說得出怎麼跑，否則人看到「還沒產生」也不知道下一步。
 REPORTS: list[tuple[str, str, str, str, int]] = [
     ("inventory/*進銷存清單*.html", "進銷存清單",
      "熊／牛仔／格紋各系列現在還剩多少、哪些完銷。含大張縮圖。", "1", 14),
@@ -63,6 +67,10 @@ REPORTS: list[tuple[str, str, str, str, int]] = [
     ("客戶意見調查.html", "客戶意見調查",
      "LINE 上傳發票後回填的表單 —— 流程設計、客人會看到的樣子、"
      "以及貼進 LINE／Google 表單的題目稿。", "4", 90),
+    ("庫存對不上的款.csv", "庫存對不上的款",
+     "總存與現場兩個數字差最多的款 —— 該走一趟盤點哪幾件。"
+     "按差的件數排，不按比例（盤點成本按件算）。",
+     "inventory --stock-gap", 30),
     ("color/*.csv", "色號盤點",
      "色號寫在哪裡（檔名／指示書／ERP），以及量到的顏色對不對得上。", "1", 60),
     ("motif/*.csv", "熊／格紋拆解",
@@ -73,6 +81,15 @@ REPORTS: list[tuple[str, str, str, str, int]] = [
 # 一組最多列幾個檔。各季的專櫃表單會累積成幾十份，全列會把頁面淹掉；
 # 而進銷存那四個系列檔是同時產生的，四份都要看得到。
 MAX_FILES = 6
+
+
+def _howto(menu: str) -> str:
+    """「怎麼產生」欄位 → 顯示文字。"""
+    if menu == "-":
+        return "尚未排程"
+    if menu.isdigit():
+        return "選單 " + html.escape(menu)
+    return "指令 " + html.escape(menu)
 
 
 def check_menu(bat: Path = Path("開始.bat")) -> list[str]:
@@ -96,7 +113,7 @@ def check_menu(bat: Path = Path("開始.bat")) -> list[str]:
     have = set(re.findall(r'^if "%C%"=="(\d)" goto', text, re.M))
     if not have:
         return []
-    want = {menu for _, _, _, menu, _ in REPORTS if menu != "-"}
+    want = {menu for _, _, _, menu, _ in REPORTS if menu.isdigit()}
     missing = sorted(want - have)
     return [f"總覽叫人按選單 {n}，但 {bat.name} 沒有這一項" for n in missing]
 
@@ -246,7 +263,7 @@ def build(cfg, *, master_rows: int | None = None,
                 f'<div class="card none"><h3>{e(r["標題"])}</h3>'
                 f'<p>{e(r["說明"])}</p>'
                 f'<span class="tag">還沒產生　'
-                f'{"選單 " + e(r["選單"]) if r["選單"] != "-" else "尚未排程"}</span>'
+                f'{_howto(r["選單"])}</span>'
                 f'</div>')
             continue
         age = r["天數"]
@@ -270,7 +287,7 @@ def build(cfg, *, master_rows: int | None = None,
         cards.append(
             f'<div class="card">{head}<p>{e(r["說明"])}</p>{links}'
             f'<span class="tag">{e(when)}更新{warn}　{e(r["大小"])}{e(more)}'
-            f'　選單 {e(r["選單"])}</span></div>')
+            f'　{_howto(r["選單"])}</span></div>')
 
     return f"""<title>報表總覽</title>
 <style>
