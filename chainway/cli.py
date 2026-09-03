@@ -1157,6 +1157,21 @@ def cmd_inventory(args) -> int:
             images = ir.index_images([Path(args.images)])
         else:
             images = ir.index_images([r for r in cfg.path_list("system_images") if r])
+            # 系統圖只涵蓋近幾季。主表的 image_path 已經由 build 補過
+            # 指示書抽出來的圖，這裡把那一批也帶進縮圖來源 ——
+            # 不帶的話，清單上舊季會整片空白，而檔案其實是有的。
+            if "image_path" in df.columns:
+                extra = 0
+                for _, r in df.iterrows():
+                    sku = str(r.get("款號") or r.get("style_code") or r.get("sku") or "")
+                    path = r.get("image_path")
+                    if sku and sku not in images and isinstance(path, str) and path:
+                        pp = Path(path)
+                        if pp.exists():
+                            images[sku] = pp
+                            extra += 1
+                if extra:
+                    _ok(f"另外從裁縫指示書補上 {extra:,} 款的圖")
             if not images and cfg.path("root"):
                 _warn("系統圖資料夾裡沒有比對到貨號，改掃整個根目錄（會慢一些）")
                 images = ir.index_images([cfg.path("root")])
