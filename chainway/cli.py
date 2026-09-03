@@ -1226,6 +1226,11 @@ def cmd_rangeplan(args) -> int:
 
 
 # ---------------------------------------------------------- counter-form
+# 往回放寬的上限。再往回就不是「新上市」了，專櫃對更早的款
+# 只剩印象，沒有新的觀察可講。
+MAX_NEW_WEEKS = 10
+
+
 def cmd_counter_form(args) -> int:
     """產生專櫃回填表單：一頁式、看照片勾選、匯出成回饋 CSV。
 
@@ -1269,10 +1274,28 @@ def cmd_counter_form(args) -> int:
             if pd.isna(end):
                 _warn(f"{dcol} 全部解析不出日期，改用季別篩選")
             else:
-                start = end - pd.Timedelta(weeks=args.new_weeks)
-                df = df[d.between(start, end)]
-                season_label = (f"{start.date()}~{end.date()} 新上市")
-                _ok(f"取最近 {args.new_weeks} 週上市：{season_label}，{len(df)} 款")
+                # 上架不是每週平均分布的，會一波一波來。固定抓兩週，
+                # 剛好落在兩波之間就只有三、五款 —— 那種表單不值得發出去，
+                # 專櫃打開看到三張圖，下次就不會再點了。
+                # 所以往回放寬到湊滿 min_styles 為止，並且明講放寬了多少。
+                weeks = args.new_weeks
+                while True:
+                    start = end - pd.Timedelta(weeks=weeks)
+                    sel = df[d.between(start, end)]
+                    if len(sel) >= args.min_styles or weeks >= MAX_NEW_WEEKS:
+                        break
+                    weeks += 1
+                df = sel
+                season_label = f"{start.date()}~{end.date()} 新上市"
+                if weeks == args.new_weeks:
+                    _ok(f"取最近 {weeks} 週上市：{season_label}，{len(df)} 款")
+                elif len(df) >= args.min_styles:
+                    _ok(f"最近 {args.new_weeks} 週只有少數幾款，往回放寬到 "
+                        f"{weeks} 週：{season_label}，{len(df)} 款")
+                else:
+                    _warn(f"往回找到 {weeks} 週（{season_label}）仍只有 "
+                          f"{len(df)} 款。這批資料的上架日可能不完整，"
+                          f"或這一季本來就快結束了。")
 
     if args.season and col:
         df = df[df[col].astype(str).str.contains(args.season, na=False)]
@@ -1334,8 +1357,12 @@ def cmd_counter_form(args) -> int:
 
     have = sum(1 for p in prods if p["image"])
     _ok(f"表單收錄 {len(prods)} 款，其中 {have} 款有照片")
-    if have < len(prods):
-        _warn(f"{len(prods) - have} 款沒有比對到照片，仍會列出但只有貨號")
+    missing = [p["sku"] for p in prods if not p["image"]]
+    if missing:
+        # 印出是哪幾號。只說「N 款沒有照片」，等於要人自己去表單裡一張張找，
+        # 而缺圖多半是系統圖還沒歸檔或檔名貨號打錯 —— 有貨號才查得下去。
+        show = "、".join(missing[:12]) + ("…" if len(missing) > 12 else "")
+        _warn(f"{len(missing)} 款沒有比對到系統圖，會列出但只有貨號：{show}")
 
     out = (Path(args.out) if args.out
            else cfg.path("outputs") / f"專櫃回填表單_{season_label or '全部'}.html")
@@ -1565,6 +1592,8 @@ def main(argv: list[str] | None = None) -> int:
     ctf.add_argument("--season", default="", help="只放某一季，例：2026秋")
     ctf.add_argument("--new-weeks", type=int, default=0, metavar="N",
                      help="只放最近 N 週上市的款（專櫃表單建議用這個）")
+    ctf.add_argument("--min-styles", type=int, default=10, metavar="N",
+                     help="湊不到這麼多款就自動往回放寬週數（預設 10）")
     ctf.add_argument("--latest", action="store_true",
                      help="自動取最新一季（一鍵檔用這個 —— .bat 打不了中文季名）")
     ctf.add_argument("--limit", type=int, default=30,
