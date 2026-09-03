@@ -1436,6 +1436,78 @@ def cmd_calibration(args) -> int:
     return 0
 
 
+# --------------------------------------------------------- image-audit
+def cmd_image_audit(args) -> int:
+    """為什麼有些款找不到系統圖 —— 把對不上的款分類，每一類給實例。
+
+    數量對得上卻對不起來，就不是圖不夠，是兩邊的貨號寫法不一樣。
+    每一種寫法差異的修法完全不同（改程式／改檔名／去要圖），
+    所以先分類，再決定修哪一邊。
+    """
+    from .ingest.image_match import diagnose
+    from .merge.build_master import load_master
+
+    cfg = get_config()
+    try:
+        master = load_master(cfg)
+    except FileNotFoundError:
+        _warn("找不到主表，請先執行：python -m chainway.cli build")
+        return 1
+
+    roots = [r for r in cfg.path_list("system_images") if r]
+    if not roots:
+        _warn("settings.yaml 沒有設定 paths.system_images")
+        return 1
+    print(f"\n掃描：{'、'.join(str(r) for r in roots)}")
+
+    r = diagnose(master, roots)
+    print(f"\n主表 {r['主表款數']:,} 款　影像庫 {r['影像庫貨號數']:,} 個貨號")
+    print(f"  對得上 {r['對上']:,}（{r['對上'] / max(r['主表款數'], 1):.1%}）"
+          f"　對不上 {r['對不上']:,}")
+
+    if not r["原因統計"].empty:
+        print("\n對不上的原因：")
+        for _, row in r["原因統計"].iterrows():
+            ex = r["明細"][r["明細"]["原因"] == row["原因"]]
+            s = ex.iloc[0]
+            hint = (f"　例：{s['款號']} ← {s['影像庫裡疑似的檔名']}"
+                    if s["影像庫裡疑似的檔名"] else f"　例：{s['款號']}")
+            print(f"  {row['款數']:>5,} 款　{row['原因']}{hint}")
+
+    if r["影像庫有但主表沒有"]:
+        n = len(r["影像庫有但主表沒有"])
+        print(f"\n影像庫有、主表沒有：{n:,} 個貨號"
+              f"（{'、'.join(r['影像庫有但主表沒有'][:6])}"
+              f"{'…' if n > 6 else ''}）")
+        print("  多半是舊季、樣衣、或已下架 —— 但如果數量和「對不上」差不多，"
+              "那就是同一批款在兩邊寫法不同。")
+
+    if r["認不出貨號的檔案"]:
+        n = len(r["認不出貨號的檔案"])
+        print(f"\n檔名裡認不出貨號：{n:,} 個檔案"
+              f"（例：{r['認不出貨號的檔案'][0]}）")
+
+    if r["被跳過的影像格式"]:
+        n = len(r["被跳過的影像格式"])
+        print(f"\n因為格式被跳過的影像：{n:,} 個"
+              f"（例：{r['被跳過的影像格式'][0]}）")
+        print("  這些是 tif／psd／heic 之類，現行規則只收 jpg/png/webp/bmp。")
+
+    dest = cfg.path("outputs") / "影像比對稽核"
+    dest.mkdir(parents=True, exist_ok=True)
+    r["明細"].to_csv(dest / "對不上的款.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame({"貨號": r["影像庫有但主表沒有"]}).to_csv(
+        dest / "影像庫有但主表沒有.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame({"檔名": r["認不出貨號的檔案"]}).to_csv(
+        dest / "認不出貨號的檔案.csv", index=False, encoding="utf-8-sig")
+    pd.DataFrame(sorted(r["副檔名統計"].items(), key=lambda kv: -kv[1]),
+                 columns=["副檔名", "檔案數"]).to_csv(
+        dest / "副檔名統計.csv", index=False, encoding="utf-8-sig")
+    _ok(f"明細：{dest}")
+    print("  『對不上的款.csv』每一列都有疑似的檔名，可以直接拿去核對。")
+    return 0
+
+
 # ------------------------------------------------------------------ serve
 def cmd_serve(args) -> int:
     try:
@@ -1606,6 +1678,10 @@ def main(argv: list[str] | None = None) -> int:
     cbn = sub.add_parser("calibration",
                          help="★ 專櫃判斷校準：當時說的後來對了嗎")
     cbn.set_defaults(func=cmd_calibration)
+
+    ia = sub.add_parser("image-audit",
+                        help="★ 查為什麼有些款找不到系統圖（分類 + 實例）")
+    ia.set_defaults(func=cmd_image_audit)
 
     sv = sub.add_parser("serve", help="啟動網頁後台")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)
