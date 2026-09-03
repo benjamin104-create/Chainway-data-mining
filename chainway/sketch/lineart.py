@@ -38,11 +38,33 @@ def _require_cv2():
 
 
 def load_image(path: str | Path) -> np.ndarray:
-    cv2 = _require_cv2()
-    img = cv2.imread(str(path), cv2.IMREAD_COLOR)
-    if img is None:
+    """讀成 OpenCV 的 BGR 陣列。**不要**直接用 cv2.imread。
+
+    兩個理由，兩個都會安靜地毀掉線稿：
+
+    **一、透明背景會變成全黑。** `cv2.imread(..., IMREAD_COLOR)` 直接丟掉
+    alpha 通道，去背 PNG 的透明處剩下 (0,0,0)。實測一張中央有紅方塊的
+    透明 PNG，讀進來四角是 [0 0 0]。市調圖有相當一部分是電商去背圖或
+    截圖存成 PNG，而線稿是**邊緣偵測**——整片黑底會讓演算法沿著畫面
+    邊界描出一個大方框，那個方框不是衣服上的任何東西。線稿看起來
+    「多了一道邊」，不會有錯誤訊息。
+
+    這和先前圖片分類踩到的是同一個坑（章戳的白底比例量成 0.00），
+    所以走同一條路：`imageio.load_rgb` 先合成到白底。
+
+    **二、Windows 上中文檔名讀不到。** `cv2.imread` 在 Windows 用 ANSI
+    代碼頁開檔，路徑含中文時直接回 None，而這支程式的說明裡舉的例子
+    就是「街拍_領口.jpg」。在 Linux 上重現不出來（實測讀得到），
+    但貴司是繁中 Windows，市調圖的檔名幾乎一定有中文。
+    先用 Python 開檔再交給 PIL，就完全避開這件事。
+    """
+    from ..imageio import load_rgb
+
+    p = Path(path)
+    if not p.exists():
         raise FileNotFoundError(f"無法讀取影像：{path}")
-    return img
+    rgb = np.asarray(load_rgb(p))          # 透明處已合成到白底
+    return rgb[:, :, ::-1].copy()          # RGB → BGR，cv2 用的順序
 
 
 def crop_region(

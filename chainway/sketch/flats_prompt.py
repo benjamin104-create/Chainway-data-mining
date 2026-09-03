@@ -62,10 +62,20 @@ def build_spec(
     lines = [f"# 款式規格 — {cfg.category_label(category)}", ""]
 
     lines.append("## 一、結構定義")
+    wrote = 0
     for attr, code in attributes.items():
         if code in ("n/a", "uncertain", None, ""):
             continue
-        lines.append(f"- **{cfg.attribute_label(attr)}**：{cfg.option_label(attr, str(code))}（`{code}`）")
+        lines.append(f"- **{cfg.attribute_label(attr)}**："
+                     f"{cfg.option_label(attr, str(code))}（`{code}`）")
+        wrote += 1
+    # 一項都沒有時要說出來。原本這裡會留下一個光禿禿的標題，
+    # 而一份只有標題的規格書看起來像「還沒寫完」，不像「沒有資料」——
+    # 這兩件事的處理方式完全不同。
+    if not wrote:
+        lines.append("- （沒有任何結構屬性）這份規格是空的：照片量不到、"
+                     "也沒有人工填入任何一項。拿去畫圖只會得到一件普通的"
+                     f"{cfg.category_label(category)}。")
 
     if fabric:
         lines += ["", "## 二、面料與工藝限制", f"- 面料屬性：{cfg.option_label('fabric_look', fabric)}"]
@@ -113,6 +123,20 @@ def build_prompt(
                 break
 
     desc = ", ".join(parts)
+    # 沒有任何屬性時**不能**照樣拼出「A womenswear top with .」——
+    # 那個懸空的 with 貼進 Firefly 會產出一件跟市調照片毫無關係的普通
+    # 上衣，而且看起來很正常（它確實是一張機械圖），沒有人會發現不對。
+    # 原本 --auto 這條路每一次都產出那句話。
+    if not desc:
+        return {
+            "prompt": f"{BASE_STYLE}. A {garment}.",
+            "negative": NEGATIVE,
+            "可用": False,
+            "note": "★ 這段 prompt 沒有任何款式描述 —— 直接拿去畫，"
+                    "得到的會是一件普通的" + garment + "，跟您的市調照片無關。"
+                    "請先補上領型、袖長、衣長等屬性（sketch --auto 會自動量，"
+                    "量不到就要人工填）。",
+        }
     prompt = f"{BASE_STYLE}. A {garment} with {desc}"
     if fabric and fabric in FABRIC_LINE_RULES:
         prompt += f". {FABRIC_LINE_RULES[fabric]}"
@@ -124,6 +148,7 @@ def build_prompt(
     return {
         "prompt": prompt + ".",
         "negative": NEGATIVE,
+        "可用": True,
         "note": "先出正背面線稿；確認結構無誤後，再用同一段 prompt 加上配色描述產彩現圖。",
     }
 

@@ -7,8 +7,26 @@
     python -m chainway.cli sketch --image "data/raw/market_research/街拍_領口.jpg" --auto
 
 輸出到 data/outputs/sketches/<job_id>/：
-    01_crop.png  02_line.png  02_line.svg  03_render.png
-    04_annotated.png  05_contact_sheet.png  spec.md  prompt.txt  palette.json
+
+    spec.md      款式規格（繁中，可貼進 Tech Pack）
+    prompt.txt   生成式繪圖用的英文 prompt
+
+每一個重點區各一個子資料夾（只有一個區時就直接放在 job 資料夾底下）：
+
+    01_crop.png   02_line.png   02_line.svg   03_render.png
+    05_contact_sheet.png   palette.json
+    04_annotated.png   ← 只有 job 檔裡寫了 notes 才會有
+
+## --auto 這條路以前會產出空的規格
+
+`run_quick` 不填 attributes，於是 `build_spec({})` 產出只有標題的空殼、
+`build_prompt({})` 產出「A womenswear top with .」那個懸空的句子。
+貼進 Firefly 會得到一件跟市調照片毫無關係的普通上衣 ——
+**而且看起來很正常**，因為它確實是一張機械圖。
+
+現在 job 檔沒填屬性時，改用 `from_photo` 從照片量（領型、袖長、衣長），
+量不到就明說量不到。人填的永遠優先：人看得到照片，量測看不到照片
+以外的任何東西。
 """
 
 from __future__ import annotations
@@ -101,10 +119,20 @@ def run_job(job: SketchJob, cfg: Config | None = None) -> dict[str, Any]:
 
     # 規格書與繪圖 prompt
     from .flats_prompt import build_prompt, build_spec
+    from .from_photo import attributes_from_photo, unmeasured_note
 
-    spec = build_spec(job.category, job.attributes, job.fabric, None, cfg,
-                      notes=([job.application] if job.application else None))
-    prompt = build_prompt(job.category, job.attributes, job.fabric, cfg=cfg)
+    attrs = dict(job.attributes)
+    extra_notes = [job.application] if job.application else []
+    # job 檔沒填屬性時，用照片量到的補。人填的優先 ——
+    # 人看得到照片，量測看不到照片以外的任何東西。
+    if not attrs:
+        measured_attrs, raw = attributes_from_photo(src, category=job.category)
+        attrs = measured_attrs
+        extra_notes += unmeasured_note(measured_attrs, raw)
+
+    spec = build_spec(job.category, attrs, job.fabric, None, cfg,
+                      notes=extra_notes or None)
+    prompt = build_prompt(job.category, attrs, job.fabric, cfg=cfg)
     (out_dir / "spec.md").write_text(spec, encoding="utf-8")
     (out_dir / "prompt.txt").write_text(
         f"PROMPT:\n{prompt['prompt']}\n\nNEGATIVE:\n{prompt['negative']}\n\nNOTE:\n{prompt['note']}\n",
@@ -112,8 +140,14 @@ def run_job(job: SketchJob, cfg: Config | None = None) -> dict[str, Any]:
     )
 
     warn = ann.font_warning(cfg)
+    # prompt 沒有款式描述是一個必須講出來的結果，不是細節。
+    # 不講的話，使用者會拿一段只會畫出「普通上衣」的 prompt 去產圖，
+    # 而產出來的東西看起來完全正常。
+    if not prompt.get("可用", True):
+        warn = ((warn + "\n  ") if warn else "") + prompt["note"]
     return {"job": job.id, "out_dir": str(out_dir), "regions": results,
             "spec": str(out_dir / "spec.md"), "prompt": str(out_dir / "prompt.txt"),
+            "屬性": attrs, "prompt可用": bool(prompt.get("可用", True)),
             "warning": warn}
 
 
