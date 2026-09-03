@@ -332,8 +332,18 @@ def cmd_build(args) -> int:
         issues.to_csv(processed / "feedback_issues.csv", index=False, encoding="utf-8-sig")
     fb_sum = fb_mod.summarize_feedback(fb_raw, cfg)
 
+    # 指示書抽出來的圖：系統圖沒涵蓋到的款靠它補
+    tp_imgs = None
+    tp_img_csv = cfg.path("interim") / "techpack_images.csv"
+    if tp_img_csv.exists():
+        try:
+            tp_imgs = pd.read_csv(tp_img_csv)
+        except Exception as exc:
+            _warn(f"讀不到 {tp_img_csv.name}：{exc}")
+
     print("\n合併主表…")
-    master, audit = bm.build_master(sales, attrs, tp, fb_sum, cfg)
+    master, audit = bm.build_master(sales, attrs, tp, fb_sum, cfg,
+                                    techpack_images=tp_imgs)
     print(audit.to_string(index=False))
 
     print("\n績效分級…")

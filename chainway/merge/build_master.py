@@ -54,12 +54,71 @@ def _dedupe_on(df: pd.DataFrame, key: str) -> pd.DataFrame:
     return d.drop_duplicates(subset=[key], keep="first")
 
 
+# 從指示書抽出來的圖，哪一種最適合當「這一款長什麼樣」的代表。
+# 打樣照片是整件衣服，最接近系統圖；布樣只有一小塊布，看不出款式，
+# 所以排在最後 —— 有總比沒有好，但不該優先。
+TECHPACK_IMAGE_ORDER = ["打樣照片", "圖稿/線稿", "圖稿/說明", "其他", "布樣"]
+
+
+def fill_images_from_techpack(master: pd.DataFrame,
+                              tp_images: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """沒有系統圖的款，改用指示書裡抽出來的圖。回傳 (主表, 補上的款數)。
+
+    為什麼需要這一步：系統圖資料夾只涵蓋近幾季，而裁縫指示書幾乎每一款
+    都有。實測貴公司的資料 —— 系統圖 2,859 個貨號，指示書 3,107 個貨號，
+    指示書的涵蓋率反而比較高。
+
+    先前這一步做不了，是因為舊版 .xls 的圖抽不出來（`ingest.xls_images`
+    修掉了），所以「用指示書補」這條路根本沒有東西可補。
+
+    只補 image_path，不補影像屬性欄位 —— 屬性是從系統圖量出來的，
+    來源換了就得重量，直接沿用會讓兩批資料混在同一欄而看不出來。
+    """
+    if tp_images is None or tp_images.empty or "sku" not in tp_images.columns:
+        return master, 0
+    if "image_path" not in master.columns:
+        master = master.assign(image_path=pd.NA)
+
+    kind_col = "kind" if "kind" in tp_images.columns else (
+        "kind_guess" if "kind_guess" in tp_images.columns else None)
+    tp = tp_images.copy()
+    tp["sku"] = tp["sku"].astype(str).str.strip()
+    # 讀不到的檔一律排除 —— 補一張打不開的圖比留白更糟，
+    # 後面每一支程式都會在它上面失敗一次。
+    if kind_col:
+        tp = tp[~tp[kind_col].astype(str).str.startswith("無法解析")]
+        tp["_rank"] = tp[kind_col].map(
+            {k: i for i, k in enumerate(TECHPACK_IMAGE_ORDER)}).fillna(99)
+    else:
+        tp["_rank"] = 0
+    # 同一款有多張時，先照類型排，再取檔案較大的（通常是主圖不是縮圖）
+    if "bytes" in tp.columns:
+        tp = tp.sort_values(["_rank", "bytes"], ascending=[True, False])
+    else:
+        tp = tp.sort_values("_rank")
+    best = tp.drop_duplicates("sku").set_index("sku")["image_path"]
+
+    need = master["image_path"].isna()
+    filled = master.loc[need, "sku"].map(best)
+    n = int(filled.notna().sum())
+    master.loc[need, "image_path"] = filled
+    # 標明這張圖的來源。混在同一欄而不說，之後沒有人分得出
+    # 「這款的圖是系統圖還是指示書裡的照片」。
+    if "image_source" not in master.columns:
+        master["image_source"] = pd.NA
+    master.loc[master["image_path"].notna() & master["image_source"].isna(),
+               "image_source"] = "系統圖"
+    master.loc[need & filled.notna(), "image_source"] = "裁縫指示書"
+    return master, n
+
+
 def build_master(
     sales: pd.DataFrame,
     attributes: pd.DataFrame | None = None,
     techpack: pd.DataFrame | None = None,
     feedback_summary: pd.DataFrame | None = None,
     cfg: Config | None = None,
+    techpack_images: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """回傳 (主表, join 稽核表)。sales 應已彙總到 sku × season 粒度。"""
     cfg = cfg or get_config()
@@ -84,6 +143,13 @@ def build_master(
         audit.add("併入 影像屬性", before, int(matched), "以 sku 對應系統圖")
     else:
         audit.add("併入 影像屬性", len(master), 0, "無影像資料")
+
+    # 沒有系統圖的款，改用指示書裡抽出來的圖
+    if techpack_images is not None and not techpack_images.empty:
+        master, n_tp = fill_images_from_techpack(master, techpack_images)
+        have = int(master["image_path"].notna().sum()) if "image_path" in master else 0
+        audit.add("補上 指示書影像", len(master), have,
+                  f"其中 {n_tp:,} 款原本沒有系統圖")
 
     # --- 裁縫指示書：先 sku，未命中再退回 style_code ---
     if techpack is not None and not techpack.empty:

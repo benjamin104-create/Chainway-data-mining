@@ -28,6 +28,21 @@ from pathlib import Path
 
 WHITE = (255, 255, 255)
 
+# PIL 預設在 8,900 萬像素以上會警告（防解壓縮炸彈）。指示書裡有掃描整頁的
+# 圖，實測有一張 1.26 億像素 —— 那是真的圖，不是攻擊，但完整解碼成 RGB
+# 要吃掉約 380MB 記憶體。所以把上限明確調高，同時在載入時用 draft()
+# 讓 JPEG 在解碼階段就縮小，不要先展開成全尺寸再縮。
+MAX_PIXELS = 250_000_000
+# 分析用不到超過這個邊長。位置與顏色都是相對量，解析度再高也不會更準。
+DECODE_MAX_SIDE = 2000
+
+
+def _configure() -> None:
+    from PIL import Image
+
+    if Image.MAX_IMAGE_PIXELS is None or Image.MAX_IMAGE_PIXELS < MAX_PIXELS:
+        Image.MAX_IMAGE_PIXELS = MAX_PIXELS
+
 
 def to_rgb(img, *, background: tuple[int, int, int] = WHITE):
     """把任何模式的圖轉成 RGB，透明處合成到 background 而不是黑色。"""
@@ -45,10 +60,26 @@ def to_rgb(img, *, background: tuple[int, int, int] = WHITE):
     return img.convert("RGB")
 
 
-def load_rgb(path: str | Path, *, background: tuple[int, int, int] = WHITE):
-    """開檔並轉 RGB。回傳的圖已經 load()，可以安全地在 with 之外使用。"""
+def load_rgb(path: str | Path, *, background: tuple[int, int, int] = WHITE,
+             max_side: int = DECODE_MAX_SIDE):
+    """開檔並轉 RGB。回傳的圖已經 load()，可以安全地在 with 之外使用。
+
+    超大的圖用 draft() 在解碼階段就縮小 —— 先展開成全尺寸再縮，
+    一張 1.26 億像素的掃描頁會瞬間吃掉幾百 MB，而後續分析根本用不到
+    那個解析度。draft() 只對 JPEG 有效，其他格式解碼後再縮。
+    """
     from PIL import Image
 
+    _configure()
     with Image.open(path) as im:
+        if max_side and max(im.size) > max_side:
+            try:
+                im.draft("RGB", (max_side, max_side))
+            except Exception:
+                pass        # 非 JPEG 沒有 draft，照常走下面的路
         im.load()
-        return to_rgb(im, background=background)
+        out = to_rgb(im, background=background)
+        if max_side and max(out.size) > max_side:
+            out = out.copy()
+            out.thumbnail((max_side, max_side))
+        return out
