@@ -128,15 +128,26 @@ def cell_pattern(cell: np.ndarray) -> dict[str, Any]:
     bal = min(dx, dy) / hi if hi > 1e-9 else 0.0
     sp = _spread(g)
 
+    # 判斷順序有意義，排錯就會互相攔截。實測踩到兩次：
+    #
+    # 一、鋪滿度那一關原本排在方向之前，把明顯的橫條紋判成「局部圖案」——
+    #     條紋的梯度集中在細線上，鋪滿度天生就低（0.25），會被誤攔。
+    #     方向不平衡是條紋最乾淨的證據，要先問。
+    #
+    # 二、週期性（自相關）**完全沒有鑑別力**，已經從判斷裡拿掉。
+    #     實測：素面 0.92、繡花 0.93、條紋 0.95、格紋 0.87 —— 全部一樣高。
+    #     它量到的是針織底紋與影像雜訊的規律，不是花色的規律。
+    #     數值仍然回傳供人參考，但不再參與分類。
     if hi < TEX_HI:
         kind = "素面"
+    elif bal < DIR_BALANCE:
+        # 能量明顯偏一個方向 → 條紋（橫或直）
+        kind = "條紋（橫／直）"
     elif sp < SPREAD_MIN:
-        # 能量擠在一小塊 → 是圖案，不是布的花色
+        # 兩向都有能量、但擠在一小塊 → 是圖案，不是布的花色
         kind = "局部圖案（繡花／印花）"
-    elif bal >= DIR_BALANCE:
-        kind = "格紋" if max(px, py) >= 0.30 else "織紋／雜紋"
     else:
-        kind = "條紋" if max(px, py) >= 0.30 else "單向紋理"
+        kind = "格紋／織紋"
     return {"花色": kind, "橫能量": round(dx, 4), "縱能量": round(dy, 4),
             "方向平衡": round(bal, 3), "週期性": round(max(px, py), 3),
             "鋪滿度": round(sp, 3)}
