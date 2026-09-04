@@ -1084,7 +1084,7 @@ def cmd_locate(args) -> int:
     print(batch.summary(df).to_string(index=False))
     claimed = df["可宣稱"].mean()
     print(f"\n  敢宣稱分區的比例 {claimed:.0%}"
-          f"（其餘是素色或跨區，刻意不硬歸類）")
+          f"（其餘是無異色圖案或跨區，刻意不硬歸類）")
 
     sheet = out / "定位覆核.html"
     document.write(sheet, locate_sheet.build(df, per_zone=args.per_zone))

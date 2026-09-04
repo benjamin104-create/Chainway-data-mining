@@ -82,7 +82,9 @@ def describe(img, category: str | None = None) -> dict[str, Any]:
             "圖案塊數": len(res["裝飾"]),
         })
     else:
-        out.update({"圖案位置": "素色", "圖案佔比": 0.0,
+        # 「無異色圖案」不等於「素面」。同色的荷葉、剪接、褶、假兩件
+        # 這支程式看不到，而貴司 144 個暢銷款裡有 31% 正是那種款。
+        out.update({"圖案位置": "無異色圖案", "圖案佔比": 0.0,
                     "圖案可宣稱": False, "圖案塊數": 0})
 
     out.update({k: v for k, v in silhouette.measure(img, category).items()
@@ -105,8 +107,8 @@ def one_line(a: dict[str, Any]) -> str:
     bits = [x for x in (a.get("領型"), a.get("袖長"), a.get("衣長")) if x]
     shape = "、".join(bits)
     pos = a.get("圖案位置")
-    if pos == "素色":
-        motif = "素面"
+    if pos == "無異色圖案":
+        motif = "沒有異色圖案（同色的剪接與荷葉看不到）"
     elif a.get("圖案可宣稱"):
         motif = f"圖案在{pos}（佔 {a.get('圖案佔比', 0):.1%}）"
     else:
