@@ -458,6 +458,16 @@ def cmd_feedback(args) -> int:
 def cmd_search(args) -> int:
     from .search.index import VisualIndex, format_results
 
+    if args.self_test:
+        from .search.confidence import CASES, check
+
+        bad = check()
+        for b in bad:
+            _warn(b)
+        if not bad:
+            _ok(f"信心判定：{len(CASES)} 個已知案例全部通過")
+        return 1 if bad else 0
+
     cfg = get_config()
     idx = VisualIndex.load(cfg)
     if args.image:
@@ -471,7 +481,27 @@ def cmd_search(args) -> int:
         _warn("請指定 --image / --text / --sku 其中之一")
         return 1
     print()
+    if res.empty:
+        _warn("沒有任何結果")
+        return 1
     print(format_results(res, cfg).to_string(index=False))
+
+    # 判定放在結果**後面**，因為它是對這份結果的評語；放前面會被當成標題略過。
+    # 沒有這一段的話，系統永遠回傳一個排名第一的貨號，不管那張圖跟庫裡的
+    # 東西有多不像 —— 最常見的失敗不是「找不到」，是找到一個錯的，
+    # 而錯的那個看起來和對的一模一樣。
+    sims = res.attrs.get("全部相似度")
+    if sims is not None:
+        from .search.confidence import assess, one_line
+
+        a = assess(sims)
+        print()
+        print(f"  → {one_line(a)}")
+        if a["判定"] in ("找不到", "分不出來"):
+            print("     上面那個排名第一，是「這批候選裡最接近的」，"
+                  "不是「就是這一款」。")
+        print("     ★ 這個判定的門檻還沒用貴司資料校準過。"
+              "跑過 eval-search 之後可以回頭調。")
     return 0
 
 
@@ -2006,6 +2036,8 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--top-k", type=int, default=None)
     s.add_argument("--category", help="限定品類（TOP/BOTTOM_PANTS/…），可大幅提高命中率")
     s.add_argument("--crops", action="store_true", help="穿搭照：切塊後逐件搜尋")
+    s.add_argument("--self-test", action="store_true",
+                   help="只驗信心判定的已知案例，不讀索引（改門檻之後用這個驗）")
     s.set_defaults(func=cmd_search)
 
     ev = sub.add_parser("eval-search", help="量測以圖搜貨號的準確率（可比較不同系統）")

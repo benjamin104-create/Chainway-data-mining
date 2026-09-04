@@ -120,7 +120,12 @@ class VisualIndex:
         out = self.meta.iloc[idx].copy()
         out.insert(0, "similarity", np.round([s for _, s in rows], 4))
         out.insert(1, "rank", range(1, len(out) + 1))
-        return out.reset_index(drop=True)
+        out = out.reset_index(drop=True)
+        # 把「對庫裡每一款的相似度」一起帶出去。判斷第一名可不可信，
+        # 靠的是它在整個分布裡有多離群 —— 只看前十名看不出這件事，
+        # 因為前十名本來就都是最高的那幾個。
+        out.attrs["全部相似度"] = sims[mask]
+        return out
 
     def search_by_image(self, image_path: str | Path, top_k: int | None = None,
                         category: str | None = None) -> pd.DataFrame:
@@ -157,8 +162,16 @@ class VisualIndex:
         vecs = embed_images([c for _, c in regions], self.cfg, show_progress=False)
 
         best: dict[str, tuple[float, int, str]] = {}   # sku → (分數, 索引列, 命中區塊)
+        # 判斷可不可信要用「贏的那個區塊」的相似度分布 ——
+        # 那才是實際做出這個結論的那一次比對。把各區塊的分布混在一起，
+        # 背景區塊那一堆低分會把平均拉低，讓每個結果看起來都很突出。
+        best_sims = None
+        best_top = -np.inf
         for name, v in zip(names, vecs):
             res = self._search_vec(v, top_k * 3, category)
+            if not res.empty and float(res["similarity"].iloc[0]) > best_top:
+                best_top = float(res["similarity"].iloc[0])
+                best_sims = res.attrs.get("全部相似度")
             for _, r in res.iterrows():
                 sku = r["sku"]
                 prev = best.get(sku)
@@ -178,6 +191,8 @@ class VisualIndex:
         out = pd.DataFrame(rows)
         out.insert(0, "similarity", out.pop("similarity"))
         out.insert(1, "rank", range(1, len(out) + 1))
+        if best_sims is not None:
+            out.attrs["全部相似度"] = best_sims
         return out
 
     def search_by_text(self, query: str, top_k: int | None = None,
