@@ -1484,13 +1484,37 @@ def cmd_silhouette(args) -> int:
     if not src.exists():
         _warn(f"找不到量測表 {src}。先跑：python -m chainway.cli locate")
         return 1
+    measured = pd.read_csv(src)
+
+    if args.sheet:
+        # 覆核圖走自己的路，而且**排在讀主表之前** —— 它不需要銷售資料。
+        # 「量得準不準」和「準了之後跟銷售有沒有關係」是兩個問題，
+        # 第一個答不出來，第二個不必問。所以沒建主表也要看得到這份。
+        from .report import document, silhouette_sheet as sh
+        from .report.inventory_report import index_images
+
+        roots = [r for r in cfg.path_list("system_images") if r]
+        images = index_images(roots) if roots else {}
+        if not images:
+            _warn("沒有讀到系統圖，畫不出覆核圖。"
+                  "確認 settings.yaml 的 paths.system_images。")
+            return 1
+        out = (Path(args.out) if args.out
+               else cfg.path("outputs") / "版型量測覆核.html")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(document.as_document(sh.build(measured, images)),
+                       encoding="utf-8")
+        _ok(f"覆核圖：{out}")
+        print("  看線畫得對不對，不要看標籤 —— 標籤是線推出來的。")
+        print("  畫錯的把貨號記下來告訴我。")
+        return 0
+
     try:
         master = load_master(cfg)
     except FileNotFoundError:
         _warn("找不到主表，請先執行：python -m chainway.cli build")
         return 1
 
-    measured = pd.read_csv(src)
     res = ss.analyse(measured, master)
     if not res.get("可分析"):
         _warn(res.get("說明", "算不出來"))
@@ -2111,6 +2135,9 @@ def main(argv: list[str] | None = None) -> int:
     slh = sub.add_parser("silhouette",
                          help="★ 版型 × 銷售：領型／袖長／衣長跟賣不賣得動的關係")
     slh.add_argument("--data", help="量測表 CSV；預設用 locate 產出的那份")
+    slh.add_argument("--sheet", action="store_true",
+                     help="只出覆核圖：把量到的四條線畫回原圖，讓人看線對不對")
+    slh.add_argument("--out", help="覆核圖輸出位置")
     slh.set_defaults(func=cmd_silhouette)
 
     cus = sub.add_parser("customer-survey",
