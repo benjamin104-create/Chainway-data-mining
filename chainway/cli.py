@@ -1500,6 +1500,65 @@ def cmd_counter_form(args) -> int:
 
 
 # ------------------------------------------------------------- silhouette
+def cmd_grid(args) -> int:
+    """把幾個貨號的系統圖各切成九宮格，並排印出來比。
+
+    為什麼要並排：兩件衣服的品名可能長得很像（「領口荷葉單邊蝴蝶結針織
+    上衣」vs「蝴蝶結裝飾領口針織上衣」），但只要其中一件中段有橫條紋，
+    人眼半秒就分得出，而品名裡一個字都沒提。九宮格就是把那件事變成數字。
+    """
+    from .report.inventory_report import index_images
+    from .vision import grid as G
+
+    cfg = get_config()
+    roots = [r for r in cfg.path_list("system_images") if r]
+    images = index_images(roots) if roots else {}
+    if not images:
+        _warn("沒有讀到系統圖。確認 settings.yaml 的 paths.system_images。")
+        return 1
+    print(f"影像庫索引到 {len(images):,} 個貨號")
+
+    got: list[tuple[str, dict]] = []
+    for sku in args.sku:
+        p = images.get(sku)
+        if p is None:
+            _warn(f"{sku}：影像庫裡找不到這個貨號")
+            continue
+        try:
+            from .imageio import load_rgb
+            res = G.analyse(load_rgb(p), use_mask=not args.no_mask)
+        except Exception as exc:
+            _warn(f"{sku}：讀不到或量不了（{type(exc).__name__}: {exc}）")
+            continue
+        got.append((sku, res))
+        print(f"  {sku}  ←  {p}")
+
+    if not got:
+        _warn("一個都沒有讀到")
+        return 1
+
+    for sku, res in got:
+        print(f"\n=== {sku} ===")
+        print(f"{'格':<6}{'HEX':<10}{'色號':<5}{'花色':<24}{'能量':>7}{'平衡':>7}{'鋪滿':>7}")
+        for c in res["格"]:
+            print(f"{c['格']:<6}{c.get('HEX',''):<10}{str(c.get('色號')):<5}"
+                  f"{c['花色']:<24}{max(c['橫能量'], c['縱能量']):>7.3f}"
+                  f"{c['方向平衡']:>7.2f}{c['鋪滿度']:>7.2f}")
+
+    if len(got) >= 2:
+        (sa, ra), (sb, rb) = got[0], got[1]
+        cmp = G.compare(ra, rb)
+        print(f"\n=== {sa} vs {sb} ===")
+        print(f"顏色一致 {cmp['顏色相同']}/{cmp['格數']} 格"
+              f"　花色一致 {cmp['花色相同']}/{cmp['格數']} 格")
+        print(f"\n{'格':<6}{'A 色':<6}{'B 色':<6}{'A 花色':<24}{'B 花色':<24}")
+        for r in cmp["逐格"]:
+            mark = "" if r["花色相同"] else "  ← 不同"
+            print(f"{r['格']:<6}{str(r['A色']):<6}{str(r['B色']):<6}"
+                  f"{r['A花色']:<24}{r['B花色']:<24}{mark}")
+    return 0
+
+
 def cmd_silhouette(args) -> int:
     """版型 × 銷售：領型、袖長、衣長跟賣不賣得動有沒有關係。
 
@@ -2163,6 +2222,13 @@ def main(argv: list[str] | None = None) -> int:
     ctf.add_argument("--no-images", action="store_true", help="不內嵌照片")
     ctf.add_argument("--out", help="HTML 輸出位置")
     ctf.set_defaults(func=cmd_counter_form)
+
+    grd = sub.add_parser("grid",
+                         help="★ 九宮格比對：把幾個貨號的系統圖切成 3×3 並排比")
+    grd.add_argument("sku", nargs="+", help="貨號，可以給多個")
+    grd.add_argument("--no-mask", action="store_true",
+                     help="不先框出衣服，直接對整張切（穿搭照用這個）")
+    grd.set_defaults(func=cmd_grid)
 
     slh = sub.add_parser("silhouette",
                          help="★ 版型 × 銷售：領型／袖長／衣長跟賣不賣得動的關係")
