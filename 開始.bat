@@ -41,10 +41,17 @@ set "SRC="
 for /d %%D in ("%TMPX%\Chainway-data-mining-*") do set "SRC=%%D"
 if not defined SRC goto nodownload
 
-rem Copy over the top. /XD keeps your virtual environment, your settings
-rem and your generated data - only the program code is replaced.
+rem Copy over the top. /XD keeps your virtual environment and your data.
+rem
+rem The config FOLDER used to be excluded as well, to protect settings.yaml
+rem (it holds your own folder paths). That was too blunt: every config file
+rem added later - color_codes.yaml, customer_survey.yaml, updated taxonomy -
+rem never reached this machine, and the failure showed up much later as
+rem "FileNotFoundError: config\color_codes.yaml" in an unrelated command.
+rem Now only settings.yaml itself is protected, with /XF.
 robocopy "%SRC%" "%CD%" /E /NFL /NDL /NJH /NJS /NP ^
-  /XD ".venv" "data" "config" ".git" "__pycache__" >nul
+  /XD ".venv" "data" ".git" "__pycache__" ^
+  /XF "settings.yaml" >nul
 if errorlevel 8 goto nodownload
 echo   Code updated.
 

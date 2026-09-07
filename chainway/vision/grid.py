@@ -156,18 +156,31 @@ def cell_pattern(cell: np.ndarray) -> dict[str, Any]:
 def cell_color(cell: np.ndarray, mask: np.ndarray | None = None) -> dict[str, Any]:
     """一格的主色 → LAB 與色號。取中位數，不取平均 ——
     平均會被一個亮反光或一顆鈕釦拉走，中位數不會。"""
-    from ..search.colorcode import classify, load_table
-    from ..search.palette import _srgb_to_lab
-
     px = cell.reshape(-1, 3) if mask is None else cell[mask]
     if len(px) < 30:
         return {"色號": None, "說明": "有效像素太少"}
     med = np.median(px.astype(np.float64), axis=0)
-    lab = _srgb_to_lab(med.reshape(1, 3))[0]
-    r = classify(lab, load_table())
-    return {"HEX": "#%02X%02X%02X" % tuple(int(v) for v in med),
-            "色號": r.get("色號"), "色名": r.get("名稱"),
-            "色相族": r.get("色相族"), "ΔE": r.get("ΔE2000")}
+    out = {"HEX": "#%02X%02X%02X" % tuple(int(v) for v in med), "色號": None}
+
+    # 色卡對照是**加分項**，不是必要條件。缺了色號表照樣要能判花色 ——
+    # 「這一格是不是橫條紋」跟色卡完全無關。
+    #
+    # 實測踩到：使用者機器上 config/color_codes.yaml 不存在（一鍵檔更新時
+    # 整個 config 資料夾被排除），整支 grid 就 FileNotFoundError 掛掉，
+    # 連跟顏色無關的花色判定都一起沒了。一個附加功能不該讓主功能停擺。
+    try:
+        from ..search.colorcode import classify, load_table
+        from ..search.palette import _srgb_to_lab
+
+        lab = _srgb_to_lab(med.reshape(1, 3))[0]
+        r = classify(lab, load_table())
+        out.update({"色號": r.get("色號"), "色名": r.get("名稱"),
+                    "色相族": r.get("色相族"), "ΔE": r.get("ΔE2000")})
+    except FileNotFoundError:
+        out["色號說明"] = "沒有色卡對照表（config/color_codes.yaml），只給 HEX"
+    except Exception as exc:
+        out["色號說明"] = f"色號對照失敗（{type(exc).__name__}）"
+    return out
 
 
 def analyse(img, *, n: int = 3, use_mask: bool = True) -> dict[str, Any]:
