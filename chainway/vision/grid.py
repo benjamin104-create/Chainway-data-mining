@@ -222,6 +222,60 @@ def analyse(img, *, n: int = 3, use_mask: bool = True) -> dict[str, Any]:
     return {"格數": len(cells), "格": cells, "外框": box}
 
 
+def garment_color(img) -> dict[str, Any]:
+    """整件衣服的主色 —— **只取衣服像素，排除背景**。
+
+    為什麼要排除背景：系統圖是白底去背，九宮格的四角常常整格都是白的。
+    實測 KA1369013 的左上與右上是 #FCFCFB，那是紙不是衣服。
+    連背景一起平均，深色衣服會被拉淺，比對就整個歪掉。
+
+    取中位數不取平均：一顆亮鈕釦或一道反光會把平均拉走，中位數不會。
+    """
+    from ..imageio import to_rgb
+    from .locate import garment_mask
+
+    a = np.asarray(to_rgb(img))
+    try:
+        mask, box = garment_mask(img)
+        k = a.shape[0] / mask.shape[0]
+        # 遮罩是在縮小的副本上算的，取像素前先把它放大回原尺寸
+        from PIL import Image as _I
+        m = np.asarray(_I.fromarray((mask * 255).astype(np.uint8))
+                       .resize((a.shape[1], a.shape[0]), _I.NEAREST)) > 127
+    except Exception:
+        m = None
+    px = a[m] if m is not None and m.sum() >= 100 else a.reshape(-1, 3)
+    med = np.median(px.astype(np.float64), axis=0)
+    out = {"HEX": "#%02X%02X%02X" % tuple(int(v) for v in med),
+           "RGB": [int(v) for v in med], "衣服像素": int(len(px))}
+    try:
+        from ..search.colorcode import classify, load_table
+        from ..search.palette import _srgb_to_lab
+
+        lab = _srgb_to_lab(med.reshape(1, 3))[0]
+        out["LAB"] = [round(float(v), 1) for v in lab]
+        r = classify(lab, load_table())
+        out.update({"色號": r.get("色號"), "色名": r.get("名稱"),
+                    "色相族": r.get("色相族")})
+    except Exception:
+        from ..search.palette import _srgb_to_lab
+        out["LAB"] = [round(float(v), 1)
+                      for v in _srgb_to_lab(med.reshape(1, 3))[0]]
+    return out
+
+
+def color_distance(lab_a, lab_b) -> float:
+    """兩個顏色差多少（ΔE2000）。數字越小越像。
+
+    用 ΔE2000 而不是 RGB 距離：RGB 上等距的兩步，人眼看到的差異可以差
+    好幾倍，尤其在深色區。深藏青與深紫在 RGB 上很近，在 ΔE 上分得開。
+    """
+    from ..search.colorcard import delta_e_2000
+
+    return float(np.ravel(delta_e_2000(
+        list(lab_a), np.asarray(lab_b, dtype=float).reshape(1, 3)))[0])
+
+
 def fingerprint(res: dict[str, Any]) -> str:
     """壓成一行，方便並排看與比對。"""
     out = []

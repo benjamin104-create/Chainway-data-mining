@@ -1518,6 +1518,67 @@ def cmd_grid(args) -> int:
         return 1
     print(f"影像庫索引到 {len(images):,} 個貨號")
 
+    # --like：給一個顏色，把候選按「衣服主色有多接近」排出來。
+    #
+    # 這條是使用者的真實資料逼出來的。他給了正解 KA1369013，並指出
+    # KA1259003 中段有橫條紋、一看就不是同一件。跑下去才發現更基本的事：
+    # 兩件的**顏色根本不同** —— KA1369013 全部 69（深藏青），
+    # KA1259003 是 16/60/81/10/11（粉、藕、暗紅）。程式自己算出
+    # 「顏色一致 1/9 格」。光看顏色就該淘汰，而我先前的排名完全沒用顏色，
+    # 一直在調紋理。紋理在真圖上分不出條紋與素面（針織紋路與 JPEG 雜訊
+    # 就衝破門檻），顏色卻乾淨俐落。
+    if args.like:
+        from .imageio import load_rgb
+        from .search.palette import _srgb_to_lab
+        import numpy as _np
+
+        hexv = args.like.lstrip("#")
+        if len(hexv) != 6:
+            _warn("--like 要給六碼十六進位色，例如 --like 1E263E")
+            return 1
+        rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
+                        dtype=float)
+        qlab = _srgb_to_lab(rgb)[0]
+        print(f"查詢色 #{hexv.upper()}  LAB({qlab[0]:.0f},{qlab[1]:.0f},{qlab[2]:.0f})")
+
+        pool = {k: v for k, v in images.items()
+                if not args.season or k.startswith(args.season)}
+        if not pool:
+            _warn(f"沒有貨號以 {args.season} 開頭")
+            return 1
+        print(f"比對範圍 {len(pool):,} 款"
+              + (f"（{args.season}）" if args.season else "（全庫）"))
+
+        rows = []
+        for i, (sku, p) in enumerate(sorted(pool.items()), 1):
+            if args.limit and i > args.limit:
+                break
+            try:
+                c = G.garment_color(load_rgb(p))
+                rows.append({"ΔE": round(G.color_distance(qlab, c["LAB"]), 1),
+                             "貨號": sku, "HEX": c["HEX"],
+                             "色號": c.get("色號"), "色名": c.get("色名", "")})
+            except Exception:
+                continue
+            if i % 200 == 0:
+                print(f"  …已量 {i}")
+        if not rows:
+            _warn("一張都量不到")
+            return 1
+        rows.sort(key=lambda r: r["ΔE"])
+        print(f"\n最接近的 {min(args.top, len(rows))} 款（ΔE 越小越像）：")
+        print(f"{'名次':<5}{'ΔE':>7}  {'貨號':<12}{'HEX':<10}{'色號':<5}{'色名'}")
+        for n, r in enumerate(rows[:args.top], 1):
+            print(f"{n:<5}{r['ΔE']:>7}  {r['貨號']:<12}{r['HEX']:<10}"
+                  f"{str(r['色號']):<5}{r['色名'] or ''}")
+        for want in args.sku:
+            hit = [(n, r) for n, r in enumerate(rows, 1) if r["貨號"] == want]
+            if hit:
+                n, r = hit[0]
+                print(f"\n  ★ {want} 排第 {n} 名 / {len(rows)}"
+                      f"　ΔE {r['ΔE']}　{r['HEX']}")
+        return 0
+
     got: list[tuple[str, dict]] = []
     for sku in args.sku:
         p = images.get(sku)
@@ -2225,7 +2286,13 @@ def main(argv: list[str] | None = None) -> int:
 
     grd = sub.add_parser("grid",
                          help="★ 九宮格比對：把幾個貨號的系統圖切成 3×3 並排比")
-    grd.add_argument("sku", nargs="+", help="貨號，可以給多個")
+    grd.add_argument("sku", nargs="*", help="貨號，可以給多個")
+    grd.add_argument("--like", metavar="HEX",
+                     help="給一個顏色（例：1E263E），排出主色最接近的款")
+    grd.add_argument("--season", metavar="KA136", help="只比某一季")
+    grd.add_argument("--top", type=int, default=15, help="列前幾名（預設 15）")
+    grd.add_argument("--limit", type=int, default=0, metavar="N",
+                     help="最多量幾張（0 = 不限；圖多時先用小一點的數字試）")
     grd.add_argument("--no-mask", action="store_true",
                      help="不先框出衣服，直接對整張切（穿搭照用這個）")
     grd.set_defaults(func=cmd_grid)
