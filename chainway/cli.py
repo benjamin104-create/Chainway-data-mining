@@ -1499,7 +1499,282 @@ def cmd_counter_form(args) -> int:
     return 0
 
 
-# ------------------------------------------------------------- silhouette
+# ------------------------------------------------------------------ grid
+def _grid_master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
+    """主表 → `{貨號: 品名}` 與 `{貨號: {售罄, 定價}}`。讀不到就回空的。
+
+    找到貨號之後，最想知道的下一件事就是「它賣得怎麼樣」。
+    這一段是整套系統的終點：圖 → 貨號 → 銷售。
+    """
+    names: dict[str, str] = {}
+    sales: dict[str, dict] = {}
+    try:
+        from .merge.build_master import load_master
+
+        mm = load_master(cfg)
+        key = next((c for c in ("style_code", "sku", "款號")
+                    if c in mm.columns), None)
+        nm_col = next((c for c in ("product_name", "品名")
+                       if c in mm.columns), None)
+        if key and nm_col:
+            names = dict(zip(mm[key].astype(str),
+                             mm[nm_col].fillna("").astype(str)))
+        st = next((c for c in ("sell_through_rate", "銷售率", "售罄率")
+                   if c in mm.columns), None)
+        pr = next((c for c in ("price", "定價") if c in mm.columns), None)
+        if key and st:
+            for _, r in mm.iterrows():
+                sales[str(r[key])] = {
+                    "售罄": r.get(st), "定價": r.get(pr) if pr else None}
+    except Exception:
+        pass
+    return names, sales
+
+
+def _garment_colors(cfg, images: dict, skus, *, recolor: bool = False,
+                    limit: int = 0) -> dict[str, dict]:
+    """量這些貨號的衣服主色，量過的存快取。
+
+    主色算過一次就存起來。全庫 3,323 張，第一次要幾分鐘，之後每次查詢
+    都是秒回 —— 不然每問一張穿搭照就要重跑一次全庫，這功能實務上沒有
+    人會用。特徵先篩過之後通常只剩幾十張要量，第一次跑也是幾秒。
+    """
+    from .imageio import load_rgb
+    from .vision import grid as G
+
+    cache_p = cfg.path("interim") / "garment_colors.csv"
+    cache: dict[str, dict] = {}
+    if cache_p.exists() and not recolor:
+        try:
+            cdf = pd.read_csv(cache_p)
+            for _, r in cdf.iterrows():
+                cache[str(r["貨號"])] = {
+                    "LAB": [float(r["L"]), float(r["a"]), float(r["b"])],
+                    "HEX": r.get("HEX"), "色號": r.get("色號"),
+                    "色名": r.get("色名") if pd.notna(r.get("色名")) else ""}
+            print(f"讀到主色快取 {len(cache):,} 筆（--recolor 可強制重算）")
+        except Exception:
+            cache = {}
+
+    want = list(skus)
+    if limit:
+        want = want[:limit]
+    fresh = 0
+    out: dict[str, dict] = {}
+    for sku in want:
+        c = cache.get(sku)
+        if c is None:
+            p = images.get(sku)
+            if p is None:
+                continue
+            try:
+                c = G.garment_color(load_rgb(p))
+            except Exception:
+                continue
+            cache[sku] = c
+            fresh += 1
+            if fresh % 200 == 0:
+                print(f"  …新算了 {fresh} 張")
+        if c.get("LAB"):
+            out[sku] = c
+
+    if fresh:
+        cache_p.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([
+            {"貨號": k, "L": v["LAB"][0], "a": v["LAB"][1], "b": v["LAB"][2],
+             "HEX": v.get("HEX"), "色號": v.get("色號"),
+             "色名": v.get("色名", "")}
+            for k, v in cache.items() if v.get("LAB")
+        ]).to_csv(cache_p, index=False, encoding="utf-8-sig")
+        print(f"  新算 {fresh} 張，快取存到 {cache_p}")
+    return out
+
+
+def _grid_search(args, cfg, images: dict) -> int:
+    """穿搭照 → 貨號。**先特徵，後顏色。**
+
+    ## 為什麼是這個順序
+
+    使用者的原話：「我和你說的是 先確認有甚麼特徵，所以第一是特徵，
+    而不是顏色。」這是對的，而且有具體理由：
+
+    **顏色會騙人，特徵不會。** 同一件藏青針織，系統圖是棚拍白底，
+    穿搭照是室內黃光，量出來的主色可以差到十幾個 ΔE。反過來，
+    「蝴蝶結」「領口」「針織」這幾個字，光線再怎麼變都還是那幾個字。
+
+    **淺色根本分不開。** 實測：藏青那題前 15 名的 ΔE 跨 2.1–6.4，
+    淺粉與淺膚那兩題卻是 1.6–3.8 與 2.0–3.6 —— 全部擠在 2 個 ΔE
+    單位內，那已經在量測雜訊裡了；而且兩張完全不同的衣服撈到同一批
+    候選（KA1161006、KA1479010 同時出現在兩題前三名）。顏色排第一關
+    的話，這兩題從第一步就錯了。
+
+    ## 但兩關都只能加分，不能當條件
+
+    這是拿一個真實錯誤換來的。正解是 KA1369013 蝴蝶結裝飾領口針織上衣，
+    照片上最顯眼的是胸前一大片剪接，我就要求品名必須含「荷葉／領片／
+    披領／披肩」，結果正解被**完全排除** —— 它的品名根本沒提那一片。
+
+    所以這裡：
+      第一關 特徵 —— IDF 加權品名比對，只排序不篩掉（`--shortlist` 只是
+                     為了少量幾張圖，不是判定）。
+      第二關 顏色 —— 只做兩件事：同分時 ΔE 小的排前面；ΔE 大到人眼
+                     一看就是兩個顏色（`--color-max`）的標「顏色對不上」
+                     **降到最後，但仍然印出來**。不刪。
+
+    舊順序（顏色先、品名後）在正解那一題量到 1/15。新順序的名次由
+    `--sku` 那一行印出來 —— 兩個都跑一次，用數字決定要留哪一個，
+    不要用我覺得。
+    """
+    from .search import by_description as BD
+
+    pool = {k: v for k, v in images.items()
+            if not args.season or k.startswith(args.season)}
+    if not pool:
+        _warn(f"沒有貨號以 {args.season} 開頭")
+        return 1
+    print(f"比對範圍 {len(pool):,} 款"
+          + (f"（{args.season}）" if args.season else "（全庫）"))
+
+    names, sales = _grid_master(cfg)
+
+    # ---------------------------------------------------------- 第一關：特徵
+    cand: list[str] = sorted(pool)
+    feat: dict[str, dict] = {}
+    if args.match:
+        terms = [t for t in args.match.replace(",", " ").split() if t]
+        if not names:
+            _warn("找不到主表的品名，特徵這關跳過（先跑選單 1 建主表）。")
+        elif not terms:
+            _warn("--match 沒有給詞。")
+        else:
+            sub = {k: names[k] for k in pool if names.get(k)}
+            ranked = BD.rank_terms(sub, terms, top=10 ** 6)
+            if ranked.empty:
+                _warn(f"{len(sub):,} 款品名裡沒有一款含這些詞，特徵這關不縮範圍。")
+            else:
+                for _, r in ranked.iterrows():
+                    feat[str(r["貨號"])] = {
+                        "特徵分": float(r["分數"]), "命中": r["命中"],
+                        "品名": r["品名"]}
+                n = min(max(args.shortlist, 1), len(ranked))
+                cand = ranked["貨號"].astype(str).head(n).tolist()
+                print(f"\n=== 第一關 特徵：{len(sub):,} 款裡 {len(ranked):,} "
+                      f"款品名命中，取前 {n} 進第二關 ===")
+                print(f"{'名次':<5}{'特徵分':>7}  {'貨號':<12}{'品名':<26}命中")
+                for i, r in ranked.head(min(n, 10)).iterrows():
+                    print(f"{int(r['排名']):<5}{r['分數']:>7.2f}  "
+                          f"{str(r['貨號']):<12}{str(r['品名'])[:24]:<26}"
+                          f"{r['命中']}")
+                # 分數擠在一起 = 這些詞沒有鑑別力（都是「上衣」這種到處都有
+                # 的字）。這時候縮候選是在賭運氣，把話講明白讓人自己放寬。
+                sp = float(ranked["分數"].iloc[0] - ranked["分數"].iloc[n - 1]) \
+                    if n >= 2 else 0.0
+                if n >= 2 and sp < 0.5:
+                    print(f"  ! 前 {n} 名的特徵分只跨 {sp:.2f} —— 這些詞分不出"
+                          f"東西，多給幾個罕見特徵詞，或把 --shortlist 開大。")
+                for want in args.sku:
+                    hit = ranked[ranked["貨號"].astype(str) == want]
+                    if hit.empty:
+                        print(f"  ★ {want} 品名一個詞都沒命中 —— "
+                              f"特徵這關看不到它（不是它不對，是品名沒寫）。")
+                    else:
+                        print(f"  ★ {want} 特徵關排第 {int(hit['排名'].iloc[0])}"
+                              f" / {len(ranked):,}")
+
+    # ---------------------------------------------------------- 第二關：顏色
+    qlab = None
+    colors: dict[str, dict] = {}
+    if args.like:
+        from .search.palette import _srgb_to_lab
+        import numpy as _np
+
+        hexv = args.like.lstrip("#")
+        if len(hexv) != 6:
+            _warn("--like 要給六碼十六進位色，例如 --like 1E263E")
+            return 1
+        rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
+                        dtype=float)
+        qlab = _srgb_to_lab(rgb)[0]
+        print(f"\n=== 第二關 顏色：查詢色 #{hexv.upper()}  "
+              f"LAB({qlab[0]:.0f},{qlab[1]:.0f},{qlab[2]:.0f}) ===")
+        colors = _garment_colors(cfg, images, cand,
+                                 recolor=args.recolor, limit=args.limit)
+        if not colors:
+            _warn("一張都量不到，只用特徵排序。")
+
+    from .vision import grid as G
+
+    rows: list[dict] = []
+    for sku in cand:
+        f = feat.get(sku, {})
+        c = colors.get(sku)
+        de = None
+        if c is not None and qlab is not None:
+            try:
+                de = round(G.color_distance(qlab, c["LAB"]), 1)
+            except Exception:
+                de = None
+        rows.append({
+            "貨號": sku, "ΔE": de,
+            "特徵分": round(f.get("特徵分", 0.0), 2),
+            "命中": f.get("命中", ""),
+            "品名": f.get("品名") or names.get(sku, ""),
+            "HEX": (c or {}).get("HEX"), "色號": (c or {}).get("色號"),
+            "色名": (c or {}).get("色名", ""),
+            # 顏色差到人眼一看就是兩個顏色 → 降到最後，但**不刪**。
+            # 25 是個判斷，不是量出來的：ΔE 2–3 幾乎同色、10 明顯不同、
+            # 25 以上不同色系（正解的藏青對上它登記的粉藕是 61）。
+            # 穿搭照的光線會把同一件衣服拉開十幾個 ΔE，所以門檻要鬆。
+            "顏色對不上": bool(de is not None and de > args.color_max),
+        })
+
+    if args.match and feat:
+        # 特徵是主排序。顏色只在同分時說話，以及把明顯不同色的壓到最後。
+        rows.sort(key=lambda r: (r["顏色對不上"], -r["特徵分"],
+                                 r["ΔE"] if r["ΔE"] is not None else 999))
+        title = "特徵排序，顏色只做同分裁決與淘汰"
+    elif qlab is not None:
+        rows.sort(key=lambda r: (r["ΔE"] if r["ΔE"] is not None else 999))
+        title = "只有顏色（沒給 --match）"
+    else:
+        _warn("--match 與 --like 至少要給一個。")
+        return 1
+
+    has_sale = bool(sales)
+    print(f"\n=== 結果（{title}）===")
+    head = f"{'名次':<5}{'特徵分':>7}{'ΔE':>7}  {'貨號':<12}{'品名':<26}"
+    if has_sale:
+        head += f"{'售罄':>7}{'定價':>9}  "
+    print(head + "命中")
+    for n, r in enumerate(rows[:args.top], 1):
+        star = "  ★" if r["貨號"] in args.sku else ""
+        mark = "  ← 顏色對不上" if r["顏色對不上"] else ""
+        de_txt = "—" if r["ΔE"] is None else f"{r['ΔE']:.1f}"
+        line = (f"{n:<5}{r['特徵分']:>7.2f}{de_txt:>7}"
+                f"  {r['貨號']:<12}{str(r['品名'])[:24]:<26}")
+        if has_sale:
+            s_ = sales.get(r["貨號"], {})
+            v, p_ = s_.get("售罄"), s_.get("定價")
+            line += (f"{v:>6.0%}" if isinstance(v, (int, float))
+                     else f"{'—':>7}")
+            line += (f"{p_:>9,.0f}" if isinstance(p_, (int, float))
+                     else f"{'—':>9}")
+            line += "  "
+        print(line + r["命中"] + star + mark)
+
+    for want in args.sku:
+        hit = [(n, r) for n, r in enumerate(rows, 1) if r["貨號"] == want]
+        if hit:
+            n, r = hit[0]
+            de = f"ΔE {r['ΔE']}" if r["ΔE"] is not None else "沒量到顏色"
+            print(f"\n  ★★ {want} 最後排第 {n} 名 / {len(rows)}"
+                  f"　特徵分 {r['特徵分']}　{de}　{r['HEX'] or ''}")
+        else:
+            print(f"\n  ★★ {want} 沒有進最後名單 —— "
+                  f"特徵關就沒撈到它（--shortlist 開大再跑一次）。")
+    return 0
+
+
 def cmd_grid(args) -> int:
     """把幾個貨號的系統圖各切成九宮格，並排印出來比。
 
@@ -1518,197 +1793,9 @@ def cmd_grid(args) -> int:
         return 1
     print(f"影像庫索引到 {len(images):,} 個貨號")
 
-    # --like：給一個顏色，把候選按「衣服主色有多接近」排出來。
-    #
-    # 這條是使用者的真實資料逼出來的。他給了正解 KA1369013，並指出
-    # KA1259003 中段有橫條紋、一看就不是同一件。跑下去才發現更基本的事：
-    # 兩件的**顏色根本不同** —— KA1369013 全部 69（深藏青），
-    # KA1259003 是 16/60/81/10/11（粉、藕、暗紅）。程式自己算出
-    # 「顏色一致 1/9 格」。光看顏色就該淘汰，而我先前的排名完全沒用顏色，
-    # 一直在調紋理。紋理在真圖上分不出條紋與素面（針織紋路與 JPEG 雜訊
-    # 就衝破門檻），顏色卻乾淨俐落。
-    if args.like:
-        from .imageio import load_rgb
-        from .search.palette import _srgb_to_lab
-        import numpy as _np
-
-        hexv = args.like.lstrip("#")
-        if len(hexv) != 6:
-            _warn("--like 要給六碼十六進位色，例如 --like 1E263E")
-            return 1
-        rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
-                        dtype=float)
-        qlab = _srgb_to_lab(rgb)[0]
-        print(f"查詢色 #{hexv.upper()}  LAB({qlab[0]:.0f},{qlab[1]:.0f},{qlab[2]:.0f})")
-
-        pool = {k: v for k, v in images.items()
-                if not args.season or k.startswith(args.season)}
-        if not pool:
-            _warn(f"沒有貨號以 {args.season} 開頭")
-            return 1
-        print(f"比對範圍 {len(pool):,} 款"
-              + (f"（{args.season}）" if args.season else "（全庫）"))
-
-        # 主色算過一次就存起來。全庫 3,323 張，第一次要幾分鐘，
-        # 之後每次查詢都是秒回 —— 不然每問一張穿搭照就要重跑一次全庫，
-        # 這功能實務上沒有人會用。
-        cache_p = cfg.path("interim") / "garment_colors.csv"
-        cache: dict[str, dict] = {}
-        if cache_p.exists() and not args.recolor:
-            try:
-                cdf = pd.read_csv(cache_p)
-                for _, r in cdf.iterrows():
-                    cache[str(r["貨號"])] = {
-                        "LAB": [float(r["L"]), float(r["a"]), float(r["b"])],
-                        "HEX": r.get("HEX"), "色號": r.get("色號"),
-                        "色名": r.get("色名") if pd.notna(r.get("色名")) else ""}
-                print(f"讀到快取 {len(cache):,} 筆（--recolor 可強制重算）")
-            except Exception:
-                cache = {}
-
-        rows, fresh = [], 0
-        for i, (sku, p) in enumerate(sorted(pool.items()), 1):
-            if args.limit and i > args.limit:
-                break
-            c = cache.get(sku)
-            if c is None:
-                try:
-                    c = G.garment_color(load_rgb(p))
-                    cache[sku] = c
-                    fresh += 1
-                except Exception:
-                    continue
-                if fresh % 200 == 0:
-                    print(f"  …新算了 {fresh} 張")
-            try:
-                rows.append({"ΔE": round(G.color_distance(qlab, c["LAB"]), 1),
-                             "貨號": sku, "HEX": c.get("HEX"),
-                             "色號": c.get("色號"), "色名": c.get("色名", "")})
-            except Exception:
-                continue
-
-        if fresh:
-            cache_p.parent.mkdir(parents=True, exist_ok=True)
-            pd.DataFrame([
-                {"貨號": k, "L": v["LAB"][0], "a": v["LAB"][1], "b": v["LAB"][2],
-                 "HEX": v.get("HEX"), "色號": v.get("色號"),
-                 "色名": v.get("色名", "")}
-                for k, v in cache.items() if v.get("LAB")
-            ]).to_csv(cache_p, index=False, encoding="utf-8-sig")
-            print(f"  新算 {fresh} 張，快取存到 {cache_p}")
-        if not rows:
-            _warn("一張都量不到")
-            return 1
-        rows.sort(key=lambda r: r["ΔE"])
-
-        # 顏色縮範圍，品名挑人 —— 兩個各自不夠強的訊號合起來才分得開。
-        #
-        # 拿使用者的真實資料量過（正解 KA1369013，KA136 季 176 款）：
-        #     只用品名          2 / 3,183
-        #     只用顏色          9 / 176   ← 一季裡藏青太多，分不出誰是誰
-        #     顏色前 15 + 品名  1 / 15    ← 3.80 分，第二名 2.55
-        #
-        # 顏色的作用是把「絕對不可能」的刷掉（粉色、米色、格紋外套），
-        # 品名的作用是在剩下的深藍裡挑出結構對的那一件。反過來做不行：
-        # 品名先篩會把正解排除掉（它的品名沒提胸前那一大片）。
-        if args.match:
-            terms = [t for t in args.match.replace(",", " ").split() if t]
-            names: dict[str, str] = {}
-            sales: dict[str, dict] = {}
-            try:
-                from .merge.build_master import load_master
-
-                mm = load_master(cfg)
-                key = next((c for c in ("style_code", "sku", "款號")
-                            if c in mm.columns), None)
-                nm_col = next((c for c in ("product_name", "品名")
-                               if c in mm.columns), None)
-                if key and nm_col:
-                    names = dict(zip(mm[key].astype(str),
-                                     mm[nm_col].fillna("").astype(str)))
-                # 找到貨號之後，最想知道的下一件事就是「它賣得怎麼樣」。
-                # 這一段是整套系統的終點：圖 → 貨號 → 銷售。
-                st = next((c for c in ("sell_through_rate", "銷售率", "售罄率")
-                           if c in mm.columns), None)
-                pr = next((c for c in ("price", "定價") if c in mm.columns), None)
-                if key and st:
-                    for _, r in mm.iterrows():
-                        sales[str(r[key])] = {
-                            "售罄": r.get(st), "定價": r.get(pr) if pr else None}
-            except Exception:
-                pass
-            if not names:
-                _warn("找不到主表的品名，跳過品名這一段（先跑選單 1 建主表）。")
-            else:
-                # 顏色沒有鑑別力時要自動放寬候選。
-                #
-                # 實測：藏青那題前 15 名的 ΔE 是 2.1–6.4，淺粉與淺膚那兩題
-                # 卻是 1.6–3.8 與 2.0–3.6 —— 全部擠在 2 個 ΔE 單位內，
-                # 那已經在量測雜訊裡了。而且兩張完全不同的衣服撈到同一批
-                # 候選（KA1161006、KA1479010 同時出現在兩題前三名），
-                # 那就是顏色失效的證據。
-                #
-                # 淺色在色卡上本來就比深色擁擠，這不是可以調參數解決的，
-                # 是色彩空間的性質。所以改成看「前 N 名的 ΔE 跨幅」：
-                # 跨幅小 = 這一批顏色都一樣，顏色這一關沒篩掉什麼，
-                # 候選要放寬，讓品名去做真正的區分。
-                n0 = max(args.shortlist, 1)
-                span = (rows[min(n0, len(rows)) - 1]["ΔE"] - rows[0]["ΔE"]
-                        if len(rows) >= 2 else 99.0)
-                if span < args.color_span and len(rows) > n0:
-                    n1 = min(len(rows), n0 * 4)
-                    print(f"\n  ! 前 {n0} 名的 ΔE 只跨 {span:.1f}"
-                          f"（< {args.color_span}）—— 顏色在這個色域分不出東西，"
-                          f"候選放寬到 {n1} 款讓品名去挑。")
-                    n0 = n1
-                short = rows[:n0]
-                scored = []
-                for r in short:
-                    nm = names.get(r["貨號"], "")
-                    hit = [t for t in terms if t in nm]
-                    scored.append({**r, "品名": nm, "命中": "+".join(hit),
-                                   "品名分": len(hit)})
-                scored.sort(key=lambda x: (-x["品名分"], x["ΔE"]))
-                has_sale = bool(sales)
-                print(f"\n=== 顏色前 {len(short)} 名，再用品名挑 ===")
-                head = (f"{'名次':<5}{'品名分':>6}{'ΔE':>7}  {'貨號':<12}"
-                        f"{'品名':<26}")
-                if has_sale:
-                    head += f"{'售罄':>7}{'定價':>9}  "
-                print(head + "命中")
-                for n, r in enumerate(scored, 1):
-                    star = "  ★" if r["貨號"] in args.sku else ""
-                    line = (f"{n:<5}{r['品名分']:>6}{r['ΔE']:>7}  {r['貨號']:<12}"
-                            f"{r['品名'][:24]:<26}")
-                    if has_sale:
-                        s_ = sales.get(r["貨號"], {})
-                        v, p_ = s_.get("售罄"), s_.get("定價")
-                        line += (f"{v:>6.0%}" if isinstance(v, (int, float))
-                                 else f"{'—':>7}")
-                        line += (f"{p_:>9,.0f}" if isinstance(p_, (int, float))
-                                 else f"{'—':>9}")
-                        line += "  "
-                    print(line + r["命中"] + star)
-                for want in args.sku:
-                    hit = [(n, r) for n, r in enumerate(scored, 1)
-                           if r["貨號"] == want]
-                    if hit:
-                        n, r = hit[0]
-                        print(f"\n  ★★ {want} 合併之後排第 {n} 名 / {len(scored)}")
-                return 0
-
-        print(f"\n最接近的 {min(args.top, len(rows))} 款（ΔE 越小越像）：")
-        print(f"{'名次':<5}{'ΔE':>7}  {'貨號':<12}{'HEX':<10}{'色號':<5}{'色名'}")
-        for n, r in enumerate(rows[:args.top], 1):
-            print(f"{n:<5}{r['ΔE']:>7}  {r['貨號']:<12}{r['HEX']:<10}"
-                  f"{str(r['色號']):<5}{r['色名'] or ''}")
-        for want in args.sku:
-            hit = [(n, r) for n, r in enumerate(rows, 1) if r["貨號"] == want]
-            if hit:
-                n, r = hit[0]
-                print(f"\n  ★ {want} 排第 {n} 名 / {len(rows)}"
-                      f"　ΔE {r['ΔE']}　{r['HEX']}")
-        return 0
+    # 兩段式搜尋：特徵先，顏色後。細節看 _grid_search 的說明。
+    if args.match or args.like:
+        return _grid_search(args, cfg, images)
 
     got: list[tuple[str, dict]] = []
     for sku in args.sku:
@@ -2416,22 +2503,26 @@ def main(argv: list[str] | None = None) -> int:
     ctf.set_defaults(func=cmd_counter_form)
 
     grd = sub.add_parser("grid",
-                         help="★ 九宮格比對：把幾個貨號的系統圖切成 3×3 並排比")
-    grd.add_argument("sku", nargs="*", help="貨號，可以給多個")
+                         help="★ 穿搭照找貨號（先特徵、後顏色）；"
+                              "只給貨號則切九宮格並排比")
+    grd.add_argument("sku", nargs="*",
+                     help="貨號；搭配 --match/--like 時當作「已知正解」，"
+                          "會印出它排第幾名")
     grd.add_argument("--like", metavar="HEX",
-                     help="給一個顏色（例：1E263E），排出主色最接近的款")
+                     help="第二關：衣服主色（例：1E263E）。"
+                          "只做同分裁決與淘汰明顯不同色的，不當篩選條件")
     grd.add_argument("--season", metavar="KA136", help="只比某一季")
     grd.add_argument("--top", type=int, default=15, help="列前幾名（預設 15）")
     grd.add_argument("--match", metavar="詞",
-                     help="顏色篩完之後，再用這些特徵詞比對品名，"
-                          "空白或逗號分隔（例：\"蝴蝶結 領口 針織 上衣\"）")
-    grd.add_argument("--color-span", type=float, default=3.0, metavar="ΔE",
-                     help="候選的 ΔE 跨幅小於這個值就自動放寬候選 —— "
-                          "代表顏色在這個色域分不出東西（預設 3.0）")
+                     help="第一關：看到的特徵詞，空白或逗號分隔"
+                          "（例：\"蝴蝶結 領口 針織 上衣\"）")
+    grd.add_argument("--color-max", type=float, default=25.0, metavar="ΔE",
+                     help="ΔE 大於這個值就標「顏色對不上」降到最後 —— "
+                          "仍然印出來，不刪（預設 25）")
     grd.add_argument("--recolor", action="store_true",
                      help="不用快取，重新量每一張圖的主色")
-    grd.add_argument("--shortlist", type=int, default=15, metavar="N",
-                     help="--match 時，顏色取前幾名進入品名比對（預設 15）")
+    grd.add_argument("--shortlist", type=int, default=40, metavar="N",
+                     help="特徵關取前幾名進顏色關（預設 40）")
     grd.add_argument("--limit", type=int, default=0, metavar="N",
                      help="最多量幾張（0 = 不限；圖多時先用小一點的數字試）")
     grd.add_argument("--no-mask", action="store_true",

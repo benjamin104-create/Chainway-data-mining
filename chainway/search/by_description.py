@@ -32,6 +32,22 @@
 
 修正這兩點：正解從「排除」→ 3,183 款裡第 2 名。
 
+## 它在整條流程裡的位置：第一關
+
+`cli` 的 `grid --match ... --like ...` 是這樣排的 —— **特徵第一，顏色第二**：
+
+    第一關  這裡（品名 × 特徵詞，IDF 加權）        → 排序
+    第二關  顏色 ΔE（`vision.grid.garment_color`） → 同分裁決 + 淘汰明顯不同色
+
+順序不能反過來，理由是量出來的：**顏色會被光線改掉，特徵不會**。
+同一件藏青針織，棚拍白底與室內黃光量出的主色可以差十幾個 ΔE；
+「蝴蝶結」三個字不會因為換一盞燈就不見。而且淺色在色卡上本來就擠 ——
+淺粉那題前 15 名的 ΔE 只跨 1.6–3.8，全部在量測雜訊裡，
+拿它當第一關等於第一步就丟骰子。
+
+兩關都只加分、不設條件，理由就是上面那條「特徵是證據，不是條件」。
+顏色也一樣：ΔE 太大的降到最後但仍然印出來，不刪。
+
 ## 這條路答不出來的事
 
 品名沒寫的特徵，這裡永遠找不到。要補那一塊只能靠影像比對
@@ -94,6 +110,19 @@ def rank(df: pd.DataFrame, features: dict[str, float], *,
            .reset_index(drop=True))
     out.insert(0, "排名", out.index + 1)
     return out.head(top)
+
+
+def rank_terms(names: dict[str, str], terms: list[str], *,
+               top: int = 50) -> pd.DataFrame:
+    """`{貨號: 品名}` + 一串看到的特徵詞 → 排好的候選表。
+
+    給 CLI 用的薄包裝：使用者打進來的詞沒有把握度，一律當 1.0。
+    IDF 仍然照算，所以「上衣」這種到處都有的詞自然沒什麼份量。
+    """
+    if not names or not terms:
+        return pd.DataFrame()
+    df = pd.DataFrame({"貨號": list(names), "品名": list(names.values())})
+    return rank(df, {t: 1.0 for t in terms}, name_col="品名", top=top)
 
 
 def check(df: pd.DataFrame, *, sku_col: str = "母款") -> list[str]:

@@ -129,6 +129,9 @@ echo    7   Season report            (sell-through by season)
 echo    8   Duplicate styles         (is this one already done before?)
 echo.
 echo    9   Open the overview page (what exists, how fresh, what is stuck)
+echo   10   Find the style code from an outfit photo
+echo        (type the features you see, then the colour. Features first -
+echo         light changes the colour, it does not change a bow.)
 echo.
 echo    0   Quit
 echo.
@@ -143,6 +146,7 @@ if "%C%"=="6" goto j6
 if "%C%"=="7" goto j7
 if "%C%"=="8" goto j8
 if "%C%"=="9" goto j9
+if "%C%"=="10" goto j10
 if "%C%"=="0" goto bye
 goto menu
 
@@ -220,6 +224,39 @@ echo.
 rem The overview filename is Chinese and this file must stay pure ASCII,
 rem so open the folder instead - the line above prints the full path.
 start "" "%CD%\data\outputs"
+goto done
+
+:j10
+rem Outfit photo -> style code. Two questions, in this order.
+rem
+rem FEATURES FIRST, colour second, because that is the order that survives
+rem a photograph: a navy knit shot under warm room light can measure ten
+rem-plus dE away from its own studio shot, but "bow", "neckline", "knit"
+rem read the same in any light. Pale colours are worse still - the top
+rem fifteen matches for a pale pink span under two dE, which is inside the
+rem measurement noise. Colour only settles the order among candidates the
+rem features already found, and pushes obviously-wrong colours to the end.
+echo.
+echo   Step 1 - what can you SEE on the garment? Separate words with a
+echo   space. Chinese is fine. Rare words are worth more than common ones,
+echo   so "bow" beats "top". Example:  bow neckline knit long-sleeve
+echo.
+set "F="
+set /p F=  Features:  
+if not defined F goto menu
+echo.
+echo   Step 2 - the main colour, as six hex digits. Optional: press Enter
+echo   to skip it and rank on features alone. To get the code, open the
+echo   photo in Paint, pick the colour dropper, then Edit colours.
+echo.
+set "H="
+set /p H=  Colour hex (example 1E263E), or Enter to skip:  
+echo.
+if defined H (
+  "%VPY%" -m chainway.cli grid --match "%F%" --like "%H%"
+) else (
+  "%VPY%" -m chainway.cli grid --match "%F%"
+)
 goto done
 
 :done
