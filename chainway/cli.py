@@ -1566,6 +1566,59 @@ def cmd_grid(args) -> int:
             _warn("一張都量不到")
             return 1
         rows.sort(key=lambda r: r["ΔE"])
+
+        # 顏色縮範圍，品名挑人 —— 兩個各自不夠強的訊號合起來才分得開。
+        #
+        # 拿使用者的真實資料量過（正解 KA1369013，KA136 季 176 款）：
+        #     只用品名          2 / 3,183
+        #     只用顏色          9 / 176   ← 一季裡藏青太多，分不出誰是誰
+        #     顏色前 15 + 品名  1 / 15    ← 3.80 分，第二名 2.55
+        #
+        # 顏色的作用是把「絕對不可能」的刷掉（粉色、米色、格紋外套），
+        # 品名的作用是在剩下的深藍裡挑出結構對的那一件。反過來做不行：
+        # 品名先篩會把正解排除掉（它的品名沒提胸前那一大片）。
+        if args.match:
+            terms = [t for t in args.match.replace(",", " ").split() if t]
+            names: dict[str, str] = {}
+            try:
+                from .merge.build_master import load_master
+
+                mm = load_master(cfg)
+                key = next((c for c in ("style_code", "sku", "款號")
+                            if c in mm.columns), None)
+                nm_col = next((c for c in ("product_name", "品名")
+                               if c in mm.columns), None)
+                if key and nm_col:
+                    names = dict(zip(mm[key].astype(str),
+                                     mm[nm_col].fillna("").astype(str)))
+            except Exception:
+                pass
+            if not names:
+                _warn("找不到主表的品名，跳過品名這一段（先跑選單 1 建主表）。")
+            else:
+                short = rows[:max(args.shortlist, 1)]
+                scored = []
+                for r in short:
+                    nm = names.get(r["貨號"], "")
+                    hit = [t for t in terms if t in nm]
+                    scored.append({**r, "品名": nm, "命中": "+".join(hit),
+                                   "品名分": len(hit)})
+                scored.sort(key=lambda x: (-x["品名分"], x["ΔE"]))
+                print(f"\n=== 顏色前 {len(short)} 名，再用品名挑 ===")
+                print(f"{'名次':<5}{'品名分':>6}{'ΔE':>7}  {'貨號':<12}"
+                      f"{'品名':<26}{'命中'}")
+                for n, r in enumerate(scored, 1):
+                    star = "  ★" if r["貨號"] in args.sku else ""
+                    print(f"{n:<5}{r['品名分']:>6}{r['ΔE']:>7}  {r['貨號']:<12}"
+                          f"{r['品名'][:24]:<26}{r['命中']}{star}")
+                for want in args.sku:
+                    hit = [(n, r) for n, r in enumerate(scored, 1)
+                           if r["貨號"] == want]
+                    if hit:
+                        n, r = hit[0]
+                        print(f"\n  ★★ {want} 合併之後排第 {n} 名 / {len(scored)}")
+                return 0
+
         print(f"\n最接近的 {min(args.top, len(rows))} 款（ΔE 越小越像）：")
         print(f"{'名次':<5}{'ΔE':>7}  {'貨號':<12}{'HEX':<10}{'色號':<5}{'色名'}")
         for n, r in enumerate(rows[:args.top], 1):
@@ -2291,6 +2344,11 @@ def main(argv: list[str] | None = None) -> int:
                      help="給一個顏色（例：1E263E），排出主色最接近的款")
     grd.add_argument("--season", metavar="KA136", help="只比某一季")
     grd.add_argument("--top", type=int, default=15, help="列前幾名（預設 15）")
+    grd.add_argument("--match", metavar="詞",
+                     help="顏色篩完之後，再用這些特徵詞比對品名，"
+                          "空白或逗號分隔（例：\"蝴蝶結 領口 針織 上衣\"）")
+    grd.add_argument("--shortlist", type=int, default=15, metavar="N",
+                     help="--match 時，顏色取前幾名進入品名比對（預設 15）")
     grd.add_argument("--limit", type=int, default=0, metavar="N",
                      help="最多量幾張（0 = 不限；圖多時先用小一點的數字試）")
     grd.add_argument("--no-mask", action="store_true",
