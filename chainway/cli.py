@@ -1549,19 +1549,53 @@ def cmd_grid(args) -> int:
         print(f"比對範圍 {len(pool):,} 款"
               + (f"（{args.season}）" if args.season else "（全庫）"))
 
-        rows = []
+        # 主色算過一次就存起來。全庫 3,323 張，第一次要幾分鐘，
+        # 之後每次查詢都是秒回 —— 不然每問一張穿搭照就要重跑一次全庫，
+        # 這功能實務上沒有人會用。
+        cache_p = cfg.path("interim") / "garment_colors.csv"
+        cache: dict[str, dict] = {}
+        if cache_p.exists() and not args.recolor:
+            try:
+                cdf = pd.read_csv(cache_p)
+                for _, r in cdf.iterrows():
+                    cache[str(r["貨號"])] = {
+                        "LAB": [float(r["L"]), float(r["a"]), float(r["b"])],
+                        "HEX": r.get("HEX"), "色號": r.get("色號"),
+                        "色名": r.get("色名") if pd.notna(r.get("色名")) else ""}
+                print(f"讀到快取 {len(cache):,} 筆（--recolor 可強制重算）")
+            except Exception:
+                cache = {}
+
+        rows, fresh = [], 0
         for i, (sku, p) in enumerate(sorted(pool.items()), 1):
             if args.limit and i > args.limit:
                 break
+            c = cache.get(sku)
+            if c is None:
+                try:
+                    c = G.garment_color(load_rgb(p))
+                    cache[sku] = c
+                    fresh += 1
+                except Exception:
+                    continue
+                if fresh % 200 == 0:
+                    print(f"  …新算了 {fresh} 張")
             try:
-                c = G.garment_color(load_rgb(p))
                 rows.append({"ΔE": round(G.color_distance(qlab, c["LAB"]), 1),
-                             "貨號": sku, "HEX": c["HEX"],
+                             "貨號": sku, "HEX": c.get("HEX"),
                              "色號": c.get("色號"), "色名": c.get("色名", "")})
             except Exception:
                 continue
-            if i % 200 == 0:
-                print(f"  …已量 {i}")
+
+        if fresh:
+            cache_p.parent.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame([
+                {"貨號": k, "L": v["LAB"][0], "a": v["LAB"][1], "b": v["LAB"][2],
+                 "HEX": v.get("HEX"), "色號": v.get("色號"),
+                 "色名": v.get("色名", "")}
+                for k, v in cache.items() if v.get("LAB")
+            ]).to_csv(cache_p, index=False, encoding="utf-8-sig")
+            print(f"  新算 {fresh} 張，快取存到 {cache_p}")
         if not rows:
             _warn("一張都量不到")
             return 1
@@ -2370,6 +2404,8 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("--match", metavar="詞",
                      help="顏色篩完之後，再用這些特徵詞比對品名，"
                           "空白或逗號分隔（例：\"蝴蝶結 領口 針織 上衣\"）")
+    grd.add_argument("--recolor", action="store_true",
+                     help="不用快取，重新量每一張圖的主色")
     grd.add_argument("--shortlist", type=int, default=15, metavar="N",
                      help="--match 時，顏色取前幾名進入品名比對（預設 15）")
     grd.add_argument("--limit", type=int, default=0, metavar="N",

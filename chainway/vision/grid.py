@@ -222,7 +222,7 @@ def analyse(img, *, n: int = 3, use_mask: bool = True) -> dict[str, Any]:
     return {"格數": len(cells), "格": cells, "外框": box}
 
 
-def garment_color(img) -> dict[str, Any]:
+def garment_color(img, *, max_side: int = 320) -> dict[str, Any]:
     """整件衣服的主色 —— **只取衣服像素，排除背景**。
 
     為什麼要排除背景：系統圖是白底去背，九宮格的四角常常整格都是白的。
@@ -230,11 +230,21 @@ def garment_color(img) -> dict[str, Any]:
     連背景一起平均，深色衣服會被拉淺，比對就整個歪掉。
 
     取中位數不取平均：一顆亮鈕釦或一道反光會把平均拉走，中位數不會。
+
+    `max_side` 先把圖縮小再量。主色是統計量，不需要解析度 —— 縮到 320px
+    之後中位數幾乎不變，但速度差一個量級。全庫 3,323 張要跑得動，
+    這一步是必要的，不是最佳化。
     """
+    from PIL import Image as _PIL
+
     from ..imageio import to_rgb
     from .locate import garment_mask
 
-    a = np.asarray(to_rgb(img))
+    img = to_rgb(img)
+    if max_side and max(img.size) > max_side:
+        img = img.copy()
+        img.thumbnail((max_side, max_side), _PIL.LANCZOS)
+    a = np.asarray(img)
     try:
         mask, box = garment_mask(img)
         k = a.shape[0] / mask.shape[0]
