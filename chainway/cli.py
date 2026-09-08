@@ -1640,7 +1640,28 @@ def cmd_grid(args) -> int:
             if not names:
                 _warn("找不到主表的品名，跳過品名這一段（先跑選單 1 建主表）。")
             else:
-                short = rows[:max(args.shortlist, 1)]
+                # 顏色沒有鑑別力時要自動放寬候選。
+                #
+                # 實測：藏青那題前 15 名的 ΔE 是 2.1–6.4，淺粉與淺膚那兩題
+                # 卻是 1.6–3.8 與 2.0–3.6 —— 全部擠在 2 個 ΔE 單位內，
+                # 那已經在量測雜訊裡了。而且兩張完全不同的衣服撈到同一批
+                # 候選（KA1161006、KA1479010 同時出現在兩題前三名），
+                # 那就是顏色失效的證據。
+                #
+                # 淺色在色卡上本來就比深色擁擠，這不是可以調參數解決的，
+                # 是色彩空間的性質。所以改成看「前 N 名的 ΔE 跨幅」：
+                # 跨幅小 = 這一批顏色都一樣，顏色這一關沒篩掉什麼，
+                # 候選要放寬，讓品名去做真正的區分。
+                n0 = max(args.shortlist, 1)
+                span = (rows[min(n0, len(rows)) - 1]["ΔE"] - rows[0]["ΔE"]
+                        if len(rows) >= 2 else 99.0)
+                if span < args.color_span and len(rows) > n0:
+                    n1 = min(len(rows), n0 * 4)
+                    print(f"\n  ! 前 {n0} 名的 ΔE 只跨 {span:.1f}"
+                          f"（< {args.color_span}）—— 顏色在這個色域分不出東西，"
+                          f"候選放寬到 {n1} 款讓品名去挑。")
+                    n0 = n1
+                short = rows[:n0]
                 scored = []
                 for r in short:
                     nm = names.get(r["貨號"], "")
@@ -2404,6 +2425,9 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("--match", metavar="詞",
                      help="顏色篩完之後，再用這些特徵詞比對品名，"
                           "空白或逗號分隔（例：\"蝴蝶結 領口 針織 上衣\"）")
+    grd.add_argument("--color-span", type=float, default=3.0, metavar="ΔE",
+                     help="候選的 ΔE 跨幅小於這個值就自動放寬候選 —— "
+                          "代表顏色在這個色域分不出東西（預設 3.0）")
     grd.add_argument("--recolor", action="store_true",
                      help="不用快取，重新量每一張圖的主色")
     grd.add_argument("--shortlist", type=int, default=15, metavar="N",
