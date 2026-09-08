@@ -1580,6 +1580,7 @@ def cmd_grid(args) -> int:
         if args.match:
             terms = [t for t in args.match.replace(",", " ").split() if t]
             names: dict[str, str] = {}
+            sales: dict[str, dict] = {}
             try:
                 from .merge.build_master import load_master
 
@@ -1591,6 +1592,15 @@ def cmd_grid(args) -> int:
                 if key and nm_col:
                     names = dict(zip(mm[key].astype(str),
                                      mm[nm_col].fillna("").astype(str)))
+                # 找到貨號之後，最想知道的下一件事就是「它賣得怎麼樣」。
+                # 這一段是整套系統的終點：圖 → 貨號 → 銷售。
+                st = next((c for c in ("sell_through_rate", "銷售率", "售罄率")
+                           if c in mm.columns), None)
+                pr = next((c for c in ("price", "定價") if c in mm.columns), None)
+                if key and st:
+                    for _, r in mm.iterrows():
+                        sales[str(r[key])] = {
+                            "售罄": r.get(st), "定價": r.get(pr) if pr else None}
             except Exception:
                 pass
             if not names:
@@ -1604,13 +1614,26 @@ def cmd_grid(args) -> int:
                     scored.append({**r, "品名": nm, "命中": "+".join(hit),
                                    "品名分": len(hit)})
                 scored.sort(key=lambda x: (-x["品名分"], x["ΔE"]))
+                has_sale = bool(sales)
                 print(f"\n=== 顏色前 {len(short)} 名，再用品名挑 ===")
-                print(f"{'名次':<5}{'品名分':>6}{'ΔE':>7}  {'貨號':<12}"
-                      f"{'品名':<26}{'命中'}")
+                head = (f"{'名次':<5}{'品名分':>6}{'ΔE':>7}  {'貨號':<12}"
+                        f"{'品名':<26}")
+                if has_sale:
+                    head += f"{'售罄':>7}{'定價':>9}  "
+                print(head + "命中")
                 for n, r in enumerate(scored, 1):
                     star = "  ★" if r["貨號"] in args.sku else ""
-                    print(f"{n:<5}{r['品名分']:>6}{r['ΔE']:>7}  {r['貨號']:<12}"
-                          f"{r['品名'][:24]:<26}{r['命中']}{star}")
+                    line = (f"{n:<5}{r['品名分']:>6}{r['ΔE']:>7}  {r['貨號']:<12}"
+                            f"{r['品名'][:24]:<26}")
+                    if has_sale:
+                        s_ = sales.get(r["貨號"], {})
+                        v, p_ = s_.get("售罄"), s_.get("定價")
+                        line += (f"{v:>6.0%}" if isinstance(v, (int, float))
+                                 else f"{'—':>7}")
+                        line += (f"{p_:>9,.0f}" if isinstance(p_, (int, float))
+                                 else f"{'—':>9}")
+                        line += "  "
+                    print(line + r["命中"] + star)
                 for want in args.sku:
                     hit = [(n, r) for n, r in enumerate(scored, 1)
                            if r["貨號"] == want]
