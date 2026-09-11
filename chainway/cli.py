@@ -1627,12 +1627,26 @@ def _grid_search(args, cfg, images: dict) -> int:
     """
     from .search import by_description as BD
 
+    # 輸入先洗過。人會把提示詞一起複製進來 —— 真的發生了兩次：
+    #   Features:  Features:  蝴蝶結 領口 針織 上衣
+    #   Colour hex:  1E263E
+    # 這種東西不該讓使用者自己發現，更不該讓它默默變成一個搜尋詞
+    # （「Features:」一款都不會命中，然後整張名單看起來就只是沒找到）。
+    import re as _re
+
+    if args.match:
+        # 重複剝，因為它真的被貼了兩層（「Features:  Features:  蝴蝶結…」）。
+        while True:
+            t = _re.sub(r"^\s*[A-Za-z][A-Za-z ]{1,19}:\s*", "",
+                        args.match).strip()
+            if t == args.match:
+                break
+            args.match = t
+
     # 位置參數是「已知正解」，不是特徵詞。使用者把整條指令貼進選單的
     # 輸入格時，「領口 針織 上衣」全部跑到這裡來，程式照樣跑完，只是
     # 每一個都回報「沒進最後名單」—— 看起來像搜尋失敗，其實是輸入吃錯。
     # 不猜、不自動改，但一定要講。
-    import re as _re
-
     bad = [x for x in args.sku if not _re.fullmatch(r"KA\d{7}", x.upper())]
     if bad:
         args.sku = [x for x in args.sku if x not in bad]
@@ -1649,20 +1663,25 @@ def _grid_search(args, cfg, images: dict) -> int:
           + (f"（{args.season}）" if args.season else "（全庫）"))
 
     # 色碼先解析，再跑第一關。壞掉的色碼要在使用者還盯著螢幕的那一秒
-    # 就說，不是讓他等特徵關跑完才看到「--like 要給六碼」。
+    # 就說，不是讓他等特徵關跑完才看到「要給六碼」。
     qlab = None
     if args.like:
         from .search.palette import _srgb_to_lab
         import numpy as _np
 
-        hexv = args.like.strip().lstrip("#").strip('"').strip()
-        if len(hexv) != 6 or any(c not in "0123456789abcdefABCDEF" for c in hexv):
+        # 從整串裡撈出那六碼，不要求它單獨出現 —— 「Colour hex: #1E263E」
+        # 跟「1E263E」是同一件事，沒有理由只收其中一種。
+        m = _re.search(r"(?<![0-9A-Fa-f])([0-9A-Fa-f]{6})(?![0-9A-Fa-f])",
+                       args.like)
+        if not m:
             _warn(f"看不懂顏色「{args.like}」—— 要六碼十六進位，例如 1E263E。"
                   "小畫家的「編輯色彩」裡就有這六碼。")
             return 1
+        hexv = m.group(1)
         rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
                         dtype=float)
         qlab = _srgb_to_lab(rgb)[0]
+        args.like = hexv
 
     names, sales = _grid_master(cfg)
 

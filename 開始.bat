@@ -54,6 +54,10 @@ robocopy "%SRC%" "%CD%" /E /NFL /NDL /NJH /NJS /NP ^
   /XF "settings.yaml" >nul
 if errorlevel 8 goto nodownload
 echo   Code updated.
+rem Show WHICH version is now on disk. Without this there is no way to
+rem tell "the fix is not working" apart from "the fix never arrived" -
+rem that exact confusion already cost a round trip.
+for %%F in ("chainway\cli.py") do echo   Code date: %%~tF
 
 rem settings.yaml is only copied if you do not have one yet, so your
 rem folder paths are never overwritten.
@@ -114,6 +118,7 @@ echo.
 echo  ==================================================================
 echo    Kinloch Anderson   -   what do you want to do?
 echo  ==================================================================
+for %%F in ("chainway\cli.py") do echo    program updated: %%~tF
 echo.
 echo    1   Rebuild everything and open the product list
 echo        (POS + tech packs, photos, colours, motif positions.
@@ -248,6 +253,11 @@ set /p F=  Features:
 if not defined F goto menu
 rem Quotes would be passed through to the search words themselves.
 set "F=%F:"=%"
+rem People copy the prompt along with their answer - "Features: bow ...".
+rem Python strips these too; doing it here as well keeps the command that
+rem gets echoed clean.
+if /i "%F:~0,9%"=="Features:" set "F=%F:~9%"
+if /i "%F:~0,9%"=="Features:" set "F=%F:~9%"
 rem People paste the whole command in here - it looks like a terminal.
 rem Catch it and ask again rather than searching for the word "python".
 rem The quotes around %F% keep an ampersand in the answer from splitting
@@ -267,6 +277,7 @@ set "H="
 set /p H=  Colour hex (example 1E263E), or Enter to skip:  
 if defined H set "H=%H:"=%"
 if defined H set "H=%H:#=%"
+if defined H if /i "%H:~0,11%"=="Colour hex:" set "H=%H:~11%"
 echo.
 if defined H (
   "%VPY%" -m chainway.cli grid --match "%F%" --like "%H%"
