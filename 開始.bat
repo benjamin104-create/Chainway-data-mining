@@ -141,6 +141,9 @@ echo.
 echo   11   Accuracy self-test (no answer sheet needed - it makes its
 echo        own questions from your own product photos)
 echo.
+echo   12   Is cross-source matching worth turning on? (runs the same
+echo        questions twice: system photos only, then every source)
+echo.
 echo    0   Quit
 echo.
 set "C="
@@ -156,6 +159,7 @@ if "%C%"=="8" goto j8
 if "%C%"=="9" goto j9
 if "%C%"=="10" goto j10
 if "%C%"=="11" goto j11
+if "%C%"=="12" goto j12
 if "%C%"=="0" goto bye
 goto menu
 
@@ -321,6 +325,25 @@ echo   30 questions, each searched against 200 styles. A few minutes the
 echo   first time (it measures the colours), fast after that.
 echo.
 "%VPY%" -m chainway.cli selftest --n 30 --pool 200
+goto back
+
+:j12
+rem One style can have several pictures: the system photo, a catalogue
+rem shot (worn on a person - the same kind of picture the user uploads),
+rem and the sample photo / fabric swatch / embroidery artwork pulled out
+rem of the tech pack. Five ways of photographing the same style is five
+rem chances to recognise it.
+rem
+rem But more pictures is not automatically better: a style with five
+rem references gets five chances, one with a single photo gets one, and
+rem that alone moves it up the list. On synthetic data the extra pictures
+rem made it WORSE (83.8%% -> 70.0%%) because they carried no new
+rem information. Only real catalogue photos can settle it, so this runs
+rem both settings over the same questions and prints them side by side.
+echo.
+echo   Runs 30 questions twice. Slower the first time; cached after.
+echo.
+"%VPY%" -m chainway.cli selftest --n 30 --pool 200 --sources
 goto back
 
 :j10paste

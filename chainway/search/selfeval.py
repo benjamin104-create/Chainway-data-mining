@@ -127,6 +127,7 @@ def simulate(img, *, seed: int = 0, harsh: bool = False):
 
 def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         harsh: bool = False, images: dict | None = None,
+        refs: dict | None = None, ref_penalty: float = 0.0,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑 `n` 題，每題在 `pool` 款裡找。回傳準確率與逐題名次。"""
     from ..imageio import load_rgb
@@ -136,6 +137,9 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
     if images is None:
         roots = [r for r in cfg.path_list("system_images") if r]
         images = index_images(roots) if roots else {}
+    if refs and images is None:
+        from . import refs as R
+        images = R.primary(refs)
     skus = sorted(images)
     if len(skus) < 10:
         return {"錯誤": f"只有 {len(skus)} 款系統圖，不夠出題"}
@@ -149,7 +153,9 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
     for i, truth in enumerate(asked, 1):
         others = [s for s in rng.sample(skus, min(pool * 2, len(skus)))
                   if s != truth][:pool - 1]
-        sub = {s: images[s] for s in others + [truth]}
+        keep = others + [truth]
+        sub = {s: images[s] for s in keep}
+        sub_refs = ({s: refs[s] for s in keep if s in refs} if refs else None)
         try:
             q = simulate(load_rgb(images[truth]), seed=seed + i, harsh=harsh)
         except Exception:
@@ -159,6 +165,7 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         q.save(tmp, "JPEG", quality=90)
         try:
             res = F.run(cfg, photo=tmp, words="", images=sub,
+                        refs=sub_refs, ref_penalty=ref_penalty,
                         top=1, truth=[truth], log=lambda *_: None)
         except Exception as exc:
             log(f"  第 {i} 題跑不動：{type(exc).__name__}")
@@ -189,3 +196,44 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         "亂猜 Top-5": round(5 / pool, 4),
         "逐題": ranks,
     }
+
+
+def compare_sources(cfg, *, n: int = 30, pool: int = 200,
+                    seed: int = 20260911, harsh: bool = False,
+                    log: Callable[[str], None] = print) -> dict[str, Any]:
+    """同一批題目，兩種設定各跑一次：只用系統圖 vs 全部來源。
+
+    為什麼要這樣做而不是我直接決定：我的測試庫證不了這件事。那裡的
+    「目錄圖」是拿系統圖加雜訊合成的，**不帶新資訊**，加進去只會讓錯的
+    候選多一次撿便宜的機會（Top-1 83.8% → 70.0%）。真目錄圖有不同姿勢、
+    真實垂墜與光線，那是新資訊 —— 但只有真資料證得了。
+
+    所以把決定權交給數字：兩個都跑，哪個高就開哪個。
+    """
+    from . import refs as R
+
+    out: dict[str, Any] = {}
+    only = R.collect(cfg, use_catalog=False, use_techpack=False)
+    if not only:
+        return {"錯誤": "沒有讀到系統圖"}
+    log(f"\n[1/2] 只用系統圖（{len(only):,} 款）")
+    out["只用系統圖"] = run(cfg, n=n, pool=pool, seed=seed, harsh=harsh,
+                            refs=only, log=log)
+
+    allsrc = R.collect(cfg, use_catalog=True, use_techpack=True)
+    extra = sum(len(v) for v in allsrc.values()) - sum(len(v) for v in only.values())
+    if extra <= 0:
+        out["說明"] = ("除了系統圖之外沒有找到其他參考圖。"
+                       "目錄圖要在 settings.yaml 的 paths 填 catalog_images；"
+                       "指示書的圖要先跑過 `ingest --extract-images`。")
+        return out
+    by = {}
+    for items in allsrc.values():
+        for it in items:
+            by[it["來源"]] = by.get(it["來源"], 0) + 1
+    log(f"\n[2/2] 全部來源（多了 {extra:,} 張："
+        + "、".join(f"{k} {v:,}" for k, v in sorted(by.items())) + "）")
+    out["全部來源"] = run(cfg, n=n, pool=pool, seed=seed, harsh=harsh,
+                          refs=allsrc, log=log)
+    out["多出來的圖"] = by
+    return out

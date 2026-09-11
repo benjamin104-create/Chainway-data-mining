@@ -96,105 +96,18 @@ def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
     return names, sales
 
 
-def _colors(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dict]:
-    """衣服主色，量過的存快取。"""
-    from ..imageio import load_rgb
-    from ..vision import grid as G
+def _cached(cfg, name: str, paths, build, *, recolor=False, log=print,
+            label: str = "") -> dict:
+    """通用的「量過就存起來」。**以檔案路徑為鍵**，不是貨號。
 
-    path = cfg.path("interim") / "garment_colors.csv"
-    cache: dict[str, dict] = {}
-    if path.exists() and not recolor:
-        try:
-            for _, r in pd.read_csv(path).iterrows():
-                cache[str(r["貨號"])] = {
-                    "LAB": [float(r["L"]), float(r["a"]), float(r["b"])],
-                    "HEX": r.get("HEX"), "色號": r.get("色號"),
-                    "色名": r.get("色名") if pd.notna(r.get("色名")) else ""}
-        except Exception:
-            cache = {}
-
-    fresh, out = 0, {}
-    for sku in skus:
-        c = cache.get(sku)
-        if c is None:
-            p = images.get(sku)
-            if p is None:
-                continue
-            try:
-                c = G.garment_color(load_rgb(p))
-            except Exception:
-                continue
-            cache[sku] = c
-            fresh += 1
-        if c.get("LAB"):
-            out[sku] = c
-    if fresh:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([
-            {"貨號": k, "L": v["LAB"][0], "a": v["LAB"][1], "b": v["LAB"][2],
-             "HEX": v.get("HEX"), "色號": v.get("色號"), "色名": v.get("色名", "")}
-            for k, v in cache.items() if v.get("LAB")
-        ]).to_csv(path, index=False, encoding="utf-8-sig")
-        log(f"  主色：新算 {fresh} 張（快取 {path.name}）")
-    return out
-
-
-def _signatures(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dict]:
-    """系統圖的多尺度顏色簽名，量過的存快取。
-
-    快取檔名帶版本：格式換過一次（單一 3×3 → 2×2 / 3×3 / 4×4 + 離散度），
-    舊檔直接留在原地不管它。混讀舊格式會安靜地給出錯的名次，
-    那比重算一次貴太多了。
+    一個貨號現在有好幾張參考圖（系統圖、目錄圖、打樣照、布樣、繡花），
+    用貨號當鍵會讓同款的第二張蓋掉第一張。鍵裡再帶檔案的時間與大小 ——
+    系統圖換過一張就得重算，否則會安靜地用舊的那張（自我測驗撞到過，
+    準確率從 55% 掉到 1.3%）。
     """
     import pickle
 
-    from ..imageio import load_rgb
-    from ..vision import grid as G
-
-    path = cfg.path("interim") / "grid_cells_v2.pkl"
-    cache: dict[str, dict] = {}
-    if path.exists() and not recolor:
-        try:
-            cache = pickle.loads(path.read_bytes())
-        except Exception:
-            cache = {}
-
-    fresh, out = 0, {}
-    for sku in skus:
-        p = images.get(sku)
-        if p is None:
-            continue
-        key = _stamp(p)
-        sig = cache.get(sku)
-        if sig is None or sig.get("_檔") != key:
-            try:
-                sig = G.cell_signature(load_rgb(p))
-            except Exception:
-                continue
-            sig["_檔"] = key
-            cache[sku] = sig
-            fresh += 1
-            if fresh % 200 == 0:
-                log(f"  九宮格：量到第 {fresh} 張…")
-        if sig.get("有效格"):
-            out[sku] = sig
-    if fresh:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(pickle.dumps(cache))
-        log(f"  顏色簽名：新量 {fresh} 張（快取 {path.name}）")
-    return out
-
-
-def _keypoints(cfg, images, skus, *, recolor=False, log=print) -> dict:
-    """系統圖的關鍵點描述子，量過的存快取。只對進入重排的候選做。"""
-    import pickle
-
-    from ..imageio import load_rgb
-    from ..vision import keypoints as KPmod
-
-    if not KPmod.available():
-        return {}
-    path = cfg.path("interim") / "keypoints_v1.pkl"
+    path = cfg.path("interim") / name
     cache: dict = {}
     if path.exists() and not recolor:
         try:
@@ -203,29 +116,60 @@ def _keypoints(cfg, images, skus, *, recolor=False, log=print) -> dict:
             cache = {}
 
     fresh, out = 0, {}
-    for sku in skus:
-        p = images.get(sku)
-        if p is None:
-            continue
-        key = _stamp(p)
-        hit = cache.get(sku)
-        if hit is None or hit.get("_檔") != key:
+    for p_ in paths:
+        key = f"{p_}|{_stamp(p_)}"
+        hit = cache.get(key)
+        if hit is None:
             try:
-                d = KPmod.describe(load_rgb(p))
+                hit = {"v": build(p_)}
             except Exception:
-                d = None
-            hit = {"_檔": key, "d": d}
-            cache[sku] = hit
+                hit = {"v": None}
+            cache[key] = hit
             fresh += 1
-            if fresh % 100 == 0:
-                log(f"  關鍵點：量到第 {fresh} 張…")
-        if hit.get("d") is not None:
-            out[sku] = hit["d"]
+            if fresh % 200 == 0:
+                log(f"  {label}：量到第 {fresh} 張…")
+        if hit.get("v") is not None:
+            out[str(p_)] = hit["v"]
     if fresh:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(pickle.dumps(cache))
-        log(f"  關鍵點：新量 {fresh} 張（快取 {path.name}）")
+        try:
+            path.write_bytes(pickle.dumps(cache))
+        except Exception:
+            pass
+        log(f"  {label}：新量 {fresh} 張（快取 {path.name}）")
     return out
+
+
+def _colors(cfg, paths, *, recolor=False, log=print) -> dict:
+    """每張參考圖的衣服主色。"""
+    from ..imageio import load_rgb
+    from ..vision import grid as G
+
+    return _cached(cfg, "color_v2.pkl", paths,
+                   lambda p: G.garment_color(load_rgb(p)),
+                   recolor=recolor, log=log, label="主色")
+
+
+def _signatures(cfg, paths, *, recolor=False, log=print) -> dict:
+    """每張參考圖的多尺度顏色簽名。"""
+    from ..imageio import load_rgb
+    from ..vision import grid as G
+
+    return _cached(cfg, "sig_v3.pkl", paths,
+                   lambda p: G.cell_signature(load_rgb(p)),
+                   recolor=recolor, log=log, label="顏色簽名")
+
+
+def _keypoints(cfg, paths, *, recolor=False, log=print) -> dict:
+    """每張參考圖的關鍵點描述子。只對進入重排的候選做。"""
+    from ..imageio import load_rgb
+    from ..vision import keypoints as KPmod
+
+    if not KPmod.available():
+        return {}
+    return _cached(cfg, "kp_v2.pkl", paths,
+                   lambda p: KPmod.describe(load_rgb(p)),
+                   recolor=recolor, log=log, label="關鍵點")
 
 
 def _stamp(path) -> tuple:
@@ -249,6 +193,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         shortlist: int = 40, rerank: int = RERANK_N, top: int = 15,
         color_max: float = COLOR_MAX,
         recolor: bool = False, images: dict | None = None,
+        refs: dict | None = None, ref_penalty: float = 0.0,
         truth: list[str] | None = None,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑完整條流程，回傳結構化結果。不印任何東西以外的副作用。
@@ -256,18 +201,21 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     回傳 `{"照片":…, "特徵":…, "候選":[…], "警告":[…]}`。
     `候選` 已排好序，每一筆都帶著名次、分數與為什麼。
     """
-    from ..report.inventory_report import index_images
     from ..vision import grid as G
+    from . import refs as R
 
     warn: list[str] = []
-    if images is None:
-        roots = [r for r in cfg.path_list("system_images") if r]
-        images = index_images(roots) if roots else {}
-    if not images:
-        return {"警告": ["沒有讀到系統圖，確認 settings.yaml 的 paths.system_images"],
+    # 一個貨號有好幾張參考圖：系統圖、目錄圖、打樣照、布樣、繡花圖稿。
+    # 同一款五種拍法 = 五次認出它的機會。細節與公平性見 search/refs.py。
+    if refs is None:
+        refs = R.collect(cfg) if images is None else {
+            k: [{"path": Path(v), "來源": "系統圖"}] for k, v in images.items()}
+    if not refs:
+        return {"警告": ["沒有讀到任何參考圖，確認 settings.yaml 的 paths"],
                 "候選": []}
+    images = R.primary(refs)
 
-    pool = {k: v for k, v in images.items()
+    pool = {k: v for k, v in refs.items()
             if not season or k.upper().startswith(season.upper())}
     if not pool:
         return {"警告": [f"沒有貨號以 {season} 開頭"], "候選": []}
@@ -352,37 +300,59 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                 })
 
     # ---------------------------------------------------------- 第二關：顏色
-    colors = _colors(cfg, images, cand, recolor=recolor, log=log) if qlab else {}
-    sigs = (_signatures(cfg, images, cand, recolor=recolor, log=log)
+    cand_paths = [str(it["path"]) for sku in cand for it in refs.get(sku, [])]
+    src_of = {str(it["path"]): it["來源"]
+              for sku in cand for it in refs.get(sku, [])}
+    colors = _colors(cfg, cand_paths, recolor=recolor, log=log) if qlab else {}
+    sigs = (_signatures(cfg, cand_paths, recolor=recolor, log=log)
             if photo_sig else {})
 
-    # 九宮格一次算完所有候選（向量化）。逐款迴圈在 3,323 款上慢到不能用，
+    # 九宮格一次算完所有參考圖（向量化）。逐張迴圈在幾千張上慢到不能用，
     # 而網頁查詢正是要面對那個數字。
-    grid_d: dict[str, tuple[float, str]] = {}
+    #
+    # 每一款取自己所有參考圖裡最好的那一張。圖多的款因此天生佔一點便宜
+    # （n 次抽樣的最小值本來就比 1 次小），`ref_penalty` 把那個便宜扣回去
+    # —— 扣多少要量，不能猜，預設 0，量法見 selfeval。
+    grid_d: dict[str, tuple[float, str, str]] = {}
     if photo_sig is not None and sigs:
         import numpy as np
 
         pk = G.pack(sigs)
         dist, which = G.score_all(photo_sig["視窗"], pk)
-        for i, sku in enumerate(pk["貨號"]):
-            if np.isfinite(dist[i]):
-                grid_d[sku] = (float(dist[i]),
-                               photo_sig["視窗"][int(which[i])]["段"])
+        per = {p_: (float(dist[i]), int(which[i]))
+               for i, p_ in enumerate(pk["貨號"]) if np.isfinite(dist[i])}
+        for sku in cand:
+            got = [(per[str(it["path"])][0], per[str(it["path"])][1],
+                    str(it["path"])) for it in refs.get(sku, [])
+                   if str(it["path"]) in per]
+            if not got:
+                continue
+            d_, w_, p_ = min(got)
+            grid_d[sku] = (d_ + R.penalty(len(got), per_ref=ref_penalty),
+                           photo_sig["視窗"][w_]["段"], src_of.get(p_, ""))
 
     rows: list[dict[str, Any]] = []
     for sku in cand:
         f = feat.get(sku, {})
-        c = colors.get(sku)
-        de = None
-        if c is not None and qlab is not None:
-            try:
-                de = round(G.color_distance(qlab, c["LAB"]), 1)
-            except Exception:
-                de = None
+        de, c = None, None
+        if qlab is not None:
+            best = None
+            for it in refs.get(sku, []):
+                cc = colors.get(str(it["path"]))
+                if not cc or not cc.get("LAB"):
+                    continue
+                try:
+                    d_ = round(G.color_distance(qlab, cc["LAB"]), 1)
+                except Exception:
+                    continue
+                if best is None or d_ < best[0]:
+                    best = (d_, cc)
+            if best:
+                de, c = best
         g_abs = g_rel = None
-        seg = ""
+        seg = src = ""
         if sku in grid_d:
-            g_rel, seg = round(grid_d[sku][0], 1), grid_d[sku][1]
+            g_rel, seg, src = round(grid_d[sku][0], 1), grid_d[sku][1], grid_d[sku][2]
             g_abs = g_rel
         # 「顏色對不上」這個標記只在**沒有照片**、只給色碼時才有意義。
         # 有照片時整張主色會混到皮膚、頭髮、裙子（實測同一件衣服差 15.9），
@@ -394,6 +364,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             "內點": None,
             "特徵分": round(f.get("特徵分", 0.0), 2), "命中": f.get("命中", ""),
             "主色ΔE": de, "九宮格": g_rel, "格絕對": g_abs, "段": seg,
+            "比中來源": src, "參考圖數": len(refs.get(sku, [])),
             "HEX": (c or {}).get("HEX"), "色號": (c or {}).get("色號"),
             "色名": (c or {}).get("色名", ""),
             "顏色對不上": bool(judge is not None and judge > color_max),
@@ -446,8 +417,9 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
 
         if KP.available():
             head = rows[:rerank]
-            desc = _keypoints(cfg, images, [r["貨號"] for r in head],
-                              recolor=recolor, log=log)
+            head_paths = [str(it["path"]) for r in head
+                          for it in refs.get(r["貨號"], [])]
+            desc = _keypoints(cfg, head_paths, recolor=recolor, log=log)
             if desc:
                 try:
                     from ..imageio import load_rgb
@@ -457,7 +429,15 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                     q = None
                 if q is not None:
                     for i, r in enumerate(head):
-                        r["內點"] = KP.inliers(q, desc.get(r["貨號"]))
+                        best = 0
+                        for it in refs.get(r["貨號"], []):
+                            d_ = desc.get(str(it["path"]))
+                            if d_ is None:
+                                continue
+                            v = KP.inliers(q, d_)
+                            if v > best:
+                                best, r["比中來源"] = v, it["來源"]
+                        r["內點"] = best
                         r["_序"] = i
                     kp_hits = sum(1 for r in head if r["內點"])
                     # **只在特徵分相同的群內重排。**

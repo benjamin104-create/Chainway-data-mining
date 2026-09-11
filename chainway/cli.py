@@ -1631,6 +1631,45 @@ def cmd_selfeval(args) -> int:
     cfg = get_config()
     print(f"出 {args.n} 題，每題在 {args.pool} 款裡找。"
           "第一次會量系統圖的九宮格，之後有快取。\n")
+    if args.sources:
+        # 交叉比對值不值得開，用同一批題目跑兩次來決定，不要用猜的。
+        both = S.compare_sources(cfg, n=args.n, pool=args.pool,
+                                 seed=args.seed, harsh=args.harsh)
+        if both.get("錯誤"):
+            _warn(both["錯誤"])
+            return 1
+        print(f"\n=== 兩種設定，同一批題目 ===")
+        print(f"{'設定':<12}{'Top-1':>8}{'Top-5':>8}{'中位名次':>9}")
+        for k in ("只用系統圖", "全部來源"):
+            r = both.get(k)
+            if not r or r.get("錯誤"):
+                continue
+            print(f"{k:<12}{r['Top-1']:>7.1%}{r['Top-5']:>7.1%}"
+                  f"{r['中位名次']:>9}")
+        if both.get("說明"):
+            print("\n  " + both["說明"])
+        elif both.get("全部來源"):
+            a, b = both["只用系統圖"], both["全部來源"]
+            d = b["Top-1"] - a["Top-1"]
+            if d > 0.02:
+                # settings.yaml 被一鍵檔刻意排除在更新之外（保護你自己的
+                # 資料夾路徑），所以新的設定區塊不會自動出現在你的檔案裡。
+                # 把要貼的內容直接印出來，不要叫人去猜格式。
+                print(f"\n  → 全部來源高 {d:.1%}，值得開。")
+                print("     打開 config\\settings.yaml，在最後面貼上這三行：")
+                print("\n       search:")
+                print("         use_catalog: true")
+                print("         use_techpack: true\n")
+                print("     另外在 paths: 區塊裡加一行（資料夾名稱依你的實際命名）：")
+                print("       catalog_images: \"電子目錄\"")
+            elif d < -0.02:
+                print(f"\n  → 全部來源低 {-d:.1%}，維持只用系統圖。"
+                      "多出來的圖若是同一場拍攝的連拍，不帶新資訊，"
+                      "只會讓錯的候選多一次機會。")
+            else:
+                print("\n  → 兩者差距在雜訊內，維持現狀即可。")
+        return 0
+
     res = S.run(cfg, n=args.n, pool=args.pool, seed=args.seed,
                 harsh=args.harsh)
     if res.get("錯誤"):
@@ -2426,6 +2465,10 @@ def main(argv: list[str] | None = None) -> int:
     sev.add_argument("--pool", type=int, default=200,
                      help="每題在幾款裡找（預設 200）")
     sev.add_argument("--seed", type=int, default=20260911, help="隨機種子")
+    sev.add_argument("--sources", action="store_true",
+                     help="交叉比對值不值得開：同一批題目跑「只用系統圖」與"
+                          "「全部來源（目錄圖＋指示書的打樣照／布樣／繡花）」"
+                          "兩次，並排比較")
     sev.add_argument("--harsh", action="store_true",
                      help="壓力測試：混合光源、沒有白平衡、更大的皺褶與傾斜")
     sev.set_defaults(func=cmd_selfeval)
