@@ -33,12 +33,20 @@
 所以這支給的是**上界**：它跑不好，真照片一定更差；它跑得好，真照片
 還要另外看。把這句話寫在報表上，不要讓人把上界當成實測。
 
-## 它逼出來的每一次改版
+## 它逼出來的每一次改版（保留集：沒調校過的衣服與題目）
 
     只有顏色（3×3 偏移）                Top-1  5.0%   Top-5 31.7%
     顏色改多尺度（2×2 + 4×4 + 離散）     Top-1 61.3%   Top-5 73.8%
     ＋關鍵點＋RANSAC 幾何驗證            Top-1 83.8%   Top-5 92.5%
+    ＋真照片教的事（見下）               Top-1 76.2%   Top-5 93.8%
     亂猜                                Top-1  0.7%   Top-5  3.3%
+
+最後一列的 Top-1 看起來退了，但那是**為了真照片付的**：使用者給了九張
+真穿搭照，露出四個合成測試永遠看不到的錯 —— 米白衣服被當成皮膚扣光、
+白衣服拍在白底上等於隱形、關鍵點在比對模特兒的臉、試衣間的雜亂背景讓
+主體框到八成畫面。修完之後**嚴苛模式**（68.8% / 93.8%）與**鏡像查詢**
+（77.5% / 95.0%，先前是 53.7% / 85.0%）都變好，而真照片上修掉的是
+「整條比對跑不動」。真穿搭照比合成的一般模式更接近嚴苛模式。
 
 每一次都是這支先說「現在只有這樣」，才有得改。沒有它，我只能一直問
 使用者「再給我幾張正解」。
@@ -52,7 +60,8 @@ from typing import Any, Callable
 import numpy as np
 
 
-def simulate(img, *, seed: int = 0, harsh: bool = False):
+def simulate(img, *, seed: int = 0, harsh: bool = False,
+             mirror: bool = False):
     """棚拍系統圖 → 一張「像是隨手拍的」查詢圖。
 
     ## 出題要出得像真的，不是出得越難越好
@@ -119,6 +128,11 @@ def simulate(img, *, seed: int = 0, harsh: bool = False):
                   rng.randint(0, max(0, H - im.height))))
 
     # 壓縮：真實照片一定經過 JPEG，塊狀雜訊會影響每一格的中位數
+    if mirror:
+        # 鏡像。試衣間、更衣室的自拍幾乎都是鏡像的 —— 使用者給的四張
+        # 真照片上，Girls 與 Kinloch Anderson 的字都是反的。
+        from PIL import ImageOps as _O
+        bg = _O.mirror(bg)
     buf = io.BytesIO()
     bg.save(buf, "JPEG", quality=rng.randint(70, 92))
     buf.seek(0)
@@ -126,7 +140,7 @@ def simulate(img, *, seed: int = 0, harsh: bool = False):
 
 
 def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
-        harsh: bool = False, images: dict | None = None,
+        harsh: bool = False, mirror: bool = False, images: dict | None = None,
         refs: dict | None = None, ref_penalty: float = 0.0,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑 `n` 題，每題在 `pool` 款裡找。回傳準確率與逐題名次。"""
@@ -157,7 +171,8 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         sub = {s: images[s] for s in keep}
         sub_refs = ({s: refs[s] for s in keep if s in refs} if refs else None)
         try:
-            q = simulate(load_rgb(images[truth]), seed=seed + i, harsh=harsh)
+            q = simulate(load_rgb(images[truth]), seed=seed + i, harsh=harsh,
+                         mirror=mirror)
         except Exception:
             continue
         tmp = cfg.path("interim") / "_selfeval_query.jpg"

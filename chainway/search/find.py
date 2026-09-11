@@ -30,7 +30,9 @@
 換一套沒調校過的衣服與題目驗（150 款裡找 1 款）：
 
     3×3 逐格偏移（一開始）   Top-1  5.0%   Top-5 31.7%   中位名次 12
-    現在                     Top-1 52.5%   Top-5 80.0%   中位名次 1
+    現在（一般）             Top-1 76.2%   Top-5 93.8%   中位名次 1
+    現在（嚴苛）             Top-1 68.8%   Top-5 93.8%   中位名次 1
+    現在（鏡像自拍）         Top-1 77.5%   Top-5 95.0%   中位名次 1
     亂猜                     Top-1  0.7%   Top-5  3.3%   中位名次 75
 
 這個數字是**上界**：它量的是對光線、構圖、縮放、壓縮的耐受度，量不到
@@ -194,6 +196,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         color_max: float = COLOR_MAX,
         recolor: bool = False, images: dict | None = None,
         refs: dict | None = None, ref_penalty: float = 0.0,
+        try_mirror: bool = True,
         truth: list[str] | None = None,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑完整條流程，回傳結構化結果。不印任何東西以外的副作用。
@@ -235,6 +238,12 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             return {"警告": [f"找不到照片：{pp}"], "候選": []}
         im = load_rgb(pp)
         ps = G.photo_signatures(im)
+        # 顏色這一側**不做鏡像**，只有關鍵點那一側做。
+        #
+        # 衣服的顏色分布大致左右對稱，鏡像帶不進新資訊，多一倍視窗只是讓
+        # 錯的候選多一次撿便宜的機會。量過：顏色也做鏡像之後，鏡像查詢的
+        # Top-1 從 77.5% 掉到 75.0%。關鍵點不同 —— ORB 描述子不是鏡像
+        # 不變的，同一件衣服鏡像之後內點從 868 掉到 6，非做不可。
         if ps["視窗"]:
             photo_sig = ps
             info = dict(ps["人"])
@@ -424,9 +433,16 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                 try:
                     from ..imageio import load_rgb
 
-                    q = KP.describe_query(load_rgb(Path(str(photo))))
+                    qim = load_rgb(Path(str(photo)))
+                    qs = [KP.describe_query(qim)]
+                    if try_mirror:
+                        from PIL import ImageOps as _O
+
+                        qs.append(KP.describe_query(_O.mirror(qim)))
+                    qs = [x for x in qs if x is not None]
+                    q = qs[0] if qs else None
                 except Exception:
-                    q = None
+                    qs, q = [], None
                 if q is not None:
                     for i, r in enumerate(head):
                         best = 0
@@ -434,7 +450,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                             d_ = desc.get(str(it["path"]))
                             if d_ is None:
                                 continue
-                            v = KP.inliers(q, d_)
+                            v = max(KP.inliers(x, d_) for x in qs)
                             if v > best:
                                 best, r["比中來源"] = v, it["來源"]
                         r["內點"] = best

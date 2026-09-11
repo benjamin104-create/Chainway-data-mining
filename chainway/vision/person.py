@@ -51,6 +51,9 @@ SKIN_REF_TOL = 14.0
 # （抓到衣服），那時候寧可完全不扣皮膚。
 SKIN_MIN_FRAC = 0.03
 SKIN_MAX_FRAC = 0.60
+# 背景雜亂度超過這個就改用 GrabCut 分割。量出來的：合成圖 0、棚拍 3、
+# 試衣間（木門框＋白板＋地板）50–57。取 20，兩邊各有兩倍以上餘裕。
+CLUTTER_MAX = 20.0
 
 
 def _ycbcr(a: np.ndarray):
@@ -138,7 +141,16 @@ def _skin_ref(a: np.ndarray, m: np.ndarray, box) -> np.ndarray | None:
     cand = sm & skin_mask(sub)
     if cand.sum() < 25:
         return None
-    ref = np.median(sub[cand].astype(np.float64), axis=0)
+    # 頭部區塊裡有頭髮、陰影、衣領。直接取中位數會被拉暗 —— 實測一張
+    # 「卡其外套」的照片，基準色被拉成卡其色，接著**整件外套被當成皮膚**
+    # （一塊 4,708 像素、佔身寬 72% 的「皮膚」）。
+    # 臉比頭髮亮，所以只取通過膚色規則的像素裡**較亮的那一半**。
+    px = sub[cand].astype(np.float64)
+    lum = px @ [0.299, 0.587, 0.114]
+    keep = lum >= np.percentile(lum, 50)
+    if keep.sum() < 15:
+        keep = np.ones(len(px), bool)
+    ref = np.median(px[keep], axis=0)
     _, cb, cr = _ycbcr(ref.reshape(1, 1, 3))
     cb, cr = float(np.ravel(cb)[0]), float(np.ravel(cr)[0])
     if not (CR_LO <= cr <= CR_HI and CB_LO <= cb <= CB_HI):
@@ -176,6 +188,59 @@ def _close(mask: np.ndarray, r: int = 3) -> np.ndarray:
         return out
 
     return shift_and(shift_or(mask, r), r)
+
+
+def clutter(a: np.ndarray) -> float:
+    """背景有多雜亂：邊框顏色離自己中位數的中位絕對偏差。
+
+    量出來的分離度大到不需要猶豫：
+
+        合成查詢圖          0
+        棚拍白底的穿搭照     3
+        試衣間（木門框＋白板＋地板）  50–57
+
+    門檻取 20，兩邊都有兩倍以上的餘裕。
+    """
+    h, w = a.shape[:2]
+    r = max(3, min(h, w) // 40)
+    ring = np.concatenate([a[:r].reshape(-1, 3), a[-r:].reshape(-1, 3),
+                           a[:, :r].reshape(-1, 3), a[:, -r:].reshape(-1, 3)])
+    return float(np.median(np.abs(ring - np.median(ring, axis=0)).sum(1)))
+
+
+def _grabcut(a: np.ndarray, margin: float = 0.12, iters: int = 4):
+    """背景雜亂時改用 GrabCut 分割。
+
+    ## 為什麼需要
+
+    「背景 = 邊框顏色的中位數」只在背景單一時成立。試衣間照片是木門框
+    ＋白板＋木地板，邊框中位數落在木頭色上，於是**整片白板都變成主體**
+    —— 實測主體佔比 72–78%，接著膚色基準從「頭部」取到的其實是頭髮
+    （#B28761、#905E39），整條規則連鎖失效。
+
+    GrabCut 以「中央是前景、四周是背景」起手，迭代四次。實測同樣那幾張
+    掉回合理的 25–28%，一張 0.2–0.3 秒。只跑在查詢照片上（一次查詢一張），
+    參考圖那邊是棚拍白底，走原本的快路徑。
+    """
+    try:
+        import cv2
+    except Exception:
+        return None
+    h, w = a.shape[:2]
+    if h < 40 or w < 40:
+        return None
+    rect = (int(w * margin), int(h * 0.02),
+            int(w * (1 - 2 * margin)), int(h * 0.96))
+    mask = np.zeros((h, w), np.uint8)
+    bgd = np.zeros((1, 65), np.float64)
+    fgd = np.zeros((1, 65), np.float64)
+    try:
+        cv2.grabCut(np.ascontiguousarray(a.astype(np.uint8)), mask, rect,
+                    bgd, fgd, iters, cv2.GC_INIT_WITH_RECT)
+    except Exception:
+        return None
+    out = (mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD)
+    return out if out.sum() > 0.02 * out.size else None
 
 
 def _fill(mask: np.ndarray) -> np.ndarray:
@@ -302,6 +367,11 @@ def analyse(img) -> dict[str, Any]:
                            a[:, :r].reshape(-1, 3), a[:, -r:].reshape(-1, 3)])
     bg = np.median(ring, axis=0)
     fg = np.linalg.norm(a - bg, axis=2) > BG_TOL
+    messy = clutter(a)
+    if messy > CLUTTER_MAX:
+        cut = _grabcut(a)
+        if cut is not None:
+            fg = cut
     skin = skin_mask(a)
 
     if fg.sum() < 0.02 * fg.size:
@@ -318,6 +388,8 @@ def analyse(img) -> dict[str, Any]:
            if len(ys) >= 50 else (0, 0, w, h))
     frac = float(m.mean())
     note = []
+    if messy > CLUTTER_MAX:
+        note.append(f"背景雜亂（{messy:.0f}），用 GrabCut 分割")
 
     # 抓不到主體時**退回整張圖**，不要回一個空手。
     #
@@ -347,14 +419,18 @@ def analyse(img) -> dict[str, Any]:
     if ref is not None:
         cand = skin_mask(a, ref) & m
         frac_s = float(cand.sum()) / max(m.sum(), 1)
-        if (SKIN_MIN_FRAC <= frac_s <= SKIN_MAX_FRAC
-                and _skin_is_scattered(cand, box)):
+        scattered = _skin_is_scattered(cand, box)
+        if SKIN_MIN_FRAC <= frac_s <= SKIN_MAX_FRAC and scattered:
             skin, has_person = skin_mask(a, ref), True
             note.append(f"膚色以她自己的頭部為準 "
                         f"#{int(ref[0]):02X}{int(ref[1]):02X}{int(ref[2]):02X}")
+        elif not scattered:
+            note.append("皮膚連成一整片，不是頭＋四肢的樣子 —— "
+                        "這張多半不是人像，不扣皮膚")
+            ref = None
         else:
             note.append(f"頭部取到的基準色算出 {frac_s:.0%} 的皮膚，"
-                        "不合理 —— 這張多半不是人像，不扣皮膚")
+                        "不合理 —— 不扣皮膚")
             ref = None
     if ref is None:
         # 通用規則也會吃掉米白衣服。佔比大到不可能是皮膚時，整個不扣，

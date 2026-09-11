@@ -1671,7 +1671,7 @@ def cmd_selfeval(args) -> int:
         return 0
 
     res = S.run(cfg, n=args.n, pool=args.pool, seed=args.seed,
-                harsh=args.harsh)
+                harsh=args.harsh, mirror=args.mirror)
     if res.get("錯誤"):
         _warn(res["錯誤"])
         return 1
@@ -2471,6 +2471,9 @@ def main(argv: list[str] | None = None) -> int:
                           "兩次，並排比較")
     sev.add_argument("--harsh", action="store_true",
                      help="壓力測試：混合光源、沒有白平衡、更大的皺褶與傾斜")
+    sev.add_argument("--mirror", action="store_true",
+                     help="把題目左右翻轉 —— 試衣間、更衣室的自拍幾乎都是"
+                          "鏡像的，這是真實查詢最常見的樣子")
     sev.set_defaults(func=cmd_selfeval)
 
     slh = sub.add_parser("silhouette",
