@@ -70,6 +70,20 @@ COLOR_MAX = 25.0
 # 顏色排完之後，前幾名要送去做關鍵點重排。
 # 量過（150 款裡找 1 款，保留集）：前 60 名 Top-1 75.0%，前 100 名 76.2%。
 RERANK_N = 100
+# 內點數要多少才算「真的看到同一件東西」。
+#
+# 這兩個數字只能用**真照片**定。合成測試上內點是弱訊號（答對與答錯的
+# 第一名中位數都是 7），因為我造的衣服沒什麼細節，多半靠顏色取勝。
+# 真照片完全相反：
+#
+#     真的同一件      32、36、43、71、172、192、367、411、722、734
+#     共用同一個配件  255（兩張共用同一個格紋蝴蝶結）
+#     不相干          4–17
+#
+# 所以 30 以上＝真的對上了實體的東西（但可能是配件不是主衣），
+# 10 以下＝關鍵點沒說話，名次完全由顏色決定。
+KP_SURE = 30
+KP_MAYBE = 10
 
 
 def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
@@ -472,8 +486,29 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
 
     for i, r in enumerate(rows, 1):
         r["名次"] = i
+        v = r.get("內點") or 0
+        if v >= KP_SURE:
+            r["判定"] = "確定看到同一件東西"
+        elif v >= KP_MAYBE:
+            r["判定"] = "有一點跡象，不確定"
+        elif kp_hits:
+            r["判定"] = "關鍵點沒對上，只有顏色接近"
+        else:
+            r["判定"] = "只有顏色接近"
+    # 整體把握度：第一名有沒有被關鍵點證實，以及它跟第二名差多少。
+    #
+    # 一個錯得很有自信的答案，比「我不確定」更糟 —— 這是內部查詢工具，
+    # 使用者會照著它去翻商品。所以寧可說沒把握。
+    top_kp = (rows[0].get("內點") or 0) if rows else 0
+    second = (rows[1].get("內點") or 0) if len(rows) > 1 else 0
+    if top_kp >= KP_SURE and top_kp >= 2 * max(second, 1):
+        sure = "高"
+    elif top_kp >= KP_SURE or (top_kp >= KP_MAYBE and top_kp > second):
+        sure = "中"
+    else:
+        sure = "低"
     return {"照片": info, "特徵": stage1, "排序依據": how, "警告": warn,
-            "關鍵點命中": kp_hits,
+            "關鍵點命中": kp_hits, "把握度": sure, "第一名內點": top_kp,
             "總候選": len(rows), "候選": rows[:top],
             "正解": {t: next((r["名次"] for r in rows if r["貨號"] == t), None)
                      for t in truth}}
