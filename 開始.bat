@@ -138,6 +138,9 @@ echo   10   Find the style code from an outfit photo
 echo        (type the features you see, then the colour. Features first -
 echo         light changes the colour, it does not change a bow.)
 echo.
+echo   11   Accuracy self-test (no answer sheet needed - it makes its
+echo        own questions from your own product photos)
+echo.
 echo    0   Quit
 echo.
 set "C="
@@ -152,6 +155,7 @@ if "%C%"=="7" goto j7
 if "%C%"=="8" goto j8
 if "%C%"=="9" goto j9
 if "%C%"=="10" goto j10
+if "%C%"=="11" goto j11
 if "%C%"=="0" goto bye
 goto menu
 
@@ -305,6 +309,18 @@ if defined P (
 )
 rem Straight to :back, not :done - searching changes nothing, so there is
 rem no reason to spend time rebuilding the overview page after it.
+goto back
+
+:j11
+rem Accuracy, measured without anyone labelling anything. Every system
+rem photo already carries its own answer in the filename, so the program
+rem roughs one up - light, framing, scale, JPEG noise - and checks whether
+rem it can find the original again. Nobody has to prepare a single file.
+echo.
+echo   30 questions, each searched against 200 styles. A few minutes the
+echo   first time (it measures the colours), fast after that.
+echo.
+"%VPY%" -m chainway.cli selftest --n 30 --pool 200
 goto back
 
 :j10paste

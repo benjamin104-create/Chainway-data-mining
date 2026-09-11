@@ -117,6 +117,7 @@ def _spread(g: np.ndarray) -> float:
 #     素面藏青熊 T     0.129 – 0.209（含胸前繡花那一格）
 # 中間空了 0.21→0.38 一大段，取 0.30。
 SPREAD_MIN = 0.30
+TOL_LIGHT = 12.0
 
 
 def cell_pattern(cell: np.ndarray) -> dict[str, Any]:
@@ -322,22 +323,127 @@ def compare(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
             "逐格": rows}
 
 
-def cell_signature(img, *, n: int = 3, max_side: int = 320,
+# ---------------------------------------------------------------- 顏色簽名
+#
+# 這一段的每一個數字都是量出來的，不是想出來的。用自己的系統圖出題
+# （`search.selfeval`），150 款裡找 1 款，換一套全新的衣服與題目再驗一次：
+#
+#     公式                        調校集 T1/T5      保留集 T1/T5
+#     3×3 逐格                    45.3% / 65.3%    40.4% / 62.8%
+#     2×2 逐格                    49.3% / 78.7%    51.1% / 78.7%
+#     2×2 + 4×4 + 離散×0.5        54.7% / 82.7%    55.3% / 81.9%  ← 用這個
+#
+# 一路上被自我測驗打掉的想法（都寫在這裡，免得哪天又想一次）：
+#
+#   「扣掉各自主色只比偏移」  單用它 Top-1 = 0%。抗光線是真的，但也把
+#                             顏色整個丟掉了 —— 素面紅衣跟素面藍衣變成
+#                             一模一樣。它是同分裁決，不是相似度。
+#   「顏色直方圖」            34.7%，加進來反而拉低 Top-5。
+#   「亮度離散度單用」        2.7%，但當**配菜**（×0.5）穩定加 3–6 個百分點。
+#   「格子切更細」            4×4 單用不如 2×2。細格對錯位很敏感。
+#
+# 為什麼 2×2 勝過 3×3：查詢圖跟系統圖永遠對不齊（縮放、留白、人站的
+# 位置）。格子越大，錯一點位的容忍度越高。九宮格是給人看的語言，
+# 四宮格才是比對用的。兩個都留著，各司其職。
+SCALES = (2, 3, 4)
+SPREAD_N = 3
+SPREAD_W = 0.5
+
+
+def _cell_list(a: np.ndarray, m: np.ndarray, n: int, *,
+               skin: np.ndarray | None = None,
+               min_cover: float = MIN_CELL_COVER) -> list[dict[str, Any]]:
+    """n×n 每格的中位 LAB。`skin` 給了就扣掉皮膚，但一格扣完剩不到三成
+    就不扣 —— 那代表這一格的衣服本身是膚色，扣下去等於把它變成沒資料。"""
+    from ..search.palette import _srgb_to_lab
+
+    H, W = a.shape[:2]
+    names = ([["左上", "中上", "右上"], ["左中", "正中", "右中"],
+              ["左下", "中下", "右下"]] if n == 3 else None)
+    out: list[dict[str, Any]] = []
+    for i in range(n):
+        for j in range(n):
+            ys, ye = H * i // n, H * (i + 1) // n
+            xs, xe = W * j // n, W * (j + 1) // n
+            c, cf = a[ys:ye, xs:xe], m[ys:ye, xs:xe]
+            nm = names[i][j] if names else f"r{i+1}c{j+1}"
+            cover = float(cf.mean()) if cf.size else 0.0
+            use = cf
+            if skin is not None and cf.sum():
+                nos = cf & ~skin[ys:ye, xs:xe]
+                if nos.sum() >= 0.30 * cf.sum():
+                    use = nos
+            if c.size == 0 or cover < min_cover or use.sum() < 30:
+                out.append({"格": nm, "LAB": None, "覆蓋": round(cover, 2)})
+                continue
+            med = np.median(c[use].astype(np.float64), axis=0)
+            out.append({"格": nm, "覆蓋": round(cover, 2),
+                        "HEX": "#%02X%02X%02X" % tuple(int(v) for v in med),
+                        "LAB": [round(float(v), 1)
+                                for v in _srgb_to_lab(med.reshape(1, 3))[0]]})
+    return out
+
+
+def _spread_list(a: np.ndarray, m: np.ndarray, n: int = SPREAD_N) -> list:
+    """每格的亮度離散度（P90−P10）。素面小、格紋大。
+
+    它回答的是「這一格花不花」，不是「花色長什麼樣」。位置對不齊也還在，
+    所以它在錯位的查詢圖上仍然有用 —— 這正是方向能量那套做不到的。
+    """
+    H, W = a.shape[:2]
+    out: list = []
+    for i in range(n):
+        for j in range(n):
+            ys, ye = H * i // n, H * (i + 1) // n
+            xs, xe = W * j // n, W * (j + 1) // n
+            c, cf = a[ys:ye, xs:xe], m[ys:ye, xs:xe]
+            if cf.sum() < 30:
+                out.append(None)
+                continue
+            g = c[cf].astype(np.float64) @ [0.299, 0.587, 0.114]
+            out.append(round(float(np.percentile(g, 90)
+                                   - np.percentile(g, 10)), 1))
+    return out
+
+
+def _signature_from(a, fg, skin=None, *, min_cover: float = MIN_CELL_COVER
+                    ) -> dict[str, Any]:
+    """一塊已經框好的區域 → 多尺度顏色簽名。
+
+    有皮膚遮罩時，**覆蓋率也要用扣掉皮膚之後的遮罩算**。這一條是量出來
+    的：先前覆蓋率用含皮膚的遮罩，整格都是手臂的格子覆蓋率 100%、被當成
+    有效格，它的顏色就混進比對裡 —— 同一批題目 Top-1 從 54.7% 掉到 36.2%。
+    整格都是手臂，就該當作「這一格沒有衣服」。
+    """
+    if skin is not None:
+        nos = fg & ~skin
+        # 整段扣完剩不到三成 → 這件衣服本身是膚色（米、駝、裸粉），不扣。
+        if nos.sum() >= 0.25 * max(fg.sum(), 1):
+            fg, skin = nos, None
+    sig: dict[str, Any] = {"離散": _spread_list(a, fg)}
+    for n in SCALES:
+        sig[f"格{n}"] = _cell_list(a, fg, n, skin=skin, min_cover=min_cover)
+    sig["格"] = sig["格3"]          # 九宮格是給人看的那一份
+    got = [c["LAB"] for c in sig["格3"] if c["LAB"]]
+    sig["主色LAB"] = ([round(float(v), 1)
+                       for v in np.median(np.array(got), axis=0)]
+                      if got else None)
+    sig["有效格"] = len(got)
+    return sig
+
+
+def cell_signature(img, *, max_side: int = 320,
                    min_cover: float = MIN_CELL_COVER) -> dict[str, Any]:
-    """九宮格的**顏色簽名**：每一格只取衣服像素的中位 LAB。
+    """系統圖（白底去背的單件棚拍）→ 顏色簽名。
 
-    跟 `analyse` 的差別：這裡只要顏色，不判花色。因為花色在真圖上判不準
-    （實測素面藏青的方向能量 0.066–0.126，衝破 0.06 的門檻，來源是針織
-    紋路與 JPEG 雜訊），而**顏色的空間分布**判得準，而且足以回答那個
-    真正的問題：「這件中間有沒有一條跟其他地方不一樣的東西」。
+    衣服像素不足的格回 None —— 系統圖的四角是白紙，實測 KA1369013 的
+    左上與右上是 #FCFCFB。給那種格一個顏色只是在製造雜訊。
 
-    衣服像素不足 `min_cover` 的格回 None —— 系統圖的四角是白紙，
-    穿搭照的角落是背景或手臂。給那種格一個顏色只是在製造雜訊。
+    穿搭照不要用這支，用 `photo_signatures`。
     """
     from PIL import Image as _I
 
     from ..imageio import to_rgb
-    from ..search.palette import _srgb_to_lab
     from .locate import garment_mask
 
     img = to_rgb(img)
@@ -356,74 +462,142 @@ def cell_signature(img, *, n: int = 3, max_side: int = 320,
             a, m = a[y1:y2, x1:x2], m[y1:y2, x1:x2]
     except Exception:
         m = np.ones(a.shape[:2], dtype=bool)
-
-    H, W = a.shape[:2]
-    names = [["左上", "中上", "右上"], ["左中", "正中", "右中"],
-             ["左下", "中下", "右下"]]
-    cells: list[dict[str, Any]] = []
-    for i in range(n):
-        for j in range(n):
-            ys, ye = H * i // n, H * (i + 1) // n
-            xs, xe = W * j // n, W * (j + 1) // n
-            c, cm = a[ys:ye, xs:xe], m[ys:ye, xs:xe]
-            nm = names[i][j] if n == 3 else f"r{i+1}c{j+1}"
-            cover = float(cm.mean()) if cm.size else 0.0
-            if c.size == 0 or cover < min_cover or cm.sum() < 30:
-                cells.append({"格": nm, "LAB": None, "覆蓋": round(cover, 2)})
-                continue
-            med = np.median(c[cm].astype(np.float64), axis=0)
-            cells.append({
-                "格": nm, "覆蓋": round(cover, 2),
-                "HEX": "#%02X%02X%02X" % tuple(int(v) for v in med),
-                "LAB": [round(float(v), 1)
-                        for v in _srgb_to_lab(med.reshape(1, 3))[0]]})
-
-    got = [c["LAB"] for c in cells if c["LAB"]]
-    main = ([round(float(v), 1) for v in np.median(np.array(got), axis=0)]
-            if got else None)
-    return {"格": cells, "主色LAB": main, "有效格": len(got)}
+    return _signature_from(a, m, None, min_cover=min_cover)
 
 
-def signature_distance(sa: dict[str, Any], sb: dict[str, Any]) -> dict[str, Any]:
-    """兩張圖的九宮格顏色差。**兩個數字，不合成一個。**
+# 在人身上要試哪些段。(上緣佔比, 高度佔比)，以人的外框為基準。
+#
+# 為什麼是滑動視窗而不是裁準一次：上衣跟裙子在腰部相連、米色上衣會被
+# 皮膚偵測吃掉 —— 每多一條裁切規則就多一個反例。改成試二十段、取最像
+# 的那一段。量過：只用一段 Top-1 37.3%，用滿 21 段 46.7%。
+#
+# 二十段對每一個候選都一樣，所以「取最小」帶來的樂觀偏差是**共同的**，
+# 不偏袒任何一款，排名仍然公平。
+_WINDOWS = [(t, h) for t in (0.0, 0.08, 0.16, 0.26, 0.36)
+            for h in (0.30, 0.40, 0.52, 0.66, 0.85) if t + h <= 1.001]
 
-    絕對　逐格 ΔE2000 的平均。同一件衣服換一盞燈就會整排變大，
-    　　　所以它回答的是「顏色像不像」，不是「是不是同一件」。
 
-    相對　先各自減掉**自己的**主色，再比逐格偏移。光線把整張圖一起推走
-    　　　的那一份被消掉了，剩下的是「哪一格跟自己其他格不一樣」。
+def photo_signatures(img) -> dict[str, Any]:
+    """穿搭照 → 人身上一整排候選段落的簽名。不裁、不猜衣服在哪一段。"""
+    from . import person as P
 
-    相對這一欄就是為了那個從頭到尾的問題：KA1259003 中段有橫條紋，
-    KA1369013 沒有。兩件的主色差只有 2.1 個 ΔE —— 單色比對分不出來。
-    但一個中列偏離自己主色、一個不偏離，這件事跟光線無關。
+    p = P.analyse(img)
+    a, m, skin = p["圖"].astype(np.uint8), p["人"], p["皮膚"]
+    x1, y1, x2, y2 = p["外框"]
+    bw, bh = x2 - x1, y2 - y1
+    wins: list[dict[str, Any]] = []
+    for t, hf in _WINDOWS:
+        ys = y1 + int(bh * t)
+        ye = min(y2, ys + int(bh * hf))
+        if ye - ys < 24 or bw < 24:
+            continue
+        sig = _signature_from(a[ys:ye, x1:x2], m[ys:ye, x1:x2],
+                              skin[ys:ye, x1:x2])
+        if sig["有效格"] >= 5:
+            wins.append({"段": f"{t:.0%}–{t + hf:.0%}", "y": (ys, ye), **sig})
+    return {"人": {k: v for k, v in p.items() if k not in ("人", "皮膚", "圖")},
+            "視窗": wins}
+
+
+def _cells_array(cells: list[dict[str, Any]]) -> np.ndarray:
+    out = np.full((len(cells), 3), np.nan)
+    for i, c in enumerate(cells):
+        if c.get("LAB"):
+            out[i] = c["LAB"]
+    return out
+
+
+def pack(sigs: dict[str, dict]) -> dict[str, Any]:
+    """把一堆簽名壓成矩陣，一次算完所有候選。
+
+    為什麼一定要做這一步：原本逐款逐視窗用 Python 迴圈，60 題 × 150 款
+    × 21 段兩分鐘跑不完 —— 而網頁上一次查詢要面對 3,323 款。慢到不能用
+    就等於不能用，這是產品問題，不是最佳化問題。
     """
-    ca = {c["格"]: c for c in sa["格"]}
-    cb = {c["格"]: c for c in sb["格"]}
-    ma, mb = sa.get("主色LAB"), sb.get("主色LAB")
-    rows, abs_d, rel_d = [], [], []
+    keys = list(sigs)
+    out: dict[str, Any] = {"貨號": keys}
+    for n in SCALES:
+        out[f"格{n}"] = np.stack([_cells_array(sigs[k][f"格{n}"])
+                                  for k in keys]) if keys else np.zeros((0, n * n, 3))
+    out["離散"] = (np.array([[np.nan if v is None else v
+                              for v in sigs[k]["離散"]] for k in keys],
+                            dtype=float) if keys else np.zeros((0, SPREAD_N ** 2)))
+    return out
+
+
+def _mean_dist(q: np.ndarray, C: np.ndarray) -> np.ndarray:
+    """逐格距離的平均，只算兩邊都量得到的格。"""
+    both = (~np.isnan(q).any(axis=1))[None, :] & (~np.isnan(C).any(axis=2))
+    d = np.linalg.norm(np.nan_to_num(q)[None] - np.nan_to_num(C), axis=2)
+    n = both.sum(axis=1)
+    return np.where(n > 0, (d * both).sum(axis=1) / np.maximum(n, 1), np.inf)
+
+
+def _mean_abs(q: np.ndarray, C: np.ndarray) -> np.ndarray:
+    both = (~np.isnan(q))[None, :] & (~np.isnan(C))
+    d = np.abs(np.nan_to_num(q)[None] - np.nan_to_num(C))
+    n = both.sum(axis=1)
+    return np.where(n > 0, (d * both).sum(axis=1) / np.maximum(n, 1), np.inf)
+
+
+def distance(win: dict[str, Any], packed: dict[str, Any]) -> np.ndarray:
+    """一個視窗對上所有候選 → 距離向量。公式與上面表格裡的 D 一致。"""
+    return (_mean_dist(_cells_array(win["格2"]), packed["格2"])
+            + _mean_dist(_cells_array(win["格4"]), packed["格4"])
+            + SPREAD_W * _mean_abs(
+                np.array([np.nan if v is None else v for v in win["離散"]],
+                         dtype=float), packed["離散"]))
+
+
+def score_all(wins: list[dict[str, Any]], packed: dict[str, Any]
+              ) -> tuple[np.ndarray, np.ndarray]:
+    """所有視窗 × 所有候選 → (最小距離, 是哪一段)。"""
+    n = len(packed["貨號"])
+    best = np.full(n, np.inf)
+    which = np.zeros(n, dtype=int)
+    for wi, w in enumerate(wins):
+        d = distance(w, packed)
+        upd = d < best
+        best[upd] = d[upd]
+        which[upd] = wi
+    return best, which
+
+
+def compare_cells(a: dict[str, Any], b: dict[str, Any]) -> list[dict[str, Any]]:
+    """九宮格逐格對照 —— 給人看的那一份，不參與排序。"""
+    ca = {c["格"]: c for c in a["格3"]}
+    cb = {c["格"]: c for c in b["格3"]}
+    rows = []
     for k, x in ca.items():
         y = cb.get(k)
-        if y is None or not x.get("LAB") or not y.get("LAB"):
+        if not y or not x.get("LAB") or not y.get("LAB"):
             continue
-        la, lb = np.array(x["LAB"], float), np.array(y["LAB"], float)
-        d1 = color_distance(la, lb)
-        abs_d.append(d1)
-        d2 = None
-        if ma and mb:
-            va, vb = la - np.array(ma, float), lb - np.array(mb, float)
-            d2 = float(np.linalg.norm(va - vb))
-            rel_d.append(d2)
-        rows.append({"格": k, "ΔE": round(d1, 1),
-                     "偏移差": None if d2 is None else round(d2, 1)})
-    n = len(rows)
-    return {"對到格數": n,
-            "絕對": round(float(np.mean(abs_d)), 1) if abs_d else None,
-            "相對": round(float(np.mean(rel_d)), 1) if rel_d else None,
-            "逐格": rows}
+        rows.append({"格": k, "A": x.get("HEX"), "B": y.get("HEX"),
+                     "ΔE": round(color_distance(x["LAB"], y["LAB"]), 1)})
+    return rows
+
+
+def check() -> list[str]:
+    """回歸測試。守住的是「換一盞燈 ≠ 換一件衣服」這件事。"""
+    bad: list[str] = []
+    plain = cell_signature(_synthetic(False))
+    striped = cell_signature(_synthetic(True))
+    lit = cell_signature(_synthetic(False, warm=1.18))
+    pk = pack({"素面": plain, "橫紋": striped})
+    d_lit = distance({**lit, "段": "x"}, pk)
+    if not (d_lit[0] < d_lit[1]):
+        bad.append(f"換光線之後認不出自己：對素面 {d_lit[0]:.1f}、"
+                   f"對橫紋 {d_lit[1]:.1f}")
+    d_plain = distance({**plain, "段": "x"}, pk)
+    if d_plain[0] > 1.0:
+        bad.append(f"同一張圖對自己的距離 {d_plain[0]:.1f}，應該是 0")
+    if d_plain[1] < 5.0:
+        bad.append(f"素面對橫紋只差 {d_plain[1]:.1f}，分不出花色")
+    return bad
 
 
 def _synthetic(stripe: bool, warm: float = 1.0):
-    """造一張測試圖：白底、中間一件深藏青上衣，可選中列一條淺橫紋。"""
+    """測試圖：白底、中間一件深藏青上衣，可選中列一條淺橫紋。"""
     from PIL import Image as _I
 
     a = np.full((300, 200, 3), 250, np.uint8)
@@ -434,35 +608,3 @@ def _synthetic(stripe: bool, warm: float = 1.0):
         a = np.clip(np.asarray(a, float) * [warm, 1.02, 2.0 - warm],
                     0, 255).astype(np.uint8)
     return _I.fromarray(a)
-
-
-def check() -> list[str]:
-    """簽名比對的回歸測試。用合成圖 —— 這裡要證明的是**度量的性質**，
-    那件事不需要真衣服，而合成圖可以把「只有橫紋不同」與「只有光線不同」
-    乾淨地分開，真照片做不到。
-
-    要守住的兩件事：
-      一、同一件衣服換一盞燈，**相對**距離要幾乎是 0（絕對會被推走）。
-      二、素面 vs 中列有橫紋，相對距離要明顯大。
-
-    第二條就是使用者從第一天講到現在的那件事：KA1259003 中段有橫條紋，
-    一眼就不是。主色比對永遠答不出來（兩件主色只差 2.1 ΔE）。
-    """
-    bad: list[str] = []
-    plain = cell_signature(_synthetic(False))
-    striped = cell_signature(_synthetic(True))
-    lit = cell_signature(_synthetic(False, warm=1.18))
-
-    d_light = signature_distance(plain, lit)
-    if d_light["相對"] is None or d_light["相對"] > 1.0:
-        bad.append(f"換光線的相對距離 {d_light['相對']}，應該接近 0")
-    if d_light["絕對"] is None or d_light["絕對"] < 2.0:
-        bad.append(f"換光線的絕對距離 {d_light['絕對']}，"
-                   "應該明顯大於 0（不然這兩欄沒有差別，這個測試就沒意義）")
-
-    d_stripe = signature_distance(plain, striped)
-    if d_stripe["相對"] is None or d_stripe["相對"] < 5.0:
-        bad.append(f"素面 vs 橫紋的相對距離只有 {d_stripe['相對']}，太小")
-    if (d_light["相對"] or 0) >= (d_stripe["相對"] or 0):
-        bad.append("換光線比換衣服還遠 —— 相對距離沒有達成它的目的")
-    return bad

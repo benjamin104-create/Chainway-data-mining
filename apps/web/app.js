@@ -121,23 +121,75 @@ LOADERS.association = async () => {
 $('#assocCat').onchange = LOADERS.association;
 $('#assocSig').onchange = LOADERS.association;
 
-/* ---------------------------------------------------------------- 以圖搜款 */
-function resultCards(rows) {
+/* ------------------------------------------------------- ★ 穿搭照找貨號 */
+/* 先特徵、後顏色。整條邏輯在 chainway/search/find.py，命令列共用同一支，
+   所以網頁上看到的名次跟 cmd 裡跑出來的永遠一樣。                        */
+let PHOTO = null;
+
+function findCards(rows) {
   if (!rows.length) return '<p class="hint">沒有結果。</p>';
   return rows.map(r => `
-    <div class="pcard">
-      ${r.image_path ? `<img src="${imgUrl(r.image_path)}" alt="">` : ''}
-      ${r.similarity != null ? `<div class="sim">相似 ${pct(r.similarity)}</div>` : ''}
+    <div class="pcard${r['顏色對不上'] ? ' dim' : ''}">
+      ${r['圖'] ? `<img src="${imgUrl(r['圖'])}" alt="">` : ''}
+      <div class="sim">${r['名次']}</div>
       <div class="body">
-        <div class="sku">${esc(r.sku)}</div>
+        <div class="sku">${esc(r['貨號'])}</div>
         <div class="meta">
-          ${r.product_name ? esc(r.product_name) + '<br>' : ''}
-          ${r.season ? esc(r.season) + '　' : ''}${r.perf_band_zh ? esc(r.perf_band_zh) : ''}<br>
-          定價 ${num(r.list_price)}　售罄 ${pct(r.sell_through_rate)}
-          ${r.fb_verdict ? '<br>現場：' + esc(r.fb_verdict) : ''}
+          ${r['品名'] ? esc(r['品名']) + '<br>' : ''}
+          定價 ${num(r['定價'])}　售罄 ${pct(r['售罄'])}<br>
+          ${r['命中'] ? '命中 ' + esc(r['命中']) + '<br>' : ''}
+          ${r['九宮格'] != null ? '九宮格 ' + r['九宮格'] + '　' : ''}
+          ${r['主色ΔE'] != null ? '主色ΔE ' + r['主色ΔE'] : ''}
+          ${r['顏色對不上'] ? '<br><b>顏色對不上</b>（沒有刪掉，排在最後）' : ''}
         </div>
       </div>
     </div>`).join('');
+}
+
+/* 這一段是覆核，不是裝飾：把系統怎麼判的攤開來，看得到才信得過。 */
+function findWhy(d) {
+  const p = d['照片'] || {}, s1 = d['特徵'] || {};
+  const bits = [];
+  if (p['主體佔比'] != null)
+    bits.push(`照片：主體佔全圖 ${pct(p['主體佔比'])}，皮膚佔主體 ${pct(p['皮膚佔主體'])}，
+               不裁圖，在人身上試了 ${p['試了幾段']} 段。${esc(p['說明'] || '')}`);
+  if (p['主色']) bits.push(`整張主色 ${esc(p['主色'])} ${esc(p['色名'] || '')}`);
+  if (s1['命中'])
+    bits.push(`第一關特徵：${s1['母數']} 款裡 ${s1['命中']} 款品名命中，
+               取前 ${s1['進第二關']} 進第二關${s1['同分放寬'] ? '（有同分，整群帶進去）' : ''}。`);
+  if (s1['分數跨幅'] != null && s1['分數跨幅'] < 0.5 && s1['命中'])
+    bits.push(`<b>這些詞分不出誰比較像</b>（分數只跨 ${s1['分數跨幅']}）——
+               多打幾個罕見特徵詞會明顯變準。`);
+  (d['警告'] || []).forEach(w => bits.push('<b>' + esc(w) + '</b>'));
+  if (!bits.length) return '';
+  return `<div class="notice">${bits.join('<br>')}<br>
+    <span class="hint">排序依據：${esc(d['排序依據'] || '')}。
+    九宮格＝把衣服切成 2×2 與 4×4 逐格比顏色，再加上每格的花色深淺差，越小越像。
+    公式是用自家系統圖出題量出來的，換一套沒看過的衣服驗過：Top-1 52.5%、Top-5 80.0%。
+    </span></div>`;
+}
+
+async function runFind() {
+  const words = $('#searchText').value.trim();
+  if (!PHOTO && !words) {
+    $('#searchWhy').innerHTML = '<div class="notice">給一張照片，或打幾個看到的特徵詞。</div>';
+    return;
+  }
+  $('#searchWhy').innerHTML = '';
+  $('#searchResults').innerHTML =
+    '<p class="hint">比對中…第一次會量系統圖的顏色，之後有快取就快了。</p>';
+  const fd = new FormData();
+  if (PHOTO) fd.append('file', PHOTO);
+  fd.append('words', words);
+  fd.append('season', $('#searchSeason').value.trim());
+  fd.append('top_k', 15);
+  try {
+    const d = await api('/api/find', { method: 'POST', body: fd });
+    $('#searchWhy').innerHTML = findWhy(d);
+    $('#searchResults').innerHTML = findCards(d['候選'] || []);
+  } catch (e) {
+    $('#searchResults').innerHTML = `<div class="notice">${esc(e.message)}</div>`;
+  }
 }
 
 function wireDrop(dropSel, fileSel, handler) {
@@ -153,27 +205,15 @@ function wireDrop(dropSel, fileSel, handler) {
   dz.addEventListener('drop', e => e.dataTransfer.files[0] && handler(e.dataTransfer.files[0]));
 }
 
-wireDrop('#searchDrop', '#searchFile', async file => {
+wireDrop('#searchDrop', '#searchFile', file => {
+  PHOTO = file;
   const p = $('#searchPreview');
   p.src = URL.createObjectURL(file); p.hidden = false;
-  $('#searchResults').innerHTML = '<p class="hint">搜尋中…（第一次會載入模型，約需 10–30 秒）</p>';
-  const fd = new FormData(); fd.append('file', file); fd.append('top_k', 12);
-  try {
-    const d = await api('/api/search/image', { method: 'POST', body: fd });
-    $('#searchResults').innerHTML = resultCards(d.rows);
-  } catch (e) { $('#searchResults').innerHTML = `<div class="notice">${esc(e.message)}</div>`; }
+  runFind();
 });
 
-$('#searchTextBtn').onclick = async () => {
-  const q = $('#searchText').value.trim();
-  if (!q) return;
-  $('#searchResults').innerHTML = '<p class="hint">搜尋中…</p>';
-  try {
-    const d = await api('/api/search/text?q=' + encodeURIComponent(q));
-    $('#searchResults').innerHTML = resultCards(d.rows);
-  } catch (e) { $('#searchResults').innerHTML = `<div class="notice">${esc(e.message)}</div>`; }
-};
-$('#searchText').onkeydown = e => e.key === 'Enter' && $('#searchTextBtn').click();
+$('#searchTextBtn').onclick = runFind;
+$('#searchText').onkeydown = e => e.key === 'Enter' && runFind();
 
 /* ---------------------------------------------------------------- ★ 回饋登錄 */
 function buildTagChips() {

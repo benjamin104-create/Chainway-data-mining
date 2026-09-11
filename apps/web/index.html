@@ -13,7 +13,7 @@
   <nav id="nav">
     <button data-view="dashboard" class="active">儀表板</button>
     <button data-view="association">關聯分析</button>
-    <button data-view="visual">以圖搜款</button>
+    <button data-view="visual">穿搭照找貨號</button>
     <button data-view="feedback">回饋登錄</button>
     <button data-view="diagnosis">診斷</button>
     <button data-view="pattern">版型研究</button>
@@ -52,26 +52,38 @@
 
 <!-- ─────────────── 以圖搜款 ─────────────── -->
 <section id="view-visual" class="view">
-  <h1>以圖／以文 反查貨號</h1>
-  <p class="lede">上傳市調照、競品照、客人拍的照片，找出自家最相似的款，直接看到貨號、定價與歷史績效。</p>
+  <h1>穿搭照 → 貨號</h1>
+  <p class="lede">
+    把客人拍的照片、街拍、競品照丟進來，找出是哪一個貨號，直接看到品名、售罄率與定價。
+    <b>不用先裁圖</b> —— 系統會自己在人身上找衣服在哪一段。
+  </p>
   <div class="panelrow">
     <div class="panel">
-      <h3>上傳圖片搜尋</h3>
+      <h3>① 照片</h3>
       <div class="dropzone" id="searchDrop">
-        <p>把圖片拖進來，或點擊選擇</p>
+        <p>把照片拖進來，或點擊選擇</p>
         <input type="file" id="searchFile" accept="image/*" hidden>
       </div>
       <img id="searchPreview" class="preview" hidden>
     </div>
     <div class="panel">
-      <h3>文字描述搜尋</h3>
-      <p class="hint">不用圖也能找，例如：高腰格紋百褶裙、立領長版風衣</p>
+      <h3>② 你看到什麼（越多越準）</h3>
+      <p class="hint">
+        先特徵、後顏色 —— 光線會改掉顏色，改不掉蝴蝶結。<br>
+        罕見的詞比常見的詞有用：「蝴蝶結」勝過「上衣」。
+      </p>
       <div class="inline">
-        <input type="text" id="searchText" placeholder="輸入款式描述…">
-        <button id="searchTextBtn" class="primary">搜尋</button>
+        <input type="text" id="searchText" placeholder="蝴蝶結 領口 針織 上衣 圓領 長袖">
+        <button id="searchTextBtn" class="primary">找貨號</button>
+      </div>
+      <p class="hint">只打字不放照片也可以，只放照片不打字也可以。</p>
+      <div class="inline">
+        <label class="hint">只找某一季
+          <input type="text" id="searchSeason" placeholder="KA136" size="8"></label>
       </div>
     </div>
   </div>
+  <div id="searchWhy"></div>
   <div id="searchResults" class="cardgrid"></div>
 </section>
 

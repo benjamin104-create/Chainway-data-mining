@@ -209,6 +209,38 @@ async def search_image(file: UploadFile = File(...), top_k: int = Form(12)) -> d
     return {"rows": _clean(res)}
 
 
+@app.post("/api/find")
+async def find_style(file: UploadFile | None = File(None),
+                     words: str = Form(""), season: str = Form(""),
+                     top_k: int = Form(15), shortlist: int = Form(40)) -> dict:
+    """★ 穿搭照 → 貨號。先特徵、後顏色，不需要模型，也不需要先裁圖。
+
+    跟 /api/search/image 的差別：那一支走 Fashion-CLIP，要裝 torch 與下載
+    模型；這一支只用 numpy 與 Pillow，所以在沒有 GPU、沒裝 torch 的
+    辦公室電腦上跑得動 —— 也就是真的用得到它的那台。
+
+    命令列與這支網頁 API 共用 `chainway.search.find.run`，
+    所以兩邊看到的名次永遠一樣。
+    """
+    from chainway.search import find as F
+
+    cfg = get_config()
+    tmp_path = None
+    if file is not None and file.filename:
+        suffix = Path(file.filename).suffix or ".jpg"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            tmp_path = tmp.name
+    try:
+        res = F.run(cfg, photo=tmp_path, words=words or "",
+                    season=season or None, top=max(1, min(top_k, 60)),
+                    shortlist=max(1, min(shortlist, 400)), log=lambda *_: None)
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
+    return res
+
+
 @app.get("/api/search/text")
 def search_text(q: str, top_k: int = 12) -> dict:
     from chainway.search.index import VisualIndex

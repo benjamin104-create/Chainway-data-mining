@@ -1,0 +1,391 @@
+"""穿搭照 → 貨號。**先特徵，後顏色。**一支函式，命令列與網頁共用。
+
+## 為什麼要獨立成一支
+
+這條流程原本長在 CLI 裡。使用者要的是「網站上可以查詢的等級規格」，
+而 CLI 裡的東西網頁叫不到。所以邏輯在這裡，`cli` 與 `apps/api` 都只是
+它的兩張臉 —— 兩邊看到的名次永遠一樣，不會有一邊修好、另一邊沒修。
+
+## 順序：特徵第一，顏色第二
+
+使用者的原話：「先確認有甚麼特徵，所以第一是特徵，而不是顏色。」
+
+**顏色會被光線改掉，特徵不會。** 同一件藏青針織，棚拍白底與室內黃光
+量出的主色可以差十幾個 ΔE（實測一張未裁的穿搭照，整張主色差 15.9）。
+「蝴蝶結」三個字不會因為換一盞燈就不見。
+
+**淺色根本分不開。** 淺粉那題前 15 名的 ΔE 只跨 1.6–3.8，全在量測雜訊
+裡，而且兩張完全不同的衣服撈到同一批候選。顏色排第一關，那題第一步
+就錯了。
+
+真實資料量到的（正解 KA1369013）：
+    只用品名              2 / 3,183
+    顏色先、品名後        1 / 15
+    **特徵先、顏色後      1 / 40**   ← 現在這個
+
+## 準確率是量出來的，不是估的
+
+`search.selfeval` 用自家系統圖出題 —— 每張圖的檔名就是答案，把它弄成
+「像是隨手拍的」再丟回來找。**完全不需要任何人標任何東西。**
+換一套沒調校過的衣服與題目驗（150 款裡找 1 款）：
+
+    3×3 逐格偏移（一開始）   Top-1  5.0%   Top-5 31.7%   中位名次 12
+    現在                     Top-1 52.5%   Top-5 80.0%   中位名次 1
+    亂猜                     Top-1  0.7%   Top-5  3.3%   中位名次 75
+
+這個數字是**上界**：它量的是對光線、構圖、縮放、壓縮的耐受度，量不到
+真穿搭照的皺褶與遮擋。跑不好，真照片一定更差；跑得好，真照片還要另外看。
+
+## 兩關都只加分，不當條件
+
+拿一個真實錯誤換來的：照片上最顯眼的是胸前一大片剪接，我就要求品名
+必須含「荷葉／領片／披領／披肩」，結果正解被**完全排除** —— 它的品名
+根本沒提那一片。品名寫的是設計師認為的賣點，不是你看得到的一切。
+
+所以顏色也守同一條：差太多的標「顏色對不上」降到最後，**仍然列出來**。
+
+## 不要求使用者裁圖
+
+使用者的原話：「不是叫使用者一直幫你修圖編圖的。」所以照片直接丟進來，
+`vision.grid.photo_signatures` 會在人身上試二十幾段，讓比對自己挑衣服在
+哪一段。裁不準不是問題，因為根本不需要裁準。
+"""
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any, Callable
+
+import pandas as pd
+
+SKU_RE = re.compile(r"KA\d{7}", re.I)
+# 洗掉被連同答案複製進來的提示詞（「Features:  蝴蝶結 領口」）。真的發生了兩次。
+LABEL_RE = re.compile(r"^\s*[A-Za-z][A-Za-z ]{1,19}:\s*")
+# ΔE 大於這個就標「顏色對不上」降到最後。25 是判斷不是量測：
+# 2–3 幾乎同色、10 明顯不同、25 以上不同色系。穿搭照的光線會把同一件
+# 衣服拉開十幾個 ΔE，所以門檻要鬆。
+COLOR_MAX = 25.0
+
+
+def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
+    """主表 → `{貨號: 品名}` 與 `{貨號: {售罄, 定價}}`。讀不到就回空的。"""
+    names: dict[str, str] = {}
+    sales: dict[str, dict] = {}
+    try:
+        from ..merge.build_master import load_master
+
+        mm = load_master(cfg)
+        key = next((c for c in ("style_code", "sku", "款號")
+                    if c in mm.columns), None)
+        nm = next((c for c in ("product_name", "品名") if c in mm.columns), None)
+        if key and nm:
+            names = dict(zip(mm[key].astype(str),
+                             mm[nm].fillna("").astype(str)))
+        st = next((c for c in ("sell_through_rate", "銷售率", "售罄率")
+                   if c in mm.columns), None)
+        pr = next((c for c in ("price", "定價") if c in mm.columns), None)
+        if key and st:
+            for _, r in mm.iterrows():
+                sales[str(r[key])] = {"售罄": r.get(st),
+                                      "定價": r.get(pr) if pr else None}
+    except Exception:
+        pass
+    return names, sales
+
+
+def _colors(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dict]:
+    """衣服主色，量過的存快取。"""
+    from ..imageio import load_rgb
+    from ..vision import grid as G
+
+    path = cfg.path("interim") / "garment_colors.csv"
+    cache: dict[str, dict] = {}
+    if path.exists() and not recolor:
+        try:
+            for _, r in pd.read_csv(path).iterrows():
+                cache[str(r["貨號"])] = {
+                    "LAB": [float(r["L"]), float(r["a"]), float(r["b"])],
+                    "HEX": r.get("HEX"), "色號": r.get("色號"),
+                    "色名": r.get("色名") if pd.notna(r.get("色名")) else ""}
+        except Exception:
+            cache = {}
+
+    fresh, out = 0, {}
+    for sku in skus:
+        c = cache.get(sku)
+        if c is None:
+            p = images.get(sku)
+            if p is None:
+                continue
+            try:
+                c = G.garment_color(load_rgb(p))
+            except Exception:
+                continue
+            cache[sku] = c
+            fresh += 1
+        if c.get("LAB"):
+            out[sku] = c
+    if fresh:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([
+            {"貨號": k, "L": v["LAB"][0], "a": v["LAB"][1], "b": v["LAB"][2],
+             "HEX": v.get("HEX"), "色號": v.get("色號"), "色名": v.get("色名", "")}
+            for k, v in cache.items() if v.get("LAB")
+        ]).to_csv(path, index=False, encoding="utf-8-sig")
+        log(f"  主色：新算 {fresh} 張（快取 {path.name}）")
+    return out
+
+
+def _signatures(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dict]:
+    """系統圖的多尺度顏色簽名，量過的存快取。
+
+    快取檔名帶版本：格式換過一次（單一 3×3 → 2×2 / 3×3 / 4×4 + 離散度），
+    舊檔直接留在原地不管它。混讀舊格式會安靜地給出錯的名次，
+    那比重算一次貴太多了。
+    """
+    import pickle
+
+    from ..imageio import load_rgb
+    from ..vision import grid as G
+
+    path = cfg.path("interim") / "grid_cells_v2.pkl"
+    cache: dict[str, dict] = {}
+    if path.exists() and not recolor:
+        try:
+            cache = pickle.loads(path.read_bytes())
+        except Exception:
+            cache = {}
+
+    def stamp(path) -> tuple:
+        """檔案指紋。快取只用貨號當鍵是不夠的 —— 系統圖換過一張，
+        比對就會安靜地用舊的那張，而且沒有任何地方看得出來。
+        自我測驗撞到過：兩套不同的圖共用貨號，準確率從 55% 掉到 1.3%。"""
+        try:
+            st = Path(path).stat()
+            return (int(st.st_mtime), int(st.st_size))
+        except OSError:
+            return (0, 0)
+
+    fresh, out = 0, {}
+    for sku in skus:
+        p = images.get(sku)
+        if p is None:
+            continue
+        key = stamp(p)
+        sig = cache.get(sku)
+        if sig is None or sig.get("_檔") != key:
+            try:
+                sig = G.cell_signature(load_rgb(p))
+            except Exception:
+                continue
+            sig["_檔"] = key
+            cache[sku] = sig
+            fresh += 1
+            if fresh % 200 == 0:
+                log(f"  九宮格：量到第 {fresh} 張…")
+        if sig.get("有效格"):
+            out[sku] = sig
+    if fresh:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(pickle.dumps(cache))
+        log(f"  顏色簽名：新量 {fresh} 張（快取 {path.name}）")
+    return out
+
+
+def parse_hex(text: str) -> str | None:
+    """從任何一串字裡撈出六碼十六進位色。「Colour hex: #1E263E」也吃。"""
+    m = re.search(r"(?<![0-9A-Fa-f])([0-9A-Fa-f]{6})(?![0-9A-Fa-f])", text or "")
+    return m.group(1) if m else None
+
+
+def run(cfg, *, photo: str | Path | None = None, words: str = "",
+        like: str | None = None, season: str | None = None,
+        shortlist: int = 40, top: int = 15, color_max: float = COLOR_MAX,
+        recolor: bool = False, images: dict | None = None,
+        truth: list[str] | None = None,
+        log: Callable[[str], None] = print) -> dict[str, Any]:
+    """跑完整條流程，回傳結構化結果。不印任何東西以外的副作用。
+
+    回傳 `{"照片":…, "特徵":…, "候選":[…], "警告":[…]}`。
+    `候選` 已排好序，每一筆都帶著名次、分數與為什麼。
+    """
+    from ..report.inventory_report import index_images
+    from ..vision import grid as G
+
+    warn: list[str] = []
+    if images is None:
+        roots = [r for r in cfg.path_list("system_images") if r]
+        images = index_images(roots) if roots else {}
+    if not images:
+        return {"警告": ["沒有讀到系統圖，確認 settings.yaml 的 paths.system_images"],
+                "候選": []}
+
+    pool = {k: v for k, v in images.items()
+            if not season or k.upper().startswith(season.upper())}
+    if not pool:
+        return {"警告": [f"沒有貨號以 {season} 開頭"], "候選": []}
+
+    names, sales = master(cfg)
+    truth = [t.upper() for t in (truth or [])]
+
+    # ---------------------------------------------------------- 讀照片
+    photo_sig = None
+    qlab = None
+    info: dict[str, Any] = {}
+    if photo:
+        from ..imageio import load_rgb
+
+        pp = Path(str(photo))
+        if not pp.exists():
+            return {"警告": [f"找不到照片：{pp}"], "候選": []}
+        im = load_rgb(pp)
+        ps = G.photo_signatures(im)
+        if ps["視窗"]:
+            photo_sig = ps
+            info = dict(ps["人"])
+            info["試了幾段"] = len(ps["視窗"])
+        else:
+            warn.append("照片裡找不到夠大的主體，只能用主色比對")
+        gc = G.garment_color(im)
+        qlab = gc.get("LAB")
+        info.update({"主色": gc.get("HEX"), "色號": gc.get("色號"),
+                     "色名": gc.get("色名")})
+    elif like:
+        from ..search.palette import _srgb_to_lab
+        import numpy as np
+
+        h = parse_hex(like)
+        if not h:
+            return {"警告": [f"看不懂顏色「{like}」，要六碼十六進位，例如 1E263E"],
+                    "候選": []}
+        qlab = [float(v) for v in _srgb_to_lab(np.array(
+            [[int(h[i:i + 2], 16) for i in (0, 2, 4)]], dtype=float))[0]]
+        info = {"主色": "#" + h.upper()}
+
+    # ---------------------------------------------------------- 第一關：特徵
+    words = LABEL_RE.sub("", words or "").strip()
+    while LABEL_RE.match(words):
+        words = LABEL_RE.sub("", words).strip()
+    terms = [t for t in words.replace(",", " ").replace("，", " ").split()
+             if t and not t.startswith("-")]
+    cand = sorted(pool)
+    feat: dict[str, dict] = {}
+    stage1: dict[str, Any] = {"詞": terms}
+    if terms:
+        if not names:
+            warn.append("找不到主表的品名，特徵這關跳過（先建主表）")
+        else:
+            from . import by_description as BD
+
+            sub = {k: names[k] for k in pool if names.get(k)}
+            ranked = BD.rank_terms(sub, terms, top=10 ** 6)
+            if ranked.empty:
+                warn.append(f"{len(sub):,} 款品名裡沒有一款含這些詞")
+            else:
+                for _, r in ranked.iterrows():
+                    feat[str(r["貨號"])] = {"特徵分": float(r["分數"]),
+                                            "命中": r["命中"], "品名": r["品名"]}
+                n = min(max(shortlist, 1), len(ranked))
+                # 平手的中間不能切：只給一個詞時 274 款全部同分，切點取決於
+                # 主表剛好怎麼排，跟像不像無關。切到平手群就整群帶進第二關。
+                cut = float(ranked["分數"].iloc[n - 1])
+                tied = int((ranked["分數"] >= cut - 1e-9).sum())
+                asked, n = n, max(n, tied)
+                cand = ranked["貨號"].astype(str).head(n).tolist()
+                stage1.update({
+                    "母數": len(sub), "命中": len(ranked), "進第二關": n,
+                    "同分放寬": tied > asked,
+                    "分數跨幅": round(float(ranked["分數"].iloc[0] - cut), 2),
+                    "前十": ranked.head(10)[["排名", "分數", "貨號", "品名",
+                                             "命中"]].to_dict("records"),
+                    "正解名次": {t: (int(ranked[ranked["貨號"].astype(str) == t]
+                                       ["排名"].iloc[0])
+                                   if (ranked["貨號"].astype(str) == t).any()
+                                   else None) for t in truth},
+                })
+
+    # ---------------------------------------------------------- 第二關：顏色
+    colors = _colors(cfg, images, cand, recolor=recolor, log=log) if qlab else {}
+    sigs = (_signatures(cfg, images, cand, recolor=recolor, log=log)
+            if photo_sig else {})
+
+    # 九宮格一次算完所有候選（向量化）。逐款迴圈在 3,323 款上慢到不能用，
+    # 而網頁查詢正是要面對那個數字。
+    grid_d: dict[str, tuple[float, str]] = {}
+    if photo_sig is not None and sigs:
+        import numpy as np
+
+        pk = G.pack(sigs)
+        dist, which = G.score_all(photo_sig["視窗"], pk)
+        for i, sku in enumerate(pk["貨號"]):
+            if np.isfinite(dist[i]):
+                grid_d[sku] = (float(dist[i]),
+                               photo_sig["視窗"][int(which[i])]["段"])
+
+    rows: list[dict[str, Any]] = []
+    for sku in cand:
+        f = feat.get(sku, {})
+        c = colors.get(sku)
+        de = None
+        if c is not None and qlab is not None:
+            try:
+                de = round(G.color_distance(qlab, c["LAB"]), 1)
+            except Exception:
+                de = None
+        g_abs = g_rel = None
+        seg = ""
+        if sku in grid_d:
+            g_rel, seg = round(grid_d[sku][0], 1), grid_d[sku][1]
+            g_abs = g_rel
+        # 「顏色對不上」這個標記只在**沒有照片**、只給色碼時才有意義。
+        # 有照片時整張主色會混到皮膚、頭髮、裙子（實測同一件衣服差 15.9），
+        # 而九宮格距離是三項相加的複合值，拿它跟 ΔE 的門檻比是在比蘋果
+        # 跟橘子。有照片就不標，改讓距離自己說話。
+        judge = None if photo_sig is not None else de
+        rows.append({
+            "貨號": sku, "品名": f.get("品名") or names.get(sku, ""),
+            "特徵分": round(f.get("特徵分", 0.0), 2), "命中": f.get("命中", ""),
+            "主色ΔE": de, "九宮格": g_rel, "格絕對": g_abs, "段": seg,
+            "HEX": (c or {}).get("HEX"), "色號": (c or {}).get("色號"),
+            "色名": (c or {}).get("色名", ""),
+            "顏色對不上": bool(judge is not None and judge > color_max),
+            "售罄": (sales.get(sku) or {}).get("售罄"),
+            "定價": (sales.get(sku) or {}).get("定價"),
+            "圖": str(images.get(sku, "")),
+        })
+
+    # 排序用的數字只能有一種尺度。
+    #
+    # 先前這裡是「有九宮格就用九宮格，沒有就用主色 ΔE」—— 兩個完全不同
+    # 量綱的數字混在同一個 sort 裡。主色 ΔE 大約 0–100，九宮格距離是三項
+    # 相加、常常上百，結果「量不到簽名」的候選反而排到最前面。
+    # 有照片時，量不到簽名就是量不到，排最後，不要拿別的數字頂上去。
+    use_grid = photo_sig is not None and bool(grid_d)
+
+    def tie(r):
+        if use_grid:
+            return r["九宮格"] if r["九宮格"] is not None else float("inf")
+        return r["主色ΔE"] if r["主色ΔE"] is not None else float("inf")
+
+    if terms and feat:
+        # 「顏色對不上」只是標記，**不參與排序**。
+        #
+        # 它當過第一排序鍵，結果一題裡正解的特徵分 8.65（第一關第 1 名）
+        # 被壓到第 28 名 —— 因為那張查詢照的整張主色被背景帶偏，正解被
+        # 判成「顏色對不上」。這就是「顏色變成條件」的老毛病，換個名字
+        # 又犯一次：先前是品名硬條件把正解排除，這次是顏色硬條件把它壓底。
+        # 顏色是證據，只在同分時說話。
+        rows.sort(key=lambda r: (-r["特徵分"], tie(r)))
+        how = "特徵排序，顏色只做同分裁決"
+    elif qlab is not None:
+        rows.sort(key=tie)
+        how = "只有顏色（沒給特徵詞）"
+    else:
+        return {"警告": ["特徵詞、照片、色碼至少要給一個"], "候選": []}
+
+    for i, r in enumerate(rows, 1):
+        r["名次"] = i
+    return {"照片": info, "特徵": stage1, "排序依據": how, "警告": warn,
+            "總候選": len(rows), "候選": rows[:top],
+            "正解": {t: next((r["名次"] for r in rows if r["貨號"] == t), None)
+                     for t in truth}}
