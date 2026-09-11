@@ -190,6 +190,27 @@ def describe_query(img, *, max_side: int = 900, drop_head: float = 0.18
         return describe(crop_subject(img))
 
 
+def strength(q: tuple | None, b: tuple | None) -> float:
+    """**不要用這支排序。** 留著是為了記住一個被量測打掉的想法。
+
+    想法：內點數 ÷ 兩邊較少的關鍵點數，問「看得到的細節裡對上幾成」。
+    動機是真的 —— 內點的絕對數量跟「這件衣服有多少細節」綁在一起，
+    真資料上同一條灰丹寧熊裙有 172–192 個內點，同一條格紋荷葉裙只有
+    32–36，而雜訊底是 5–17。
+
+    真資料 11 題上它確實好看：Top-1 55% → 64%。**但合成測試 160 題上
+    是災難：一般 76.2% → 61.3%，嚴苛 68.8% → 30.0%。**
+
+    原因很清楚：分母是較少的那一方，素面款的關鍵點本來就少，分母一小
+    分數就虛高，整批素面浮到前面。11 題的 9 個百分點是雜訊，160 題的
+    38 個百分點不是。所以排序一律用原始內點數。
+    """
+    v = inliers(q, b)
+    if not v:
+        return 0.0
+    return v / max(min(len(q[1]), len(b[1])), 1)
+
+
 def best_inliers(q: tuple | None, b: tuple | None) -> int:
     return inliers(q, b)
 

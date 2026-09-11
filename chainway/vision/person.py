@@ -86,20 +86,23 @@ def skin_mask(a: np.ndarray, ref: np.ndarray | None = None) -> np.ndarray:
             & (y >= SKIN_Y_MIN))
 
 
-def _skin_is_scattered(skin: np.ndarray, box) -> bool:
-    """皮膚是不是「分開的好幾塊」—— 這是人跟膚色衣服最硬的差別。
+def _has_head(skin: np.ndarray, box) -> bool:
+    """主體頂上有沒有一張臉。
 
-    人一定有**頭＋兩隻手臂**（或兩條腿）：至少三塊分開的皮膚，而且每一塊
-    都比身體窄。一件米色或裸粉的衣服被誤判成皮膚時，它是連成一整片的
-    一塊；橫條紋則是整幅寬的好幾條。兩個條件一起用才擋得住。
+    ## 這個判斷要回答的其實只有一件事
 
-    為什麼需要這一條：只看「皮膚佔主體幾成」擋不住 —— 合成的平拍商品照
-    有 22% 被判成「有人」，接著套上人像的規則（切頭、扣皮膚），把衣服
-    自己扣掉。加上這一條之後降到 2%。
+    它控制兩件事：色格要不要扣皮膚、關鍵點要不要切掉頭部。兩件都只跟
+    「畫面裡有沒有一個人的頭」有關，**跟有幾隻手、幾條腿無關**。
 
-    門檻上踩過一個坑：第一版要求「至少一塊重心在人框 45% 以下」，結果
-    一張穿長褲的真人像（只有頭與小臂露出）三塊的重心是 11%、40%、42%，
-    差 3 個百分點就被判成「不是人」。所以不靠垂直位置，改用塊數與寬度。
+    我先前的判準是「至少三塊分開的皮膚（頭＋兩隻手臂）」，理由是人一定
+    有頭有手。真照片打掉了它：手插口袋、長袖、裙子遮腿，三塊湊不齊 ——
+    十五張真人像裡有三張被判成「不是人」。判準應該問它真正要問的事。
+
+    ## 怎麼認一顆頭
+
+    在主體外框的**上三成**裡，有一塊夠大、而且**比身體窄**的皮膚。
+    窄這個條件是關鍵：一件米色或裸粉的衣服被誤判成皮膚時，那一塊會橫跨
+    整個身寬；一顆頭不會。合成的平拍商品照誤判率因此是 0。
     """
     x1, y1, x2, y2 = box
     bw, bh = max(x2 - x1, 1), max(y2 - y1, 1)
@@ -108,19 +111,16 @@ def _skin_is_scattered(skin: np.ndarray, box) -> bool:
         return False
     sizes = np.bincount(lab.ravel())
     sizes[0] = 0
-    thr = max(30, 0.004 * skin.size)
-    blobs = 0
-    high = False
+    thr = max(30, 0.003 * skin.size)
     for i, sz in enumerate(sizes):
         if sz < thr:
             continue
         ys, xs = np.nonzero(lab == i)
-        if (xs.max() - xs.min() + 1) > 0.60 * bw:   # 整幅寬 → 是條紋不是手
+        if (xs.max() - xs.min() + 1) > 0.60 * bw:
             continue
-        blobs += 1
-        if (float(ys.mean()) - y1) / bh < 0.35:
-            high = True
-    return blobs >= 3 and high
+        if (float(ys.mean()) - y1) / bh < 0.30:
+            return True
+    return False
 
 
 def _skin_ref(a: np.ndarray, m: np.ndarray, box) -> np.ndarray | None:
@@ -419,14 +419,13 @@ def analyse(img) -> dict[str, Any]:
     if ref is not None:
         cand = skin_mask(a, ref) & m
         frac_s = float(cand.sum()) / max(m.sum(), 1)
-        scattered = _skin_is_scattered(cand, box)
+        scattered = _has_head(cand, box)
         if SKIN_MIN_FRAC <= frac_s <= SKIN_MAX_FRAC and scattered:
             skin, has_person = skin_mask(a, ref), True
             note.append(f"膚色以她自己的頭部為準 "
                         f"#{int(ref[0]):02X}{int(ref[1]):02X}{int(ref[2]):02X}")
         elif not scattered:
-            note.append("皮膚連成一整片，不是頭＋四肢的樣子 —— "
-                        "這張多半不是人像，不扣皮膚")
+            note.append("主體頂上找不到一顆頭 —— 這張多半不是人像，不扣皮膚")
             ref = None
         else:
             note.append(f"頭部取到的基準色算出 {frac_s:.0%} 的皮膚，"
