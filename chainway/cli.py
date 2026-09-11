@@ -1627,6 +1627,19 @@ def _grid_search(args, cfg, images: dict) -> int:
     """
     from .search import by_description as BD
 
+    # 位置參數是「已知正解」，不是特徵詞。使用者把整條指令貼進選單的
+    # 輸入格時，「領口 針織 上衣」全部跑到這裡來，程式照樣跑完，只是
+    # 每一個都回報「沒進最後名單」—— 看起來像搜尋失敗，其實是輸入吃錯。
+    # 不猜、不自動改，但一定要講。
+    import re as _re
+
+    bad = [x for x in args.sku if not _re.fullmatch(r"KA\d{7}", x.upper())]
+    if bad:
+        args.sku = [x for x in args.sku if x not in bad]
+        _warn(f"這些不是貨號（貨號長得像 KA1369013）：{'、'.join(bad)}")
+        print("   它們被忽略了。特徵詞要放在 --match 的引號裡，"
+              "位置參數只放你已經知道的正解貨號。")
+
     pool = {k: v for k, v in images.items()
             if not args.season or k.startswith(args.season)}
     if not pool:
@@ -1635,6 +1648,22 @@ def _grid_search(args, cfg, images: dict) -> int:
     print(f"比對範圍 {len(pool):,} 款"
           + (f"（{args.season}）" if args.season else "（全庫）"))
 
+    # 色碼先解析，再跑第一關。壞掉的色碼要在使用者還盯著螢幕的那一秒
+    # 就說，不是讓他等特徵關跑完才看到「--like 要給六碼」。
+    qlab = None
+    if args.like:
+        from .search.palette import _srgb_to_lab
+        import numpy as _np
+
+        hexv = args.like.strip().lstrip("#").strip('"').strip()
+        if len(hexv) != 6 or any(c not in "0123456789abcdefABCDEF" for c in hexv):
+            _warn(f"看不懂顏色「{args.like}」—— 要六碼十六進位，例如 1E263E。"
+                  "小畫家的「編輯色彩」裡就有這六碼。")
+            return 1
+        rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
+                        dtype=float)
+        qlab = _srgb_to_lab(rgb)[0]
+
     names, sales = _grid_master(cfg)
 
     # ---------------------------------------------------------- 第一關：特徵
@@ -1642,6 +1671,11 @@ def _grid_search(args, cfg, images: dict) -> int:
     feat: dict[str, dict] = {}
     if args.match:
         terms = [t for t in args.match.replace(",", " ").split() if t]
+        flags = [t for t in terms if t.startswith("-")]
+        if flags:
+            terms = [t for t in terms if t not in flags]
+            _warn(f"--match 裡面有參數旗標：{'、'.join(flags)}"
+                  "　—— 引號關太晚了，這些不是特徵詞，已忽略。")
         if not names:
             _warn("找不到主表的品名，特徵這關跳過（先跑選單 1 建主表）。")
         elif not terms:
@@ -1657,6 +1691,18 @@ def _grid_search(args, cfg, images: dict) -> int:
                         "特徵分": float(r["分數"]), "命中": r["命中"],
                         "品名": r["品名"]}
                 n = min(max(args.shortlist, 1), len(ranked))
+                # 平手的中間不能切。
+                #
+                # 真實跑出來的：只給「蝴蝶結」一個詞時，274 款全部得
+                # 2.06 分 —— 一個詞，命中就是命中，分數當然一樣。這時候
+                # 取「前 40」，切點取決於主表剛好怎麼排，跟像不像無關；
+                # 正解排第 14 是運氣。所以切到平手群就整群帶進去，讓第二關
+                # 的顏色去分。真正該說的話是「這些詞分不出東西」，
+                # 不是假裝分得出來。
+                cut = float(ranked["分數"].iloc[n - 1])
+                tied = int((ranked["分數"] >= cut - 1e-9).sum())
+                if tied > n:
+                    n = tied
                 cand = ranked["貨號"].astype(str).head(n).tolist()
                 print(f"\n=== 第一關 特徵：{len(sub):,} 款裡 {len(ranked):,} "
                       f"款品名命中，取前 {n} 進第二關 ===")
@@ -1671,7 +1717,16 @@ def _grid_search(args, cfg, images: dict) -> int:
                     if n >= 2 else 0.0
                 if n >= 2 and sp < 0.5:
                     print(f"  ! 前 {n} 名的特徵分只跨 {sp:.2f} —— 這些詞分不出"
-                          f"東西，多給幾個罕見特徵詞，或把 --shortlist 開大。")
+                          f"誰比較像。")
+                    if qlab is None:
+                        print("    再多給幾個看得到的特徵詞（越罕見越有用），"
+                              "或給顏色（--like）讓第二關來分。")
+                    else:
+                        print(f"    這 {n} 款平手，順序完全由顏色決定；"
+                              "多給幾個特徵詞才是真正縮範圍的方法。")
+                if tied > min(max(args.shortlist, 1), len(ranked)):
+                    print(f"  · {tied} 款同分，不能從中間切 —— 整群帶進第二關"
+                          f"（第一次要量 {tied} 張圖的主色，之後有快取）。")
                 for want in args.sku:
                     hit = ranked[ranked["貨號"].astype(str) == want]
                     if hit.empty:
@@ -1682,20 +1737,9 @@ def _grid_search(args, cfg, images: dict) -> int:
                               f" / {len(ranked):,}")
 
     # ---------------------------------------------------------- 第二關：顏色
-    qlab = None
     colors: dict[str, dict] = {}
-    if args.like:
-        from .search.palette import _srgb_to_lab
-        import numpy as _np
-
-        hexv = args.like.lstrip("#")
-        if len(hexv) != 6:
-            _warn("--like 要給六碼十六進位色，例如 --like 1E263E")
-            return 1
-        rgb = _np.array([[int(hexv[i:i + 2], 16) for i in (0, 2, 4)]],
-                        dtype=float)
-        qlab = _srgb_to_lab(rgb)[0]
-        print(f"\n=== 第二關 顏色：查詢色 #{hexv.upper()}  "
+    if qlab is not None:
+        print(f"\n=== 第二關 顏色：查詢色 #{args.like.strip().lstrip('#').upper()}  "
               f"LAB({qlab[0]:.0f},{qlab[1]:.0f},{qlab[2]:.0f}) ===")
         colors = _garment_colors(cfg, images, cand,
                                  recolor=args.recolor, limit=args.limit)

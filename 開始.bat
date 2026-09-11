@@ -230,20 +230,34 @@ goto done
 rem Outfit photo -> style code. Two questions, in this order.
 rem
 rem FEATURES FIRST, colour second, because that is the order that survives
-rem a photograph: a navy knit shot under warm room light can measure ten
-rem-plus dE away from its own studio shot, but "bow", "neckline", "knit"
-rem read the same in any light. Pale colours are worse still - the top
-rem fifteen matches for a pale pink span under two dE, which is inside the
+rem a photograph: a navy knit shot under warm room light can measure more
+rem than ten dE away from its own studio shot, but "bow", "neckline" and
+rem "knit" read the same in any light. Pale colours are worse still - the
+rem top fifteen matches for a pale pink span under two dE, inside the
 rem measurement noise. Colour only settles the order among candidates the
 rem features already found, and pushes obviously-wrong colours to the end.
 echo.
-echo   Step 1 - what can you SEE on the garment? Separate words with a
-echo   space. Chinese is fine. Rare words are worth more than common ones,
-echo   so "bow" beats "top". Example:  bow neckline knit long-sleeve
+echo   Step 1 - what can you SEE on the garment? JUST THE WORDS, separated
+echo   by spaces - this is not a command line. Chinese is fine. Rare words
+echo   are worth more than common ones, so "bow" beats "top".
+echo   Like this:   bow neckline knit long-sleeve
 echo.
+:j10ask
 set "F="
 set /p F=  Features:  
 if not defined F goto menu
+rem Quotes would be passed through to the search words themselves.
+set "F=%F:"=%"
+rem People paste the whole command in here - it looks like a terminal.
+rem Catch it and ask again rather than searching for the word "python".
+rem The quotes around %F% keep an ampersand in the answer from splitting
+rem the line and running whatever follows it.
+echo "%F%" | find /i "chainway" >nul
+if not errorlevel 1 goto j10paste
+echo "%F%" | find /i "python" >nul
+if not errorlevel 1 goto j10paste
+echo "%F%" | find "--" >nul
+if not errorlevel 1 goto j10paste
 echo.
 echo   Step 2 - the main colour, as six hex digits. Optional: press Enter
 echo   to skip it and rank on features alone. To get the code, open the
@@ -251,13 +265,26 @@ echo   photo in Paint, pick the colour dropper, then Edit colours.
 echo.
 set "H="
 set /p H=  Colour hex (example 1E263E), or Enter to skip:  
+if defined H set "H=%H:"=%"
+if defined H set "H=%H:#=%"
 echo.
 if defined H (
   "%VPY%" -m chainway.cli grid --match "%F%" --like "%H%"
 ) else (
   "%VPY%" -m chainway.cli grid --match "%F%"
 )
-goto done
+rem Straight to :back, not :done - searching changes nothing, so there is
+rem no reason to spend time rebuilding the overview page after it.
+goto back
+
+:j10paste
+echo.
+echo   That looks like a whole command. This box only wants the words you
+echo   can see on the garment - the menu builds the command for you.
+echo   Not this:  python -m chainway.cli grid --match "bow neckline" ...
+echo   This:      bow neckline knit long-sleeve
+echo.
+goto j10ask
 
 :done
 rem Regenerate the overview every time, so it always reflects the last run
@@ -267,6 +294,15 @@ echo.
 echo  ------------------------------------------------------------------
 echo   Finished. Scroll up to read or screenshot the numbers, then press
 echo   a key to go back to the menu.
+echo  ------------------------------------------------------------------
+echo.
+pause
+goto menu
+
+:back
+echo.
+echo  ------------------------------------------------------------------
+echo   Press a key to go back to the menu.
 echo  ------------------------------------------------------------------
 echo.
 pause
