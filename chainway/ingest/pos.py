@@ -320,6 +320,45 @@ def _clean(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
+def aggregate_to_variant(df: pd.DataFrame) -> pd.DataFrame:
+    """彙總到 **貨號 × 顏色 × 尺寸** —— 賣場真正在問的那一層。
+
+    `aggregate_to_sku_season` 把顏色與尺寸丟掉了，因為分析要看的是「這一款
+    賣得好不好」。但查詢工具要回答的是另一個問題：「這件我有沒有貨、
+    什麼顏色、什麼尺寸」。那是同一批資料的不同粒度，不是新資料。
+
+    庫存用 `stock_on_hand`（報表上的「總存」）。貴司的報表裡另有一個
+    「庫存」欄位，兩者只有 15% 的列相同 —— 總存 = 累進 − 總銷，是推導得
+    出來的剩餘量，另一個來源不明。這裡用總存，並把另一個一起帶著，
+    讓看的人自己核對，不要靜默地選一個。
+    """
+    if df.empty:
+        return df
+    keys = [k for k in ("sku", "style_code", "color", "size") if k in df.columns]
+    if not keys or "sku" not in keys:
+        return pd.DataFrame()
+    agg = {c: "sum" for c in ("stock_in", "sales_qty", "return_qty",
+                              "stock_on_hand", "stock_on_hand_alt")
+           if c in df.columns}
+    for c in ("product_name", "season", "category", "style_code"):
+        if c in df.columns and c not in keys:
+            agg[c] = "first"
+    for c in ("list_price",):
+        if c in df.columns:
+            agg[c] = "median"
+    if "snapshot_date" in df.columns:
+        agg["snapshot_date"] = "max"
+    if not agg:
+        return pd.DataFrame()
+    out = df.groupby(keys, dropna=False).agg(agg).reset_index()
+    if "stock_on_hand" in out.columns:
+        # 負的剩餘量沒有意義（退貨、跨季調撥造成），壓到 0 並標記出來，
+        # 不要讓賣場看到「庫存 -3」。
+        out["庫存為負"] = out["stock_on_hand"] < 0
+        out["stock_on_hand"] = out["stock_on_hand"].clip(lower=0)
+    return out
+
+
 def aggregate_to_sku_season(df: pd.DataFrame) -> pd.DataFrame:
     """把門市 × 日期層級的明細，彙總到 貨號 × 季別 —— 分析的基本粒度。"""
     if df.empty:

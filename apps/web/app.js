@@ -126,6 +126,20 @@ $('#assocSig').onchange = LOADERS.association;
    所以網頁上看到的名次跟 cmd 裡跑出來的永遠一樣。                        */
 let PHOTO = null;
 
+/* 查到貨號之後真正要問的事：有沒有貨、什麼顏色、什麼尺寸。 */
+function stockTable(r) {
+  const v = r['庫存明細'] || [];
+  if (!v.length) return '';
+  const rows = v.slice(0, 12).map(x => `<tr>
+      <td>${esc(x['顏色'] || '—')}</td><td>${esc(x['尺寸'] || '—')}</td>
+      <td class="${(x['庫存'] || 0) > 0 ? 'instock' : 'nostock'}">${x['庫存'] ?? '—'}</td>
+    </tr>`).join('');
+  return `<table class="stock"><thead><tr><th>顏色</th><th>尺寸</th><th>庫存</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="meta">可售總數 ${r['可售總數'] ?? 0}
+      ${v.length > 12 ? '（只列前 12 筆）' : ''}</div>`;
+}
+
 function findCards(rows) {
   if (!rows.length) return '<p class="hint">沒有結果。</p>';
   return rows.map(r => `
@@ -140,6 +154,9 @@ function findCards(rows) {
           ${r['命中'] ? '命中 ' + esc(r['命中']) + '<br>' : ''}
           ${r['相同細節'] ? '<b>對上 ' + r['相同細節'] + ' 處細節</b>　' : ''}
           ${r['判定'] ? esc(r['判定']) + '<br>' : ''}
+        </div>
+        ${stockTable(r)}
+        <div class="meta">
           ${r['比中來源'] ? '比中的是' + esc(r['比中來源']) + '　' : ''}
           ${r['參考圖數'] > 1 ? '（這款有 ' + r['參考圖數'] + ' 張參考圖）<br>' : ''}
           ${r['九宮格'] != null ? '顏色距離 ' + r['九宮格'] + '　' : ''}
@@ -171,6 +188,7 @@ function findWhy(d) {
                 '低': '關鍵點沒有對上任何一款，這個排名完全由顏色決定。素面衣服本來就抓不到關鍵點，那時候只能靠顏色。'};
   if (d['把握度'])
     bits.push(`<b>把握度：${esc(d['把握度'])}</b>　${SURE[d['把握度']] || ''}`);
+  bits.push('庫存是 POS 報表匯出當下的快照，不是即時的 —— 要最新的就重新匯一次 ERP。');
   (d['警告'] || []).forEach(w => bits.push('<b>' + esc(w) + '</b>'));
   if (!bits.length) return '';
   return `<div class="notice">${bits.join('<br>')}<br>

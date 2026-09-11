@@ -231,6 +231,16 @@ def cmd_ingest(args) -> int:
         agg = pos.aggregate_to_sku_season(sales_df)
         agg.to_parquet(interim / "sales_by_sku_season.parquet", index=False)
         _ok(f"{len(sales_df):,} 筆明細 → 彙總 {len(agg):,} 筆（貨號×季別）")
+        # 查詢工具要的是另一個粒度：這件有沒有貨、什麼顏色、什麼尺寸。
+        var = pos.aggregate_to_variant(sales_df)
+        if not var.empty:
+            var.to_parquet(interim / "stock_by_variant.parquet", index=False)
+            cols = [c for c in ("color", "size") if c in var.columns]
+            _ok(f"庫存表 {len(var):,} 筆（貨號×{'×'.join(cols) or '—'}）"
+                f" → stock_by_variant.parquet")
+        else:
+            _warn("POS 裡沒有顏色／尺寸欄位，查詢結果不會顯示庫存。"
+                  "ERP 匯出時請含「貨品編號 + 顏色 + 尺寸 + 總存」。")
     audit.to_csv(interim / "pos_import_audit.csv", index=False, encoding="utf-8-sig")
     skipped = audit[audit["status"] == "SKIPPED"] if not audit.empty else pd.DataFrame()
     if not skipped.empty:
@@ -1616,6 +1626,18 @@ def _grid_search(args, cfg, images: dict) -> int:
     if has_sig or has_kp:
         print("  （整條流程用自家系統圖出題量過，換一套沒看過的衣服驗："
               "Top-1 83.8%、Top-5 92.5%。選單 11 可以自己重跑。）")
+    top = rows[0] if rows else {}
+    if top.get("庫存明細"):
+        print(f"\n=== 第 1 名 {top['貨號']} 的顏色／尺寸／庫存 ===")
+        print(f"{'顏色':<8}{'尺寸':<8}{'庫存':>6}{'已售':>7}")
+        for v in top["庫存明細"][:20]:
+            print(f"{v['顏色'] or '—':<8}{v['尺寸'] or '—':<8}"
+                  f"{(v['庫存'] if v['庫存'] is not None else '—'):>6}"
+                  f"{(v['已售'] if v['已售'] is not None else '—'):>7}")
+        print(f"  可售總數 {top.get('可售總數') or 0}")
+        print("  庫存是 POS 報表匯出當下的快照，不是即時的 —— "
+              "要最新的就重新匯一次 ERP 再跑選單 1。")
+
     sure = res.get("把握度")
     if sure:
         say = {"高": "第 1 名有關鍵點證實，而且明顯領先第 2 名。",

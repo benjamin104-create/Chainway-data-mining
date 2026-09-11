@@ -120,6 +120,50 @@ def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
     return names, sales
 
 
+def stock(cfg) -> dict[str, list[dict[str, Any]]]:
+    """母款 → 各顏色尺寸的庫存。讀不到就回空的，查詢照樣能跑。
+
+    這一層是「查到貨號之後真正要問的事」：這件有沒有貨、什麼顏色、
+    什麼尺寸。資料來源是 POS 進銷存報表，不是新資料，只是先前彙總到
+    「貨號×季別」時把顏色與尺寸丟掉了。
+
+    **庫存是匯出當下的快照，不是即時的。** 報表什麼時候匯的，數字就是
+    那一刻的。這件事一定要顯示在畫面上，否則賣場會拿舊數字去跟客人
+    保證有貨。
+    """
+    path = cfg.path("interim") / "stock_by_variant.parquet"
+    if not path.exists():
+        return {}
+    try:
+        df = pd.read_parquet(path)
+    except Exception:
+        return {}
+    key = "style_code" if "style_code" in df.columns else "sku"
+    if key not in df.columns:
+        return {}
+    out: dict[str, list[dict[str, Any]]] = {}
+    for sku, g in df.groupby(key, dropna=False):
+        rows = []
+        for _, r in g.iterrows():
+            rows.append({
+                "顏色": (str(r["color"]) if "color" in g.columns
+                         and pd.notna(r.get("color")) else ""),
+                "尺寸": (str(r["size"]) if "size" in g.columns
+                         and pd.notna(r.get("size")) else ""),
+                "庫存": (int(r["stock_on_hand"])
+                         if "stock_on_hand" in g.columns
+                         and pd.notna(r.get("stock_on_hand")) else None),
+                "另一套庫存數": (int(r["stock_on_hand_alt"])
+                               if "stock_on_hand_alt" in g.columns
+                               and pd.notna(r.get("stock_on_hand_alt")) else None),
+                "已售": (int(r["sales_qty"]) if "sales_qty" in g.columns
+                         and pd.notna(r.get("sales_qty")) else None),
+            })
+        rows.sort(key=lambda x: (x["顏色"], x["尺寸"]))
+        out[str(sku)] = rows
+    return out
+
+
 def _cached(cfg, name: str, paths, build, *, recolor=False, log=print,
             label: str = "") -> dict:
     """通用的「量過就存起來」。**以檔案路徑為鍵**，不是貨號。
@@ -255,6 +299,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         return {"警告": [f"沒有貨號以 {season} 開頭"], "候選": []}
 
     names, sales = master(cfg)
+    inv = stock(cfg)
     truth = [t.upper() for t in (truth or [])]
 
     # ---------------------------------------------------------- 讀照片
@@ -410,6 +455,8 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             "顏色對不上": bool(judge is not None and judge > color_max),
             "售罄": (sales.get(sku) or {}).get("售罄"),
             "定價": (sales.get(sku) or {}).get("定價"),
+            "庫存明細": inv.get(sku, []),
+            "可售總數": sum(x["庫存"] or 0 for x in inv.get(sku, [])) or None,
             "圖": str(images.get(sku, "")),
         })
 
