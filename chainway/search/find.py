@@ -65,6 +65,9 @@ LABEL_RE = re.compile(r"^\s*[A-Za-z][A-Za-z ]{1,19}:\s*")
 # 2–3 幾乎同色、10 明顯不同、25 以上不同色系。穿搭照的光線會把同一件
 # 衣服拉開十幾個 ΔE，所以門檻要鬆。
 COLOR_MAX = 25.0
+# 顏色排完之後，前幾名要送去做關鍵點重排。
+# 量過（150 款裡找 1 款，保留集）：前 60 名 Top-1 75.0%，前 100 名 76.2%。
+RERANK_N = 100
 
 
 def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
@@ -156,22 +159,12 @@ def _signatures(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dic
         except Exception:
             cache = {}
 
-    def stamp(path) -> tuple:
-        """檔案指紋。快取只用貨號當鍵是不夠的 —— 系統圖換過一張，
-        比對就會安靜地用舊的那張，而且沒有任何地方看得出來。
-        自我測驗撞到過：兩套不同的圖共用貨號，準確率從 55% 掉到 1.3%。"""
-        try:
-            st = Path(path).stat()
-            return (int(st.st_mtime), int(st.st_size))
-        except OSError:
-            return (0, 0)
-
     fresh, out = 0, {}
     for sku in skus:
         p = images.get(sku)
         if p is None:
             continue
-        key = stamp(p)
+        key = _stamp(p)
         sig = cache.get(sku)
         if sig is None or sig.get("_檔") != key:
             try:
@@ -192,6 +185,59 @@ def _signatures(cfg, images, skus, *, recolor=False, log=print) -> dict[str, dic
     return out
 
 
+def _keypoints(cfg, images, skus, *, recolor=False, log=print) -> dict:
+    """系統圖的關鍵點描述子，量過的存快取。只對進入重排的候選做。"""
+    import pickle
+
+    from ..imageio import load_rgb
+    from ..vision import keypoints as KPmod
+
+    if not KPmod.available():
+        return {}
+    path = cfg.path("interim") / "keypoints_v1.pkl"
+    cache: dict = {}
+    if path.exists() and not recolor:
+        try:
+            cache = pickle.loads(path.read_bytes())
+        except Exception:
+            cache = {}
+
+    fresh, out = 0, {}
+    for sku in skus:
+        p = images.get(sku)
+        if p is None:
+            continue
+        key = _stamp(p)
+        hit = cache.get(sku)
+        if hit is None or hit.get("_檔") != key:
+            try:
+                d = KPmod.describe(load_rgb(p))
+            except Exception:
+                d = None
+            hit = {"_檔": key, "d": d}
+            cache[sku] = hit
+            fresh += 1
+            if fresh % 100 == 0:
+                log(f"  關鍵點：量到第 {fresh} 張…")
+        if hit.get("d") is not None:
+            out[sku] = hit["d"]
+    if fresh:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(pickle.dumps(cache))
+        log(f"  關鍵點：新量 {fresh} 張（快取 {path.name}）")
+    return out
+
+
+def _stamp(path) -> tuple:
+    """檔案指紋。快取只用貨號當鍵是不夠的 —— 系統圖換過一張，比對就會
+    安靜地用舊的那張。自我測驗撞到過，準確率從 55% 掉到 1.3%。"""
+    try:
+        st = Path(path).stat()
+        return (int(st.st_mtime), int(st.st_size))
+    except OSError:
+        return (0, 0)
+
+
 def parse_hex(text: str) -> str | None:
     """從任何一串字裡撈出六碼十六進位色。「Colour hex: #1E263E」也吃。"""
     m = re.search(r"(?<![0-9A-Fa-f])([0-9A-Fa-f]{6})(?![0-9A-Fa-f])", text or "")
@@ -200,7 +246,8 @@ def parse_hex(text: str) -> str | None:
 
 def run(cfg, *, photo: str | Path | None = None, words: str = "",
         like: str | None = None, season: str | None = None,
-        shortlist: int = 40, top: int = 15, color_max: float = COLOR_MAX,
+        shortlist: int = 40, rerank: int = RERANK_N, top: int = 15,
+        color_max: float = COLOR_MAX,
         recolor: bool = False, images: dict | None = None,
         truth: list[str] | None = None,
         log: Callable[[str], None] = print) -> dict[str, Any]:
@@ -344,6 +391,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         judge = None if photo_sig is not None else de
         rows.append({
             "貨號": sku, "品名": f.get("品名") or names.get(sku, ""),
+            "內點": None,
             "特徵分": round(f.get("特徵分", 0.0), 2), "命中": f.get("命中", ""),
             "主色ΔE": de, "九宮格": g_rel, "格絕對": g_abs, "段": seg,
             "HEX": (c or {}).get("HEX"), "色號": (c or {}).get("色號"),
@@ -383,9 +431,53 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     else:
         return {"警告": ["特徵詞、照片、色碼至少要給一個"], "候選": []}
 
+    # ------------------------------------------------ 第三關：關鍵點重排
+    #
+    # 顏色只能排到這裡。拿「神諭視窗」量過上界：就算每一題都選到最好的
+    # 裁切段落，純顏色的 Top-1 也只有 54%。要再上去就得換一種資訊 ——
+    # 印花、logo、鈕釦、口袋、織紋，那些顏色看不到。
+    #
+    # 只對前 RERANK_N 名做，因為對全庫做太慢也沒必要。內點數為主，
+    # 同數（含全部 0 個，也就是素面款）時維持顏色的順序 —— 素面本來就
+    # 只能靠顏色，這時候不要讓關鍵點的雜訊去打亂它。
+    kp_hits = 0
+    if photo_sig is not None and rows and rerank > 0:
+        from ..vision import keypoints as KP
+
+        if KP.available():
+            head = rows[:rerank]
+            desc = _keypoints(cfg, images, [r["貨號"] for r in head],
+                              recolor=recolor, log=log)
+            if desc:
+                try:
+                    from ..imageio import load_rgb
+
+                    q = KP.describe_query(load_rgb(Path(str(photo))))
+                except Exception:
+                    q = None
+                if q is not None:
+                    for i, r in enumerate(head):
+                        r["內點"] = KP.inliers(q, desc.get(r["貨號"]))
+                        r["_序"] = i
+                    kp_hits = sum(1 for r in head if r["內點"])
+                    # **只在特徵分相同的群內重排。**
+                    #
+                    # 第一版直接依內點把前一百名整個重排，等於讓第三關
+                    # 推翻第一關 —— 品名明確命中的款會被一個只是花色相近
+                    # 的款擠掉。這正是「後面的關卡變成條件」，跟先前顏色
+                    # 當條件、品名當條件是同一個錯，只是換了層。
+                    # 順序永遠是：特徵 → 關鍵點 → 顏色。
+                    head.sort(key=lambda r: (-r["特徵分"], -r["內點"], r["_序"]))
+                    for r in head:
+                        r.pop("_序", None)
+                    rows = head + rows[rerank:]
+                    if kp_hits:
+                        how += "，再用關鍵點在同分群內重排"
+
     for i, r in enumerate(rows, 1):
         r["名次"] = i
     return {"照片": info, "特徵": stage1, "排序依據": how, "警告": warn,
+            "關鍵點命中": kp_hits,
             "總候選": len(rows), "候選": rows[:top],
             "正解": {t: next((r["名次"] for r in rows if r["貨號"] == t), None)
                      for t in truth}}

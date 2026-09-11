@@ -128,7 +128,7 @@ def cmd_doctor(args) -> int:
     print("\n【2.5】比對邏輯自我檢查（不需要資料）")
     for name, fn in (("衣服／皮膚偵測", "chainway.vision.person"),
                      ("顏色簽名比對", "chainway.vision.grid"),
-                     ("品名特徵比對", None)):
+                     ("關鍵點比對", "chainway.vision.keypoints")):
         if fn is None:
             continue
         try:
@@ -1571,10 +1571,13 @@ def _grid_search(args, cfg, images: dict) -> int:
 
     has_sale = any(r["售罄"] is not None for r in rows)
     has_sig = any(r["九宮格"] is not None for r in rows)
+    has_kp = any(r.get("內點") for r in rows)
     print(f"\n=== 結果（{res['排序依據']}）===")
     head = f"{'名次':<5}{'特徵分':>7}{'主色ΔE':>8}"
     if has_sig:
         head += f"{'九宮格':>8}"
+    if has_kp:
+        head += f"{'相同特徵':>9}"
     head += f"  {'貨號':<12}{'品名':<26}"
     if has_sale:
         head += f"{'售罄':>7}{'定價':>9}  "
@@ -1584,6 +1587,8 @@ def _grid_search(args, cfg, images: dict) -> int:
                 + ("—" if r["主色ΔE"] is None else f"{r['主色ΔE']:.1f}").rjust(8))
         if has_sig:
             line += ("—" if r["九宮格"] is None else f"{r['九宮格']:.1f}").rjust(8)
+        if has_kp:
+            line += ("—" if not r.get("內點") else str(r["內點"])).rjust(9)
         line += f"  {r['貨號']:<12}{str(r['品名'])[:24]:<26}"
         if has_sale:
             v, p_ = r["售罄"], r["定價"]
@@ -1599,10 +1604,14 @@ def _grid_search(args, cfg, images: dict) -> int:
     if has_sig:
         print("  九宮格 = 把衣服切成 2×2 與 4×4 逐格比顏色，"
               "再加上每格的花色深淺差。越小越像。")
-        print("  （這個公式是用自己的系統圖出題量出來的，換一套沒看過的"
-              "衣服驗過：Top-1 52.5%、Top-5 80.0%。選單 11 可以自己重跑。）")
-        if rows[0].get("段"):
-            print(f"  第 1 名是拿人身上「{rows[0]['段']}」那一段比出來的。")
+    if has_kp:
+        print("  相同特徵 = 兩張圖上幾何位置一致的關鍵點數（印花、字樣、"
+              "鈕釦、口袋）。越多越可能是同一件；素面衣服抓不到，靠顏色。")
+    if has_sig and rows[0].get("段"):
+        print(f"  第 1 名是拿人身上「{rows[0]['段']}」那一段比出來的。")
+    if has_sig or has_kp:
+        print("  （整條流程用自家系統圖出題量過，換一套沒看過的衣服驗："
+              "Top-1 83.8%、Top-5 92.5%。選單 11 可以自己重跑。）")
     for t, n in (res.get("正解") or {}).items():
         if n:
             print(f"\n  ★★ {t} 最後排第 {n} 名 / {res['總候選']}")
@@ -1622,7 +1631,8 @@ def cmd_selfeval(args) -> int:
     cfg = get_config()
     print(f"出 {args.n} 題，每題在 {args.pool} 款裡找。"
           "第一次會量系統圖的九宮格，之後有快取。\n")
-    res = S.run(cfg, n=args.n, pool=args.pool, seed=args.seed)
+    res = S.run(cfg, n=args.n, pool=args.pool, seed=args.seed,
+                harsh=args.harsh)
     if res.get("錯誤"):
         _warn(res["錯誤"])
         return 1
@@ -2416,6 +2426,8 @@ def main(argv: list[str] | None = None) -> int:
     sev.add_argument("--pool", type=int, default=200,
                      help="每題在幾款裡找（預設 200）")
     sev.add_argument("--seed", type=int, default=20260911, help="隨機種子")
+    sev.add_argument("--harsh", action="store_true",
+                     help="壓力測試：混合光源、沒有白平衡、更大的皺褶與傾斜")
     sev.set_defaults(func=cmd_selfeval)
 
     slh = sub.add_parser("silhouette",

@@ -56,6 +56,38 @@ def skin_mask(a: np.ndarray) -> np.ndarray:
             & (y >= SKIN_Y_MIN))
 
 
+def _close(mask: np.ndarray, r: int = 3) -> np.ndarray:
+    """把細縫補起來再取最大區域。
+
+    為什麼需要：一條淺色門襟、一個亮色口袋、一道印花，都會把衣服的前景
+    遮罩**從中間切成兩塊**，接著「取最大連通區域」就只拿到半邊。實測一張
+    有門襟的上衣，框出來只有 56 像素寬（全寬 206），關鍵點整個抓不到。
+
+    膨脹再侵蝕，r 像素以內的縫會被接起來，外框不變胖。
+    """
+    try:
+        from scipy import ndimage
+        return ndimage.binary_closing(mask, np.ones((r * 2 + 1, r * 2 + 1)))
+    except Exception:
+        pass
+    # 沒有 scipy 就用位移取聯集／交集，效果一樣，只是慢一點。
+    def shift_or(m, k):
+        out = m.copy()
+        for dy in range(-k, k + 1):
+            for dx in range(-k, k + 1):
+                out |= np.roll(np.roll(m, dy, 0), dx, 1)
+        return out
+
+    def shift_and(m, k):
+        out = m.copy()
+        for dy in range(-k, k + 1):
+            for dx in range(-k, k + 1):
+                out &= np.roll(np.roll(m, dy, 0), dx, 1)
+        return out
+
+    return shift_and(shift_or(mask, r), r)
+
+
 def _largest(mask: np.ndarray) -> np.ndarray:
     lab = _label(mask)
     if lab.max() == 0:
@@ -84,7 +116,7 @@ def analyse(img) -> dict[str, Any]:
                 "皮膚": skin, "圖": a, "尺寸": (w, h),
                 "說明": "整張跟邊框同色，當成整張都是主體"}
 
-    m = _largest(fg)
+    m = _largest(_close(fg)) & fg
     ys, xs = np.nonzero(m)
     box = ((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
            if len(ys) >= 50 else (0, 0, w, h))
