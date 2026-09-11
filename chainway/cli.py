@@ -1571,13 +1571,13 @@ def _grid_search(args, cfg, images: dict) -> int:
 
     has_sale = any(r["售罄"] is not None for r in rows)
     has_sig = any(r["九宮格"] is not None for r in rows)
-    has_kp = any(r.get("內點") for r in rows)
+    has_kp = any(r.get("相同細節") for r in rows)
     print(f"\n=== 結果（{res['排序依據']}）===")
     head = f"{'名次':<5}{'特徵分':>7}{'主色ΔE':>8}"
     if has_sig:
         head += f"{'九宮格':>8}"
     if has_kp:
-        head += f"{'相同特徵':>9}"
+        head += f"{'相同細節':>9}"
     head += f"  {'貨號':<12}{'品名':<26}"
     if has_sale:
         head += f"{'售罄':>7}{'定價':>9}  "
@@ -1588,7 +1588,7 @@ def _grid_search(args, cfg, images: dict) -> int:
         if has_sig:
             line += ("—" if r["九宮格"] is None else f"{r['九宮格']:.1f}").rjust(8)
         if has_kp:
-            line += ("—" if not r.get("內點") else str(r["內點"])).rjust(9)
+            line += ("—" if not r.get("相同細節") else str(r["相同細節"])).rjust(9)
         line += f"  {r['貨號']:<12}{str(r['品名'])[:24]:<26}"
         if has_sale:
             v, p_ = r["售罄"], r["定價"]
@@ -1605,8 +1605,12 @@ def _grid_search(args, cfg, images: dict) -> int:
         print("  九宮格 = 把衣服切成 2×2 與 4×4 逐格比顏色，"
               "再加上每格的花色深淺差。越小越像。")
     if has_kp:
-        print("  相同特徵 = 兩張圖上幾何位置一致的關鍵點數（印花、字樣、"
-              "鈕釦、口袋）。越多越可能是同一件；素面衣服抓不到，靠顏色。")
+        print("  相同細節 = 兩張照片上『對得起來的同一個細節』有幾處 ——")
+        print("             鈕釦的邊角、印花的轉折、格紋交叉點、繡花的線頭。")
+        print("             不是長得像就算，還要彼此的相對位置一致"
+              "（鈕釦在領口下三公分、口袋在鈕釦左邊五公分，兩張都得對上）。")
+        print("             真的同一件通常 30 處以上，不相干的只有 4–17 處。")
+        print("             素面衣服沒有細節可抓，那時候完全靠顏色。")
     if has_sig and rows[0].get("段"):
         print(f"  第 1 名是拿人身上「{rows[0]['段']}」那一段比出來的。")
     if has_sig or has_kp:

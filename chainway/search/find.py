@@ -84,6 +84,14 @@ RERANK_N = 100
 # 10 以下＝關鍵點沒說話，名次完全由顏色決定。
 KP_SURE = 30
 KP_MAYBE = 10
+# 低於這個就不准動顏色排好的順序 —— 那個區間全是雜訊。
+#
+# 20 不是挑出來的，它卡在真照片量到的兩個數字中間：
+#     不相干的照片   4–17 處   ← 雜訊的上限
+#     真的同一件     23 起跳   ← 最低的一組真配對（同一件白襯衫＋藏青裙）
+# 合成測試上 15／20／25／30 幾乎同分（一般 87.5–88.7%），所以選真照片
+# 那一側站得住的那個。
+KP_MIN_RERANK = 20
 
 
 def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
@@ -183,9 +191,18 @@ def _keypoints(cfg, paths, *, recolor=False, log=print) -> dict:
 
     if not KPmod.available():
         return {}
-    return _cached(cfg, "kp_v2.pkl", paths,
-                   lambda p: KPmod.describe(load_rgb(p)),
-                   recolor=recolor, log=log, label="關鍵點")
+    # **參考圖要用跟查詢照完全一樣的前處理。**
+    #
+    # 先前參考圖走 describe（整張圖、640px），查詢照走 describe_query
+    # （遮罩到衣服、900px）。兩邊前處理不一樣，同一件衣服的細節就對不上
+    # —— 實測同一條格紋荷葉裙，直接比是 61 處，進到管線裡只剩 5 處；
+    # 同一件粉上衣 125 處變成 4 處。
+    #
+    # describe_query 自己會判斷：照片裡有人就遮罩、沒人（系統圖那種平拍
+    # 去背）就退回裁到主體。所以兩邊都呼叫它，路徑自動一致。
+    return _cached(cfg, "kp_v3.pkl", paths,
+                   lambda p: KPmod.describe_query(load_rgb(p)),
+                   recolor=recolor, log=log, label="細節特徵")
 
 
 def _stamp(path) -> tuple:
@@ -384,7 +401,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         judge = None if photo_sig is not None else de
         rows.append({
             "貨號": sku, "品名": f.get("品名") or names.get(sku, ""),
-            "內點": None,
+            "相同細節": None,
             "特徵分": round(f.get("特徵分", 0.0), 2), "命中": f.get("命中", ""),
             "主色ΔE": de, "九宮格": g_rel, "格絕對": g_abs, "段": seg,
             "比中來源": src, "參考圖數": len(refs.get(sku, [])),
@@ -467,9 +484,9 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                             v = max(KP.inliers(x, d_) for x in qs)
                             if v > best:
                                 best, r["比中來源"] = v, it["來源"]
-                        r["內點"] = best
+                        r["相同細節"] = best
                         r["_序"] = i
-                    kp_hits = sum(1 for r in head if r["內點"])
+                    kp_hits = sum(1 for r in head if r["相同細節"])
                     # **只在特徵分相同的群內重排。**
                     #
                     # 第一版直接依內點把前一百名整個重排，等於讓第三關
@@ -477,7 +494,20 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                     # 的款擠掉。這正是「後面的關卡變成條件」，跟先前顏色
                     # 當條件、品名當條件是同一個錯，只是換了層。
                     # 順序永遠是：特徵 → 關鍵點 → 顏色。
-                    head.sort(key=lambda r: (-r["特徵分"], -r["內點"], r["_序"]))
+                    # **證據不夠強就不要動顏色排好的順序。**
+                    #
+                    # 這一條是量出來的，而且代價很大：先前只要有內點就
+                    # 重排，合成測試 Top-1 從 88.7% 掉到 76.2%。因為那些
+                    # 衣服細節少，內點停在 4–17 的雜訊區間（答對與答錯的
+                    # 中位數都是 7），拿它去重排等於用擲骰子推翻顏色。
+                    #
+                    # 真照片完全相反：真的同一件是 32–734 處。所以門檻
+                    # 一設，兩邊都對了 —— 弱證據時顏色說了算，強證據時
+                    # 關鍵點說了算。
+                    head.sort(key=lambda r: (-r["特徵分"],
+                                             -(r["相同細節"] if r["相同細節"] >= KP_MIN_RERANK
+                                               else 0),
+                                             r["_序"]))
                     for r in head:
                         r.pop("_序", None)
                     rows = head + rows[rerank:]
@@ -486,7 +516,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
 
     for i, r in enumerate(rows, 1):
         r["名次"] = i
-        v = r.get("內點") or 0
+        v = r.get("相同細節") or 0
         if v >= KP_SURE:
             r["判定"] = "確定看到同一件東西"
         elif v >= KP_MAYBE:
@@ -499,8 +529,8 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     #
     # 一個錯得很有自信的答案，比「我不確定」更糟 —— 這是內部查詢工具，
     # 使用者會照著它去翻商品。所以寧可說沒把握。
-    top_kp = (rows[0].get("內點") or 0) if rows else 0
-    second = (rows[1].get("內點") or 0) if len(rows) > 1 else 0
+    top_kp = (rows[0].get("相同細節") or 0) if rows else 0
+    second = (rows[1].get("相同細節") or 0) if len(rows) > 1 else 0
     if top_kp >= KP_SURE and top_kp >= 2 * max(second, 1):
         sure = "高"
     elif top_kp >= KP_SURE or (top_kp >= KP_MAYBE and top_kp > second):
@@ -508,7 +538,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     else:
         sure = "低"
     return {"照片": info, "特徵": stage1, "排序依據": how, "警告": warn,
-            "關鍵點命中": kp_hits, "把握度": sure, "第一名內點": top_kp,
+            "關鍵點命中": kp_hits, "把握度": sure, "第一名相同細節": top_kp,
             "總候選": len(rows), "候選": rows[:top],
             "正解": {t: next((r["名次"] for r in rows if r["貨號"] == t), None)
                      for t in truth}}
