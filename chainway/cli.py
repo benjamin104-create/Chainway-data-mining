@@ -1590,6 +1590,66 @@ def _garment_colors(cfg, images: dict, skus, *, recolor: bool = False,
     return out
 
 
+def _cell_signatures(cfg, images: dict, skus, *, recolor: bool = False
+                     ) -> dict[str, dict]:
+    """量這些貨號的九宮格顏色簽名，量過的存快取（長格式 CSV）。"""
+    from .imageio import load_rgb
+    from .vision import grid as G
+
+    cache_p = cfg.path("interim") / "grid_cells.csv"
+    cache: dict[str, dict] = {}
+    if cache_p.exists() and not recolor:
+        try:
+            cdf = pd.read_csv(cache_p)
+            for sku, g in cdf.groupby("貨號"):
+                cells = []
+                for _, r in g.iterrows():
+                    lab = (None if pd.isna(r["L"])
+                           else [float(r["L"]), float(r["a"]), float(r["b"])])
+                    cells.append({"格": r["格"], "LAB": lab,
+                                  "覆蓋": float(r.get("覆蓋") or 0)})
+                got = [c["LAB"] for c in cells if c["LAB"]]
+                import numpy as _np
+                cache[str(sku)] = {
+                    "格": cells, "有效格": len(got),
+                    "主色LAB": ([round(float(v), 1) for v in
+                                 _np.median(_np.array(got), axis=0)]
+                                if got else None)}
+            print(f"讀到九宮格快取 {len(cache):,} 款")
+        except Exception:
+            cache = {}
+
+    fresh, out = 0, {}
+    for sku in skus:
+        sig = cache.get(sku)
+        if sig is None:
+            p_ = images.get(sku)
+            if p_ is None:
+                continue
+            try:
+                sig = G.cell_signature(load_rgb(p_))
+            except Exception:
+                continue
+            cache[sku] = sig
+            fresh += 1
+            if fresh % 50 == 0:
+                print(f"  …九宮格量了 {fresh} 張")
+        if sig.get("有效格"):
+            out[sku] = sig
+
+    if fresh:
+        rows = []
+        for sku, sig in cache.items():
+            for c in sig["格"]:
+                lab = c.get("LAB") or [None, None, None]
+                rows.append({"貨號": sku, "格": c["格"], "覆蓋": c.get("覆蓋"),
+                             "L": lab[0], "a": lab[1], "b": lab[2]})
+        cache_p.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(rows).to_csv(cache_p, index=False, encoding="utf-8-sig")
+        print(f"  新量 {fresh} 張，九宮格快取存到 {cache_p}")
+    return out
+
+
 def _grid_search(args, cfg, images: dict) -> int:
     """穿搭照 → 貨號。**先特徵，後顏色。**
 
@@ -1662,10 +1722,46 @@ def _grid_search(args, cfg, images: dict) -> int:
     print(f"比對範圍 {len(pool):,} 款"
           + (f"（{args.season}）" if args.season else "（全庫）"))
 
+    # 穿搭照優先於單一色碼。
+    #
+    # 一個色碼只能回答「主色像不像」。正解 KA1369013 與 KA1259003 的
+    # 主色只差 2.1 個 ΔE —— 單色比對分不出它們，而人眼一秒就分得出，
+    # 因為 KA1259003 中段有一條橫紋。那條橫紋在九宮格裡是「中列跟自己
+    # 其他格不同色」，跟光線無關（合成測試：同一件換暖光，相對距離 0.0；
+    # 素面 vs 中列橫紋，相對距離 20.6）。
+    photo_sig = None
+    qlab = None
+    if args.photo:
+        from pathlib import Path as _P
+
+        from .imageio import load_rgb
+        from .vision import grid as G
+
+        pp = _P(args.photo.strip().strip('"'))
+        if not pp.exists():
+            _warn(f"找不到照片：{pp}")
+            return 1
+        try:
+            im = load_rgb(pp)
+        except Exception as exc:
+            _warn(f"這個檔案讀不了（{type(exc).__name__}）：{pp}")
+            return 1
+        photo_sig = G.cell_signature(im)
+        gc = G.garment_color(im)
+        qlab = gc.get("LAB")
+        print(f"\n=== 穿搭照的九宮格 ===  {pp.name}")
+        print(f"主色 {gc.get('HEX')}　"
+              f"色號 {gc.get('色號')} {gc.get('色名') or ''}")
+        print(f"{'格':<6}{'HEX':<10}{'覆蓋':>6}")
+        for c in photo_sig["格"]:
+            print(f"{c['格']:<6}{c.get('HEX') or '—':<10}{c['覆蓋']:>6.0%}")
+        print("  ↑ 先看這九格。如果有格子是臉、頭髮、褲子或背景，"
+              "代表照片沒裁乾淨 ——")
+        print("    把照片裁到只剩上衣再跑一次，比調任何參數都有效。")
+
     # 色碼先解析，再跑第一關。壞掉的色碼要在使用者還盯著螢幕的那一秒
     # 就說，不是讓他等特徵關跑完才看到「要給六碼」。
-    qlab = None
-    if args.like:
+    elif args.like:
         from .search.palette import _srgb_to_lab
         import numpy as _np
 
@@ -1756,16 +1852,21 @@ def _grid_search(args, cfg, images: dict) -> int:
                               f" / {len(ranked):,}")
 
     # ---------------------------------------------------------- 第二關：顏色
+    from .vision import grid as G
+
     colors: dict[str, dict] = {}
+    sigs: dict[str, dict] = {}
     if qlab is not None:
-        print(f"\n=== 第二關 顏色：查詢色 #{args.like.strip().lstrip('#').upper()}  "
+        src = (f"穿搭照 {Path(args.photo).name}" if args.photo
+               else f"查詢色 #{args.like.strip().lstrip('#').upper()}")
+        print(f"\n=== 第二關 顏色：{src}  "
               f"LAB({qlab[0]:.0f},{qlab[1]:.0f},{qlab[2]:.0f}) ===")
         colors = _garment_colors(cfg, images, cand,
                                  recolor=args.recolor, limit=args.limit)
         if not colors:
             _warn("一張都量不到，只用特徵排序。")
-
-    from .vision import grid as G
+        if photo_sig is not None:
+            sigs = _cell_signatures(cfg, images, cand, recolor=args.recolor)
 
     rows: list[dict] = []
     for sku in cand:
@@ -1777,8 +1878,15 @@ def _grid_search(args, cfg, images: dict) -> int:
                 de = round(G.color_distance(qlab, c["LAB"]), 1)
             except Exception:
                 de = None
+        g_abs = g_rel = None
+        if photo_sig is not None and sku in sigs:
+            try:
+                d = G.signature_distance(photo_sig, sigs[sku])
+                g_abs, g_rel = d["絕對"], d["相對"]
+            except Exception:
+                pass
         rows.append({
-            "貨號": sku, "ΔE": de,
+            "貨號": sku, "ΔE": de, "格絕對": g_abs, "九宮格": g_rel,
             "特徵分": round(f.get("特徵分", 0.0), 2),
             "命中": f.get("命中", ""),
             "品名": f.get("品名") or names.get(sku, ""),
@@ -1791,21 +1899,31 @@ def _grid_search(args, cfg, images: dict) -> int:
             "顏色對不上": bool(de is not None and de > args.color_max),
         })
 
+    # 同分時誰先？有九宮格就用九宮格（它分得出橫紋，主色分不出），
+    # 沒有就退回主色 ΔE。這個優先順序是整個第二關的重點。
+    def _tie(r):
+        if r["九宮格"] is not None:
+            return r["九宮格"]
+        return r["ΔE"] if r["ΔE"] is not None else 999
+
     if args.match and feat:
         # 特徵是主排序。顏色只在同分時說話，以及把明顯不同色的壓到最後。
-        rows.sort(key=lambda r: (r["顏色對不上"], -r["特徵分"],
-                                 r["ΔE"] if r["ΔE"] is not None else 999))
+        rows.sort(key=lambda r: (r["顏色對不上"], -r["特徵分"], _tie(r)))
         title = "特徵排序，顏色只做同分裁決與淘汰"
     elif qlab is not None:
-        rows.sort(key=lambda r: (r["ΔE"] if r["ΔE"] is not None else 999))
+        rows.sort(key=_tie)
         title = "只有顏色（沒給 --match）"
     else:
-        _warn("--match 與 --like 至少要給一個。")
+        _warn("--match、--like、--photo 至少要給一個。")
         return 1
 
     has_sale = bool(sales)
+    has_sig = any(r["九宮格"] is not None for r in rows)
     print(f"\n=== 結果（{title}）===")
-    head = f"{'名次':<5}{'特徵分':>7}{'ΔE':>7}  {'貨號':<12}{'品名':<26}"
+    head = f"{'名次':<5}{'特徵分':>7}{'主色ΔE':>8}"
+    if has_sig:
+        head += f"{'九宮格':>8}"
+    head += f"  {'貨號':<12}{'品名':<26}"
     if has_sale:
         head += f"{'售罄':>7}{'定價':>9}  "
     print(head + "命中")
@@ -1813,8 +1931,10 @@ def _grid_search(args, cfg, images: dict) -> int:
         star = "  ★" if r["貨號"] in args.sku else ""
         mark = "  ← 顏色對不上" if r["顏色對不上"] else ""
         de_txt = "—" if r["ΔE"] is None else f"{r['ΔE']:.1f}"
-        line = (f"{n:<5}{r['特徵分']:>7.2f}{de_txt:>7}"
-                f"  {r['貨號']:<12}{str(r['品名'])[:24]:<26}")
+        line = f"{n:<5}{r['特徵分']:>7.2f}{de_txt:>8}"
+        if has_sig:
+            line += ("—" if r["九宮格"] is None else f"{r['九宮格']:.1f}").rjust(8)
+        line += f"  {r['貨號']:<12}{str(r['品名'])[:24]:<26}"
         if has_sale:
             s_ = sales.get(r["貨號"], {})
             v, p_ = s_.get("售罄"), s_.get("定價")
@@ -1824,14 +1944,18 @@ def _grid_search(args, cfg, images: dict) -> int:
                      else f"{'—':>9}")
             line += "  "
         print(line + r["命中"] + star + mark)
+    if has_sig:
+        print("  九宮格 = 逐格顏色偏移差，各自扣掉自己的主色再比。"
+              "光線推不動它，中間多一條橫紋就推得動。越小越像。")
 
     for want in args.sku:
         hit = [(n, r) for n, r in enumerate(rows, 1) if r["貨號"] == want]
         if hit:
             n, r = hit[0]
-            de = f"ΔE {r['ΔE']}" if r["ΔE"] is not None else "沒量到顏色"
+            de = f"主色ΔE {r['ΔE']}" if r["ΔE"] is not None else "沒量到顏色"
+            g = f"　九宮格 {r['九宮格']}" if r["九宮格"] is not None else ""
             print(f"\n  ★★ {want} 最後排第 {n} 名 / {len(rows)}"
-                  f"　特徵分 {r['特徵分']}　{de}　{r['HEX'] or ''}")
+                  f"　特徵分 {r['特徵分']}　{de}{g}　{r['HEX'] or ''}")
         else:
             print(f"\n  ★★ {want} 沒有進最後名單 —— "
                   f"特徵關就沒撈到它（--shortlist 開大再跑一次）。")
@@ -1857,7 +1981,7 @@ def cmd_grid(args) -> int:
     print(f"影像庫索引到 {len(images):,} 個貨號")
 
     # 兩段式搜尋：特徵先，顏色後。細節看 _grid_search 的說明。
-    if args.match or args.like:
+    if args.match or args.like or args.photo:
         return _grid_search(args, cfg, images)
 
     got: list[tuple[str, dict]] = []
@@ -2571,6 +2695,10 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("sku", nargs="*",
                      help="貨號；搭配 --match/--like 時當作「已知正解」，"
                           "會印出它排第幾名")
+    grd.add_argument("--photo", metavar="檔案",
+                     help="第二關：直接給穿搭照（裁到只剩那件衣服）。"
+                          "比 --like 強 —— 它比的是九宮格逐格顏色，"
+                          "分得出「中間多一條橫紋」，單一色碼分不出")
     grd.add_argument("--like", metavar="HEX",
                      help="第二關：衣服主色（例：1E263E）。"
                           "只做同分裁決與淘汰明顯不同色的，不當篩選條件")

@@ -320,3 +320,149 @@ def compare(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
             "顏色一致率": round(same_c / n, 3) if n else 0.0,
             "花色一致率": round(same_p / n, 3) if n else 0.0,
             "逐格": rows}
+
+
+def cell_signature(img, *, n: int = 3, max_side: int = 320,
+                   min_cover: float = MIN_CELL_COVER) -> dict[str, Any]:
+    """九宮格的**顏色簽名**：每一格只取衣服像素的中位 LAB。
+
+    跟 `analyse` 的差別：這裡只要顏色，不判花色。因為花色在真圖上判不準
+    （實測素面藏青的方向能量 0.066–0.126，衝破 0.06 的門檻，來源是針織
+    紋路與 JPEG 雜訊），而**顏色的空間分布**判得準，而且足以回答那個
+    真正的問題：「這件中間有沒有一條跟其他地方不一樣的東西」。
+
+    衣服像素不足 `min_cover` 的格回 None —— 系統圖的四角是白紙，
+    穿搭照的角落是背景或手臂。給那種格一個顏色只是在製造雜訊。
+    """
+    from PIL import Image as _I
+
+    from ..imageio import to_rgb
+    from ..search.palette import _srgb_to_lab
+    from .locate import garment_mask
+
+    img = to_rgb(img)
+    if max_side and max(img.size) > max_side:
+        img = img.copy()
+        img.thumbnail((max_side, max_side), _I.LANCZOS)
+    a = np.asarray(img)
+    try:
+        mask, box = garment_mask(img)
+        m = np.asarray(_I.fromarray((mask * 255).astype(np.uint8))
+                       .resize((a.shape[1], a.shape[0]), _I.NEAREST)) > 127
+        x1, y1, x2, y2 = box
+        k = a.shape[0] / mask.shape[0]
+        x1, y1, x2, y2 = (int(x1 * k), int(y1 * k), int(x2 * k), int(y2 * k))
+        if x2 - x1 > 8 and y2 - y1 > 8:
+            a, m = a[y1:y2, x1:x2], m[y1:y2, x1:x2]
+    except Exception:
+        m = np.ones(a.shape[:2], dtype=bool)
+
+    H, W = a.shape[:2]
+    names = [["左上", "中上", "右上"], ["左中", "正中", "右中"],
+             ["左下", "中下", "右下"]]
+    cells: list[dict[str, Any]] = []
+    for i in range(n):
+        for j in range(n):
+            ys, ye = H * i // n, H * (i + 1) // n
+            xs, xe = W * j // n, W * (j + 1) // n
+            c, cm = a[ys:ye, xs:xe], m[ys:ye, xs:xe]
+            nm = names[i][j] if n == 3 else f"r{i+1}c{j+1}"
+            cover = float(cm.mean()) if cm.size else 0.0
+            if c.size == 0 or cover < min_cover or cm.sum() < 30:
+                cells.append({"格": nm, "LAB": None, "覆蓋": round(cover, 2)})
+                continue
+            med = np.median(c[cm].astype(np.float64), axis=0)
+            cells.append({
+                "格": nm, "覆蓋": round(cover, 2),
+                "HEX": "#%02X%02X%02X" % tuple(int(v) for v in med),
+                "LAB": [round(float(v), 1)
+                        for v in _srgb_to_lab(med.reshape(1, 3))[0]]})
+
+    got = [c["LAB"] for c in cells if c["LAB"]]
+    main = ([round(float(v), 1) for v in np.median(np.array(got), axis=0)]
+            if got else None)
+    return {"格": cells, "主色LAB": main, "有效格": len(got)}
+
+
+def signature_distance(sa: dict[str, Any], sb: dict[str, Any]) -> dict[str, Any]:
+    """兩張圖的九宮格顏色差。**兩個數字，不合成一個。**
+
+    絕對　逐格 ΔE2000 的平均。同一件衣服換一盞燈就會整排變大，
+    　　　所以它回答的是「顏色像不像」，不是「是不是同一件」。
+
+    相對　先各自減掉**自己的**主色，再比逐格偏移。光線把整張圖一起推走
+    　　　的那一份被消掉了，剩下的是「哪一格跟自己其他格不一樣」。
+
+    相對這一欄就是為了那個從頭到尾的問題：KA1259003 中段有橫條紋，
+    KA1369013 沒有。兩件的主色差只有 2.1 個 ΔE —— 單色比對分不出來。
+    但一個中列偏離自己主色、一個不偏離，這件事跟光線無關。
+    """
+    ca = {c["格"]: c for c in sa["格"]}
+    cb = {c["格"]: c for c in sb["格"]}
+    ma, mb = sa.get("主色LAB"), sb.get("主色LAB")
+    rows, abs_d, rel_d = [], [], []
+    for k, x in ca.items():
+        y = cb.get(k)
+        if y is None or not x.get("LAB") or not y.get("LAB"):
+            continue
+        la, lb = np.array(x["LAB"], float), np.array(y["LAB"], float)
+        d1 = color_distance(la, lb)
+        abs_d.append(d1)
+        d2 = None
+        if ma and mb:
+            va, vb = la - np.array(ma, float), lb - np.array(mb, float)
+            d2 = float(np.linalg.norm(va - vb))
+            rel_d.append(d2)
+        rows.append({"格": k, "ΔE": round(d1, 1),
+                     "偏移差": None if d2 is None else round(d2, 1)})
+    n = len(rows)
+    return {"對到格數": n,
+            "絕對": round(float(np.mean(abs_d)), 1) if abs_d else None,
+            "相對": round(float(np.mean(rel_d)), 1) if rel_d else None,
+            "逐格": rows}
+
+
+def _synthetic(stripe: bool, warm: float = 1.0):
+    """造一張測試圖：白底、中間一件深藏青上衣，可選中列一條淺橫紋。"""
+    from PIL import Image as _I
+
+    a = np.full((300, 200, 3), 250, np.uint8)
+    a[40:260, 40:160] = (41, 37, 61)
+    if stripe:
+        a[130:170, 40:160] = (200, 180, 175)
+    if warm != 1.0:
+        a = np.clip(np.asarray(a, float) * [warm, 1.02, 2.0 - warm],
+                    0, 255).astype(np.uint8)
+    return _I.fromarray(a)
+
+
+def check() -> list[str]:
+    """簽名比對的回歸測試。用合成圖 —— 這裡要證明的是**度量的性質**，
+    那件事不需要真衣服，而合成圖可以把「只有橫紋不同」與「只有光線不同」
+    乾淨地分開，真照片做不到。
+
+    要守住的兩件事：
+      一、同一件衣服換一盞燈，**相對**距離要幾乎是 0（絕對會被推走）。
+      二、素面 vs 中列有橫紋，相對距離要明顯大。
+
+    第二條就是使用者從第一天講到現在的那件事：KA1259003 中段有橫條紋，
+    一眼就不是。主色比對永遠答不出來（兩件主色只差 2.1 ΔE）。
+    """
+    bad: list[str] = []
+    plain = cell_signature(_synthetic(False))
+    striped = cell_signature(_synthetic(True))
+    lit = cell_signature(_synthetic(False, warm=1.18))
+
+    d_light = signature_distance(plain, lit)
+    if d_light["相對"] is None or d_light["相對"] > 1.0:
+        bad.append(f"換光線的相對距離 {d_light['相對']}，應該接近 0")
+    if d_light["絕對"] is None or d_light["絕對"] < 2.0:
+        bad.append(f"換光線的絕對距離 {d_light['絕對']}，"
+                   "應該明顯大於 0（不然這兩欄沒有差別，這個測試就沒意義）")
+
+    d_stripe = signature_distance(plain, striped)
+    if d_stripe["相對"] is None or d_stripe["相對"] < 5.0:
+        bad.append(f"素面 vs 橫紋的相對距離只有 {d_stripe['相對']}，太小")
+    if (d_light["相對"] or 0) >= (d_stripe["相對"] or 0):
+        bad.append("換光線比換衣服還遠 —— 相對距離沒有達成它的目的")
+    return bad

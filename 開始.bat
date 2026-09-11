@@ -249,6 +249,8 @@ echo   Like this:   bow neckline knit long-sleeve
 echo.
 :j10ask
 set "F="
+set "P="
+set "H="
 set /p F=  Features:  
 if not defined F goto menu
 rem Quotes would be passed through to the search words themselves.
@@ -269,17 +271,34 @@ if not errorlevel 1 goto j10paste
 echo "%F%" | find "--" >nul
 if not errorlevel 1 goto j10paste
 echo.
-echo   Step 2 - the main colour, as six hex digits. Optional: press Enter
-echo   to skip it and rank on features alone. To get the code, open the
-echo   photo in Paint, pick the colour dropper, then Edit colours.
+echo   Step 2 - the PHOTO. Drag the image file into this window and press
+echo   Enter. Crop it to the garment first (Paint: select, Crop, Save as) -
+echo   a photo with a face and legs in it makes the grid measure a face.
+echo.
+echo   This beats typing a colour: it compares all nine squares, so a
+echo   stripe across the middle shows up. One colour code cannot see that.
+echo   Press Enter to skip and type a colour code instead.
+echo.
+set "P="
+set /p P=  Photo file:  
+if defined P set "P=%P:"=%"
+if defined P goto j10run
+echo.
+echo   No photo. The main colour then, as six hex digits - or Enter again
+echo   to rank on the features alone. In Paint: colour dropper, then
+echo   Edit colours, and read the six characters next to Hex.
 echo.
 set "H="
 set /p H=  Colour hex (example 1E263E), or Enter to skip:  
 if defined H set "H=%H:"=%"
 if defined H set "H=%H:#=%"
 if defined H if /i "%H:~0,11%"=="Colour hex:" set "H=%H:~11%"
+
+:j10run
 echo.
-if defined H (
+if defined P (
+  "%VPY%" -m chainway.cli grid --match "%F%" --photo "%P%"
+) else if defined H (
   "%VPY%" -m chainway.cli grid --match "%F%" --like "%H%"
 ) else (
   "%VPY%" -m chainway.cli grid --match "%F%"
