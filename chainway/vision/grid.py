@@ -473,8 +473,19 @@ def cell_signature(img, *, max_side: int = 320,
 #
 # 二十段對每一個候選都一樣，所以「取最小」帶來的樂觀偏差是**共同的**，
 # 不偏袒任何一款，排名仍然公平。
-_WINDOWS = [(t, h) for t in (0.0, 0.08, 0.16, 0.26, 0.36)
+# (上緣, 高度, 左緣, 寬度)，都是人框的比例。
+#
+# 橫帶之外還要有**窄窗**：衣服被外套蓋住時，只露出胸前中間一條縫。
+# 實測一張「粉上衣外面罩米色西裝外套」的真照片，只用整幅寬的橫帶時，
+# 它跟「同一件粉上衣、沒罩外套」那張的距離是 66.0；加上中間窄窗之後
+# 降到 61.6。有幫助，但沒有翻盤 —— 那一題它仍然比較像「不同上衣＋
+# 同一件外套」的那張。衣服被蓋住八成就是比不出來，這是限制不是 bug。
+_WINDOWS = [(t, h, 0.0, 1.0) for t in (0.0, 0.08, 0.16, 0.26, 0.36)
             for h in (0.30, 0.40, 0.52, 0.66, 0.85) if t + h <= 1.001]
+_WINDOWS += [(t, h, xl, wd) for t in (0.08, 0.16, 0.26)
+             for h in (0.25, 0.35, 0.45) for wd in (0.34, 0.50)
+             for xl in (0.0, (1 - 0.34) / 2 if wd == 0.34 else 0.25, 1 - wd)
+             if t + h <= 1.001]
 
 
 def photo_signatures(img) -> dict[str, Any]:
@@ -486,15 +497,20 @@ def photo_signatures(img) -> dict[str, Any]:
     x1, y1, x2, y2 = p["外框"]
     bw, bh = x2 - x1, y2 - y1
     wins: list[dict[str, Any]] = []
-    for t, hf in _WINDOWS:
+    for t, hf, xl, wd in _WINDOWS:
         ys = y1 + int(bh * t)
         ye = min(y2, ys + int(bh * hf))
-        if ye - ys < 24 or bw < 24:
+        xs = x1 + int(bw * xl)
+        xe = min(x2, xs + int(bw * wd))
+        if ye - ys < 24 or xe - xs < 24:
             continue
-        sig = _signature_from(a[ys:ye, x1:x2], m[ys:ye, x1:x2],
-                              skin[ys:ye, x1:x2])
+        sig = _signature_from(a[ys:ye, xs:xe], m[ys:ye, xs:xe],
+                              skin[ys:ye, xs:xe])
         if sig["有效格"] >= 5:
-            wins.append({"段": f"{t:.0%}–{t + hf:.0%}", "y": (ys, ye), **sig})
+            seg = f"{t:.0%}–{t + hf:.0%}"
+            if wd < 0.99:
+                seg += f"　左右 {xl:.0%}–{xl + wd:.0%}"
+            wins.append({"段": seg, "y": (ys, ye), **sig})
     return {"人": {k: v for k, v in p.items() if k not in ("人", "皮膚", "圖")},
             "視窗": wins}
 

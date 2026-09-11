@@ -111,21 +111,83 @@ def inliers(a: tuple | None, b: tuple | None) -> int:
     return int(mask.sum()) if mask is not None else 0
 
 
-def describe_query(img) -> tuple | None:
-    """查詢照片 → 描述子。**只用裁到主體的那一版。**
+def describe_query(img, *, max_side: int = 900, drop_head: float = 0.18
+                   ) -> tuple | None:
+    """查詢照片 → 描述子。**只在衣服上抓，而且要在夠高的解析度上抓。**
 
-    裁到主體比用全圖好：量過 71.2% → 76.2%，因為牆面與地板的角點只會
-    干擾。主體偵測偶爾會失手（實測一張 180×270 被裁成 87×159，關鍵點
-    從 66 掉到 11，那一題就丟了），所以我試過「裁切與全圖都比、取內點
-    較多的那個」——
+    ## 兩件事都是拿真照片換來的
 
-        **結果更差：83.8% → 72.5%。**
+    **一、臉和頭髮會把比對帶歪。** 目錄圖是同一個模特兒拍的，整張圖抓
+    關鍵點等於在比對**她本人**。實測四張真穿搭照，兩套完全不同的衣服
+    之間有 54–63 個「幾何一致」的內點 —— 那是她的臉和髮絲，不是衣服。
+    改成只在「人的遮罩扣掉皮膚、再切掉頭部那一段」裡抓之後，同樣兩張
+    掉到 0–5。
 
-    原因跟我一路在警告的是同一件事：取最大值會把機會也給錯的候選。
-    多一次比對，每一個錯的候選也多一次撿到便宜的機會，而正解只有一個。
-    一個失手的案例抵不過八十題的量測。所以只用裁切這一版。
+    **二、遮罩要放大回高解析度再抓。** 第一次修正時我直接在 320px 的
+    分析縮圖上抓，結果連自己對自己都只剩 0 個內點（原本 429）——
+    ORB 需要細節，320px 上根本沒有角點可抓。遮罩在縮圖上算、放大到
+    900px 再抓，自己對自己回到 177–1,422。
+
+    系統圖（白底去背的單件）不要用這支，用 `describe` —— 那種圖整張
+    都是衣服，沒有臉也沒有背景要排除。
     """
-    return describe(crop_subject(img))
+    import numpy as np
+    from PIL import Image as _I
+
+    cv2 = _cv2()
+    if cv2 is None:
+        return None
+    from ..imageio import to_rgb
+    from . import person as P
+
+    im = to_rgb(img)
+    try:
+        p = P.analyse(im)
+        m, sk = p["人"], p["皮膚"]
+        x1, y1, x2, y2 = p["外框"]
+        # 沒有頭就不要切頭。平拍商品照、合成圖都沒有人，硬切等於把衣服
+        # 上緣 18% 丟掉 —— 實測合成測試因此掉了 5 個百分點。
+        # **沒抓到人就整張圖照舊，一個像素都不遮。**
+        #
+        # 這一條是量出來的，而且代價很大。遮罩只在「照片裡有模特兒」時
+        # 才划算：
+        #
+        #   有人（真穿搭照）  非遮不可。不遮的話比對的是**模特兒本人** ——
+        #                     實測兩套完全不同的衣服之間冒出 54–63 個
+        #                     幾何一致的內點，那是她的臉和髮絲。遮掉之後
+        #                     降到 0–5，真訊號（自己對自己）還留著。
+        #
+        #   沒人（平拍商品照、合成圖）
+        #                     遮了只有損失。衣服的**輪廓角點**落在衣服與
+        #                     背景的交界上，遮罩一蓋就沒了；而那裡本來
+        #                     就沒有臉要排除。實測 Top-1 從 85.0% 掉到
+        #                     73.8%，整整 11 個百分點。
+        # 退回原本的做法：裁到主體再抓（量過 71.2% → 76.2%），
+        # 不是整張圖 —— 這個退路我第一次寫錯過，直接掉 15 個百分點。
+        if not p.get("有人"):
+            return describe(crop_subject(im))
+        y0 = y1 + int((y2 - y1) * drop_head)
+        small = m[y0:y2, x1:x2] & ~sk[y0:y2, x1:x2]
+        if small.size == 0 or small.sum() < 200:
+            return describe(crop_subject(im))
+        big = im.copy()
+        if max(big.size) > max_side:
+            big.thumbnail((max_side, max_side), _I.LANCZOS)
+        A = np.asarray(big)
+        k = A.shape[0] / m.shape[0]
+        box = (int(x1 * k), int(y0 * k), int(x2 * k), int(y2 * k))
+        sub = A[box[1]:box[3], box[0]:box[2]]
+        if sub.size == 0:
+            return describe(crop_subject(im))
+        mk = np.asarray(_I.fromarray((small * 255).astype(np.uint8))
+                        .resize((sub.shape[1], sub.shape[0]), _I.NEAREST))
+        g = cv2.cvtColor(sub, cv2.COLOR_RGB2GRAY)
+        kp, des = cv2.ORB_create(nfeatures=N_FEATURES).detectAndCompute(g, mk)
+        if des is None or len(des) < MIN_MATCHES:
+            return describe(crop_subject(im))
+        return np.float32([q.pt for q in kp]), des
+    except Exception:
+        return describe(crop_subject(img))
 
 
 def best_inliers(q: tuple | None, b: tuple | None) -> int:
