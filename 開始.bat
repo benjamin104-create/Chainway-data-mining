@@ -250,6 +250,10 @@ rem top fifteen matches for a pale pink span under two dE, inside the
 rem measurement noise. Colour only settles the order among candidates the
 rem features already found, and pushes obviously-wrong colours to the end.
 echo.
+echo   Shortcut: if you have the shop listing title (momo, the web shop),
+echo   paste the WHOLE title at Step 1 - brand name, colour in brackets and
+echo   all. The program splits it into search words by itself.
+echo.
 echo   Step 1 - what can you SEE on the garment? JUST THE WORDS, separated
 echo   by spaces - this is not a command line. Chinese is fine. Rare words
 echo   are worth more than common ones, so "bow" beats "top".
@@ -278,6 +282,8 @@ echo "%F%" | find /i "python" >nul
 if not errorlevel 1 goto j10paste
 echo "%F%" | find "--" >nul
 if not errorlevel 1 goto j10paste
+rem A shop listing title is fine here - the program parses it. Only an
+rem actual command line is rejected, which the checks above already catch.
 echo.
 echo   Step 2 - the PHOTO. Drag the image file into this window and press
 echo   Enter. Crop it to the garment first (Paint: select, Crop, Save as) -
@@ -305,11 +311,11 @@ if defined H if /i "%H:~0,11%"=="Colour hex:" set "H=%H:~11%"
 :j10run
 echo.
 if defined P (
-  "%VPY%" -m chainway.cli grid --match "%F%" --photo "%P%"
+  "%VPY%" -m chainway.cli grid --title "%F%" --photo "%P%"
 ) else if defined H (
-  "%VPY%" -m chainway.cli grid --match "%F%" --like "%H%"
+  "%VPY%" -m chainway.cli grid --title "%F%" --like "%H%"
 ) else (
-  "%VPY%" -m chainway.cli grid --match "%F%"
+  "%VPY%" -m chainway.cli grid --title "%F%"
 )
 rem Straight to :back, not :done - searching changes nothing, so there is
 rem no reason to spend time rebuilding the overview page after it.

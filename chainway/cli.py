@@ -1541,6 +1541,7 @@ def _grid_search(args, cfg, images: dict) -> int:
         print("   已忽略。特徵詞放在 --match 的引號裡，位置參數只放已知正解。")
 
     res = F.run(cfg, photo=args.photo, words=args.match or "", like=args.like,
+                title=getattr(args, "title", "") or "",
                 season=args.season, shortlist=args.shortlist, top=args.top,
                 color_max=args.color_max, recolor=args.recolor, images=images,
                 truth=[x.upper() for x in args.sku])
@@ -2470,6 +2471,11 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("sku", nargs="*",
                      help="貨號；搭配 --match/--like 時當作「已知正解」，"
                           "會印出它排第幾名")
+    grd.add_argument("--title", metavar="標題",
+                     help="把電商商品標題整串貼進來（momo／官網都行），"
+                          "程式自己拆成特徵詞與顏色 —— "
+                          "例：\"Kinloch Anderson 浪漫蝴蝶結抓皺網紗袖 "
+                          "圓領短袖上衣 (紫藕)\"")
     grd.add_argument("--photo", metavar="檔案",
                      help="第二關：直接給穿搭照（裁到只剩那件衣服）。"
                           "比 --like 強 —— 它比的是九宮格逐格顏色，"

@@ -203,8 +203,9 @@ function findWhy(d) {
 
 async function runFind() {
   const words = $('#searchText').value.trim();
-  if (!PHOTO && !words) {
-    $('#searchWhy').innerHTML = '<div class="notice">給一張照片，或打幾個看到的特徵詞。</div>';
+  const title = $('#searchTitle').value.trim();
+  if (!PHOTO && !words && !title) {
+    $('#searchWhy').innerHTML = '<div class="notice">給一張照片、打幾個看到的特徵詞，或直接貼一段電商標題。</div>';
     return;
   }
   $('#searchWhy').innerHTML = '';
@@ -213,6 +214,7 @@ async function runFind() {
   const fd = new FormData();
   if (PHOTO) fd.append('file', PHOTO);
   fd.append('words', words);
+  fd.append('title', title);
   fd.append('season', $('#searchSeason').value.trim());
   fd.append('top_k', 15);
   try {
@@ -246,6 +248,7 @@ wireDrop('#searchDrop', '#searchFile', file => {
 
 $('#searchTextBtn').onclick = runFind;
 $('#searchText').onkeydown = e => e.key === 'Enter' && runFind();
+$('#searchTitle').onkeydown = e => e.key === 'Enter' && runFind();
 
 /* ---------------------------------------------------------------- ★ 回饋登錄 */
 function buildTagChips() {

@@ -211,7 +211,8 @@ async def search_image(file: UploadFile = File(...), top_k: int = Form(12)) -> d
 
 @app.post("/api/find")
 async def find_style(file: UploadFile | None = File(None),
-                     words: str = Form(""), season: str = Form(""),
+                     words: str = Form(""), title: str = Form(""),
+                     season: str = Form(""),
                      top_k: int = Form(15), shortlist: int = Form(40)) -> dict:
     """★ 穿搭照 → 貨號。先特徵、後顏色，不需要模型，也不需要先裁圖。
 
@@ -232,7 +233,7 @@ async def find_style(file: UploadFile | None = File(None),
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
     try:
-        res = F.run(cfg, photo=tmp_path, words=words or "",
+        res = F.run(cfg, photo=tmp_path, words=words or "", title=title or "",
                     season=season or None, top=max(1, min(top_k, 60)),
                     shortlist=max(1, min(shortlist, 400)), log=lambda *_: None)
     finally:

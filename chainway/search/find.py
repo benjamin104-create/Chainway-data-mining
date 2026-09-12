@@ -259,6 +259,150 @@ def _stamp(path) -> tuple:
         return (0, 0)
 
 
+# 電商標題裡沒有資訊的字。品牌名到處都是、行銷形容詞人人可用，
+# 它們在 IDF 上本來就接近 0，但留著會稀釋命中率的分母，也讓「命中」那
+# 一欄看起來很滿其實沒說什麼。
+TITLE_NOISE = [
+    "Kinloch", "Anderson", "SCOTLAND", "金安德森", "女裝", "男裝", "童裝",
+    "專櫃", "正品", "官方", "限時", "折後價", "promo", "新品", "現貨",
+    "浪漫", "優雅", "百搭", "經典", "時尚", "修身", "顯瘦", "氣質", "甜美",
+    "韓版", "日系", "英倫", "法式", "高級感", "質感", "輕奢", "舒適",
+    "款", "件", "系列", "同款",
+]
+# 標題裡值得留下的結構詞 —— 這些在品名裡也會出現，是真正能對上的東西。
+TITLE_SPLIT = ("　", " ", "/", "｜", "|", "、", "．", "·", "－", "-", "+")
+
+
+def parse_title(text: str) -> dict[str, Any]:
+    """電商商品標題 → 特徵詞 + 顏色。
+
+    為什麼值得做成功能：在 momo／官網上看到一件，想知道自家貨號是多少，
+    是每天會發生的事。標題本身就是最好的查詢條件 —— 貴司的品名寫得極
+    精確，而電商標題多半是品名加上品牌名與行銷詞。使用者不該自己拆字。
+
+    顏色從括號裡抓（「(紫藕)」「（藏青）」），那是電商放色名的慣例。
+    """
+    import re as _re
+
+    raw = (text or "").strip()
+    colour = ""
+    m = _re.search(r"[（(]\s*([^（）()]{1,12})\s*[）)]\s*$", raw)
+    if m:
+        colour = m.group(1).strip()
+        raw = raw[:m.start()]
+    # 去掉價格、品號、純數字段
+    raw = _re.sub(r"(品號|貨號|型號)\s*[:：]?\s*\w+", " ", raw)
+    raw = _re.sub(r"[\$＄]\s*[\d,]+", " ", raw)
+    for w in TITLE_NOISE:
+        raw = _re.sub(_re.escape(w), " ", raw, flags=_re.I)
+    for sep in TITLE_SPLIT:
+        raw = raw.replace(sep, " ")
+    raw = _re.sub(r"[^\w\u4e00-\u9fff ]+", " ", raw)
+    terms: list[str] = []
+    vocab = _garment_vocab()
+    for chunk in raw.split():
+        if chunk.isdigit():
+            continue
+        terms.extend(_segment(chunk, vocab))
+    # 去重但保留順序
+    seen: set[str] = set()
+    terms = [t for t in terms if not (t in seen or seen.add(t))]
+    return {"特徵詞": " ".join(terms), "顏色名": colour, "原標題": text}
+
+
+# 品名裡常出現、但 taxonomy 沒收的工藝與細節詞。taxonomy 收的是「屬性」
+# （領型、袖型、裙型），這些是「做了什麼」—— 兩者合起來才切得動品名。
+DETAIL_WORDS = [
+    "蝴蝶結", "荷葉", "抓皺", "網紗", "雪紡", "蕾絲", "拼接", "剪接", "繡花",
+    "印花", "貼布", "燙鑽", "水鑽", "珠飾", "流蘇", "綁帶", "腰帶", "鬆緊",
+    "羅紋", "織紋", "麻花", "縮口", "開襟", "排釦", "鈕釦", "口袋", "翻領",
+    "假兩件", "百褶", "打褶", "壓褶", "不對稱", "層次", "格紋", "條紋",
+    "素面", "刷毛", "針織", "梭織", "棉T", "丹寧", "牛仔", "緞面", "亮面",
+    "防曬", "涼感", "彈性", "外套", "背心", "洋裝", "襯衫", "上衣", "帽T",
+    "logo", "LOGO", "字母", "熊", "刺繡",
+]
+
+
+def _garment_vocab() -> list[str]:
+    """taxonomy 的屬性詞 + 工藝詞，長的排前面（最長匹配用）。"""
+    words = set(DETAIL_WORDS)
+    try:
+        import yaml
+
+        from ..config import REPO_ROOT
+
+        data = yaml.safe_load(
+            (REPO_ROOT / "config" / "taxonomy.yaml").read_text(encoding="utf-8"))
+        def walk(o):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    if k in ("zh", "name_zh") and isinstance(v, str):
+                        for part in v.replace("/", " ").split():
+                            if 1 < len(part) <= 6:
+                                words.add(part)
+                    else:
+                        walk(v)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v)
+        walk(data)
+    except Exception:
+        pass
+    return sorted(words, key=len, reverse=True)
+
+
+def _segment(chunk: str, vocab: list[str]) -> list[str]:
+    """最長匹配斷詞。中文沒有空格，而比對是用「詞在品名裡嗎」——
+    整串「蝴蝶結抓皺網紗袖」當一個詞，品名寫法只要差一個字就對不上。
+    切成「蝴蝶結／抓皺／網紗／袖」之後，每一個都還有機會命中。
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(chunk):
+        hit = next((w for w in vocab
+                    if chunk.startswith(w, i)), None)
+        if hit:
+            out.append(hit)
+            i += len(hit)
+        else:
+            i += 1
+    if not out:
+        out = [chunk]
+    return out
+
+
+def _colour_by_name(name: str, warn: list[str]) -> str | None:
+    """色名（電商標題括號裡那個）→ 色卡上的 hex。
+
+    對不到就回 None 並記一句話 —— 特徵詞還在，不要因為一個色名對不上
+    就把整個查詢擋掉。貴司色卡上沒有「紫藕」這種電商自創色名，但有
+    「藕」「淺紫」「粉紫」，所以用包含比對而不是完全相等。
+    """
+    try:
+        from .colorcode import load_table
+
+        tab = load_table() or {}
+    except Exception:
+        return None
+    best = None
+    for code, info in tab.items():
+        zh = str((info or {}).get("zh") or (info or {}).get("名稱") or "")
+        hexv = (info or {}).get("hex")
+        if not zh or not hexv:
+            continue
+        if zh == name:
+            best = (code, zh, hexv)
+            break
+        if (zh in name or name in zh) and best is None:
+            best = (code, zh, hexv)
+    if best:
+        warn.append(f"標題寫的顏色「{name}」對到色卡的 {best[0]} {best[1]}"
+                    f"（{best[2]}）")
+        return best[2]
+    warn.append(f"色卡上找不到「{name}」這個色名，這次不用顏色篩選")
+    return None
+
+
 def parse_hex(text: str) -> str | None:
     """從任何一串字裡撈出六碼十六進位色。「Colour hex: #1E263E」也吃。"""
     m = re.search(r"(?<![0-9A-Fa-f])([0-9A-Fa-f]{6})(?![0-9A-Fa-f])", text or "")
@@ -271,7 +415,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         color_max: float = COLOR_MAX,
         recolor: bool = False, images: dict | None = None,
         refs: dict | None = None, ref_penalty: float = 0.0,
-        try_mirror: bool = True,
+        try_mirror: bool = True, title: str = "",
         truth: list[str] | None = None,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑完整條流程，回傳結構化結果。不印任何東西以外的副作用。
@@ -343,6 +487,17 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         info = {"主色": "#" + h.upper()}
 
     # ---------------------------------------------------------- 第一關：特徵
+    # 電商標題可以直接貼進來，程式自己拆成特徵詞與顏色。
+    #
+    # 為什麼值得做：在 momo／官網看到一件，想知道自家貨號是多少，是每天
+    # 都會發生的事。標題本身就是最好的查詢條件 —— 貴司的品名寫得極精確，
+    # 而電商標題多半就是品名加上品牌名與行銷詞。使用者不該自己拆字。
+    if title:
+        _t = parse_title(title)
+        words = (f"{words} {_t['特徵詞']}").strip() if words else _t["特徵詞"]
+        if _t["顏色名"] and not like:
+            like = _colour_by_name(_t["顏色名"], warn)
+
     words = LABEL_RE.sub("", words or "").strip()
     while LABEL_RE.match(words):
         words = LABEL_RE.sub("", words).strip()
