@@ -1540,8 +1540,19 @@ def _grid_search(args, cfg, images: dict) -> int:
         _warn(f"這些不是貨號（貨號長得像 KA1369013）：{'、'.join(bad)}")
         print("   已忽略。特徵詞放在 --match 的引號裡，位置參數只放已知正解。")
 
+    idx = None
+    if getattr(args, "index", None):
+        from .search import fingerprint as FP
+
+        idx = FP.load(args.index)
+        if idx.get("錯誤"):
+            _warn(idx["錯誤"])
+            return 1
+        print(f"指紋檔：{len(idx['貨號']):,} 款"
+              f"（{len(idx.get('細節', {})):,} 款有細節特徵）")
+
     res = F.run(cfg, photo=args.photo, words=args.match or "", like=args.like,
-                title=getattr(args, "title", "") or "",
+                title=getattr(args, "title", "") or "", index=idx,
                 season=args.season, shortlist=args.shortlist, top=args.top,
                 color_max=args.color_max, recolor=args.recolor, images=images,
                 truth=[x.upper() for x in args.sku])
@@ -1655,6 +1666,34 @@ def _grid_search(args, cfg, images: dict) -> int:
             print(f"\n  ★★ {t} 最後排第 {n} 名 / {res['總候選']}")
         else:
             print(f"\n  ★★ {t} 沒有進候選 —— --shortlist 開大再跑一次。")
+    return 0
+
+
+def cmd_fingerprint(args) -> int:
+    """把整個影像庫壓成一個小檔案，讓比對可以離開這台電腦。
+
+    圖有 2.69 GB，傳不動也不該傳。但比對只用得到指紋 —— 顏色簽名不到
+    1 MB，細節特徵 20 MB。產出之後，任何地方都能拿它查貨號。
+    """
+    from .search import fingerprint as FP
+
+    cfg = get_config()
+    print("開始算指紋。第一次要跑幾分鐘（每張圖都要量），之後只要重跑改動的部分。\n")
+    res = FP.export(cfg, args.out, with_details=not args.no_details,
+                    max_kp=args.points, limit=args.limit)
+    if res.get("錯誤"):
+        _warn(res["錯誤"])
+        return 1
+    _ok(f"{res['款數']:,} 款")
+    print(f"  顏色指紋 {res['顏色指紋MB']} MB　{res['顏色指紋']}")
+    if res.get("細節指紋"):
+        print(f"  細節指紋 {res['細節指紋MB']} MB　{res['細節指紋']}"
+              f"（{res['有細節的款數']:,} 款抓得到細節）")
+    if res.get("商品資料"):
+        print(f"  商品資料　{res['商品資料']}")
+    print("\n  這幾個檔案就是整個影像庫的可比對版本。")
+    print("  拿它查貨號：python -m chainway.cli grid --index \"資料夾\" --photo 照片.jpg")
+    print("  圖本身一步都不用離開這台電腦。")
     return 0
 
 
@@ -2471,6 +2510,9 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("sku", nargs="*",
                      help="貨號；搭配 --match/--like 時當作「已知正解」，"
                           "會印出它排第幾名")
+    grd.add_argument("--index", metavar="資料夾",
+                     help="改用指紋檔比對（cli fingerprint 產生的資料夾）——"
+                          "這台機器上沒有系統圖也能查")
     grd.add_argument("--title", metavar="標題",
                      help="把電商商品標題整串貼進來（momo／官網都行），"
                           "程式自己拆成特徵詞與顏色 —— "
@@ -2500,6 +2542,18 @@ def main(argv: list[str] | None = None) -> int:
     grd.add_argument("--no-mask", action="store_true",
                      help="不先框出衣服，直接對整張切（穿搭照用這個）")
     grd.set_defaults(func=cmd_grid)
+
+    fp = sub.add_parser("fingerprint",
+                        help="★ 把影像庫壓成指紋檔（不到 1 MB）——"
+                             "之後在任何地方都能查貨號，圖不用搬")
+    fp.add_argument("--out", help="輸出資料夾（預設 data/outputs/指紋）")
+    fp.add_argument("--points", type=int, default=200, metavar="N",
+                    help="每款存幾個細節特徵點（預設 200，越多檔案越大）")
+    fp.add_argument("--no-details", action="store_true",
+                    help="只做顏色指紋（檔案最小，但把握度判定會失效）")
+    fp.add_argument("--limit", type=int, default=0, metavar="N",
+                    help="只做前 N 款（試跑用）")
+    fp.set_defaults(func=cmd_fingerprint)
 
     sev = sub.add_parser("selftest",
                          help="★ 自我測驗：用自己的系統圖出題，量 Top-1／Top-5"

@@ -416,6 +416,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         recolor: bool = False, images: dict | None = None,
         refs: dict | None = None, ref_penalty: float = 0.0,
         try_mirror: bool = True, title: str = "",
+        index: dict | None = None,
         truth: list[str] | None = None,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑完整條流程，回傳結構化結果。不印任何東西以外的副作用。
@@ -429,13 +430,18 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     warn: list[str] = []
     # 一個貨號有好幾張參考圖：系統圖、目錄圖、打樣照、布樣、繡花圖稿。
     # 同一款五種拍法 = 五次認出它的機會。細節與公平性見 search/refs.py。
+    if index:
+        # 指紋模式：這台機器上沒有圖，只有算好的指紋。
+        # 比對本來就只用得到指紋，圖只是拿來算指紋的中間產物。
+        refs = {sku: [{"path": f"指紋:{sku}", "來源": index.get("來源", {}).get(sku, "指紋")}]
+                for sku in index["貨號"]}
     if refs is None:
         refs = R.collect(cfg) if images is None else {
             k: [{"path": Path(v), "來源": "系統圖"}] for k, v in images.items()}
     if not refs:
         return {"警告": ["沒有讀到任何參考圖，確認 settings.yaml 的 paths"],
                 "候選": []}
-    images = R.primary(refs)
+    images = {} if index else R.primary(refs)
 
     pool = {k: v for k, v in refs.items()
             if not season or k.upper().startswith(season.upper())}
@@ -543,9 +549,14 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     cand_paths = [str(it["path"]) for sku in cand for it in refs.get(sku, [])]
     src_of = {str(it["path"]): it["來源"]
               for sku in cand for it in refs.get(sku, [])}
-    colors = _colors(cfg, cand_paths, recolor=recolor, log=log) if qlab else {}
-    sigs = (_signatures(cfg, cand_paths, recolor=recolor, log=log)
-            if photo_sig else {})
+    if index:
+        colors = {}
+        sigs = {f"指紋:{s}": index["簽名"][s] for s in cand
+                if s in index["簽名"]} if photo_sig else {}
+    else:
+        colors = _colors(cfg, cand_paths, recolor=recolor, log=log) if qlab else {}
+        sigs = (_signatures(cfg, cand_paths, recolor=recolor, log=log)
+                if photo_sig else {})
 
     # 九宮格一次算完所有參考圖（向量化）。逐張迴圈在幾千張上慢到不能用，
     # 而網頁查詢正是要面對那個數字。
@@ -575,7 +586,14 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     for sku in cand:
         f = feat.get(sku, {})
         de, c = None, None
-        if qlab is not None:
+        if index and qlab is not None and sku in index["簽名"]:
+            m_ = index["簽名"][sku].get("主色LAB")
+            if m_:
+                try:
+                    de = round(G.color_distance(qlab, m_), 1)
+                except Exception:
+                    de = None
+        elif qlab is not None:
             best = None
             for it in refs.get(sku, []):
                 cc = colors.get(str(it["path"]))
@@ -659,9 +677,13 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
 
         if KP.available():
             head = rows[:rerank]
-            head_paths = [str(it["path"]) for r in head
-                          for it in refs.get(r["貨號"], [])]
-            desc = _keypoints(cfg, head_paths, recolor=recolor, log=log)
+            if index:
+                desc = {f"指紋:{r['貨號']}": index["細節"][r["貨號"]]
+                        for r in head if r["貨號"] in index.get("細節", {})}
+            else:
+                head_paths = [str(it["path"]) for r in head
+                              for it in refs.get(r["貨號"], [])]
+                desc = _keypoints(cfg, head_paths, recolor=recolor, log=log)
             if desc:
                 try:
                     from ..imageio import load_rgb

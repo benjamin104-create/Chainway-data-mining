@@ -145,6 +145,11 @@ echo.
 echo   12   Is cross-source matching worth turning on? (runs the same
 echo        questions twice: system photos only, then every source)
 echo.
+echo   13   Make a fingerprint file of the whole image library
+echo        (under 1 MB of colour + 20 MB of detail. Send that file
+echo         anywhere and style codes can be looked up there - the
+echo         2.69 GB of photos never leave this computer.)
+echo.
 echo    0   Quit
 echo.
 set "C="
@@ -161,6 +166,7 @@ if "%C%"=="9" goto j9
 if "%C%"=="10" goto j10
 if "%C%"=="11" goto j11
 if "%C%"=="12" goto j12
+if "%C%"=="13" goto j13
 if "%C%"=="0" goto bye
 goto menu
 
@@ -363,6 +369,23 @@ echo.
 echo   Runs 30 questions twice. Slower the first time; cached after.
 echo.
 "%VPY%" -m chainway.cli selftest --n 30 --pool 200 --sources
+goto back
+
+:j13
+rem Matching never needs the pictures, only their fingerprints: a few
+rem dozen colour medians per style plus the binary detail descriptors.
+rem 3,323 styles come to well under 1 MB of colour and about 20 MB of
+rem detail, against 2.69 GB of photos. So the fingerprint file can travel
+rem to a server, a static website, or a chat window, and the photos stay
+rem where they are.
+echo.
+echo   This walks every product photo once. Allow a few minutes.
+echo.
+"%VPY%" -m chainway.cli fingerprint
+echo.
+echo   The files are in  data\outputs\%%E6%%8C%%87%%E7%%B4%%8B  (folder name is Chinese,
+echo   open data\outputs and look for the newest folder).
+start "" "%CD%\data\outputs"
 goto back
 
 :j10none
