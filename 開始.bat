@@ -134,9 +134,10 @@ echo    7   Season report            (sell-through by season)
 echo    8   Duplicate styles         (is this one already done before?)
 echo.
 echo    9   Open the overview page (what exists, how fresh, what is stuck)
-echo   10   Find the style code from an outfit photo
-echo        (type the features you see, then the colour. Features first -
-echo         light changes the colour, it does not change a bow.)
+echo   10   Find the style code from a photo
+echo        (drag in a photo and press Enter - words are optional. Works
+echo         with a shop listing photo, a catalogue page, a fitting-room
+echo         selfie, or your own system photo.)
 echo.
 echo   11   Accuracy self-test (no answer sheet needed - it makes its
 echo        own questions from your own product photos)
@@ -250,21 +251,26 @@ rem top fifteen matches for a pale pink span under two dE, inside the
 rem measurement noise. Colour only settles the order among candidates the
 rem features already found, and pushes obviously-wrong colours to the end.
 echo.
-echo   Shortcut: if you have the shop listing title (momo, the web shop),
-echo   paste the WHOLE title at Step 1 - brand name, colour in brackets and
-echo   all. The program splits it into search words by itself.
+echo   THE PHOTO IS THE MAIN INPUT. Words are optional - press Enter at
+echo   Step 1 to search by photo alone.
 echo.
-echo   Step 1 - what can you SEE on the garment? JUST THE WORDS, separated
-echo   by spaces - this is not a command line. Chinese is fine. Rare words
-echo   are worth more than common ones, so "bow" beats "top".
-echo   Like this:   bow neckline knit long-sleeve
+echo   Step 1 - words, if you have any. Two things count as words here:
+echo     * what you can SEE on the garment, space separated. Chinese is
+echo       fine, and rare words beat common ones - "bow" beats "top".
+echo     * OR the whole shop listing title pasted in (momo, the web shop),
+echo       brand name and bracketed colour and all - it gets split for you.
+echo   Not a command line. Press Enter to skip.
 echo.
 :j10ask
 set "F="
 set "P="
 set "H="
-set /p F=  Features:  
-if not defined F goto menu
+set /p F=  Features (or just press Enter to search by photo only):  
+rem Empty is allowed - the photo alone is a complete query. This used to
+rem bounce straight back to the menu, which forced everyone to type words
+rem even when they only had a picture. That was a design mistake: the
+rem picture is the stronger signal of the two.
+if not defined F goto j10photo
 rem Quotes would be passed through to the search words themselves.
 set "F=%F:"=%"
 rem People copy the prompt along with their answer - "Features: bow ...".
@@ -284,6 +290,8 @@ echo "%F%" | find "--" >nul
 if not errorlevel 1 goto j10paste
 rem A shop listing title is fine here - the program parses it. Only an
 rem actual command line is rejected, which the checks above already catch.
+
+:j10photo
 echo.
 echo   Step 2 - the PHOTO. Drag the image file into this window and press
 echo   Enter. Crop it to the garment first (Paint: select, Crop, Save as) -
@@ -297,6 +305,7 @@ set "P="
 set /p P=  Photo file:  
 if defined P set "P=%P:"=%"
 if defined P goto j10run
+if not defined F goto j10none
 echo.
 echo   No photo. The main colour then, as six hex digits - or Enter again
 echo   to rank on the features alone. In Paint: colour dropper, then
@@ -311,7 +320,11 @@ if defined H if /i "%H:~0,11%"=="Colour hex:" set "H=%H:~11%"
 :j10run
 echo.
 if defined P (
-  "%VPY%" -m chainway.cli grid --title "%F%" --photo "%P%"
+  if defined F (
+    "%VPY%" -m chainway.cli grid --title "%F%" --photo "%P%"
+  ) else (
+    "%VPY%" -m chainway.cli grid --photo "%P%"
+  )
 ) else if defined H (
   "%VPY%" -m chainway.cli grid --title "%F%" --like "%H%"
 ) else (
@@ -350,6 +363,12 @@ echo.
 echo   Runs 30 questions twice. Slower the first time; cached after.
 echo.
 "%VPY%" -m chainway.cli selftest --n 30 --pool 200 --sources
+goto back
+
+:j10none
+echo.
+echo   Nothing to search with - give a photo, some words, or both.
+echo.
 goto back
 
 :j10paste
