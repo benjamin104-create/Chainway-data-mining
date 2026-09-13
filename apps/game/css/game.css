@@ -152,7 +152,11 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   color: var(--ochre); min-width: 44px; letter-spacing: .04em;
 }
 .chapter-name { font-size: 17px; }
-.chapter-sub { font-size: 12px; color: var(--parch-mute); }
+.chapter-year {
+  font-family: var(--f-pixel); font-size: 10px; letter-spacing: .08em;
+  color: var(--ochre); margin-top: 2px;
+}
+.chapter-sub { font-size: 12px; color: var(--parch-mute); margin-top: 2px; }
 .chapter-lore {
   padding: 0 16px 12px;
   font-family: var(--f-serif); font-size: 13px; line-height: 1.95;

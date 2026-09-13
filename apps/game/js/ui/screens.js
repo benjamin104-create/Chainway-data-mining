@@ -81,9 +81,10 @@ U.renderIntro = function () {
       '<div class="intro-title">Siege of Mysteries</div>' +
       '<div class="intro-cn">通天鬥塔</div>' +
       '<div class="intro-body">' +
-        '<p>世界上有幾個地方，人類蓋了東西，然後忘了為什麼要蓋。</p>' +
-        '<p>巴別塔、金字塔、納斯卡線、亞特蘭提斯、摩艾、百慕達、巨石陣——' +
-        '每一處都留著一座還在運轉的塔，塔裡的守衛守著一個沒有人記得的答案。</p>' +
+        '<p>古代世界留下七個地方。它們被寫進史詩、刻在石頭上、' +
+        '或者只活在一份沒有人能證實的目擊報告裡。</p>' +
+        '<p>從柏拉圖說的那座沉城開始，一路往後走到亞歷山大港外那盞燈——' +
+        '九千年、七座塔，每一座都還有守衛，守著一個沒有人記得的答案。</p>' +
         '<p>你是一顆被派去拆塔的橘色小東西。你有一把劍、一面盾，' +
         '和一條會跟著你往前推的線。城門在你身後，主塔在最前面，中間全是別人。</p>' +
         '<p>每一章都是一張有分岔的大地圖。你從左下角出發，往右、再往上，' +
@@ -117,6 +118,7 @@ U.renderChapters = function () {
       '<div class="chapter-top">' +
         '<div class="chapter-no">' + ch.no + '</div>' +
         '<div><div class="chapter-name">' + ch.name + '</div>' +
+        '<div class="chapter-year">' + ch.year + '</div>' +
         '<div class="chapter-sub">' + ch.sub + '</div></div>' +
       '</div>' +
       '<p class="chapter-lore">' + ch.lore + '</p>' +
@@ -127,7 +129,7 @@ U.renderChapters = function () {
 
   U.view.innerHTML =
     '<section class="panel"><div class="panel-head"><h2>遠征路線</h2>' +
-    '<span class="hint">七座塔。每一章都是一張有分岔的大地圖，每次出發都不一樣。</span></div>' +
+    '<span class="hint">依年代排序的七個地方，從前 9600 年走到前 247 年。每一章都是一張有分岔的大地圖。</span></div>' +
     '<div class="panel-body"><div class="chapters">' + cards + '</div></div></section>';
 };
 

@@ -41,6 +41,7 @@ G.newSave = function () {
     cleared: {},
     best: {},
     run: null,          // 進行中的遠征
+    cv: 2,              // 內容版本，換世界觀時用來換算進度
     seenIntro: false
   });
 };
@@ -67,11 +68,29 @@ G.load = function () {
       const cc = merged.classes[c.id];
       cc.bar = cc.bar.map(id => (id && G.SKILLS[id]) ? id : null);
     });
+    migrateContent(merged);
     return G.grantRoots(merged);
   } catch (e) {
     return G.newSave();
   }
 };
+
+/* 世界觀換掉之後，舊的章節代號已經不存在。
+   把「通關過幾章」等量換算到新章節，金幣、等級、技能點、裝備全部保留。 */
+function migrateContent(save) {
+  if (save.cv === G.CONTENT_VERSION) return;
+  const done = G.OLD_CHAPTER_IDS.filter(id => save.cleared && save.cleared[id + '-3']).length;
+  save.cleared = {};
+  for (let i = 0; i < done && i < G.CHAPTERS.length; i++) {
+    const id = G.CHAPTERS[i].id;
+    save.cleared[id + '-1'] = true;
+    save.cleared[id + '-2'] = true;
+    save.cleared[id + '-3'] = true;
+  }
+  save.run = null;            // 進行到一半的遠征指向不存在的章節
+  save.best = {};
+  save.cv = G.CONTENT_VERSION;
+}
 
 G.save = function () {
   try { localStorage.setItem(G.SAVE_KEY, JSON.stringify(G.S)); } catch (e) { /* 隱私模式會失敗，忽略 */ }

@@ -74,7 +74,7 @@ G.CLASSES = [
     tagline: '石頭會回答，只要你問對問題',
     color: '#4E7ECF',
     color2: '#22407A',
-    unlock: { stage: 'babel-3', text: '通關 巴別之塔 · 核心' },
+    unlock: { stage: 'atlantis-3', text: '通關 亞特蘭提斯' },
     desc: '遠程法術型。清場能力最強，單體最弱。' +
           '打法是把敵人的推進整片抹掉，而不是一個一個殺。',
     base: { hp: 230, dmg: 13, atkSpd: 0.95, range: 168, moveSpd: 100, crit: 0.04, critDmg: 1.5, armor: 2, cdr: 0.08, power: 1.25 },
@@ -124,7 +124,7 @@ G.CLASSES = [
     tagline: '不與人對砍，只結束對砍',
     color: '#8E6BE0',
     color2: '#4A3580',
-    unlock: { stage: 'nazca-3', text: '通關 納斯卡地紋 · 核心' },
+    unlock: { stage: 'troy-3', text: '通關 特洛伊' },
     desc: '刺客型。血少、位移多、暴擊爆發極高。' +
           '適合繞過小兵直接處理後排與塔，但一被圍住就很難走。',
     base: { hp: 215, dmg: 20, atkSpd: 1.35, range: 32, moveSpd: 126, crit: 0.14, critDmg: 1.75, armor: 3, cdr: 0.05, power: 1.1 },
@@ -174,7 +174,7 @@ G.CLASSES = [
     tagline: '自己不推，但讓整條線都往前',
     color: '#E0B23C',
     color2: '#8A6A1E',
-    unlock: { stage: 'atlantis-3', text: '通關 亞特蘭提斯 · 核心' },
+    unlock: { stage: 'cyclops-3', text: '通關 獨眼巨人之島' },
     desc: '召喚支援型。本體傷害最低，但小兵是所有職業裡最強的。' +
           '玩法是經營整條推進線，而不是自己站在最前面。',
     base: { hp: 275, dmg: 15, atkSpd: 1.0, range: 120, moveSpd: 104, crit: 0.05, critDmg: 1.5, armor: 5, cdr: 0.1, power: 1.05 },

@@ -145,7 +145,7 @@ G.buildRun = function (chapterId, seed) {
   const spurCands = mid
     .filter(n => n.c >= 1 && n.c <= COLS - 3 && n.type !== 'shop' && n.type !== 'camp')
     .sort((a, b) => byCol[a.c].length - byCol[b.c].length);
-  const caveCount = rand() < 0.45 ? 2 : 1;
+  const caveCount = 2;
   for (let i = 0; i < caveCount && spurCands.length; i++) {
     const parent = spurCands.splice(rand() < 0.7 ? 0 : Math.floor(rand() * spurCands.length), 1)[0];
     const side = parent.y > VB_H / 2 ? -1 : 1;
@@ -226,6 +226,7 @@ G.runNext = function () {
 G.runCanEnter = function (node) {
   const run = G.S.run;
   if (!run || run.finished) return false;
+  if (node.done) return false;          // 結算過的地點不能再進去（洞穴會被無限刷藥草）
   const cur = G.runCurrent();
   if (!cur || !cur.done) return false;
   return run.edges.some(e => e[0] === run.at && e[1] === node.id);
@@ -311,6 +312,10 @@ G.runApply = function (res) {
   if (res.sp) { G.S.sp += res.sp; out.push({ kind: 'good', text: '技能點 +' + res.sp }); }
   if (res.potion) { G.S.consumables.c_potion += res.potion; out.push({ kind: 'good', text: '油罐 ×' + res.potion }); }
   if (res.charge) { G.S.consumables.c_charge += res.charge; out.push({ kind: 'good', text: '火藥包 ×' + res.charge }); }
+  if (res.herb) {
+    G.S.consumables.c_herb = (G.S.consumables.c_herb | 0) + res.herb;
+    out.push({ kind: 'good', text: '藥草 ×' + res.herb });
+  }
   if (res.item) {
     const it = res.item === 'any' ? grantItem() : G.getItem(res.item);
     if (it) {
@@ -348,7 +353,7 @@ G.runCaveDone = function (node, won) {
   const run = G.S.run;
   let herbs = 0;
   if (won) {
-    herbs = 3 + Math.floor(Math.random() * 2);
+    herbs = 4 + Math.floor(Math.random() * 2);
     G.S.consumables.c_herb = (G.S.consumables.c_herb | 0) + herbs;
     G.runFinishNode(node, '洞穴清空了，採到 ' + herbs + ' 株藥草。', 'good');
   } else {

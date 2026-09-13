@@ -154,7 +154,54 @@ function drawProp(ctx, pr, p) {
     return;
   }
   ctx.fillStyle = base;
-  if (motif === 'ziggurat' || motif === 'pyramid') {
+  if (motif === 'column') {
+    // 神廟石柱：柱身 + 柱頭
+    ctx.fillRect(-s * 0.3, -s * 1.1, s * 0.6, s * 1.4);
+    ctx.fillStyle = top;
+    ctx.fillRect(-s * 0.3, -s * 1.1, s * 0.24, s * 1.4);
+    ctx.fillStyle = base;
+    ctx.fillRect(-s * 0.48, -s * 1.28, s * 0.96, s * 0.2);
+    ctx.fillRect(-s * 0.44, s * 0.22, s * 0.88, s * 0.18);
+  } else if (motif === 'wall') {
+    // 城牆殘段
+    ctx.fillRect(-s, -s * 0.7, s * 2, s * 1.0);
+    ctx.fillStyle = top;
+    for (let i = 0; i < 4; i++) ctx.fillRect(-s + i * s * 0.5 + 2, -s * 0.7, s * 0.42, s * 0.3);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(-s, -s * 0.2, s * 2, 3);
+  } else if (motif === 'maze') {
+    // 迷宮牆塊：折來折去的短牆
+    ctx.fillRect(-s * 0.9, -s * 0.5, s * 1.8, s * 0.26);
+    ctx.fillRect(-s * 0.9, -s * 0.5, s * 0.26, s * 1.1);
+    ctx.fillStyle = top;
+    ctx.fillRect(s * 0.3, -s * 0.1, s * 0.26, s * 0.8);
+    ctx.fillRect(-s * 0.3, s * 0.4, s * 1.0, s * 0.24);
+  } else if (motif === 'crag') {
+    // 火山岩尖
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.8, s * 0.35); ctx.lineTo(-s * 0.2, -s * 1.1);
+    ctx.lineTo(s * 0.25, -s * 0.5); ctx.lineTo(s * 0.85, s * 0.35);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = top;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.8, s * 0.35); ctx.lineTo(-s * 0.2, -s * 1.1); ctx.lineTo(-s * 0.1, s * 0.35);
+    ctx.closePath(); ctx.fill();
+  } else if (motif === 'statue') {
+    // 倒下的巨像殘件
+    ctx.fillRect(-s * 0.95, -s * 0.28, s * 1.9, s * 0.55);
+    ctx.fillStyle = top;
+    ctx.beginPath(); ctx.arc(-s * 0.72, -s * 0.28, s * 0.42, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(s * 0.1, -s * 0.28, 3, s * 0.55);
+  } else if (motif === 'beacon') {
+    // 小燈座
+    ctx.fillRect(-s * 0.42, -s * 1.15, s * 0.84, s * 1.5);
+    ctx.fillStyle = top;
+    ctx.fillRect(-s * 0.42, -s * 1.15, s * 0.3, s * 1.5);
+    const fl = 0.7 + Math.sin(G.B.time * 5 + pr.r * 6) * 0.3;
+    ctx.fillStyle = '#FFB43C';
+    ctx.beginPath(); ctx.arc(0, -s * 1.3, s * 0.3 * fl, 0, 6.3); ctx.fill();
+  } else if (motif === 'ziggurat' || motif === 'pyramid') {
     ctx.beginPath();
     ctx.moveTo(-s, s * 0.3); ctx.lineTo(0, -s * 0.9); ctx.lineTo(s, s * 0.3);
     ctx.closePath(); ctx.fill();
