@@ -17,7 +17,8 @@ const ALLY_UNITS = {
   archer:  { name: '弓手',   hp: 36, dmg: 9,  speed: 42, range: 155, size: 14, color: '#9FC2F0', kind: 'ranged' },
   bulwark: { name: '盾衛',   hp: 130, dmg: 7, speed: 34, range: 28,  size: 19, color: '#8E7A54', kind: 'tank' },
   lamp:    { name: '燈兵',   hp: 88, dmg: 19, speed: 52, range: 34,  size: 15, color: '#E0B23C', kind: 'melee' },
-  clone:   { name: '影分身', hp: 60, dmg: 18, speed: 120, range: 32, size: 14, color: '#8E6BE0', kind: 'melee' }
+  clone:   { name: '影分身', hp: 60, dmg: 18, speed: 120, range: 32, size: 14, color: '#8E6BE0', kind: 'melee' },
+  beast:   { name: '獸',     hp: 96, dmg: 21, speed: 74, range: 30, size: 17, color: '#8FB86A', kind: 'melee' }
 };
 
 let uid = 0;
@@ -50,6 +51,8 @@ B.init = function (stageKey, opts) {
   B.projectiles = [];
   B.effects = [];
   B.timers = [];                  // 戰鬥自己的延遲計時器；暫停會跟著停
+  B.pickups = [];                 // 路上的帽子
+  B.hatsFound = [];               // 這一場撿到哪幾頂，結算畫面要列
   B.texts = [];
   B.particles = [];
   B.corpses = [];               // 倒下動畫用，純視覺
@@ -69,6 +72,8 @@ B.init = function (stageKey, opts) {
   B.paused = false;
   B.deaths = 0;                // 倒下幾次，會從帶出去的血扣掉
   B.caveMode = !!opts.cave;    // 洞穴：短、怪有限、打完有藥草
+  B.guardian = opts.guardian || null;   // 捷徑守衛：帶結界的單體
+  B.guardianMode = !!B.guardian;
   B.phase = 'deploy';          // 'deploy' → 按開戰 → 'fight'
 
   B.cd = [0, 0, 0, 0];
@@ -135,6 +140,27 @@ B.init = function (stageKey, opts) {
     boss.maxHp = boss.hp;
     B.entities.push(boss);
     B.boss = boss;
+  } else if (B.guardian) {
+    /* 捷徑守衛：單體、血厚、站在路中間，靠結界擋住不對味的傷害 */
+    const proto = G.ENEMY_TYPES[chapter.enemies[2]];
+    const w = G.WARDS[B.guardian.ward] || G.WARDS.phys;
+    const gd = {
+      id: nid(), kind: 'boss', faction: 'enemy',
+      x: Math.round(stage.length * 0.62), z: 0,
+      hp: Math.round(proto.hp * B.escale * 9),
+      maxHp: 0, dmg: proto.dmg * B.escale * 1.35,
+      speed: proto.speed * 0.8, range: 52, size: 40,
+      color: w.color, atkTimer: 0, dead: false,
+      name: B.guardian.name, title: w.name,
+      armor: 8 + stage.chapterIdx * 2, bob: 0, hitFlash: 0,
+      isBoss: true, isGuardian: true, ward: B.guardian.ward,
+      castTimer: 5, casting: 0, moving: false, born: 0,
+      skills: [], skillIdx: -1,
+      leashX: Math.round(stage.length * 0.52)
+    };
+    gd.maxHp = gd.hp;
+    B.entities.push(gd);
+    B.boss = gd;
   } else {
     B.boss = null;
   }
@@ -155,6 +181,12 @@ B.init = function (stageKey, opts) {
 
 /* 封鎖線：還有哨塔活著就過不去 */
 function updateFrontLine() {
+  /* 捷徑守衛擋在路中間。它沒倒，你就過不去——
+     不然主角會直接繞過去拆主塔，守衛與結界等於不存在。 */
+  if (B.guardianMode && B.boss && !B.boss.dead) {
+    B.frontLine = B.boss.x + 40;
+    return;
+  }
   const front = B.towers.find(t => !t.dead);
   // 停在塔的正前方，不是塔後 230。設太遠的話往前走到底反而打不到那座塔。
   B.frontLine = (front && !front.isMain) ? front.x + 40 : B.stage.length + 40;
@@ -168,7 +200,46 @@ B.begin = function () {
   B.waveTimer = 3;
   B.activePost = null;
   B.effects.length = 0;
+  placeHats();
 };
+
+/* 路上的帽子。章節越後面，掉的階級越高；已經有的不會再掉。
+   洞穴那種小場地不放，免得變成刷帽子的地方。 */
+function placeHats() {
+  B.pickups = [];
+  if (B.caveMode) return;
+  const tier = Math.min(5, 1 + Math.floor(B.stage.chapterIdx * 0.8));
+  const pool = G.ITEMS.filter(it =>
+    it.slot === 'hat' && it.drop !== false && (it.tier || 1) <= tier &&
+    G.S.owned.indexOf(it.id) < 0);
+  if (!pool.length) return;
+  const n = Math.min(pool.length, B.stage.isBoss ? 2 : 1);
+  for (let i = 0; i < n; i++) {
+    const it = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    B.pickups.push({
+      itemId: it.id, name: it.name,
+      x: Math.round(B.stage.length * (0.25 + 0.5 * (i + Math.random()) / n)),
+      z: (Math.random() - 0.5) * 26,
+      bob: Math.random() * 6, taken: false
+    });
+  }
+}
+
+/* 走過去就撿起來 */
+function updatePickups(dt) {
+  const h = B.hero;
+  B.pickups.forEach(pk => {
+    pk.bob += dt * 3;
+    if (pk.taken || h.dead) return;
+    if (Math.abs(h.x - pk.x) > 34) return;
+    pk.taken = true;
+    if (G.S.owned.indexOf(pk.itemId) < 0) G.S.owned.push(pk.itemId);
+    B.hatsFound.push(pk.itemId);
+    pushBanner('撿到　' + pk.name, '#E0B23C');
+    B.effects.push({ type: 'ring', x: pk.x, z: pk.z, r: 0, max: 62, t: 0, dur: 0.45, color: '#E0B23C' });
+    burst(pk.x, pk.z, '#E0B23C', 16);
+  });
+}
 
 function mkStructure(faction, x, hp, dmg, range, name, atkSpdMul) {
   return {
@@ -270,7 +341,7 @@ function bossBlast(e, cx, r, mul, delay, color, apply) {
     B.effects.push({ type: 'ring', x: cx, z: 0, r: 0, max: r, t: 0, dur: 0.4, color: color });
     B.shake = Math.max(B.shake, 10);
     hitBy(cx, r).forEach(o => {
-      dealDamage(e, o, e.dmg * mul, { noCrit: true });
+      dealDamage(e, o, e.dmg * mul, { noCrit: true, magic: true });
       if (apply) apply(o);
     });
   });
@@ -292,7 +363,7 @@ function bossBeam(e, toX, halfW, mul, delay, color, apply) {
     B.entities.forEach(o => {
       if (o.dead || o.invuln || o.faction !== 'ally' || o.isStructure) return;
       if (o.x < a - 20 || o.x > b + 20) return;
-      dealDamage(e, o, e.dmg * mul, { noCrit: true });
+      dealDamage(e, o, e.dmg * mul, { noCrit: true, magic: true });
       if (apply) apply(o);
     });
   });
@@ -309,7 +380,7 @@ const BOSS_SKILLS = {
       if (e.dead || B.over) return;
       B.effects.push({ type: 'trail', x: h.x, x2: e.x - 100, z: 0, t: 0, dur: 0.35, color: '#2C6A7E' });
       hitBy(h.x, 170).forEach(o => {
-        dealDamage(e, o, e.dmg * 0.85, { noCrit: true });
+        dealDamage(e, o, e.dmg * 0.85, { noCrit: true, magic: true });
         knock(o, Math.sign(e.x - o.x) || 1, 90);     // 往魔王腳邊拖
       });
       if (B.hero.slowUntil < B.time) pushText(B.hero.x, -52, '被拖過去', '#8FD6E0', false);
@@ -381,7 +452,7 @@ const BOSS_SKILLS = {
       if (e.dead || B.over) return;
       B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 90, t: 0, dur: 0.5, color: '#E0B23C' });
       hitBy(h.x, 90).forEach(o => {
-        dealDamage(e, o, e.dmg * 0.6, { noCrit: true });
+        dealDamage(e, o, e.dmg * 0.6, { noCrit: true, magic: true });
         afflict(o, 'mark', 7, 0.4, '被標記　受傷 +40%');
       });
     });
@@ -414,7 +485,7 @@ const BOSS_SKILLS = {
         if (e.dead || B.over || tick >= 12) return;
         tick++;
         hitBy(at, 140).forEach(o => {
-          dealDamage(e, o, e.dmg * 0.16, { noCrit: true });
+          dealDamage(e, o, e.dmg * 0.16, { noCrit: true, magic: true });
           afflict(o, 'burn', 1.2, Math.max(3, e.dmg * 0.12), null);
         });
         bossAfter(0.5, burn);
@@ -449,6 +520,25 @@ function dealDamage(src, tgt, amount, opt) {
   if (!fromHero && src && src.unitMul != null && !tgt.isStructure) dmg *= src.unitMul;
   if (tgt.vulnUntil > B.time) dmg *= (1 + tgt.vuln);
 
+  /* 捷徑守衛的結界：只有「對味的主角攻擊」穿得過去。
+     小兵、城門、砲塔一律被擋——不然玩家只要站著等小兵磨完就好，
+     結界就變成純粹拖時間，而不是一道要換裝備或換職業的題目。 */
+  if (tgt.ward) {
+    const pass = (G.WARDS[tgt.ward] || {}).pass;
+    const ok = fromHero && (
+      pass === 'skill' ? !!opt.isSkill
+      : pass === 'mdef'  ? (B.stats.mdef >= G.WARD_MDEF_MIN)
+      : pass === 'crit'  ? !!crit
+      : pass === 'siege' ? (B.stats.siege >= G.WARD_SIEGE_MIN)
+      : true);
+    if (!ok) {
+      dmg *= 0.06;
+      if (fromHero && Math.random() < 0.3) {
+        pushText(tgt.x, -(tgt.size + 30), '結界', '#8E6BE0', false);
+      }
+    }
+  }
+
   dmg = mitigate(dmg, tgt.armor);
   if (fromHero && B.flags.has('rooted') === false) { /* no-op */ }
 
@@ -457,6 +547,8 @@ function dealDamage(src, tgt, amount, opt) {
   if (tgt === B.hero) {
     if (B.hero.invuln > 0) return 0;
     let taken = dmg;
+    // 魔防只擋魔王技能這一類，普通攻擊照舊看護甲
+    if (opt.magic && B.stats.mdef) taken *= (1 - B.stats.mdef);
     if (B.flags.has('rooted') && B.stillTimer >= 1) taken *= 0.75;
     if (B.hero.shield > 0) {
       const absorbed = Math.min(B.hero.shield, taken);
@@ -537,8 +629,11 @@ function checkDeath(e, killer) {
         for (let i = 1; i < 4; i++) if (B.cd[i] > B.cd[best]) best = i;
         B.cd[best] = 0;
       }
-      if (e.isMain) finish('win');
+      // 守衛模式下主塔不是目標，打倒守衛才是
+      if (e.isMain && !B.guardianMode) finish('win');
     }
+    // 守衛不是建築物，判定要放在建築物分支外面
+    if (e.isGuardian) finish('win');
   } else {
     if (e.isStructure && e === B.gate) finish('lose');
     if (e.kind === 'minion' && B.flags.has('ember')) {
@@ -896,10 +991,18 @@ function runSkill(def, scale) {
       B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 200, t: 0, dur: 0.5, color: B.cls.color });
       break;
     }
+    case 'shield': {
+      /* 護盾：吸收傷害，時間到就沒了。這一版沒有回血，護盾是唯一能「先擋住」的東西。 */
+      h.shield = Math.round(B.heroDmg() * def.mult * 2.2);
+      h.shieldUntil = B.time + (def.dur || 8);
+      B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 90, t: 0, dur: 0.5, color: '#9CC8FF' });
+      pushText(h.x, -44, '護盾 ' + h.shield, '#9CC8FF', false);
+      break;
+    }
     case 'summon': {
-      const dur = def.dur * (B.flags.has('longburn') ? 1.6 : 1);
+      const dur = (def.dur || 14) * (B.flags.has('longburn') ? 1.6 : 1);
       for (let i = 0; i < def.count; i++) {
-        const m = spawnMinion('ally', def.unit, h.x + 20 + i * 22, i);
+        const m = spawnMinion('ally', def.unit || 'recruit', h.x + 20 + i * 22, i);
         m.expire = B.time + dur;
         if (def.unit === 'clone') {
           m.dmg = B.heroDmg() * 0.55;
@@ -1040,12 +1143,13 @@ B.update = function (dt, input) {
   } else if (!B.over) {
     h.invuln = Math.max(0, h.invuln - dt);
     h.hitFlash = Math.max(0, h.hitFlash - dt);
+    if (h.shield > 0 && h.shieldUntil && B.time > h.shieldUntil) h.shield = 0;
     /* 魔王掛上的燒傷：每半秒跳一次 */
     if (h.burnUntil > B.time) {
       h.burnTick = (h.burnTick || 0) + dt;
       if (h.burnTick >= 0.5) {
         h.burnTick = 0;
-        dealDamage(null, h, h.burnDps * 0.5, { noCrit: true });
+        dealDamage(null, h, h.burnDps * 0.5, { noCrit: true, magic: true });
         B.particles.push({ x: h.x, z: h.z, y: -22, vx: (Math.random() - 0.5) * 34, vy: -76, vz: 0,
           color: '#F2A93B', t: 0, dur: 0.4, size: 2 });
       }
@@ -1344,6 +1448,8 @@ B.update = function (dt, input) {
     }
   }
   B.projectiles = B.projectiles.filter(p => !p.dead);
+
+  updatePickups(dt);
 
   /* 特效 / 文字 / 粒子 */
   B.effects.forEach(f => f.t += dt);

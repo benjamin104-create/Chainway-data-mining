@@ -215,6 +215,159 @@ G.CLASSES = [
       { id: 'l4c', name: '整條線', type: 'passive', tier: 4, cost: 3, pos: P(4, 430), req: ['l3c', 'l3d'],
         icon: 'gate', desc: '每波小兵多出兩名，且己方城門射速 +50%。', flags: ['bigwave'] }
     ]
+  },
+
+  /* ══════════════ 神諭祭司 ══════════════ */
+  {
+    id: 'oracle',
+    name: '神諭祭司',
+    en: 'Oracle',
+    tagline: '她說不要扶，於是八百年沒有人扶',
+    color: '#EFE7D4',
+    color2: '#C8503E',
+    unlock: { stage: 'knossos-3', text: '通關 克諾索斯 · 迷宮' },
+    desc: '白袍那一路。魔防最高、藥草吃得最好，還能給自己護盾。' +
+          '她打得慢，但她是唯一能站著挨完魔王一整套技能的人。',
+    base: { hp: 300, dmg: 14, atkSpd: 1.0, range: 150, moveSpd: 104, crit: 0.05, critDmg: 1.55, armor: 5, cdr: 0.06, power: 1.1 },
+    nodes: [
+      { id: 'o0', name: '禱詞', type: 'active', tier: 0, cost: 0, pos: P(0, 280), req: [],
+        icon: 'mark', desc: '一道光柱落在前方，穿透路上的敵人。',
+        skill: { id: 's_pillar', name: '神諭光柱', cd: 5, type: 'beam', len: 300, width: 30, mult: 1.7 } },
+
+      { id: 'o1a', name: '素袍', type: 'passive', tier: 1, cost: 1, pos: P(1, 170), req: ['o0'],
+        icon: 'shield', desc: '魔防 +18%，生命上限 +10%。', mods: { mdef: 0.18, hp: 0.10 } },
+      { id: 'o1b', name: '採藥', type: 'passive', tier: 1, cost: 1, pos: P(1, 390), req: ['o0'],
+        icon: 'heal', desc: '藥草回復效果 +35%，冷卻縮減 +6%。', mods: { herb: 0.35, cdr: 0.06 } },
+
+      { id: 'o2a', name: '結界', type: 'active', tier: 2, cost: 2, pos: P(2, 100), req: ['o1a'],
+        icon: 'shield', desc: '給自己一層護盾，吸收傷害，持續 8 秒。',
+        skill: { id: 's_ward', name: '祈願結界', cd: 14, type: 'shield', mult: 2.6, dur: 8 } },
+      { id: 'o2b', name: '靜心', type: 'passive', tier: 2, cost: 2, pos: P(2, 280), req: ['o1a', 'o1b'],
+        icon: 'anchor', desc: '站著不動滿 1 秒後，受到的傷害 −25%。', flags: ['rooted'] },
+      { id: 'o2c', name: '長頌', type: 'passive', tier: 2, cost: 2, pos: P(2, 460), req: ['o1b'],
+        icon: 'range', desc: '射程 +20%，技能傷害 +15%。', mods: { range: 0.20, power: 0.15 } },
+
+      { id: 'o3a', name: '不壞', type: 'passive', tier: 3, cost: 2, pos: P(3, 120), req: ['o2a'],
+        icon: 'thorns', desc: '魔防 +20%，護甲 +8。', mods: { mdef: 0.20, armorFlat: 8 } },
+      { id: 'o3b', name: '祝福', type: 'active', tier: 3, cost: 2, pos: P(3, 240), req: ['o2a', 'o2b'],
+        icon: 'rally', desc: '10 秒內自身與友軍小兵傷害 +30%，你自己再 +15% 移速。',
+        skill: { id: 's_bless', name: '神諭祝福', cd: 22, type: 'buff', dur: 10, mods: { dmg: 0.30, moveSpd: 0.15 }, allyMods: { dmg: 0.30 } } },
+      { id: 'o3c', name: '迴響', type: 'passive', tier: 3, cost: 2, pos: P(3, 360), req: ['o2b', 'o2c'],
+        icon: 'echo', desc: '冷卻縮減 +12%，技能傷害 +18%。', mods: { cdr: 0.12, power: 0.18 } },
+      { id: 'o3d', name: '石籤', type: 'passive', tier: 3, cost: 2, pos: P(3, 480), req: ['o2c'],
+        icon: 'crit', desc: '暴擊率 +8%，暴擊傷害 +30%。', mods: { crit: 0.08, critDmg: 0.30 } },
+
+      { id: 'o4a', name: '神殿之光', type: 'active', tier: 4, cost: 3, pos: P(4, 170), req: ['o3a', 'o3b'],
+        icon: 'quake', desc: '以自身為中心降下大範圍的光，重創所有敵人。',
+        skill: { id: 's_sanctum', name: '神殿之光', cd: 26, type: 'ground', radius: 210, mult: 3.6, slow: 0.35, slowDur: 2.5 } },
+      { id: 'o4b', name: '不要扶', type: 'passive', tier: 4, cost: 3, pos: P(4, 300), req: ['o3b', 'o3c'],
+        icon: 'life', desc: '魔防 +18%，生命低於 35% 時護甲與吸血大幅提升。',
+        mods: { mdef: 0.18 }, flags: ['lastStand'] },
+      { id: 'o4c', name: '聽得見', type: 'passive', tier: 4, cost: 3, pos: P(4, 430), req: ['o3c', 'o3d'],
+        icon: 'mark', desc: '技能傷害 +30%，冷卻縮減 +10%，藥草效果 +25%。',
+        mods: { power: 0.30, cdr: 0.10, herb: 0.25 } }
+    ]
+  },
+
+  /* ══════════════ 角鬥士 ══════════════ */
+  {
+    id: 'gladiator',
+    name: '角鬥士',
+    en: 'Gladiator',
+    tagline: '贏的人戴桂冠，輸的人也曾經戴過',
+    color: '#E0662A',
+    color2: '#7FBF6A',
+    unlock: { stage: 'amazon-3', text: '通關 泰美斯基拉' },
+    desc: '快、脆、暴擊高。他不擋，他讓對方沒有第二下。' +
+          '吸血是他唯一的回復手段——這一版沒有別的。',
+    base: { hp: 290, dmg: 21, atkSpd: 1.45, range: 36, moveSpd: 122, crit: 0.12, critDmg: 1.75, armor: 4, cdr: 0.04, power: 1 },
+    nodes: [
+      { id: 'g0', name: '開場', type: 'active', tier: 0, cost: 0, pos: P(0, 280), req: [],
+        icon: 'spin', desc: '向前突進並劈砍，命中就回一點血。',
+        skill: { id: 's_lunge', name: '搶拍', cd: 4, type: 'dash', dist: 130, mult: 2.0 } },
+
+      { id: 'g1a', name: '空手', type: 'passive', tier: 1, cost: 1, pos: P(1, 170), req: ['g0'],
+        icon: 'speed', desc: '攻擊速度 +16%，移動速度 +8%。', mods: { atkSpd: 0.16, moveSpd: 0.08 } },
+      { id: 'g1b', name: '見血', type: 'passive', tier: 1, cost: 1, pos: P(1, 390), req: ['g0'],
+        icon: 'crit', desc: '暴擊率 +8%，吸血 +5%。', mods: { crit: 0.08, lifesteal: 0.05 } },
+
+      { id: 'g2a', name: '連擊', type: 'passive', tier: 2, cost: 2, pos: P(2, 100), req: ['g1a'],
+        icon: 'cleave', desc: '普通攻擊擴散到身後的第二個目標（60% 傷害）。', flags: ['cleave'] },
+      { id: 'g2b', name: '背刺', type: 'passive', tier: 2, cost: 2, pos: P(2, 280), req: ['g1a', 'g1b'],
+        icon: 'slash', desc: '攻擊背對你的敵人必定暴擊。', flags: ['backstab'] },
+      { id: 'g2c', name: '斬殺', type: 'passive', tier: 2, cost: 2, pos: P(2, 460), req: ['g1b'],
+        icon: 'execute', desc: '對生命低於 25% 的敵人傷害 +80%。', flags: ['execute'] },
+
+      { id: 'g3a', name: '旋身', type: 'active', tier: 3, cost: 2, pos: P(3, 120), req: ['g2a'],
+        icon: 'spin', desc: '原地旋轉 2 秒，期間持續傷害周圍並加速。',
+        skill: { id: 's_whirl', name: '旋身', cd: 18, type: 'channel', radius: 88, tick: 0.25, dur: 2, mult: 0.6, moveBonus: 0.35 } },
+      { id: 'g3b', name: '追擊', type: 'passive', tier: 3, cost: 2, pos: P(3, 240), req: ['g2a', 'g2b'],
+        icon: 'combo', desc: '暴擊時所有技能冷卻各減 0.6 秒。', flags: ['combo'] },
+      { id: 'g3c', name: '嗜血', type: 'passive', tier: 3, cost: 2, pos: P(3, 360), req: ['g2b', 'g2c'],
+        icon: 'life', desc: '吸血 +10%，暴擊傷害 +30%。', mods: { lifesteal: 0.10, critDmg: 0.30 } },
+      { id: 'g3d', name: '不設防', type: 'passive', tier: 3, cost: 2, pos: P(3, 480), req: ['g2c'],
+        icon: 'burn', desc: '傷害 +25%，但護甲 −4。', mods: { dmg: 0.25, armorFlat: -4 } },
+
+      { id: 'g4a', name: '一對多', type: 'active', tier: 4, cost: 3, pos: P(4, 170), req: ['g3a', 'g3b'],
+        icon: 'roar', desc: '8 秒內攻速 +60%、吸血 +15%。',
+        skill: { id: 's_arena', name: '競技場', cd: 24, type: 'buff', dur: 8, mods: { atkSpd: 0.6, lifesteal: 0.15 } } },
+      { id: 'g4b', name: '致命', type: 'passive', tier: 4, cost: 3, pos: P(4, 300), req: ['g3b', 'g3c'],
+        icon: 'crit', desc: '暴擊率 +14%，暴擊傷害 +55%。', mods: { crit: 0.14, critDmg: 0.55 } },
+      { id: 'g4c', name: '桂冠', type: 'passive', tier: 4, cost: 3, pos: P(4, 430), req: ['g3c', 'g3d'],
+        icon: 'echo', desc: '暴擊會再打出一次 45% 傷害的追擊。', flags: ['echoCrit'] }
+    ]
+  },
+
+  /* ══════════════ 縛獸人 ══════════════ */
+  {
+    id: 'beastbinder',
+    name: '縛獸人',
+    en: 'Beastbinder',
+    tagline: '牠們比牠好相處',
+    color: '#8FB86A',
+    color2: '#7A5C34',
+    unlock: { stage: 'colossus-3', text: '通關 羅得島巨神像' },
+    desc: '自己不強，但他帶的東西很強。小兵傷害與血量的加成全遊戲最高，' +
+          '而且他能把敵人變成自己人。線推得動，塔就會倒。',
+    base: { hp: 330, dmg: 15, atkSpd: 1.05, range: 120, moveSpd: 108, crit: 0.05, critDmg: 1.6, armor: 6, cdr: 0.05, power: 1 },
+    nodes: [
+      { id: 'b0', name: '哨音', type: 'active', tier: 0, cost: 0, pos: P(0, 280), req: [],
+        icon: 'echo', desc: '一聲哨音震開周圍的敵人並造成傷害。',
+        skill: { id: 's_whistle', name: '哨音', cd: 5, type: 'ground', radius: 120, mult: 1.5, slow: 0.3, slowDur: 1.5 } },
+
+      { id: 'b1a', name: '同行', type: 'passive', tier: 1, cost: 1, pos: P(1, 170), req: ['b0'],
+        icon: 'rally', desc: '友軍小兵傷害 +20%、生命 +20%。', mods: { minionDmg: 0.20, minionHp: 0.20 } },
+      { id: 'b1b', name: '厚皮', type: 'passive', tier: 1, cost: 1, pos: P(1, 390), req: ['b0'],
+        icon: 'shield', desc: '生命上限 +12%，護甲 +4，魔防 +10%。', mods: { hp: 0.12, armorFlat: 4, mdef: 0.10 } },
+
+      { id: 'b2a', name: '群出', type: 'passive', tier: 2, cost: 2, pos: P(2, 100), req: ['b1a'],
+        icon: 'gate', desc: '每一波小兵多出兩名。', flags: ['bigwave'] },
+      { id: 'b2b', name: '領路', type: 'passive', tier: 2, cost: 2, pos: P(2, 280), req: ['b1a', 'b1b'],
+        icon: 'rally', desc: '小兵在你身邊 180 單位內時傷害再 +25%。', flags: ['rally'] },
+      { id: 'b2c', name: '餵食', type: 'passive', tier: 2, cost: 2, pos: P(2, 460), req: ['b1b'],
+        icon: 'life', desc: '友軍小兵每 3 秒回復 6% 生命。', flags: ['regen'] },
+
+      { id: 'b3a', name: '放獸', type: 'active', tier: 3, cost: 2, pos: P(3, 120), req: ['b2a'],
+        icon: 'roar', desc: '立刻叫出一批小兵，站在你身邊往前推。',
+        skill: { id: 's_unleash', name: '放獸', cd: 20, type: 'summon', count: 4, dur: 16, unit: 'beast' } },
+      { id: 'b3b', name: '馴服', type: 'passive', tier: 3, cost: 2, pos: P(3, 240), req: ['b2a', 'b2b'],
+        icon: 'mark', desc: '小兵傷害與生命再各 +25%。', mods: { minionDmg: 0.25, minionHp: 0.25 } },
+      { id: 'b3c', name: '獸群', type: 'active', tier: 3, cost: 2, pos: P(3, 360), req: ['b2b', 'b2c'],
+        icon: 'rally', desc: '12 秒內全體友軍傷害 +40%、移動速度 +25%。',
+        skill: { id: 's_stampede', name: '獸潮', cd: 26, type: 'buff', dur: 12, mods: { dmg: 0.15 }, allyMods: { dmg: 0.40, moveSpd: 0.25 } } },
+      { id: 'b3d', name: '骨哨', type: 'passive', tier: 3, cost: 2, pos: P(3, 480), req: ['b2c'],
+        icon: 'burn', desc: '友軍小兵死亡時爆炸，對周圍造成傷害。', flags: ['ember'] },
+
+      { id: 'b4a', name: '獸骨陣', type: 'active', tier: 4, cost: 3, pos: P(4, 170), req: ['b3a', 'b3b'],
+        icon: 'tower', desc: '架設一座友方砲塔，持續 18 秒。',
+        skill: { id: 's_bonepost', name: '獸骨樁', cd: 28, type: 'turret', dur: 18, dmgMult: 1.5, range: 215 } },
+      { id: 'b4b', name: '整群過去', type: 'passive', tier: 4, cost: 3, pos: P(4, 300), req: ['b3b', 'b3c'],
+        icon: 'gate', desc: '小兵傷害與生命再各 +35%，己方城門射速 +50%。',
+        mods: { minionDmg: 0.35, minionHp: 0.35 }, flags: ['bigwave'] },
+      { id: 'b4c', name: '牠們認得你', type: 'passive', tier: 4, cost: 3, pos: P(4, 430), req: ['b3c', 'b3d'],
+        icon: 'thorns', desc: '魔防 +22%，護甲 +10，受近戰攻擊時反彈 25%。',
+        mods: { mdef: 0.22, armorFlat: 10 }, flags: ['thorns'] }
+    ]
   }
 ];
 

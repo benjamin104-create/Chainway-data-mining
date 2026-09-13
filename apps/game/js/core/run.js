@@ -41,6 +41,7 @@ G.NODE_KINDS = {
   hazard:  { name: '險地',   icon: 'burn',   color: '#8E6BE0' },
   mystery: { name: '謎團',   icon: 'mark',   color: '#4E7ECF' },
   cave:    { name: '洞穴',   icon: 'cave',   color: '#8FB86A' },
+  guardian:{ name: '捷徑守衛', icon: 'roar',  color: '#8E6BE0' },
   unknown: { name: '未知',   icon: 'echo',   color: '#75634B' }
 };
 
@@ -178,6 +179,42 @@ G.buildRun = function (chapterId, seed) {
     edges.push([parent.id, cave.id, 0]);
   }
 
+  /* 捷徑：從前段岔出去，直接跳到後段，中間兩排全部略過。
+     路口站著守衛，身上有結界——不對味的傷害只會吃到 18%。
+     所以捷徑不是「比較快的路」，是「你打得過就比較快的路」。 */
+  const gdef = G.guardianFor(chapterId);
+  if (gdef) {
+    const fromCol = 2, toCol = 5;
+    const from = byCol[fromCol][0];
+    const to = byCol[toCol][byCol[toCol].length - 1];
+    if (from && to) {
+      /* 擺位要多試幾個，只試一個的話大部分地圖會生不出守衛
+         （第一版就是這樣，60 張圖只有 13 張有）。 */
+      const mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2;
+      const up = from.y > VB_H / 2 ? -1 : 1;
+      const tries = [
+        [0, up * 132], [0, up * 168], [-46, up * 140], [46, up * 140],
+        [0, -up * 132], [-64, up * 104], [64, up * 104], [0, -up * 168]
+      ];
+      let gx = 0, gy = 0, placed = false;
+      for (const [dx, dy] of tries) {
+        gx = Math.round(Math.max(46, Math.min(VB_W - 46, mx + dx)));
+        gy = Math.round(Math.max(44, Math.min(VB_H - 52, my + dy)));
+        if (!nodes.some(n => Math.hypot(n.x - gx, n.y - gy) < 62)) { placed = true; break; }
+      }
+      if (placed) {
+        const g = {
+          id: 'n' + (nid++), c: fromCol, r: -2, x: gx, y: gy,
+          type: 'guardian', hidden: false, done: false,
+          guardianId: gdef.id, ward: gdef.ward, shortcut: true
+        };
+        nodes.push(g);
+        edges.push([from.id, g.id, 0]);
+        edges.push([g.id, to.id, 0]);
+      }
+    }
+  }
+
   /* 陷阱路：走過去就掉血，而且事先看得到要掉多少。 */
   edges.forEach(e => {
     const to = nodes.find(n => n.id === e[1]);
@@ -274,6 +311,10 @@ G.runBattleSpec = function (node) {
   // 大王就是原本的核心關，不再另外加成；其餘一律用第一關當底，靠深度拉難度
   if (node.type === 'boss') return { stageKey: ch.id + '-3', scaleMul: 1 };
   if (node.type === 'cave') return { stageKey: ch.id + '-1', scaleMul: 1 + node.c * 0.05, cave: true };
+  if (node.type === 'guardian') {
+    const g = G.GUARDIANS.find(x => x.id === node.guardianId);
+    return { stageKey: ch.id + '-2', scaleMul: 1.15, guardian: g || null };
+  }
   const depth = 1 + node.c * 0.065;
   return { stageKey: ch.id + '-1', scaleMul: node.type === 'elite' ? depth * 1.2 : depth };
 };
@@ -282,6 +323,7 @@ G.runBattleSpec = function (node) {
 G.runStageKeyFor = function (node) {
   const ch = G.getChapter(G.S.run.chapterId);
   if (node.type === 'cave') return null;       // 洞穴不是關卡，不解鎖任何東西
+  if (node.type === 'guardian') return null;   // 守衛也不是
   if (node.type === 'boss') return ch.id + '-3';
   if (node.type === 'elite') return ch.id + '-2';
   return ch.id + '-1';
@@ -370,6 +412,25 @@ G.runCaveDone = function (node, won) {
   run.at = node.backTo || run.at;
   G.save();
   return herbs;
+};
+
+/* 捷徑守衛：打贏了掉一件硬裝備，捷徑就通了 */
+G.runGuardianDone = function (node, won) {
+  const run = G.S.run;
+  const g = G.GUARDIANS.find(x => x.id === node.guardianId);
+  if (!won) {
+    run.log.push({ text: (g ? g.name : '守衛') + '還站在那裡。捷徑走不了。', kind: 'bad' });
+    G.save();
+    return null;
+  }
+  let item = null;
+  if (g && g.drop) {
+    item = G.getItem(g.drop);
+    if (item && G.S.owned.indexOf(item.id) < 0) G.S.owned.push(item.id);
+  }
+  G.runFinishNode(node, (g ? g.name : '守衛') + '倒了，捷徑打開了。', 'good');
+  G.save();
+  return item;
 };
 
 /* 在地圖上用藥草。戰鬥中不能用 —— 主角沒有恢復手段是這一版的前提。 */

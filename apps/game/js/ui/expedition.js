@@ -69,6 +69,8 @@ window.G = window.G || {};
         (vt === 'unknown' ? '<span class="exp-q">?</span>' : G.icon(kind.icon)) +
         '</button>' +
         '<span class="exp-node-label" style="left:' + left + ';top:' + top + '">' + kind.name +
+        (vt === 'guardian' && G.WARDS[n.ward]
+          ? '<i class="exp-ward">' + esc(G.WARDS[n.ward].name) + '</i>' : '') +
         (can && G.runTrapCost(n.id) ? '<i class="exp-trap">−' + Math.round(G.runTrapCost(n.id) * 100) + '%</i>' : '') +
         '</span>';
     }).join('');
@@ -142,6 +144,7 @@ window.G = window.G || {};
 
   U.resolveNode = function (node) {
     const t = node.type;
+    if (t === 'guardian') { U.showGuardian(node); return; }
     if (t === 'battle' || t === 'elite' || t === 'boss' || t === 'cave') {
       const spec = G.runBattleSpec(node);
       U.startRunBattle(spec.stageKey, {
@@ -160,6 +163,52 @@ window.G = window.G || {};
     } else {
       U.showEvent(node);
     }
+  };
+
+  /* ══════════ 捷徑守衛 ══════════
+     先把結界攤開講清楚，再讓玩家決定要不要現在打。
+     這是一道「換裝備／換職業」的題目，不是猜謎。 */
+  U.showGuardian = function (node) {
+    const g = G.GUARDIANS.find(x => x.id === node.guardianId);
+    const w = G.WARDS[node.ward] || {};
+    const drop = g && g.drop ? G.getItem(g.drop) : null;
+    const cls = G.getClass(G.S.classId);
+    const el = document.createElement('div');
+    el.className = 'overlay';
+    el.innerHTML =
+      '<div class="event-box guardian-box">' +
+        '<div class="event-head" style="--c:' + (w.color || '#8E6BE0') + '">' +
+          '<span class="event-kind">捷徑守衛</span>' +
+          '<h2>' + esc(g ? g.name : '守衛') + '</h2>' +
+        '</div>' +
+        '<p class="event-text">' + esc(g ? g.line : '') + '</p>' +
+        '<div class="ward-card" style="--c:' + (w.color || '#8E6BE0') + '">' +
+          '<b>' + esc(w.name || '結界') + '</b>' +
+          '<span>' + esc(w.hint || '') + '</span>' +
+          '<i>' + esc(w.how || '') + '</i>' +
+          '<u>不對味的傷害只會吃到 6%——小兵與城門也一樣，這一關是你自己的事。</u>' +
+        '</div>' +
+        '<p class="event-text small">目前職業：<b>' + esc(cls.name) + '</b>　' +
+          '（可以先回去換職業或換技能欄，這個地點不會跑掉）</p>' +
+        (drop ? '<p class="event-text small">打贏會掉：<b>' + esc(drop.name) + '</b>，而且捷徑打開，直接跳過中間兩排。</p>' : '') +
+        '<div class="event-options">' +
+          '<button class="btn btn-primary" data-guard-go="' + node.id + '">開打</button>' +
+          '<button class="btn btn-ghost" data-guard-cancel="1">先不要</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+    U.eventEl = el;
+  };
+
+  U.startGuardianFight = function (node) {
+    const spec = G.runBattleSpec(node);
+    U.startRunBattle(spec.stageKey, {
+      scaleMul: spec.scaleMul,
+      guardian: spec.guardian,
+      startHpPct: G.S.run.hpPct,
+      label: '捷徑守衛',
+      node: node
+    });
   };
 
   /* ══════════ 事件視窗 ══════════ */

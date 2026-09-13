@@ -8,7 +8,8 @@ const MOD_LABEL = {
   hp: '生命', hpFlat: '生命', dmg: '傷害', dmgFlat: '傷害', atkSpd: '攻速', range: '射程',
   moveSpd: '移速', crit: '暴擊', critDmg: '暴傷', armor: '護甲', armorFlat: '護甲',
   cdr: '冷卻縮減', power: '技能傷害', lifesteal: '吸血', minionDmg: '小兵傷害',
-  minionHp: '小兵生命', goldFind: '金幣', siege: '攻城傷害'
+  minionHp: '小兵生命', goldFind: '金幣', siege: '攻城傷害',
+  mdef: '魔防', herb: '藥草效果'
 };
 const FLAT_KEYS = ['hpFlat', 'dmgFlat', 'armorFlat'];
 
@@ -52,6 +53,11 @@ U.renderTop = function () {
     '<div class="res res-lv"><span class="res-label">Lv</span><span class="res-val">' + s.level + '</span>' +
     '<span class="xpwrap"><i style="width:' + Math.round(s.xp / need * 100) + '%"></i></span></div>' +
     '<div class="res res-sp"><span class="res-label">SP</span><span class="res-val">' + G.spAvailable() + '/' + s.sp + '</span></div>' +
+    '<div class="res res-star"><span class="res-label">★</span><span class="star-track">' +
+      Array.from({ length: G.STAR_GOAL }, (_, i) =>
+        '<i class="' + ((s.stars | 0) > i ? 'on' : '') + '">★</i>').join('') +
+      ((s.stars | 0) > G.STAR_GOAL ? '<span class="res-val">+' + ((s.stars | 0) - G.STAR_GOAL) + '</span>' : '') +
+    '</span></div>' +
     '<div class="res res-gold"><span class="res-label">Gold</span><span class="res-val">' + G.fmtGold(s.gold) + '</span></div>';
 };
 
@@ -298,10 +304,34 @@ U.barConfig = function (cls, cs) {
   '</div>';
 };
 
+/* 帽子只從戰場上撿，所以卡片講的是「有沒有」而不是「買不買」 */
+function hatCard(it) {
+  const owned = G.S.owned.includes(it.id);
+  const equipped = G.S.gear.hat === it.id;
+  const cls = ['item'];
+  if (equipped) cls.push('equipped');
+  else if (owned) cls.push('owned-not-eq');
+  else cls.push('unfound');
+  const aff = it.affinity ? G.getClass(it.affinity) : null;
+  return '<button class="' + cls.join(' ') + '" data-item="' + it.id + '"' + (owned ? '' : ' disabled') + '>' +
+    '<span class="item-name">' + (owned ? it.name : '？？？') + '</span>' +
+    '<span class="item-price">' + (owned ? '—' : '未撿到') + '</span>' +
+    '<span class="item-mods">' + (owned ? modList(it.mods) : '') + '</span>' +
+    (owned && aff
+      ? '<span class="item-aff">' + aff.name + ' 專屬加成：' + modList(it.bonus) + '</span>'
+      : '') +
+    '<span class="item-flavor">' + (owned ? it.flavor : '還沒在路上撿到這一頂。') + '</span>' +
+    '<span class="item-state" style="' + (equipped ? '' : 'color:var(--parch-mute)') + '">' +
+      (equipped ? '戴著' : owned ? '點一下戴上' : '路上會掉') + '</span>' +
+  '</button>';
+}
+
 /* ══════ 商店 ══════ */
 U.renderShop = function () {
-  const cols = ['weapon', 'armor', 'relic'].map(slot => {
-    const items = G.ITEMS.filter(i => i.slot === slot).map(it => {
+  const cols = G.GEAR_SLOTS.map(slot => {
+    /* 帽子不賣，只在路上撿；星光商品走另一個攤位 */
+    const items = G.ITEMS.filter(i => i.slot === slot && !i.starOnly).map(it => {
+      if (slot === 'hat') return hatCard(it);
       const owned = G.S.owned.includes(it.id);
       const equipped = G.S.gear[slot] === it.id;
       const unlocked = !it.unlockAfter || !!G.S.cleared[it.unlockAfter];
@@ -341,7 +371,8 @@ U.renderShop = function () {
     ['射程', Math.round(st.range)], ['移速', Math.round(st.moveSpd)], ['護甲', Math.round(st.armor)],
     ['暴擊', Math.round(st.crit * 100) + '%'], ['暴傷', Math.round(st.critDmg * 100) + '%'],
     ['冷卻縮減', Math.round(st.cdr * 100) + '%'], ['技能傷害', Math.round(st.power * 100) + '%'],
-    ['攻城傷害', '+' + Math.round(st.siege * 100) + '%'], ['小兵強化', '+' + Math.round(st.minionDmg * 100) + '%']
+    ['攻城傷害', '+' + Math.round(st.siege * 100) + '%'], ['小兵強化', '+' + Math.round(st.minionDmg * 100) + '%'],
+    ['魔防', Math.round((st.mdef || 0) * 100) + '%'], ['藥草效果', '+' + Math.round((st.herb || 0) * 100) + '%']
   ].map(([k, v]) => '<div class="cls-stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
 
   const backBar = (U.fromExpedition && G.runActive())
@@ -357,11 +388,45 @@ U.renderShop = function () {
     '<div class="panel-body">' + backBar +
       '<div class="eyebrow" style="margin-bottom:8px">目前總數值　·　' + G.getClass(G.S.classId).name + '　Lv ' + G.S.level + '</div>' +
       '<div class="cls-stats" style="grid-template-columns:repeat(auto-fit,minmax(84px,1fr));margin-bottom:20px">' + statRows + '</div>' +
+      starShop() +
       '<div class="shop-cols">' + cols +
         '<div class="shop-col"><h3>戰鬥消耗品</h3>' + cons + '</div>' +
       '</div>' +
     '</div></section>';
 };
+
+/* 星光商店：用星買，不用錢買。所以它跟有沒有錢無關，只跟打得夠不夠快有關。 */
+function starShop() {
+  const have = G.S.stars | 0;
+  if (!G.starShopOpen()) {
+    return '<div class="starshop locked">' +
+      '<h3>★　星光商店</h3>' +
+      '<p>限時過關會拿到星。集滿 <b>' + G.STAR_GOAL + '</b> 顆就開。' +
+      '目前 <b>' + have + ' / ' + G.STAR_GOAL + '</b>。</p>' +
+      '<p class="hint">每一關的限時寫在戰鬥畫面右上角。同一關只能拿一次星。</p>' +
+    '</div>';
+  }
+  const cards = G.STAR_ITEMS.map(it => {
+    const owned = G.S.owned.includes(it.id);
+    const equipped = G.S.gear[it.slot] === it.id;
+    const afford = have >= it.stars;
+    const cls = ['item'];
+    if (equipped) cls.push('equipped');
+    else if (owned) cls.push('owned-not-eq');
+    return '<button class="' + cls.join(' ') + '" data-star-item="' + it.id + '"' +
+      ((!owned && !afford) ? ' disabled' : '') + '>' +
+      '<span class="item-name">' + it.name + '</span>' +
+      '<span class="item-price">' + (owned ? '—' : it.stars + '★') + '</span>' +
+      '<span class="item-mods">' + modList(it.mods) + '</span>' +
+      '<span class="item-flavor">' + it.flavor + '</span>' +
+      '<span class="item-state" style="' + (equipped ? '' : 'color:var(--parch-mute)') + '">' +
+        (equipped ? '裝備中' : owned ? '已擁有　·　點一下裝備'
+          : afford ? '點一下用 ' + it.stars + ' 顆星換' : '星不夠') + '</span>' +
+    '</button>';
+  }).join('');
+  return '<div class="starshop"><h3>★　星光商店　<span>剩 ' + have + ' 顆星</span></h3>' +
+    '<div class="shop-col">' + cards + '</div></div>';
+}
 
 /* ══════ 結算 ══════ */
 U.showResult = function (data) {
@@ -370,6 +435,9 @@ U.showResult = function (data) {
   const line = data.cave
     ? (win ? '洞穴清空了。深處長著東西，你把它們採了下來。'
            : '洞裡的東西沒清乾淨。你退了出來，什麼也沒帶走。')
+    : data.guardian
+      ? (win ? '守衛倒了。它身後那條路，現在是你的。'
+             : '結界還在。你打不動它——先去換一套打得動的。')
     : win
       ? (data.stage.isBoss
           ? '「' + ch.boss.name + '」倒下了。它守著的東西，現在歸你。'
@@ -390,10 +458,15 @@ U.showResult = function (data) {
     rows.push(['僱用支出', '−' + G.fmtGold(data.spent)]);
   }
   if (data.herbs) rows.push(['採到藥草', '×' + data.herbs]);
+  if (data.guardDrop) rows.push(['守衛掉落', data.guardDrop]);
   if (data.deaths) rows.push(['倒下次數', data.deaths + ' 次　−' + (data.deaths * 10) + '%']);
   if (data.inRun && data.hpLeft != null) rows.push(['帶往下一個地點的生命', data.hpLeft + '%']);
+  if (data.hats && data.hats.length) {
+    rows.push(['路上撿到', data.hats.map(id => (G.getItem(id) || {}).name || '帽子').join('、')]);
+  }
   rows.push(['擊殺', String(data.kills)]);
-  rows.push(['耗時', Math.floor(data.time / 60) + ':' + String(Math.floor(data.time % 60)).padStart(2, '0')]);
+  const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  rows.push(['耗時', mmss(data.time) + (data.par ? '　（限時 ' + mmss(data.par) + '）' : '')]);
 
   const el = document.createElement('div');
   el.className = 'overlay';
@@ -404,6 +477,15 @@ U.showResult = function (data) {
         '<h2>' + data.stage.name + '</h2>' +
         '<p class="result-line">' + line + '</p>' +
       '</div>' +
+      (data.star
+        ? '<div class="starwin">★　限時內過關　＋1 星、＋1 技能點' +
+          '<span>目前 ' + data.stars + ' / ' + G.STAR_GOAL + ' 星' +
+          (data.stars >= G.STAR_GOAL ? '　—　星光商店已經開了' : '') + '</span></div>'
+        : (win && data.par && !data.cave
+            ? '<div class="starmiss">差一點：這一關限時 ' +
+              Math.floor(data.par / 60) + ':' + String(data.par % 60).padStart(2, '0') +
+              '　再快一點就有星。</div>'
+            : '')) +
       (data.levels ? '<div class="levelup">升到 ' + G.S.level + ' 級' + (data.levels >= 1 && G.S.level % 2 === 0 ? '，多拿到 1 點技能點' : '') + '。</div>' : '') +
       '<div class="result-rows">' + rows.map(([k, v]) =>
         '<div class="result-row"><span>' + k + '</span><b>' + v + '</b></div>').join('') + '</div>' +

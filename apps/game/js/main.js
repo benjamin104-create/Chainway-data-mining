@@ -29,6 +29,9 @@
           '<span class="towers-left" id="towersLeft"></span>' +
           '<span class="sep">|</span>' +
           '<span style="font-size:12px;color:var(--parch-mute)" id="waveInfo"></span>' +
+          (stage.par && !(opts && opts.cave)
+            ? '<span class="sep">|</span><span class="par-clock" id="parClock" title="在限時內過關可以拿一顆星與一點技能點"></span>'
+            : '') +
           '<span class="spacer"></span>' +
           '<button class="btn btn-primary" data-act="begin-battle" id="beginBtn">開戰</button>' +
           '<button class="btn btn-ghost" data-act="pause" id="pauseBtn" hidden>暫停</button>' +
@@ -124,6 +127,16 @@
   }
 
   function updateHud() {
+    const pc = document.getElementById('parClock');
+    if (pc && B.stage && B.stage.par) {
+      const left = B.stage.par - B.time;
+      const mm = t => Math.floor(Math.abs(t) / 60) + ':' + String(Math.floor(Math.abs(t) % 60)).padStart(2, '0');
+      const got = G.S.starred[B.stage.key];
+      pc.textContent = got ? '★ 已拿過星'
+        : left > 0 ? '★ ' + mm(left)
+        : '★ 超時 ' + mm(left);
+      pc.className = 'par-clock' + (got ? ' done' : left > 0 ? (left < 20 ? ' warn' : '') : ' over');
+    }
     if (!hudRefs) return;
     const h = B.hero;
     const pct = Math.max(0, h.hp) / h.maxHp * 100;
@@ -274,6 +287,7 @@
       xp = Math.round(stage.reward.xp * 0.35);   // 打輸也算數，不會愈重打愈沒希望
       levels = G.addXp(xp).levels;
     }
+    let star = false;
     if (win) {
       if (firstClear) {
         sp = stage.reward.sp;
@@ -282,17 +296,27 @@
       }
       const t = B.time;
       if (!G.S.best[stage.key] || t < G.S.best[stage.key]) G.S.best[stage.key] = t;
+      /* 限時過關給一顆星 + 一點技能點。同一關只給一次，不能重刷。 */
+      if (stage.par && t <= stage.par && !G.S.starred[stage.key] && !B.caveMode) {
+        G.S.starred[stage.key] = true;
+        G.S.stars = (G.S.stars | 0) + 1;
+        G.S.sp += 1;
+        sp += 1;
+        star = true;
+      }
     }
     /* 遠征：血量帶回地圖，贏了才算走完這個地點 */
     const run = G.runActive();
     const node = currentOpts && currentOpts.node ? G.runNode(currentOpts.node.id) : null;
-    let bossWin = false, herbs = 0;
+    let bossWin = false, herbs = 0, guardDrop = null;
     const deaths = B.deaths;
     if (run && node) {
       // 帶出去的血 = 結束時的血，每倒下一次再扣 15%
       const endPct = win ? Math.max(0.10, B.hero.hp / B.hero.maxHp) : 0.25;
       run.hpPct = Math.max(0.06, endPct - deaths * 0.10);
-      if (node.type === 'cave') {
+      if (node.type === 'guardian') {
+        guardDrop = G.runGuardianDone(node, win);
+      } else if (node.type === 'cave') {
         herbs = G.runCaveDone(node, win);
       } else if (win) {
         G.runFinishNode(node, G.NODE_KINDS[node.type].name + '：拿下了。', 'good');
@@ -312,6 +336,10 @@
                    inRun: !!(run && node), bossWin: bossWin,
                    herbs: herbs, deaths: deaths,
                    cave: !!(node && node.type === 'cave'),
+                   star: star, par: stage.par, stars: G.S.stars | 0,
+                   guardian: !!(node && node.type === 'guardian'),
+                   guardDrop: guardDrop ? guardDrop.name : null,
+                   hats: (B.hatsFound || []).slice(),
                    hpLeft: run ? Math.round(run.hpPct * 100) : null });
   }
 
@@ -453,7 +481,27 @@
     if (t.dataset.nodeGo) { U.goNode(t.dataset.nodeGo); return; }
     if (t.dataset.evOpt != null) { U.chooseEventOption(parseInt(t.dataset.evOpt, 10)); return; }
     if (t.dataset.campOpt) { U.chooseCamp(t.dataset.campOpt); return; }
+    if (t.dataset.starItem) {
+      const it = G.starItem(t.dataset.starItem);
+      if (it) {
+        if (!G.S.owned.includes(it.id)) {
+          if ((G.S.stars | 0) < it.stars) return;
+          G.S.stars -= it.stars;
+          G.S.owned.push(it.id);
+        }
+        G.S.gear[it.slot] = it.id;
+        G.save(); U.renderTop(); U.renderShop();
+      }
+      return;
+    }
     if (t.dataset.evClose) { U.closeEvent(); return; }
+    if (t.dataset.guardGo) {
+      const n = G.runNode(t.dataset.guardGo);
+      U.closeEvent();
+      if (n) U.startGuardianFight(n);
+      return;
+    }
+    if (t.dataset.guardCancel) { U.closeEvent(); U.renderExpedition(); return; }
     if (t.dataset.runEnd) { U.finishRunEnd(); return; }
   });
 

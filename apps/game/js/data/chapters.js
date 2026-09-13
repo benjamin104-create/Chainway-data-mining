@@ -204,9 +204,14 @@ G.buildStages = function () {
         towers: isBoss ? 3 : 2,
         scale: Math.pow(1.34, ci) * (1 + s * 0.18),
         waveGap: 9.5 - Math.min(3.5, ci * 0.4),
+        /* 限時過關的秒數。用實測的通關時間定出來的：
+           一般關大多 90～180 秒，核心關 150～330 秒，
+           所以把門檻壓在「打得順才過得了」的位置。 */
+        par: Math.round((isBoss ? 190 : 120) + ci * 14 + s * 10),
         reward: {
           gold: Math.round(ch.reward.gold * (0.55 + s * 0.35)),
-          sp: s === 2 ? ch.reward.sp : 1,
+          // 打王給的技能點最多，因為那是拿去修行別的職業的本錢
+          sp: s === 2 ? ch.reward.sp + 2 : 1,
           xp: Math.round(110 * Math.pow(1.3, ci) * (1 + s * 0.3))
         }
       });
@@ -221,5 +226,52 @@ G.getStage = key => G.STAGES.find(s => s.key === key);
 
 /* 換過世界觀，舊存檔的章節代號已經不存在了。
  * 進度按「通關幾章」等量換算到新的章節，不讓玩家白走。 */
-G.CONTENT_VERSION = 3;
+/* ══════════ 捷徑守衛 ══════════
+ * 大地圖上有一條捷徑，會直接跳過中間兩排，但路口站著一個守衛。
+ * 守衛身上有「結界」：不對味的傷害只會吃到 18%。
+ * 所以這不是硬碰硬，是先看它擋什麼、再回去換職業或換技能欄。
+ * 打贏了：捷徑打開，而且掉一件那一章最好的武器或防具。
+ */
+G.WARDS = {
+  phys:  { name: '石膚結界', hint: '普通攻擊打不破。只有技能傷害穿得過去。',
+           color: '#A89170', pass: 'skill',
+           how: '技能欄至少放一個主動技能，靠技能輸出。' },
+  /* 這一道是給帽子系統的：魔防不夠就傷不到它。
+     （試過「要站遠打」，但主角站遠了自己也打不到，反而更慢——那不是門檻，是懲罰。） */
+  mdef:  { name: '灼魂結界', hint: '魔防不夠的人碰不到它。',
+           color: '#8E6BE0', pass: 'mdef',
+           how: '魔防要有 25% 以上。白魔道士帽、祭司額環、神諭祭司的技能樹都給魔防。' },
+  swift: { name: '殘影結界', hint: '打不到會動的東西。只有暴擊穿得過去。',
+           color: '#3FB8C8', pass: 'crit',
+           how: '把暴擊率堆上去——武器、遺物、技能樹都可以。' },
+  siege: { name: '城工結界', hint: '只認得攻城的力道。攻城加成不夠就傷不到。',
+           color: '#C8503E', pass: 'siege',
+           how: '攻城傷害要有 +20% 以上。掘徑者的攻城錘或巨像碎銅都行。' }
+};
+G.WARD_SIEGE_MIN = 0.20;   // 城工結界的門檻
+G.WARD_MDEF_MIN = 0.25;    // 灼魂結界的魔防門檻
+
+G.GUARDIANS = [
+  { id: 'g_tide',   chapter: 'atlantis', name: '守門的潮',   ward: 'phys',
+    drop: 'w_labrys', line: '門在水下。它不讓你游過去。' },
+  { id: 'g_thread', chapter: 'knossos',  name: '線的盡頭',   ward: 'swift',
+    drop: 'a_hoplite', line: '線在這裡斷了。斷口有人守著。' },
+  { id: 'g_gate',   chapter: 'troy',     name: '斯開安門衛', ward: 'siege',
+    drop: 'w_spear',  line: '這道門開過一次。守的人記得那一次。' },
+  { id: 'g_noone',  chapter: 'cyclops',  name: '沒有人',     ward: 'mdef',
+    drop: 'a_fleece', line: '你問它是誰。它說：「沒有人。」' },
+  { id: 'g_belt',   chapter: 'amazon',   name: '執腰帶者',   ward: 'phys',
+    drop: 'w_bow',    line: '她說腰帶不是搶來的。要先證明你配。' },
+  { id: 'g_knee',   chapter: 'colossus', name: '膝上的鉚',   ward: 'siege',
+    drop: 'a_plate',  line: '巨像的膝蓋斷在這裡。斷口長出了一個人。' },
+  { id: 'g_wick',   chapter: 'pharos',   name: '最後的燈芯', ward: 'mdef',
+    drop: 'w_mirror', line: '它替船指過路。現在它擋你的路。' }
+];
+
+G.guardianFor = id => G.GUARDIANS.find(g => g.chapter === id) || null;
+
+G.CONTENT_VERSION = 4;
+
+/* 星星：限時過關拿的。滿這個數字就開星光商店。 */
+G.STAR_GOAL = 5;
 G.OLD_CHAPTER_IDS = ['babel', 'giza', 'nazca', 'atlantis', 'rapanui', 'bermuda', 'stonehenge'];

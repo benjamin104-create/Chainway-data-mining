@@ -36,10 +36,12 @@ G.newSave = function () {
     classId: 'delver',
     classes,
     gear: { ...G.DEFAULT_GEAR },
-    owned: ['w_pick', 'a_cloth', 'r_none'],
+    owned: ['w_pick', 'a_cloth', 'h_none', 'r_none'],
     consumables: { c_potion: 0, c_charge: 0, c_herb: 0 },
     cleared: {},
     best: {},
+    stars: 0,           // 限時過關拿到的星，滿五顆開星光商店
+    starred: {},        // 哪些關已經拿過星，不能重複刷
     run: null,          // 進行中的遠征
     cv: 2,              // 內容版本，換世界觀時用來換算進度
     seenIntro: false
@@ -100,6 +102,15 @@ function migrateContent(save) {
           存檔裡那張圖是舊比例生成的，不丟掉的話玩家會一直踩到舊的文字關。
           只丟這張圖，通關進度與身家全部保留。 */
   if (cv < 3) save.run = null;
+
+  /* → 4　新增星星、帽子欄與新職業。
+          存檔沒有這些欄位，補上預設值就好，什麼都不用丟。 */
+  if (cv < 4) {
+    if (typeof save.stars !== 'number') save.stars = 0;
+    if (!save.starred) save.starred = {};
+    if (!save.gear.hat) save.gear.hat = 'h_none';
+    if (save.owned.indexOf('h_none') < 0) save.owned.push('h_none');
+  }
 
   save.cv = G.CONTENT_VERSION;
 }
@@ -193,7 +204,9 @@ G.computeStats = function (classId) {
   const lv = G.S.level - 1;
 
   const add = { hp: 0, dmg: 0, atkSpd: 0, range: 0, moveSpd: 0, crit: 0, critDmg: 0, armor: 0,
-                cdr: 0, power: 0, lifesteal: 0, minionDmg: 0, minionHp: 0, goldFind: 0, siege: 0 };
+                cdr: 0, power: 0, lifesteal: 0, minionDmg: 0, minionHp: 0, goldFind: 0, siege: 0,
+                mdef: 0,      // 魔防：只擋魔王技能那一類的傷害
+                herb: 0 };    // 藥草效果
   const flat = { hpFlat: 0, dmgFlat: 0, armorFlat: 0 };
   const flags = new Set();
 
@@ -212,9 +225,13 @@ G.computeStats = function (classId) {
     (n.flags || []).forEach(f => flags.add(f));
   });
 
-  ['weapon', 'armor', 'relic'].forEach(slot => {
+  G.GEAR_SLOTS.forEach(slot => {
     const it = G.getItem(G.S.gear[slot]);
-    if (it) applyMods(it.mods);
+    if (!it) return;
+    applyMods(it.mods);
+    // 帽子跟職業對味的話再加一份：白魔帽戴在祭司頭上才是白魔帽
+    if (it.affinity && it.affinity === classId) applyMods(it.bonus);
+    if (it.flags) it.flags.forEach(f => flags.add(f));
   });
 
   // 這趟遠征路上撿到的加持
@@ -236,7 +253,9 @@ G.computeStats = function (classId) {
     minionDmg: add.minionDmg,
     minionHp:  add.minionHp,
     goldFind:  add.goldFind,
-    siege:     add.siege
+    siege:     add.siege,
+    mdef:      Math.min(0.75, add.mdef),   // 魔防最多擋掉七成五，不能免疫
+    herb:      add.herb
   };
 
   const skills = cs.bar.map(id => (id ? G.SKILLS[id] : null));

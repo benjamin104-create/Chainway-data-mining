@@ -43,6 +43,61 @@ G.ITEMS = [
   { id: 'a_seawall', slot: 'armor', name: '海堤石衣',      price: 4400, unlockAfter: 'colossus-1',
     mods: { hpFlat: 300, armorFlat: 30, power: 0.12 }, flavor: '擋了一千年的浪。最後輸給的是地震。' },
 
+  /* ── 帽子 ──
+   * 帽子不在商店賣，只從戰場上撿。每一頂都掛在某個職業的路數上：
+   * affinity 相符時，額外再吃一份 bonus。白魔帽戴在祭司頭上才是白魔帽。
+   * mdef = 魔防，只擋魔王技能那一類的傷害；herb = 藥草回復效果。
+   */
+  { id: 'h_none',   slot: 'hat', name: '沒戴帽子',   price: 0, unlockAfter: null, drop: false,
+    mods: {}, flavor: '風吹得到頭頂。' },
+
+  { id: 'h_white',  slot: 'hat', name: '白魔道士帽', price: 0, unlockAfter: null, tier: 2,
+    affinity: 'oracle', mods: { mdef: 0.22, herb: 0.30, hpFlat: 40 },
+    bonus: { mdef: 0.12, cdr: 0.08 },
+    flavor: '尖頂、紅邊。神廟裡那些不拿武器的人戴的。' },
+
+  { id: 'h_black',  slot: 'hat', name: '黑魔道士帽', price: 0, unlockAfter: null, tier: 2,
+    affinity: 'stonespeaker', mods: { power: 0.20, cdr: 0.10, armorFlat: -2 },
+    bonus: { critDmg: 0.30 },
+    flavor: '帽簷壓得很低，看不見臉。那是刻意的。' },
+
+  { id: 'h_helm',   slot: 'hat', name: '青銅盔',     price: 0, unlockAfter: null, tier: 1,
+    affinity: 'delver', mods: { armorFlat: 9, hpFlat: 55, moveSpd: -0.03 },
+    bonus: { siege: 0.20 },
+    flavor: '戴著聽不清別人喊什麼。通常也不需要聽。' },
+
+  { id: 'h_hood',   slot: 'hat', name: '影兜帽',     price: 0, unlockAfter: null, tier: 2,
+    affinity: 'shadowbinder', mods: { crit: 0.10, moveSpd: 0.08 },
+    bonus: { critDmg: 0.35 },
+    flavor: '布很薄，但影子很深。' },
+
+  { id: 'h_lamp',   slot: 'hat', name: '守燈人斗笠', price: 0, unlockAfter: null, tier: 2,
+    affinity: 'lampwarden', mods: { range: 0.12, mdef: 0.15 },
+    bonus: { dmg: 0.15 },
+    flavor: '寬得能擋雨，也能擋住塔頂落下來的火星。' },
+
+  { id: 'h_laurel', slot: 'hat', name: '桂冠',       price: 0, unlockAfter: null, tier: 3,
+    affinity: 'gladiator', mods: { dmg: 0.14, atkSpd: 0.10 },
+    bonus: { lifesteal: 0.08 },
+    flavor: '贏的人戴。輸的人也曾經戴過。' },
+
+  { id: 'h_horn',   slot: 'hat', name: '獸骨頭冠',   price: 0, unlockAfter: null, tier: 3,
+    affinity: 'beastbinder', mods: { minionDmg: 0.25, minionHp: 0.25 },
+    bonus: { minionDmg: 0.20 },
+    flavor: '不是戰利品，是信物。牠們認得這個。' },
+
+  { id: 'h_circlet', slot: 'hat', name: '祭司額環',  price: 0, unlockAfter: null, tier: 3,
+    mods: { mdef: 0.28, herb: 0.20, cdr: 0.08 },
+    flavor: '薄薄一圈金，戴上去會覺得有人在聽。' },
+
+  { id: 'h_mask',   slot: 'hat', name: '黃金面具',   price: 0, unlockAfter: null, tier: 4,
+    mods: { hpFlat: 90, armorFlat: 8, mdef: 0.18, dmg: 0.10 },
+    flavor: '蓋在臉上下葬的那種。它比臉活得久。' },
+
+  { id: 'h_crown',  slot: 'hat', name: '沉城王冠',   price: 0, unlockAfter: null, tier: 5,
+    mods: { hpFlat: 120, dmg: 0.16, mdef: 0.25, cdr: 0.10, goldFind: 0.15 },
+    flavor: '城沉下去的時候，它還在原來的頭上。' },
+
   /* ── 遺物 ── */
   { id: 'r_none',    slot: 'relic', name: '空手',          price: 0,    unlockAfter: null,
     mods: {}, flavor: '什麼都沒帶，也是一種選擇。' },
@@ -62,12 +117,43 @@ G.ITEMS = [
     mods: { hpFlat: 120, dmgFlat: 18, cdr: 0.15, goldFind: 0.25 }, flavor: '奇蹟最後都變成別人家的石頭。這是沒被搬走的那一點。' }
 ];
 
-G.SLOT_LABEL = { weapon: '武器', armor: '防具', relic: '遺物' };
+G.GEAR_SLOTS = ['weapon', 'armor', 'hat', 'relic'];
+G.SLOT_LABEL = { weapon: '武器', armor: '防具', hat: '帽子', relic: '遺物' };
 G.getItem = id => G.ITEMS.find(i => i.id === id);
-G.DEFAULT_GEAR = { weapon: 'w_pick', armor: 'a_cloth', relic: 'r_none' };
+G.DEFAULT_GEAR = { weapon: 'w_pick', armor: 'a_cloth', hat: 'h_none', relic: 'r_none' };
 
 /* 戰鬥消耗品。藥草不在這裡賣——它只從洞穴來。 */
 G.CONSUMABLES = [
   { id: 'c_potion', name: '油罐',   price: 60,  desc: '戰鬥中按 Q 使用，立即回復 35% 生命。', icon: 'heal' },
   { id: 'c_charge', name: '火藥包', price: 90,  desc: '戰鬥中按 E 使用，對周圍造成一次大範圍爆炸。', icon: 'quake' }
 ];
+
+/* ══════════ 星光商店 ══════════
+ * 集滿五顆星才開。這裡的東西不用金幣買，用星買——
+ * 所以它跟「有沒有錢」無關，只跟「打得夠不夠快」有關。
+ */
+G.STAR_ITEMS = [
+  { id: 'w_comet',  slot: 'weapon', name: '墜星鐵',   stars: 2,
+    mods: { dmgFlat: 38, crit: 0.12, atkSpd: 0.1 },
+    flavor: '天上掉下來的那一塊。落點現在還是一個坑。' },
+  { id: 'a_aegis',  slot: 'armor',  name: '神盾殘片', stars: 2,
+    mods: { hpFlat: 260, armorFlat: 26, mdef: 0.20 },
+    flavor: '據說看過它的人會停在原地。它只剩一片了。' },
+  { id: 'h_star',   slot: 'hat',    name: '觀星者冠', stars: 2, tier: 9, drop: false,
+    mods: { cdr: 0.16, power: 0.22, mdef: 0.20, herb: 0.25 },
+    flavor: '戴著它的人整晚不睡，把天上的位置記下來。' },
+  { id: 'r_hour',   slot: 'relic',  name: '沙漏的沙', stars: 3,
+    mods: { atkSpd: 0.18, moveSpd: 0.14, cdr: 0.14 },
+    flavor: '倒過來的時候，它不知道自己在倒數什麼。' },
+  { id: 'r_seed',   slot: 'relic',  name: '一顆種子', stars: 4,
+    mods: { hpFlat: 180, lifesteal: 0.12, minionHp: 0.35, minionDmg: 0.35 },
+    flavor: '奇蹟都塌了，這個還沒發芽。它在等。' }
+];
+G.starItem = id => G.STAR_ITEMS.find(i => i.id === id);
+G.starShopOpen = () => (G.S.stars | 0) >= G.STAR_GOAL;
+
+/* 星光商品也要能被 getItem 找到，不然裝上去算不出數值 */
+G.STAR_ITEMS.forEach(it => {
+  it.price = 0; it.unlockAfter = null; it.starOnly = true;
+  G.ITEMS.push(it);
+});

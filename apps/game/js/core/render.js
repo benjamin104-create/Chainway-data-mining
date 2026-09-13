@@ -44,6 +44,12 @@ R.draw = function () {
     draws.push({ y: sp.y, fn: () => drawPost(ctx, pp, sp, B) });
   });
 
+  (B.pickups || []).forEach(pk => {
+    if (pk.taken) return;
+    const sp = map.at(pk.x, pk.z || 0);
+    draws.push({ y: sp.y, fn: () => drawHat(ctx, pk, sp) });
+  });
+
   (B.corpses || []).forEach(c => {
     const sp = map.at(c.x, c.z || 0);
     draws.push({ y: sp.y - 0.5, fn: () => drawCorpse(ctx, c, sp) });
@@ -779,6 +785,98 @@ function bossWeapon(ctx, shape, s, col, lit) {
     ctx.fillStyle = '#C9C2B2';
     ctx.fillRect(-s * 0.11, -s * 1.2, s * 0.22, s * 1.42);
   }
+}
+
+/* ── 路上的帽子 ── */
+function drawHat(ctx, pk, sp) {
+  const it = G.getItem(pk.itemId) || {};
+  const y = sp.y + Math.sin(pk.bob) * 4;
+  const glow = 0.45 + Math.sin(pk.bob * 1.6) * 0.2;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(sp.x, sp.y + 7, 15, 6, 0, 0, 6.3); ctx.fill();
+
+  // 底下一圈光，讓人看得出這是可以撿的
+  ctx.globalAlpha = glow;
+  ctx.strokeStyle = '#E0B23C'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(sp.x, sp.y + 7, 19, 8, 0, 0, 6.3); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const id = pk.itemId;
+  if (id === 'h_white' || id === 'h_black') {
+    // 尖頂法師帽
+    const body = id === 'h_white' ? '#EFE7D4' : '#3B3550';
+    const trim = id === 'h_white' ? '#C8503E' : '#8E6BE0';
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.moveTo(sp.x - 13, y + 2); ctx.quadraticCurveTo(sp.x - 3, y - 24, sp.x + 9, y - 14);
+    ctx.lineTo(sp.x + 13, y + 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = trim;
+    ctx.fillRect(sp.x - 14, y + 1, 28, 4);
+  } else if (id === 'h_helm') {
+    ctx.fillStyle = '#B08A4A';
+    ctx.beginPath(); ctx.arc(sp.x, y - 2, 12, Math.PI, 0); ctx.fill();
+    ctx.fillRect(sp.x - 12, y - 2, 24, 5);
+    ctx.fillStyle = '#C8503E';           // 盔頂的紅纓
+    ctx.fillRect(sp.x - 2, y - 20, 4, 10);
+  } else if (id === 'h_hood') {
+    ctx.fillStyle = '#2E2840';
+    ctx.beginPath();
+    ctx.moveTo(sp.x - 12, y + 4); ctx.quadraticCurveTo(sp.x, y - 20, sp.x + 12, y + 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#0E0C14';
+    ctx.beginPath(); ctx.ellipse(sp.x, y - 1, 7, 6, 0, 0, 6.3); ctx.fill();
+  } else if (id === 'h_lamp') {
+    ctx.fillStyle = '#A8894E';
+    ctx.beginPath(); ctx.ellipse(sp.x, y + 1, 17, 6, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.arc(sp.x, y - 1, 7, Math.PI, 0); ctx.fill();
+  } else if (id === 'h_laurel') {
+    ctx.strokeStyle = '#7FBF6A'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(sp.x, y - 2, 11, 0.25, Math.PI - 0.25, true); ctx.stroke();
+    ctx.fillStyle = '#9FD48A';
+    for (let i = 0; i < 5; i++) {
+      const a = 0.5 + i * 0.5;
+      ctx.beginPath(); ctx.ellipse(sp.x - Math.cos(a) * 11, y - 2 - Math.sin(a) * 11, 3.5, 2, a, 0, 6.3); ctx.fill();
+    }
+  } else if (id === 'h_horn') {
+    ctx.fillStyle = '#C9BFA6';
+    ctx.fillRect(sp.x - 11, y - 2, 22, 5);
+    for (const d of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sp.x + d * 8, y - 2);
+      ctx.quadraticCurveTo(sp.x + d * 17, y - 12, sp.x + d * 11, y - 19);
+      ctx.quadraticCurveTo(sp.x + d * 11, y - 9, sp.x + d * 4, y - 2);
+      ctx.fill();
+    }
+  } else if (id === 'h_circlet') {
+    ctx.strokeStyle = '#E0B23C'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.ellipse(sp.x, y - 1, 11, 5, 0, 0, 6.3); ctx.stroke();
+    ctx.fillStyle = '#FFE9A8';
+    ctx.beginPath(); ctx.arc(sp.x, y - 6, 3, 0, 6.3); ctx.fill();
+  } else if (id === 'h_mask') {
+    ctx.fillStyle = '#E8C35A';
+    ctx.beginPath(); ctx.ellipse(sp.x, y - 3, 10, 13, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#8A6A1E';
+    ctx.fillRect(sp.x - 6, y - 6, 4, 3); ctx.fillRect(sp.x + 2, y - 6, 4, 3);
+    ctx.fillRect(sp.x - 3, y + 3, 6, 2);
+  } else {
+    // h_crown 與其他：王冠
+    ctx.fillStyle = '#E8C35A';
+    ctx.fillRect(sp.x - 12, y - 2, 24, 6);
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(sp.x + i * 5 - 2.5, y - 2);
+      ctx.lineTo(sp.x + i * 5, y - 12);
+      ctx.lineTo(sp.x + i * 5 + 2.5, y - 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#3FB8C8';
+    ctx.beginPath(); ctx.arc(sp.x, y + 1, 2.5, 0, 6.3); ctx.fill();
+  }
+  ctx.restore();
+
+  label(ctx, sp.x, y - 30, it.name || '帽子');
 }
 
 /* ── 倒下：純視覺，不參與戰鬥 ── */

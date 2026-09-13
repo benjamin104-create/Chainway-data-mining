@@ -622,3 +622,53 @@ canvas#screen {
   .sk { width: 48px; height: 48px; }
   .skillbar { gap: 5px; }
 }
+
+/* ══════ 星星 ══════ */
+.starwin {
+  margin: 12px 0; padding: 11px 14px;
+  background: linear-gradient(90deg, rgba(224,178,60,.20), rgba(224,178,60,.04));
+  border: 1px solid #8A6A1E; border-left: 3px solid var(--gold);
+  color: var(--gold); font-size: 14px; font-weight: 700;
+}
+.starwin span { display: block; margin-top: 3px; font-weight: 400; font-size: 12px; color: var(--parch-mute); }
+.starmiss {
+  margin: 12px 0; padding: 9px 14px; font-size: 12px;
+  background: var(--ink-3); border: 1px solid var(--line); color: var(--parch-mute);
+}
+.star-track { display: flex; align-items: center; gap: 4px; font-family: var(--f-pixel); font-size: 11px; }
+.star-track i { font-style: normal; color: #4A4133; }
+.star-track i.on { color: var(--gold); }
+.par-clock {
+  font-family: var(--f-pixel); font-size: 11px; color: var(--gold);
+  letter-spacing: .5px;
+}
+.par-clock.warn { color: #EF9257; }
+.par-clock.over { color: #6A5B45; }
+.par-clock.done { color: #7FBF6A; }
+.res-star .star-track i { font-size: 10px; }
+
+/* ══════ 捷徑守衛 ══════ */
+.exp-ward {
+  display: block; font-style: normal; font-size: 9px;
+  color: #B79AF0; letter-spacing: .4px;
+}
+.ward-card {
+  margin: 12px 0; padding: 12px 14px;
+  background: var(--ink-3); border: 1px solid var(--line); border-left: 3px solid var(--c);
+}
+.ward-card b { display: block; color: var(--c); font-size: 14px; }
+.ward-card span { display: block; margin-top: 4px; font-size: 13px; color: var(--parch); }
+.ward-card i { display: block; margin-top: 6px; font-style: normal; font-size: 11px; color: var(--parch-mute); }
+.event-text.small { font-size: 12px; color: var(--parch-mute); }
+
+/* ══════ 星光商店 ══════ */
+.starshop { margin-bottom: 20px; padding: 14px; background: var(--ink-3); border: 1px solid #8A6A1E; }
+.starshop h3 { font-family: var(--f-serif); font-size: 15px; color: var(--gold); margin-bottom: 10px; }
+.starshop h3 span { font-family: var(--f-pixel); font-size: 11px; color: var(--parch-mute); font-weight: 400; }
+.starshop p { font-size: 13px; color: var(--parch); margin: 0 0 4px; }
+.starshop p.hint { font-size: 11px; color: var(--parch-mute); }
+.starshop.locked { border-color: var(--line); }
+.starshop .shop-col { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.item.unfound { opacity: .5; }
+.item-aff { display: block; font-size: 11px; color: #9FD48A; margin-top: 2px; }
+.ward-card u { display: block; margin-top: 6px; text-decoration: none; font-size: 11px; color: #C8503E; }
