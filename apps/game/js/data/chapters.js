@@ -221,5 +221,5 @@ G.getStage = key => G.STAGES.find(s => s.key === key);
 
 /* 換過世界觀，舊存檔的章節代號已經不存在了。
  * 進度按「通關幾章」等量換算到新的章節，不讓玩家白走。 */
-G.CONTENT_VERSION = 2;
+G.CONTENT_VERSION = 3;
 G.OLD_CHAPTER_IDS = ['babel', 'giza', 'nazca', 'atlantis', 'rapanui', 'bermuda', 'stonehenge'];

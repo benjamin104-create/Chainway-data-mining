@@ -75,20 +75,32 @@ G.load = function () {
   }
 };
 
-/* 世界觀換掉之後，舊的章節代號已經不存在。
-   把「通關過幾章」等量換算到新章節，金幣、等級、技能點、裝備全部保留。 */
+/* 存檔升級。一步一步往上補，每一步只做那一版真正需要的事，
+   能留的東西一律留著——金幣、等級、技能點、裝備在任何一步都不會被清掉。 */
 function migrateContent(save) {
-  if (save.cv === G.CONTENT_VERSION) return;
-  const done = G.OLD_CHAPTER_IDS.filter(id => save.cleared && save.cleared[id + '-3']).length;
-  save.cleared = {};
-  for (let i = 0; i < done && i < G.CHAPTERS.length; i++) {
-    const id = G.CHAPTERS[i].id;
-    save.cleared[id + '-1'] = true;
-    save.cleared[id + '-2'] = true;
-    save.cleared[id + '-3'] = true;
+  const cv = save.cv | 0;
+  if (cv === G.CONTENT_VERSION) return;
+
+  /* → 2　世界觀從世界謎團換成古世界史詩，舊的章節代號已經不存在。
+          把「通關過幾章」等量換算到新章節。 */
+  if (cv < 2) {
+    const done = G.OLD_CHAPTER_IDS.filter(id => save.cleared && save.cleared[id + '-3']).length;
+    save.cleared = {};
+    for (let i = 0; i < done && i < G.CHAPTERS.length; i++) {
+      const id = G.CHAPTERS[i].id;
+      save.cleared[id + '-1'] = true;
+      save.cleared[id + '-2'] = true;
+      save.cleared[id + '-3'] = true;
+    }
+    save.run = null;          // 進行到一半的遠征指向不存在的章節
+    save.best = {};
   }
-  save.run = null;            // 進行到一半的遠征指向不存在的章節
-  save.best = {};
+
+  /* → 3　遠征的節點比例改了（戰鬥從 42% 拉到 65%）。
+          存檔裡那張圖是舊比例生成的，不丟掉的話玩家會一直踩到舊的文字關。
+          只丟這張圖，通關進度與身家全部保留。 */
+  if (cv < 3) save.run = null;
+
   save.cv = G.CONTENT_VERSION;
 }
 
