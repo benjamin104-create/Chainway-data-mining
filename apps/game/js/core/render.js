@@ -44,6 +44,11 @@ R.draw = function () {
     draws.push({ y: sp.y, fn: () => drawPost(ctx, pp, sp, B) });
   });
 
+  (B.corpses || []).forEach(c => {
+    const sp = map.at(c.x, c.z || 0);
+    draws.push({ y: sp.y - 0.5, fn: () => drawCorpse(ctx, c, sp) });
+  });
+
   B.entities.forEach(e => {
     if (e.dead) return;
     const sp = map.at(e.x, e.z || 0);
@@ -372,35 +377,131 @@ function drawPost(ctx, pp, sp, B) {
   }
 }
 
+/* ══════════ 動作 ══════════
+ * 所有角色共用同一組狀態，全部由 battle.js 餵過來：
+ *   bob      一直在跑的相位（走路時快、站著時慢）→ 腳步與呼吸
+ *   moving   走 / 站
+ *   swing    攻擊倒數（配 swingMax）→ 蓄力 → 揮出 → 收回
+ *   hitFlash 受擊 → 後仰
+ *   born     出生時間 → 從地上冒出來
+ *   casting  魔王詠唱 → 舉手與地面光圈
+ */
+
+/* 揮擊曲線：負 = 往後蓄力，正 = 揮到底 */
+function swingArc(e) {
+  if (!e.swing || e.swing <= 0 || !e.swingMax) return 0;
+  const p = 1 - e.swing / e.swingMax;
+  if (p < 0.34) return -(p / 0.34) * 0.62;
+  if (p < 0.56) return (p - 0.34) / 0.22;
+  return 1 - (p - 0.56) / 0.44;
+}
+
+/* 出生：從地上竄出來的那 0.32 秒 */
+function spawnScale(e) {
+  const age = G.B.time - (e.born || 0);
+  if (!(age < 0.32)) return 1;
+  const t = Math.max(0, age) / 0.32;
+  return 0.42 + 0.58 * (1 - Math.pow(1 - t, 3));
+}
+
+function hurtLean(e) {
+  return e.hitFlash > 0 ? Math.min(1, e.hitFlash / 0.16) : 0;
+}
+
+/* 把顏色調亮或調暗，畫腳、畫陰影用 */
+function shade(hex, amt) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex || '');
+  if (!m) return hex || '#8A8070';
+  const n = parseInt(m[1], 16);
+  const f = c => Math.max(0, Math.min(255, Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt)));
+  return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+}
+
+/* 揮擊時的殘影弧線 */
+function swoosh(ctx, x, y, r, face, arc, color) {
+  if (arc < 0.25) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.55, arc * 0.6);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, r * 0.16);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const a0 = face > 0 ? -1.5 : Math.PI + 1.5;
+  const a1 = a0 + face * 1.9 * arc;
+  ctx.arc(x, y, r, Math.min(a0, a1), Math.max(a0, a1));
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* ── 一般單位 ── */
 function drawUnit(ctx, e, sp) {
-  const s = e.size * 0.92;
-  const x = sp.x, y = sp.y;
-  const bob = Math.sin(e.bob || 0) * 1.6;
+  if (e.isBoss) { drawBoss(ctx, e, sp); return; }
+
+  const pop = spawnScale(e);
+  const s = e.size * 0.92 * pop;
   const face = (e.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
+  const arc = swingArc(e);
+  const hurt = hurtLean(e);
+  const mv = e.moving ? 1 : 0;
+  const ph = e.bob || 0;
+
+  const step = Math.sin(ph);
+  const bounce = mv ? Math.abs(step) * s * 0.14 : 0;
+  const breath = mv ? 0 : Math.sin(ph) * s * 0.05;
+  const x = sp.x + face * arc * s * 0.34 - face * hurt * s * 0.26;
+  const y = sp.y;
+  const ty = y - s * 0.55 - bounce;
 
   ctx.save();
+  ctx.globalAlpha = pop < 1 ? pop : 1;
+
   ctx.fillStyle = 'rgba(0,0,0,0.30)';
-  ctx.beginPath(); ctx.ellipse(x, y + s * 0.3, s * 0.72, s * 0.32, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sp.x, y + s * 0.3, s * 0.72, s * 0.32, 0, 0, 6.3); ctx.fill();
 
   const col = e.hitFlash > 0 ? '#FFF3D0' : e.color;
-  const ty = y - s * 0.55 + bob;
 
+  /* 腳：走路時前後交錯，站著時併攏 */
+  ctx.fillStyle = shade(e.color, -0.42);
+  const sw = mv ? step * s * 0.3 : 0;
+  ctx.fillRect(x - s * 0.34 + sw, y - s * 0.06, s * 0.22, s * 0.34);
+  ctx.fillRect(x + s * 0.12 - sw, y - s * 0.06, s * 0.22, s * 0.34);
+
+  /* 身體：站著會呼吸 */
   ctx.fillStyle = col;
-  ctx.beginPath(); ctx.ellipse(x, ty + s * 0.2, s * 0.56, s * 0.62, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, ty + s * 0.2, s * 0.56, s * 0.62 + breath, 0, 0, 6.3); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.beginPath(); ctx.ellipse(x, ty + s * 0.52, s * 0.56, s * 0.26, 0, 0, 6.3); ctx.fill();
 
+  /* 頭：揮擊時往前甩，受擊時往後仰 */
+  const hx = x + face * (arc * s * 0.16 - hurt * s * 0.14);
+  const hy = ty - s * 0.42 + hurt * s * 0.08;
   ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(x, ty - s * 0.42, s * 0.36, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx, hy, s * 0.36, 0, 6.3); ctx.fill();
   ctx.fillStyle = '#14110C';
-  ctx.fillRect(x + face * s * 0.08 - s * 0.09, ty - s * 0.5, s * 0.18, s * 0.14);
+  if (hurt > 0.4) {
+    ctx.fillRect(hx + face * s * 0.08 - s * 0.1, hy - s * 0.06, s * 0.2, s * 0.06);
+  } else {
+    ctx.fillRect(hx + face * s * 0.08 - s * 0.09, hy - s * 0.08, s * 0.18, s * 0.14);
+  }
 
+  /* 武器 */
   const wc = (e.kind2 === 'ranged' || e.kind2 === 'caster') ? '#D8C08A'
            : e.kind2 === 'healer' ? '#8FE08A' : '#CFCFC4';
+  ctx.save();
+  ctx.translate(x + face * s * 0.5, ty - s * 0.1);
+  ctx.rotate(face * (arc * 1.5 - 0.35));
   ctx.fillStyle = wc;
-  if (e.swing > 0) ctx.fillRect(x + face * s * 0.5, ty - s * 0.5, face * s * 0.62, 3);
-  else ctx.fillRect(x + face * s * 0.52, ty - s * 0.4, 3, s * 0.72);
+  if (e.kind2 === 'ranged') {
+    ctx.strokeStyle = wc; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.5, -1.1, 1.1); ctx.stroke();
+  } else if (e.kind2 === 'caster' || e.kind2 === 'healer') {
+    ctx.fillRect(-1.5, -s * 0.62, 3, s * 1.1);
+    ctx.beginPath(); ctx.arc(0, -s * 0.68, s * 0.16, 0, 6.3); ctx.fill();
+  } else {
+    ctx.fillRect(-2, -s * 0.78, 4, s * 1.1);
+  }
+  ctx.restore();
+  swoosh(ctx, x + face * s * 0.42, ty - s * 0.12, s * 0.78, face, arc, wc);
 
   if (e.kind === 'hired') {
     ctx.fillStyle = '#E0B23C';
@@ -409,62 +510,337 @@ function drawUnit(ctx, e, sp) {
   }
   if (e.slowUntil > G.B.time) {
     ctx.fillStyle = 'rgba(140,190,255,0.55)';
-    ctx.beginPath(); ctx.ellipse(x, y + s * 0.3, s * 0.7, s * 0.3, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sp.x, y + s * 0.3, s * 0.7, s * 0.3, 0, 0, 6.3); ctx.fill();
   }
   ctx.restore();
 
-  if (e.isBoss) {
-    bar(ctx, x, y - s * 1.9, 116, 8, e.hp / e.maxHp, '#C8503E');
-    label(ctx, x, y - s * 2.05, e.name);
-  } else if (e.hp < e.maxHp) {
-    bar(ctx, x, y - s * 1.5, s * 1.8, 3, e.hp / e.maxHp, e.faction === 'ally' ? '#7FBF6A' : '#C8503E');
+  if (e.hp < e.maxHp) {
+    bar(ctx, sp.x, y - s * 1.5, s * 1.8, 3, e.hp / e.maxHp, e.faction === 'ally' ? '#7FBF6A' : '#C8503E');
   }
+}
+
+/* ── 魔王：比主角大上一整個量級 ── */
+function drawBoss(ctx, e, sp) {
+  const pop = spawnScale(e);
+  const s = e.size * pop;                       // 體型基準，主角是 16
+  const face = (e.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
+  const arc = swingArc(e);
+  const hurt = hurtLean(e);
+  const mv = e.moving ? 1 : 0;
+  const cast = e.casting > 0 ? Math.min(1, e.casting / 0.9) : 0;
+  const ph = e.bob || 0;
+  const shape = (R.chapter && R.chapter.boss && R.chapter.boss.shape) || 'brute';
+
+  const step = Math.sin(ph * 0.55);              // 大塊頭步伐慢
+  const stomp = mv ? Math.abs(step) * s * 0.1 : 0;
+  const breath = Math.sin(ph * 0.5) * s * 0.05;
+  const x = sp.x + face * arc * s * 0.2 - face * hurt * s * 0.12;
+  const y = sp.y;
+
+  const base = e.color || '#8C3B3B';
+  const dark = shade(base, -0.42);
+  const lit = shade(base, 0.28);
+  const col = e.hitFlash > 0 ? '#FFF3D0' : base;
+
+  ctx.save();
+  ctx.globalAlpha = pop < 1 ? pop : 1;
+
+  /* 落地的壓迫感：兩層影子 */
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  ctx.beginPath(); ctx.ellipse(sp.x, y + s * 0.26, s * 1.3, s * 0.48, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(sp.x, y + s * 0.26, s * 1.75, s * 0.62, 0, 0, 6.3); ctx.fill();
+
+  /* 詠唱：腳下的光圈 */
+  if (cast > 0) {
+    ctx.save();
+    ctx.globalAlpha = cast * 0.7;
+    ctx.strokeStyle = (R.palette && R.palette.accent) || '#E0B23C';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(sp.x, y + s * 0.26, s * (1.1 + (1 - cast) * 1.4), s * (0.4 + (1 - cast) * 0.5), 0, 0, 6.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 腿 */
+  const legSw = mv ? step * s * 0.34 : 0;
+  ctx.fillStyle = dark;
+  rr(ctx, x - s * 0.66 + legSw, y - s * 0.56, s * 0.48, s * 0.80, s * 0.15);
+  rr(ctx, x + s * 0.18 - legSw, y - s * 0.56, s * 0.48, s * 0.80, s * 0.15);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(x - s * 0.66 + legSw, y + s * 0.1, s * 0.48, s * 0.14);
+  ctx.fillRect(x + s * 0.18 - legSw, y + s * 0.1, s * 0.48, s * 0.14);
+
+  const ty = y - s * 1.16 - stomp;               // 軀幹中心：矮而寬，俯視看起來更壓迫
+
+  /* 後手（拿盾或垂著） */
+  ctx.fillStyle = dark;
+  rr(ctx, x - face * s * 0.96 - s * 0.17, ty - s * 0.30, s * 0.34, s * 0.82, s * 0.15);
+
+  /* 軀幹 */
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.ellipse(x, ty, s * 0.94, s * 0.70 + breath, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = lit;
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath(); ctx.ellipse(x - face * s * 0.28, ty - s * 0.26, s * 0.36, s * 0.22, -0.4, 0, 6.3); ctx.fill();
+  ctx.globalAlpha = pop < 1 ? pop : 1;
+  ctx.fillStyle = 'rgba(0,0,0,0.26)';
+  ctx.beginPath(); ctx.ellipse(x, ty + s * 0.50, s * 0.88, s * 0.26, 0, 0, 6.3); ctx.fill();
+
+  /* 頭 */
+  const hx = x + face * (arc * s * 0.12 - hurt * s * 0.1);
+  const hy = ty - s * 0.82 + hurt * s * 0.1 - cast * s * 0.06;
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(hx, hy, s * 0.46, 0, 6.3); ctx.fill();
+  bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e);
+
+  /* 前手與武器：蓄力 → 揮出 */
+  ctx.save();
+  ctx.translate(x + face * s * 0.84, ty - s * 0.20);
+  ctx.rotate(face * (cast > 0 ? -1.5 : arc * 1.45 - 0.45));
+  ctx.fillStyle = dark;
+  rr(ctx, -s * 0.18, -s * 0.1, s * 0.36, s * 0.86, s * 0.15);
+  bossWeapon(ctx, shape, s, col, lit);
+  ctx.restore();
+  swoosh(ctx, x + face * s * 0.74, ty - s * 0.16, s * 1.4, face, arc, lit);
+
+  ctx.restore();
+
+  /* 血條壓在畫面頂端以內，魔王再高也看得到 */
+  const top = Math.max(y - s * 2.44, 40);
+  bar(ctx, sp.x, top - 16, 190, 11, e.hp / e.maxHp, '#C8503E');
+  label(ctx, sp.x, top - 22, e.name);
+}
+
+/* 圓角矩形，畫粗手粗腳用 */
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.fill();
+}
+
+/* 各章魔王的頭部特徵 */
+function bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e) {
+  const eye = e.hitFlash > 0 ? '#3A1010' : '#FFE9A8';
+  const glow = 0.55 + Math.sin(G.B.time * 4) * 0.25 + cast * 0.4;
+
+  if (shape === 'tide') {
+    ctx.fillStyle = lit;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(hx + i * s * 0.2 - s * 0.08, hy - s * 0.34);
+      ctx.lineTo(hx + i * s * 0.2, hy - s * 0.60 + Math.abs(i) * s * 0.10);
+      ctx.lineTo(hx + i * s * 0.2 + s * 0.08, hy - s * 0.34);
+      ctx.fill();
+    }
+  } else if (shape === 'minotaur') {
+    ctx.fillStyle = '#E8DCC0';
+    for (const d of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(hx + d * s * 0.36, hy - s * 0.2);
+      ctx.quadraticCurveTo(hx + d * s * 1.02, hy - s * 0.36, hx + d * s * 1.00, hy - s * 0.62);
+      ctx.quadraticCurveTo(hx + d * s * 0.74, hy - s * 0.34, hx + d * s * 0.3, hy - s * 0.04);
+      ctx.fill();
+    }
+    ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.ellipse(hx + face * s * 0.34, hy + s * 0.14, s * 0.24, s * 0.18, 0, 0, 6.3); ctx.fill();
+  } else if (shape === 'horse') {
+    ctx.fillStyle = lit;
+    ctx.fillRect(hx + face * s * 0.08, hy - s * 0.22, face * s * 0.74, s * 0.36);
+    ctx.fillStyle = dark;
+    ctx.fillRect(hx + face * s * 0.58, hy - s * 0.22, face * s * 0.24, s * 0.36);   // 鼻口
+    ctx.fillRect(hx + face * s * 0.24, hy - s * 0.24, face * s * 0.06, s * 0.4);    // 轡頭
+    for (let i = 0; i < 5; i++) ctx.fillRect(hx - s * 0.44 + i * s * 0.2, hy - s * 0.6, s * 0.09, s * 0.4);
+  } else if (shape === 'cyclops') {
+    ctx.fillStyle = '#1A1410';
+    ctx.beginPath(); ctx.arc(hx + face * s * 0.1, hy - s * 0.02, s * 0.26, 0, 6.3); ctx.fill();
+    ctx.fillStyle = eye;
+    ctx.globalAlpha = Math.min(1, glow);
+    ctx.beginPath(); ctx.arc(hx + face * s * 0.12, hy - s * 0.02, s * 0.17, 0, 6.3); ctx.fill();
+    ctx.globalAlpha = 1;
+    return;
+  } else if (shape === 'queen') {
+    ctx.fillStyle = '#E0B23C';
+    ctx.fillRect(hx - s * 0.44, hy - s * 0.44, s * 0.88, s * 0.14);
+    for (let i = -2; i <= 2; i++) ctx.fillRect(hx + i * s * 0.18 - s * 0.04, hy - s * 0.62, s * 0.08, s * 0.2);
+    ctx.fillStyle = lit;
+    ctx.fillRect(hx - s * 0.05, hy - s * 0.80, s * 0.1, s * 0.24);
+  } else if (shape === 'colossus') {
+    ctx.fillStyle = '#E8C35A';
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI + i * (Math.PI / 8);
+      ctx.save();
+      ctx.translate(hx, hy - s * 0.06);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.fillRect(-s * 0.04, -s * 0.74, s * 0.08, s * 0.28);
+      ctx.restore();
+    }
+  } else if (shape === 'flame') {
+    ctx.fillStyle = '#5A2A10';
+    ctx.beginPath();
+    ctx.ellipse(hx, hy - s * 0.42, s * 0.42, s * 0.3, 0, 0, 6.3);
+    ctx.fill();
+    ctx.globalAlpha = Math.min(1, glow);
+    ctx.fillStyle = '#FFF0C0';
+    ctx.beginPath();
+    ctx.moveTo(hx - s * 0.34, hy - s * 0.26);
+    ctx.quadraticCurveTo(hx - s * 0.12, hy - s * 0.92, hx + s * 0.04, hy - s * 0.44);
+    ctx.quadraticCurveTo(hx + s * 0.22, hy - s * 0.82, hx + s * 0.34, hy - s * 0.26);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.fillStyle = dark;
+    ctx.fillRect(hx - s * 0.46, hy - s * 0.48, s * 0.92, s * 0.2);
+  }
+
+  /* 共用：兩顆發亮的眼睛 */
+  ctx.fillStyle = '#120E0A';
+  ctx.fillRect(hx + face * s * 0.04 - s * 0.28, hy - s * 0.08, s * 0.5, s * 0.15);
+  ctx.globalAlpha = Math.min(1, glow);
+  ctx.fillStyle = eye;
+  ctx.fillRect(hx + face * s * 0.04 - s * 0.24, hy - s * 0.05, s * 0.16, s * 0.09);
+  ctx.fillRect(hx + face * s * 0.04 + s * 0.08, hy - s * 0.05, s * 0.16, s * 0.09);
+  ctx.globalAlpha = 1;
+}
+
+/* 各章魔王的武器，畫在已經旋轉好的手上 */
+function bossWeapon(ctx, shape, s, col, lit) {
+  if (shape === 'tide') {
+    ctx.fillStyle = '#BCD8DE';
+    ctx.fillRect(-s * 0.07, -s * 1.06, s * 0.14, s * 1.3);
+    for (const d of [-1, 0, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(d * s * 0.24, -s * 1.02);
+      ctx.lineTo(d * s * 0.24 - s * 0.07, -s * 1.45);
+      ctx.lineTo(d * s * 0.24 + s * 0.07, -s * 1.45);
+      ctx.fill();
+    }
+  } else if (shape === 'minotaur') {
+    ctx.fillStyle = '#7A5C34';
+    ctx.fillRect(-s * 0.08, -s * 1.0, s * 0.16, s * 1.22);
+    ctx.fillStyle = '#C9C2B2';
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.6, -s * 1.02); ctx.lineTo(s * 0.6, -s * 1.02);
+    ctx.lineTo(s * 0.32, -s * 1.45); ctx.lineTo(-s * 0.32, -s * 1.45);
+    ctx.fill();
+  } else if (shape === 'horse' || shape === 'colossus') {
+    ctx.fillStyle = '#C9C2B2';
+    ctx.fillRect(-s * 0.1, -s * 1.42, s * 0.2, s * 1.62);
+    ctx.fillStyle = lit;
+    ctx.fillRect(-s * 0.3, -s * 0.2, s * 0.6, s * 0.13);
+  } else if (shape === 'queen') {
+    ctx.fillStyle = '#8A6A44';
+    ctx.fillRect(-s * 0.06, -s * 1.2, s * 0.12, s * 1.4);
+    ctx.fillStyle = '#D8C08A';
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 1.45); ctx.lineTo(s * 0.14, -s * 1.14); ctx.lineTo(-s * 0.14, -s * 1.14);
+    ctx.fill();
+  } else if (shape === 'flame') {
+    ctx.fillStyle = '#6E5A3A';
+    ctx.fillRect(-s * 0.08, -s * 1.0, s * 0.16, s * 1.22);
+    ctx.fillStyle = '#E0B23C';
+    ctx.fillRect(-s * 0.28, -s * 1.42, s * 0.56, s * 0.46);
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#FFE4A0';
+    ctx.beginPath(); ctx.arc(0, -s * 1.18, s * 0.62, 0, 6.3); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.fillStyle = '#C9C2B2';
+    ctx.fillRect(-s * 0.11, -s * 1.2, s * 0.22, s * 1.42);
+  }
+}
+
+/* ── 倒下：純視覺，不參與戰鬥 ── */
+function drawCorpse(ctx, c, sp) {
+  const t = c.t / c.dur;
+  const fall = 1 - Math.pow(1 - Math.min(1, t / 0.42), 2);
+  const s = (c.size || 14) * (c.isBoss ? 1 : 0.92);
+  const dir = c.facing >= 0 ? 1 : -1;
+  const alpha = t < 0.62 ? 1 : Math.max(0, 1 - (t - 0.62) / 0.38);
+
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.92;
+  ctx.translate(sp.x, sp.y + s * 0.24);
+  ctx.rotate(dir * fall * (Math.PI / 2) * 0.92);
+  const col = shade(c.color, -0.3);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(0, s * 0.06, s * (c.isBoss ? 1.2 : 0.7), s * 0.3, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = col;
+  if (c.isBoss) {
+    ctx.beginPath(); ctx.ellipse(0, -s * 1.42, s * 0.86, s * 0.78, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -s * 2.34, s * 0.48, 0, 6.3); ctx.fill();
+    rr(ctx, -s * 0.6, -s * 0.68, s * 0.44, s * 0.9, s * 0.14);
+    rr(ctx, s * 0.16, -s * 0.68, s * 0.44, s * 0.9, s * 0.14);
+  } else {
+    ctx.beginPath(); ctx.ellipse(0, -s * 0.35, s * 0.56, s * 0.62, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -s * 0.97, s * 0.36, 0, 6.3); ctx.fill();
+  }
+  ctx.restore();
 }
 
 /* ── 英雄：橘色黏土球戰士 ── */
 function drawHero(ctx, h, sp, B) {
   if (h.dead) return;
   const r = 16;
-  const x = sp.x, y = sp.y;
-  const bob = Math.sin(h.bob) * 1.8;
   const face = (h.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
   const cls = B.cls;
+  const arc = swingArc(h);
+  const hurt = hurtLean(h);
+  const mv = h.moving ? 1 : 0;
+  const ph = h.bob || 0;
+
+  const step = Math.sin(ph);
+  const bounce = mv ? Math.abs(step) * r * 0.16 : 0;
+  const breath = mv ? 0 : Math.sin(ph) * r * 0.05;
+  const x = sp.x + face * arc * r * 0.4 - face * hurt * r * 0.3;
+  const y = sp.y;
 
   ctx.save();
   if (h.invuln > 0 && Math.floor(B.time * 20) % 2 === 0) ctx.globalAlpha = 0.45;
 
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.ellipse(x, y + r * 0.32, r * 0.86, r * 0.38, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sp.x, y + r * 0.32, r * 0.86, r * 0.38, 0, 0, 6.3); ctx.fill();
 
-  const ty = y - r * 0.62 + bob;
+  const ty = y - r * 0.62 - bounce;
 
+  /* 腿：走路時前後交錯 */
+  const sw = mv ? step * r * 0.32 : 0;
   ctx.fillStyle = '#C4632E';
-  ctx.fillRect(x - r * 0.55, y - r * 0.06, r * 0.45, r * 0.36);
-  ctx.fillRect(x + r * 0.1, y - r * 0.06, r * 0.45, r * 0.36);
+  ctx.fillRect(x - r * 0.55 + sw, y - r * 0.06, r * 0.45, r * 0.36);
+  ctx.fillRect(x + r * 0.1 - sw, y - r * 0.06, r * 0.45, r * 0.36);
 
   ctx.fillStyle = h.hitFlash > 0 ? '#FFF0CF' : '#E07A3F';
-  ctx.beginPath(); ctx.ellipse(x, ty, r, r * 0.95, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, ty, r, r * 0.95 + breath, 0, 0, 6.3); ctx.fill();
   ctx.fillStyle = 'rgba(255,214,170,0.5)';
   ctx.beginPath(); ctx.ellipse(x - r * 0.42, ty - r * 0.42, r * 0.26, r * 0.16, -0.5, 0, 6.3); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.16)';
   ctx.beginPath(); ctx.ellipse(x, ty + r * 0.6, r * 0.88, r * 0.3, 0, 0, 6.3); ctx.fill();
 
-  const eox = face * 2;
+  /* 眼睛：揮擊時瞪大往前，受擊時瞇起來 */
+  const eox = face * (2 + arc * 3 - hurt * 3);
+  const eh = hurt > 0.4 ? 0.18 : 0.46;
   ctx.fillStyle = '#F6EFE0';
-  ctx.fillRect(x - r * 0.5 + eox, ty - r * 0.34, r * 0.32, r * 0.46);
-  ctx.fillRect(x + r * 0.16 + eox, ty - r * 0.34, r * 0.32, r * 0.46);
+  ctx.fillRect(x - r * 0.5 + eox, ty - r * 0.34, r * 0.32, r * eh);
+  ctx.fillRect(x + r * 0.16 + eox, ty - r * 0.34, r * 0.32, r * eh);
   ctx.fillStyle = '#141110';
-  ctx.fillRect(x - r * 0.42 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * 0.33);
-  ctx.fillRect(x + r * 0.25 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * 0.33);
+  ctx.fillRect(x - r * 0.42 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * Math.min(0.33, eh));
+  ctx.fillRect(x + r * 0.25 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * Math.min(0.33, eh));
 
+  /* 盾：受擊時往前擋 */
+  const shx = x - face * r * (0.98 - hurt * 1.2);
   ctx.fillStyle = '#8E8477';
-  ctx.beginPath(); ctx.ellipse(x - face * r * 0.98, ty + r * 0.18, r * 0.34, r * 0.5, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(shx, ty + r * 0.18, r * 0.34, r * 0.5, 0, 0, 6.3); ctx.fill();
   ctx.fillStyle = cls.color2;
-  ctx.beginPath(); ctx.ellipse(x - face * r * 0.98, ty + r * 0.18, r * 0.17, r * 0.26, 0, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(shx, ty + r * 0.18, r * 0.17, r * 0.26, 0, 0, 6.3); ctx.fill();
 
   ctx.save();
   ctx.translate(x + face * r * 0.9, ty + r * 0.1);
-  ctx.rotate(h.swing > 0 ? (-face * 1.1) : (-face * 0.25));
+  ctx.rotate(-face * (0.25 + arc * 1.35));
   if (cls.id === 'stonespeaker') {
     ctx.fillStyle = '#8A6A44'; ctx.fillRect(-2, -r * 1.1, 4, r * 1.7);
     ctx.fillStyle = cls.color; ctx.fillRect(-6, -r * 1.4, 12, 9);
@@ -481,6 +857,8 @@ function drawHero(ctx, h, sp, B) {
     ctx.fillStyle = '#7A5C34'; ctx.fillRect(-7, r * 0.32, 14, 5);
   }
   ctx.restore();
+  swoosh(ctx, x + face * r * 0.8, ty + r * 0.05, r * 1.5, face, arc,
+    cls.id === 'shadowbinder' ? '#C4AEF5' : cls.id === 'lampwarden' ? '#E0B23C' : '#F2EDE0');
 
   if (h.shield > 0) {
     ctx.strokeStyle = 'rgba(150,200,255,0.8)'; ctx.lineWidth = 2;
@@ -490,12 +868,12 @@ function drawHero(ctx, h, sp, B) {
     ctx.strokeStyle = B.buffs[0].color || '#E0B23C';
     ctx.globalAlpha = 0.5 + Math.sin(B.time * 6) * 0.2;
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(x, y + r * 0.3, r * 1.35, r * 0.5, 0, 0, 6.3); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(sp.x, y + r * 0.3, r * 1.35, r * 0.5, 0, 0, 6.3); ctx.stroke();
     ctx.globalAlpha = 1;
   }
   ctx.restore();
 
-  bar(ctx, x, y - r * 2.0, 48, 5, h.hp / h.maxHp, '#E07A3F');
+  bar(ctx, sp.x, y - r * 2.0, 48, 5, h.hp / h.maxHp, '#E07A3F');
 }
 
 /* ── 封鎖線 ── */

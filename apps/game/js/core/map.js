@@ -51,8 +51,8 @@ G.buildMap = function (stage) {
   /* 蛇行路線：由下往上，左右來回。起點在左下（我方城門），終點在最上排（敵方主塔） */
   const rows = stage.length > 2450 ? 4 : 3;
   const padX = 118;
-  const yBottom = MAP_H - 96;
-  const yTop = 104;
+  const yBottom = MAP_H - 62;
+  const yTop = 196;          // 最上排要整個放得下魔王的身體，不能貼著畫面頂
   const rowGap = (yBottom - yTop) / (rows - 1);
 
   const wp = [];

@@ -51,6 +51,7 @@ B.init = function (stageKey, opts) {
   B.effects = [];
   B.texts = [];
   B.particles = [];
+  B.corpses = [];               // 倒下動畫用，純視覺
   B.camX = 0;
   B.shake = 0;
   B.waveTimer = 3;
@@ -122,11 +123,11 @@ B.init = function (stageKey, opts) {
       x: stage.length - 150, z: 0,
       hp: Math.round(bossProto.hp * B.escale * 7),
       maxHp: 0, dmg: bossProto.dmg * B.escale * 1.5,
-      speed: bossProto.speed * 0.8, range: 46, size: 34,
+      speed: bossProto.speed * 0.72, range: 64, size: 58,
       color: chapter.palette.accent, atkTimer: 0, dead: false,
       name: chapter.boss.name, title: chapter.boss.title,
       armor: 10 + stage.chapterIdx * 3, bob: 0, hitFlash: 0,
-      isBoss: true, castTimer: 4,
+      isBoss: true, castTimer: 4, casting: 0, moving: false, born: 0,
       leashX: stage.length - 430      // 守塔：不會再一路走到你家城門
     };
     boss.maxHp = boss.hp;
@@ -300,7 +301,15 @@ B.dealDamage = dealDamage;
 function checkDeath(e, killer) {
   if (e.dead || e.hp > 0) return;
   e.dead = true;
-  burst(e.x, e.z, e.color || '#C8A05E', e.isStructure ? 34 : 14);
+  if (!e.isStructure) {
+    B.corpses.push({
+      x: e.x, z: e.z || 0, color: e.color, size: e.size,
+      facing: e.facing || 1, isBoss: !!e.isBoss, kind2: e.kind2,
+      t: 0, dur: e.isBoss ? 2.4 : 0.75
+    });
+    if (B.corpses.length > 44) B.corpses.shift();
+  }
+  burst(e.x, e.z, e.color || '#C8A05E', e.isStructure ? 34 : (e.isBoss ? 40 : 14));
 
   if (e.faction === 'enemy') {
     B.kills++;
@@ -468,6 +477,7 @@ function spawnMinion(faction, key, x, i) {
   const hpMul = B.ascale * (1 + B.stats.minionHp);
   const dmgMul = B.ascale * (1 + B.stats.minionDmg);
   const e = {
+    born: B.time, moving: false,
     id: nid(), kind: 'minion', faction, unit: key,
     x, z: ((i % 5) - 2) * 9 + (Math.random() - 0.5) * 5,
     hp: Math.round(p.hp * hpMul), maxHp: Math.round(p.hp * hpMul),
@@ -484,6 +494,7 @@ function spawnEnemy(key, x, i) {
   const p = G.ENEMY_TYPES[key];
   const sc = B.escale;
   const e = {
+    born: B.time, moving: false,
     id: nid(), kind: 'minion', faction: 'enemy', unit: key,
     x, z: ((i % 5) - 2) * 9 + (Math.random() - 0.5) * 5,
     hp: Math.round(p.hp * sc), maxHp: Math.round(p.hp * sc),
@@ -505,6 +516,7 @@ function spawnHired(hire, x) {
   const hpMul = sc * (1 + B.stats.minionHp);
   const dmgMul = sc * (1 + B.stats.minionDmg);
   const e = {
+    born: B.time, moving: false,
     id: nid(), kind: 'hired', faction: 'ally', unit: hire.id, hireId: hire.id,
     x, z: (Math.random() - 0.5) * 18,
     hp: Math.round(u.hp * hpMul), maxHp: Math.round(u.hp * hpMul),
@@ -810,6 +822,7 @@ B.update = function (dt, input) {
     let mv = 0;
     if (input.left) mv -= 1;
     if (input.right) mv += 1;
+    h.moving = mv !== 0;
     if (mv !== 0) {
       h.facing = mv;
       h.x += mv * B.heroMoveSpd() * dt;
@@ -832,7 +845,7 @@ B.update = function (dt, input) {
       if (tgt) {
         h.facing = Math.sign(tgt.x - h.x) || h.facing;
         h.atkTimer = 1 / Math.max(0.2, B.heroAtkSpd());
-        h.swing = 0.18;
+        h.swing = 0.18; h.swingMax = 0.18;
         if (B.stats.range > 90) {
           B.projectiles.push({
             x: h.x + h.facing * 16, z: h.z, y: -22,
@@ -990,6 +1003,7 @@ B.update = function (dt, input) {
 
     if (!tgt) {
       e.x += dir * speed * dt;
+      e.moving = true;
     } else {
       const d = dist(e, tgt);
       const reach = e.range + tgt.size * 0.6;
@@ -997,13 +1011,15 @@ B.update = function (dt, input) {
         const step = Math.sign(tgt.x - e.x) || dir;
         e.x += step * speed * dt;
         e.facing = step;
-        e.bob += dt * 10;
+        e.moving = true;
       } else {
+        e.moving = false;
         e.facing = Math.sign(tgt.x - e.x) || e.facing;
         e.atkTimer -= dt;
         if (e.atkTimer <= 0) {
           e.atkTimer = 1 / e.atkSpd;
-          e.swing = 0.15;
+          e.swing = e.isBoss ? 0.62 : 0.15;
+          e.swingMax = e.swing;
           let dmg = e.dmg;
           if (e.faction === 'ally') {
             dmg *= (1 + allyBuffMods('dmg') + auraBonus(e, 'dmg'));
@@ -1025,6 +1041,9 @@ B.update = function (dt, input) {
       }
     }
     if (e.swing > 0) e.swing -= dt;
+    if (e.casting > 0) e.casting -= dt;
+    // 待機也要動：呼吸用的相位一直走，只是慢很多
+    e.bob += dt * (e.moving ? 11 : 2.4);
     if (e.leashX != null && e.x < e.leashX) e.x = e.leashX;
     // 路障：已經在它右邊的敵人過不去；本來就在左邊的不受影響
     if (e.faction === 'enemy' && B.blockX != null && e.x >= B.blockX + 20) {
@@ -1036,6 +1055,7 @@ B.update = function (dt, input) {
       e.castTimer -= dt;
       if (e.castTimer <= 0) {
         e.castTimer = 7;
+        e.casting = 0.9;
         const cx = h.x;
         const btok = B.token;
         B.effects.push({ type: 'telegraph', x: cx, z: 0, r: 130, t: 0, dur: 0.9, color: '#D1584A' });
@@ -1099,6 +1119,8 @@ B.update = function (dt, input) {
   B.texts = B.texts.filter(t => t.t < t.dur);
   B.particles.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 620 * dt; p.z += p.vz * dt; });
   B.particles = B.particles.filter(p => p.t < p.dur && p.y < 30);
+  B.corpses.forEach(c => { c.t += dt; });
+  B.corpses = B.corpses.filter(c => c.t < c.dur);
 
   B.entities = B.entities.filter(e => !e.dead || e === h);
   if (h.dead) { /* 英雄保留在陣列裡以便重生 */ }
