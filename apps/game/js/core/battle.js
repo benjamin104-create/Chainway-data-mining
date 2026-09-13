@@ -59,6 +59,7 @@ B.init = function (stageKey) {
   B.blockX = null;
   B.respawnTimer = 0;
   B.paused = false;
+  B.phase = 'deploy';          // 'deploy' → 按開戰 → 'fight'
 
   B.cd = [0, 0, 0, 0];
   B.dashCharges = B.flags.has('doubleDash') ? 2 : 1;
@@ -137,7 +138,24 @@ B.init = function (stageKey) {
   });
 
   updateMainInvuln();
+  updateFrontLine();
   return B;
+};
+
+/* 封鎖線：還有哨塔活著就過不去 */
+function updateFrontLine() {
+  const front = B.towers.find(t => !t.dead);
+  B.frontLine = (front && !front.isMain) ? front.x + 230 : B.stage.length + 40;
+}
+
+/* 部署完畢，開打 */
+B.begin = function () {
+  if (B.phase !== 'deploy') return;
+  B.phase = 'fight';
+  B.time = 0;
+  B.waveTimer = 3;
+  B.activePost = null;
+  B.effects.length = 0;
 };
 
 function mkStructure(faction, x, hp, dmg, range, name, atkSpdMul) {
@@ -495,15 +513,23 @@ function placeGear(hire, x) {
   return e;
 }
 
+B.selectPost = function (post) {
+  if (B.phase !== 'deploy') return false;
+  if (!post || post.x > B.frontLine) return false;
+  B.activePost = post;
+  return true;
+};
+
 B.hireCostAt = function (hireId, post) {
   return G.hireCost(G.getHire(hireId), post.idx, B.stage.chapterIdx);
 };
 
 B.hire = function (hireId) {
   if (B.over || B.paused) return { ok: false, why: '現在不能僱用' };
-  if (B.hero.dead) return { ok: false, why: '你倒下了，等重生' };
+  if (B.phase === 'fight' && B.hero.dead) return { ok: false, why: '你倒下了，等重生' };
   const post = B.activePost;
-  if (!post) return { ok: false, why: '要站到僱用所旁邊' };
+  if (!post) return { ok: false, why: B.phase === 'deploy' ? '先點地圖上的據點' : '要站到僱用所旁邊' };
+  if (B.phase === 'deploy' && post.x > B.frontLine) return { ok: false, why: '這個據點要先拆掉前面的哨塔才到得了' };
   const slot = post.offers.indexOf(hireId);
   if (slot < 0) return { ok: false, why: '這個據點沒有這一項' };
   if (post.stock[slot] <= 0) return { ok: false, why: '這裡已經調度完了' };
@@ -514,10 +540,11 @@ B.hire = function (hireId) {
   B.purse -= cost;
   B.goldSpent += cost;
   post.stock[slot]--;
-  if (hire.gear) placeGear(hire, B.hero.x);
-  else spawnHired(hire, B.hero.x + 26);
-  pushText(B.hero.x, -54, '-' + cost, '#E0B23C', false);
-  B.effects.push({ type: 'ring', x: B.hero.x, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
+  const at = B.phase === 'deploy' ? post.x : B.hero.x;
+  if (hire.gear) placeGear(hire, at);
+  else spawnHired(hire, at + 26);
+  pushText(at, -54, '-' + cost, '#E0B23C', false);
+  B.effects.push({ type: 'ring', x: at, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
   return { ok: true, hire: hire, cost: cost };
 };
 
@@ -712,6 +739,19 @@ B.update = function (dt, input) {
   if (B.paused) return;
   dt = Math.min(dt, 0.05);
   B.time += dt;
+
+  if (B.phase === 'deploy') {
+    // 只讓特效與飄字動，戰局完全靜止
+    updateFrontLine();
+    B.effects.forEach(f => f.t += dt);
+    B.effects = B.effects.filter(f => f.t < f.dur);
+    B.texts.forEach(t => { t.t += dt; t.dy -= 42 * dt; });
+    B.texts = B.texts.filter(t => t.t < t.dur);
+    B.particles.forEach(pp => { pp.t += dt; pp.x += pp.vx * dt; pp.y += pp.vy * dt; pp.vy += 620 * dt; });
+    B.particles = B.particles.filter(pp => pp.t < pp.dur && pp.y < 30);
+    return;
+  }
+
   if (B.shake > 0) B.shake = Math.max(0, B.shake - dt * 42);
 
   if (B.over) { B.overTimer += dt; }
@@ -739,7 +779,9 @@ B.update = function (dt, input) {
   }
   B.blockX = B.blocker ? B.blocker.x : null;
 
-  /* 站在哪個僱用所旁邊 */
+  updateFrontLine();
+
+  /* 站在哪個僱用所旁邊（部署階段改由點地圖決定） */
   B.activePost = (B.over || B.hero.dead) ? null :
     (B.posts.find(pp => Math.abs(pp.x - B.hero.x) < 120) || null);
 
@@ -770,8 +812,6 @@ B.update = function (dt, input) {
       h.bob += dt * 2;
     }
     // 封鎖線：不能繞過還活著的哨塔跑到無敵的主塔前面乾等
-    const front = B.towers.find(t => !t.dead);
-    B.frontLine = front && !front.isMain ? front.x + 230 : B.stage.length + 40;
     h.x = Math.max(12, Math.min(B.frontLine, h.x));
 
     /* 脫離戰鬥回復：附近沒有敵人滿 3 秒就開始回血 */

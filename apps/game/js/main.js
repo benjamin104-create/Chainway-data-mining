@@ -30,7 +30,8 @@
           '<span class="sep">|</span>' +
           '<span style="font-size:12px;color:var(--parch-mute)" id="waveInfo"></span>' +
           '<span class="spacer"></span>' +
-          '<button class="btn btn-ghost" data-act="pause" id="pauseBtn">暫停</button>' +
+          '<button class="btn btn-primary" data-act="begin-battle" id="beginBtn">開戰</button>' +
+          '<button class="btn btn-ghost" data-act="pause" id="pauseBtn" hidden>暫停</button>' +
           '<button class="btn btn-ghost" data-act="retreat">撤退</button>' +
         '</div>' +
         '<canvas id="screen"></canvas>' +
@@ -56,6 +57,7 @@
         '<p class="controls-hint"><kbd>A</kbd><kbd>D</kbd>／<kbd>←</kbd><kbd>→</kbd> 移動　' +
         '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd>／<kbd>E</kbd> 消耗品　' +
         '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。' +
+        '部署階段點地圖上的據點先擺好人，按<kbd>空白鍵</kbd>或「開戰」開始。' +
         '普通攻擊自動進行；先拆掉哨塔，主塔才會失去無敵。</p>' +
       '</div>';
 
@@ -69,6 +71,7 @@
       nPotion: document.getElementById('nPotion'),
       nCharge: document.getElementById('nCharge'),
       pauseBtn: document.getElementById('pauseBtn'),
+      beginBtn: document.getElementById('beginBtn'),
       hirebar: document.getElementById('hirebar'),
       hirePostName: document.getElementById('hirePostName'),
       hirePurse: document.getElementById('hirePurse'),
@@ -85,8 +88,10 @@
     U.renderNav();
     battleView(stage);
     B.init(stageKey);
-    R.setup(document.getElementById('screen'));
-    R.buildBackdrop(G.getChapter(stage.chapterId));
+    const cv = document.getElementById('screen');
+    R.setup(cv);
+    R.buildBackdrop(G.getChapter(stage.chapterId), stage);
+    cv.addEventListener('pointerdown', onCanvasPointer);
     input.left = input.right = false;
     last = performance.now();
     if (raf) cancelAnimationFrame(raf);
@@ -118,7 +123,11 @@
     hudRefs.killRun.textContent = B.kills + ' 擊殺';
     const alive = B.towers.filter(t => !t.dead).length;
     hudRefs.towersLeft.textContent = '敵塔 ' + alive + ' / ' + B.towers.length;
-    hudRefs.waveInfo.textContent = '第 ' + B.waveNo + ' 波　·　下一波 ' + Math.ceil(Math.max(0, B.waveTimer)) + ' 秒';
+    hudRefs.waveInfo.textContent = B.phase === 'deploy'
+      ? '部署階段　·　按「開戰」開始'
+      : '第 ' + B.waveNo + ' 波　·　下一波 ' + Math.ceil(Math.max(0, B.waveTimer)) + ' 秒';
+    if (hudRefs.beginBtn) hudRefs.beginBtn.hidden = B.phase !== 'deploy';
+    if (hudRefs.pauseBtn) hudRefs.pauseBtn.hidden = B.phase === 'deploy';
     hudRefs.nPotion.textContent = B.consumables.c_potion;
     hudRefs.nCharge.textContent = B.consumables.c_charge;
 
@@ -147,11 +156,33 @@
     });
   }
 
+  function onCanvasPointer(ev) {
+    if (B.phase !== 'deploy') return;
+    const cv = ev.currentTarget;
+    const rect = cv.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) / rect.width * R.W;
+    const sy = (ev.clientY - rect.top) / rect.height * R.H;
+    const post = R.postAt(sx, sy);
+    if (!post) return;
+    if (!B.selectPost(post)) { U.toast('這個據點要先拆掉前面的哨塔才到得了'); return; }
+    hudRefs.hireSig = '';
+  }
+
   function updateHireBar() {
     const post = B.activePost;
     hudRefs.hirePurse.textContent = B.purse + ' 金幣';
 
     if (!post) {
+      if (B.phase === 'deploy') {
+        if (hudRefs.hireSig !== 'deploy-none') {
+          hudRefs.hireSig = 'deploy-none';
+          hudRefs.hirebar.classList.add('away');
+          hudRefs.hirePostName.textContent = '部署';
+          hudRefs.hireOpts.innerHTML =
+            '<span class="hire-away">點地圖上亮起的據點，就能在那裡部署機械、武具或傭兵</span>';
+        }
+        return;
+      }
       // 不在據點旁邊：指出最近的一個在哪個方向
       let near = null, bd = Infinity;
       B.posts.forEach(pp => {
@@ -339,6 +370,7 @@
       t.textContent = B.paused ? '繼續' : '暫停';
       return;
     }
+    if (t.dataset.act === 'begin-battle') { B.begin(); hudRefs.hireSig = ''; return; }
     if (t.dataset.act === 'retreat') { stopBattle(); U.show('chapters'); return; }
 
     /* 結算 */
@@ -367,6 +399,11 @@
   window.addEventListener('keydown', e => {
     if (U.screen !== 'battle') return;
     const k = e.key.toLowerCase();
+    if (B.phase === 'deploy') {
+      if (k === 'z' || k === 'x' || k === 'c') { hireByKey(k.toUpperCase()); e.preventDefault(); }
+      else if (k === 'enter' || k === ' ') { B.begin(); hudRefs.hireSig = ''; e.preventDefault(); }
+      return;
+    }
     if (k === 'a' || e.key === 'ArrowLeft') { input.left = true; e.preventDefault(); }
     else if (k === 'd' || e.key === 'ArrowRight') { input.right = true; e.preventDefault(); }
     else if (k >= '1' && k <= '4') { B.cast(parseInt(k, 10) - 1); e.preventDefault(); }

@@ -12,7 +12,7 @@ G.CHAPTERS = [
     sub: '語言碎裂之處',
     tier: 1,
     motif: 'ziggurat',
-    palette: { sky: '#2B2418', far: '#3A2F20', mid: '#4A3A26', near: '#241C13', ground: '#3E3222', accent: '#2C4D8E', fog: '#6B5334' },
+    palette: { field: '#3A3220', field2: '#4C4129', road: '#AE8E58', roadEdge: '#6B5334', prop: '#5E4E30', sky: '#2B2418', far: '#3A2F20', mid: '#4A3A26', near: '#241C13', ground: '#3E3222', accent: '#2C4D8E', fog: '#6B5334' },
     lore: '人們曾經共用一種語言，於是他們動手蓋一座通到天上的塔。塔沒有蓋完，' +
           '語言就散了。散掉的不是詞，是「同一件事」這個共識。' +
           '現在塔還在，一層一層往上長，每一層說著彼此聽不懂的話。',
@@ -28,7 +28,7 @@ G.CHAPTERS = [
     sub: '對準獵戶座的三座石山',
     tier: 2,
     motif: 'pyramid',
-    palette: { sky: '#2A2415', far: '#4A3D22', mid: '#6B5730', near: '#2A2113', ground: '#5A4826', accent: '#D8A33C', fog: '#8A6E3A' },
+    palette: { field: '#463A1E', field2: '#5C4B28', road: '#C9AA69', roadEdge: '#7E6634', prop: '#705C2E', sky: '#2A2415', far: '#4A3D22', mid: '#6B5730', near: '#2A2113', ground: '#5A4826', accent: '#D8A33C', fog: '#8A6E3A' },
     lore: '三座金字塔的位置，和獵戶座腰帶的三顆星幾乎一樣。' +
           '有人說那是巧合，有人說那是地址。' +
           '若是地址，那就有人打算收信；若有人收信，信早就寄出去了。',
@@ -44,7 +44,7 @@ G.CHAPTERS = [
     sub: '只有從天上才看得懂的畫',
     tier: 3,
     motif: 'mesa',
-    palette: { sky: '#33241C', far: '#5C3B29', mid: '#7E5334', near: '#2C1D15', ground: '#6E4628', accent: '#C85A32', fog: '#9C6A40' },
+    palette: { field: '#3E2A1C', field2: '#553924', road: '#BA7C4C', roadEdge: '#7A4E2E', prop: '#6A4429', sky: '#33241C', far: '#5C3B29', mid: '#7E5334', near: '#2C1D15', ground: '#6E4628', accent: '#C85A32', fog: '#9C6A40' },
     lore: '地上刻了幾百條線、幾十隻動物，每一筆都長達數公里。' +
           '站在地面上你什麼都看不出來，走上去只覺得是一條路。' +
           '要離開地面到足夠高，那些線才會突然變成一隻蜂鳥。',
@@ -60,7 +60,7 @@ G.CHAPTERS = [
     sub: '一夜之間沉下去的城',
     tier: 4,
     motif: 'ruins_sea',
-    palette: { sky: '#0F2230', far: '#153648', mid: '#1D4D63', near: '#0A1822', ground: '#16303C', accent: '#3FB8C8', fog: '#2C6A7E' },
+    palette: { field: '#122F3E', field2: '#17414F', road: '#4E8E9C', roadEdge: '#1D5566', prop: '#1E4C5C', sky: '#0F2230', far: '#153648', mid: '#1D4D63', near: '#0A1822', ground: '#16303C', accent: '#3FB8C8', fog: '#2C6A7E' },
     lore: '柏拉圖寫過一座城，強盛、富有、然後在一天一夜之間沉入海裡。' +
           '他說那是真的。兩千年來沒有人找到它，也沒有人願意說它不存在。' +
           '因為每個時代都需要一座「本來可以更好，卻自己毀掉」的城。',
@@ -76,7 +76,7 @@ G.CHAPTERS = [
     sub: '會走路的石像',
     tier: 5,
     motif: 'moai',
-    palette: { sky: '#20242A', far: '#333A40', mid: '#4B545B', near: '#181B1F', ground: '#3C4348', accent: '#7FA8B8', fog: '#5E6A72' },
+    palette: { field: '#2E3A36', field2: '#3C4B45', road: '#8C9C94', roadEdge: '#4F5F58', prop: '#47564F', sky: '#20242A', far: '#333A40', mid: '#4B545B', near: '#181B1F', ground: '#3C4348', accent: '#7FA8B8', fog: '#5E6A72' },
     lore: '島民說摩艾是「自己走過去的」。考古學家用繩子左右擺盪，' +
           '真的讓十噸的石像一步一步搖著前進。傳說沒有騙人，' +
           '只是它省略了那條繩子，還有拉繩子的所有人。',
@@ -92,7 +92,7 @@ G.CHAPTERS = [
     sub: '把儀表板弄壞的那片海',
     tier: 6,
     motif: 'storm_sea',
-    palette: { sky: '#161B2E', far: '#222B4A', mid: '#313D66', near: '#0D1120', ground: '#1C2440', accent: '#8E6BE0', fog: '#4A5690' },
+    palette: { field: '#161C30', field2: '#212944', road: '#5C6A92', roadEdge: '#2B3557', prop: '#2C3656', sky: '#161B2E', far: '#222B4A', mid: '#313D66', near: '#0D1120', ground: '#1C2440', accent: '#8E6BE0', fog: '#4A5690' },
     lore: '飛機在那裡失聯，羅盤在那裡轉圈。統計學家算過，' +
           '那片海的失蹤率其實和別處差不多。但故事不需要統計，' +
           '故事只需要一個地方，讓所有說不清楚的事情有處可去。',
@@ -108,7 +108,7 @@ G.CHAPTERS = [
     sub: '一年只對準兩次的鎖',
     tier: 7,
     motif: 'henge',
-    palette: { sky: '#2A1E2C', far: '#463049', mid: '#67456A', near: '#1B1220', ground: '#3A2A3E', accent: '#E0B23C', fog: '#7A5A80' },
+    palette: { field: '#2A2030', field2: '#3B2D43', road: '#9C82A2', roadEdge: '#56405E', prop: '#4A3752', sky: '#2A1E2C', far: '#463049', mid: '#67456A', near: '#1B1220', ground: '#3A2A3E', accent: '#E0B23C', fog: '#7A5A80' },
     lore: '幾十噸的石頭從兩百公里外被搬來，排成一個圈，' +
           '對準夏至的日出與冬至的日落。它不是神殿也不是墳場，' +
           '它是一台鐘——一台只有在對的那一天，才會走一格的鐘。',

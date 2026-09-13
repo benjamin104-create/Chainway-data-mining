@@ -36,6 +36,10 @@
 
 * { box-sizing: border-box; }
 
+/* 作者樣式裡的 display 會蓋過瀏覽器預設的 [hidden]{display:none}，
+   所以冷卻遮罩、開戰鈕、導覽列都關不掉。這行是必要的。 */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--ink);
@@ -309,9 +313,10 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .towers-left { font-family: var(--f-pixel); font-size: 11px; color: var(--blood); }
 .battle-top .spacer { margin-left: auto; }
 canvas#screen {
-  display: block; width: 100%; height: auto; aspect-ratio: 960 / 420;
-  image-rendering: pixelated; background: #12100D;
+  display: block; width: 100%; height: auto; aspect-ratio: 960 / 600;
+  background: #12100D;
   border: 1px solid var(--line);
+  touch-action: manipulation;
 }
 .hud {
   display: grid; grid-template-columns: 200px 1fr auto; gap: 14px; align-items: center;
