@@ -38,7 +38,7 @@
           '<div class="vital">' +
             '<div class="vital-row"><span>' + cls.name + '</span><span id="hpText"></span></div>' +
             '<div class="hpbar"><i id="hpFill"></i></div>' +
-            '<div class="vital-row"><span id="goldRun">+0</span><span id="killRun">0 擊殺</span></div>' +
+            '<div class="vital-row"><span id="goldRun">現場資金 0</span><span id="killRun">0 擊殺</span></div>' +
           '</div>' +
           '<div class="skillbar">' + slots + '</div>' +
           '<div class="consumables">' +
@@ -48,8 +48,14 @@
             '<button class="cons" data-hold="right" aria-label="向右移動">▶</button>' +
           '</div>' +
         '</div>' +
+        '<div class="hirebar" id="hirebar">' +
+          '<div class="hire-head"><span class="hire-post" id="hirePostName">僱用所</span>' +
+          '<span class="hire-purse" id="hirePurse"></span></div>' +
+          '<div class="hire-opts" id="hireOpts"></div>' +
+        '</div>' +
         '<p class="controls-hint"><kbd>A</kbd><kbd>D</kbd>／<kbd>←</kbd><kbd>→</kbd> 移動　' +
-        '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd>／<kbd>E</kbd> 消耗品　<kbd>空白鍵</kbd> 暫停。' +
+        '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd>／<kbd>E</kbd> 消耗品　' +
+        '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。' +
         '普通攻擊自動進行；先拆掉哨塔，主塔才會失去無敵。</p>' +
       '</div>';
 
@@ -63,6 +69,11 @@
       nPotion: document.getElementById('nPotion'),
       nCharge: document.getElementById('nCharge'),
       pauseBtn: document.getElementById('pauseBtn'),
+      hirebar: document.getElementById('hirebar'),
+      hirePostName: document.getElementById('hirePostName'),
+      hirePurse: document.getElementById('hirePurse'),
+      hireOpts: document.getElementById('hireOpts'),
+      hireSig: '',
       sks: Array.from(document.querySelectorAll('.sk'))
     };
   }
@@ -103,13 +114,15 @@
     const pct = Math.max(0, h.hp) / h.maxHp * 100;
     hudRefs.hpFill.style.width = pct.toFixed(1) + '%';
     hudRefs.hpText.textContent = Math.max(0, Math.round(h.hp)) + ' / ' + h.maxHp + (h.shield > 0 ? '  +' + Math.round(h.shield) : '');
-    hudRefs.goldRun.textContent = '+' + B.goldEarned + ' 金幣';
+    hudRefs.goldRun.textContent = '現場資金 ' + B.purse;
     hudRefs.killRun.textContent = B.kills + ' 擊殺';
     const alive = B.towers.filter(t => !t.dead).length;
     hudRefs.towersLeft.textContent = '敵塔 ' + alive + ' / ' + B.towers.length;
     hudRefs.waveInfo.textContent = '第 ' + B.waveNo + ' 波　·　下一波 ' + Math.ceil(Math.max(0, B.waveTimer)) + ' 秒';
     hudRefs.nPotion.textContent = B.consumables.c_potion;
     hudRefs.nCharge.textContent = B.consumables.c_charge;
+
+    updateHireBar();
 
     hudRefs.sks.forEach((el, i) => {
       const def = B.skillDefs[i];
@@ -134,13 +147,79 @@
     });
   }
 
+  function updateHireBar() {
+    const post = B.activePost;
+    hudRefs.hirePurse.textContent = B.purse + ' 金幣';
+
+    if (!post) {
+      // 不在據點旁邊：指出最近的一個在哪個方向
+      let near = null, bd = Infinity;
+      B.posts.forEach(pp => {
+        if (pp.stock.every(n => n <= 0)) return;
+        const d = Math.abs(pp.x - B.hero.x);
+        if (d < bd) { bd = d; near = pp; }
+      });
+      const sig = 'far:' + (near ? near.idx : 'none');
+      if (hudRefs.hireSig !== sig) {
+        hudRefs.hireSig = sig;
+        hudRefs.hirebar.classList.add('away');
+        hudRefs.hirePostName.textContent = near ? near.name : '僱用所';
+        hudRefs.hireOpts.innerHTML = near
+          ? '<span class="hire-away">在' + (near.x > B.hero.x ? '右' : '左') + '方，走過去就能僱用</span>'
+          : '<span class="hire-away">這一關的僱用所都調度完了</span>';
+      }
+      return;
+    }
+
+    const sig = post.idx + ':' + post.stock.join(',');
+    if (hudRefs.hireSig !== sig) {
+      hudRefs.hireSig = sig;
+      hudRefs.hirebar.classList.remove('away');
+      hudRefs.hirePostName.textContent = post.name;
+      hudRefs.hireOpts.innerHTML = post.offers.map((id, i) => {
+        const hire = G.getHire(id);
+        const cost = B.hireCostAt(id, post);
+        const left = post.stock[i];
+        return '<button class="hire" data-hire="' + id + '" title="' + hire.desc + '">' +
+          '<span class="hire-key">' + hire.key + '</span>' +
+          G.icon(hire.icon) +
+          '<span class="hire-body"><b>' + hire.name + '</b>' +
+          '<span class="hire-cat">' + G.HIRE_CATS[hire.cat].name + '</span></span>' +
+          '<span class="hire-cost">' + cost + '</span>' +
+          '<span class="hire-stock">' + (left > 0 ? '×' + left : '無') + '</span>' +
+        '</button>';
+      }).join('');
+    }
+    // 每幀只更新買不買得起
+    Array.from(hudRefs.hireOpts.children).forEach((el, i) => {
+      if (!el.dataset || !el.dataset.hire) return;
+      const cost = B.hireCostAt(el.dataset.hire, post);
+      el.disabled = post.stock[i] <= 0 || B.purse < cost;
+    });
+  }
+
+  function tryHire(id) {
+    const r = B.hire(id);
+    if (!r.ok) { U.toast(r.why); return; }
+    hudRefs.hireSig = '';        // 逼它重畫庫存
+    U.toast('僱用　' + r.hire.name + '　−' + r.cost);
+  }
+
+  function hireByKey(key) {
+    const post = B.activePost;
+    if (!post) { U.toast('要站到僱用所旁邊'); return; }
+    const id = post.offers.find(x => G.getHire(x).key === key);
+    if (id) tryHire(id);
+  }
+
   function endBattle() {
     stopBattle();
     const stage = B.stage;
     const win = B.over === 'win';
     const firstClear = win && !G.S.cleared[stage.key];
 
-    let gold = win ? B.goldEarned + stage.reward.gold : Math.round(B.goldEarned * 0.5);
+    const kept = Math.max(0, B.goldEarned - B.goldSpent);
+    let gold = win ? kept + stage.reward.gold : Math.round(kept * 0.5);
     gold = Math.round(gold * (1 + B.stats.goldFind));
     let sp = 0, xp = 0, levels = 0;
 
@@ -166,7 +245,8 @@
     G.save();
     U.renderTop();
 
-    U.showResult({ result: B.over, stage, gold, sp, xp, levels, kills: B.kills, time: B.time });
+    U.showResult({ result: B.over, stage, gold, sp, xp, levels, kills: B.kills,
+                   time: B.time, earned: B.goldEarned, spent: B.goldSpent });
   }
 
   function closeResult() {
@@ -253,6 +333,7 @@
     /* 戰鬥中 */
     if (t.dataset.cast != null) { B.cast(parseInt(t.dataset.cast, 10)); return; }
     if (t.dataset.consUse) { B.useConsumable(t.dataset.consUse); return; }
+    if (t.dataset.hire) { tryHire(t.dataset.hire); return; }
     if (t.dataset.act === 'pause') {
       B.paused = !B.paused;
       t.textContent = B.paused ? '繼續' : '暫停';
@@ -289,6 +370,7 @@
     if (k === 'a' || e.key === 'ArrowLeft') { input.left = true; e.preventDefault(); }
     else if (k === 'd' || e.key === 'ArrowRight') { input.right = true; e.preventDefault(); }
     else if (k >= '1' && k <= '4') { B.cast(parseInt(k, 10) - 1); e.preventDefault(); }
+    else if (k === 'z' || k === 'x' || k === 'c') { hireByKey(k.toUpperCase()); e.preventDefault(); }
     else if (k === 'q') { B.useConsumable('c_potion'); e.preventDefault(); }
     else if (k === 'e') { B.useConsumable('c_charge'); e.preventDefault(); }
     else if (k === ' ') {

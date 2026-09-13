@@ -351,6 +351,48 @@ canvas#screen {
 .cons .n { font-family: var(--f-pixel); font-size: 14px; color: var(--ochre); }
 .cons:disabled { opacity: .35; }
 
+/* ══════ 戰場僱用 ══════ */
+.hirebar {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 11px 14px;
+  background: linear-gradient(180deg, #241D12, var(--ink-2));
+  border: 1px solid var(--line); border-top: none;
+}
+.hirebar.away { opacity: .55; }
+.hire-head { display: flex; align-items: baseline; gap: 10px; }
+.hire-post { font-family: var(--f-serif); font-size: 13px; color: var(--ochre); letter-spacing: .08em; }
+.hire-purse {
+  margin-left: auto; font-family: var(--f-pixel); font-size: 12px; color: var(--ochre);
+  font-variant-numeric: tabular-nums;
+}
+.hire-opts { display: flex; gap: 7px; flex-wrap: wrap; }
+.hire-away { font-size: 12px; color: var(--parch-mute); }
+.hire {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px 7px 8px;
+  border: 1px solid var(--line); background: var(--ink-2);
+  min-width: 168px; text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.hire:hover:not(:disabled) { border-color: var(--ochre); background: var(--ink-3); }
+.hire:disabled { opacity: .38; cursor: not-allowed; }
+.hire-key {
+  font-family: var(--f-pixel); font-size: 10px; color: var(--parch-mute);
+  border: 1px solid var(--line); padding: 2px 5px; background: var(--ink);
+}
+.hire svg.ic { width: 20px; height: 20px; flex: none; }
+.hire .ic path, .hire .ic circle, .hire .ic rect, .hire .ic line, .hire .ic polyline, .hire .ic polygon {
+  stroke: var(--parch-dim); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.hire:hover:not(:disabled) .ic path, .hire:hover:not(:disabled) .ic circle,
+.hire:hover:not(:disabled) .ic rect, .hire:hover:not(:disabled) .ic line,
+.hire:hover:not(:disabled) .ic polyline, .hire:hover:not(:disabled) .ic polygon { stroke: var(--ochre); }
+.hire-body { display: flex; flex-direction: column; line-height: 1.35; margin-right: auto; }
+.hire-body b { font-size: 13px; font-weight: 500; }
+.hire-cat { font-size: 10px; color: var(--parch-mute); letter-spacing: .1em; }
+.hire-cost { font-family: var(--f-pixel); font-size: 12px; color: var(--ochre); }
+.hire-stock { font-family: var(--f-pixel); font-size: 10px; color: var(--parch-mute); min-width: 18px; text-align: right; }
+
 .controls-hint { font-size: 11.5px; color: var(--parch-mute); padding: 8px 2px; }
 .controls-hint kbd {
   font-family: var(--f-pixel); font-size: 10px; padding: 2px 5px;
@@ -403,6 +445,7 @@ canvas#screen {
 }
 @media (max-width: 520px) {
   .app { padding-inline: 12px; }
+  .hire { min-width: 0; flex: 1 1 100%; }
   .sk { width: 48px; height: 48px; }
   .skillbar { gap: 5px; }
 }

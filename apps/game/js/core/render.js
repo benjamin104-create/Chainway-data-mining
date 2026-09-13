@@ -201,6 +201,9 @@ R.draw = function () {
   /* 終點距離指示 */
   drawFinishLine(ctx, cam, B);
 
+  /* 僱用所 */
+  if (B.posts) B.posts.forEach(pp => drawPost(ctx, pp, cam, B));
+
   /* 實體：先建築後單位 */
   const list = B.entities.filter(e => !e.dead || e === B.hero);
   list.filter(e => e.isStructure).forEach(e => drawStructure(ctx, e, cam, p));
@@ -290,6 +293,7 @@ function drawFinishLine(ctx, cam, B) {
 function drawStructure(ctx, e, cam, p) {
   const x = Math.round(e.x - cam);
   if (x < -120 || x > W + 120) return;
+  if (e.isGear) { drawGear(ctx, e, x); return; }
   const h = e.isWall ? 70 : e.isTurret ? 78 : (e.faction === 'ally' ? 108 : (e.isMain ? 136 : 104));
   const w = e.isWall ? 18 : e.isTurret ? 30 : (e.isMain ? 64 : 52);
   const top = GY - h;
@@ -368,6 +372,12 @@ function drawUnit(ctx, e, cam) {
     ctx.fillRect(x + wdir * s * 0.5, y - s * 0.35, wdir * s * 0.7, 4);
   } else {
     ctx.fillRect(x + wdir * s * 0.55, y + s * 0.1, 3, s * 0.65);
+  }
+
+  if (e.kind === 'hired') {
+    ctx.fillStyle = '#E0B23C';
+    ctx.fillRect(x - 3, y - 7, 6, 2);
+    ctx.fillRect(x - 1, y - 10, 2, 5);
   }
 
   if (e.isBoss) {
@@ -529,6 +539,106 @@ function drawEffect(ctx, f, cam) {
     }
   }
   ctx.restore();
+}
+
+/* ── 僱用所 ── */
+function drawPost(ctx, pp, cam, B) {
+  const x = Math.round(pp.x - cam);
+  if (x < -80 || x > W + 80) return;
+  const active = B.activePost === pp;
+  const empty = pp.stock.every(n => n <= 0);
+  const t = B.time;
+
+  ctx.save();
+  ctx.globalAlpha = empty ? 0.34 : 1;
+
+  // 地上的光圈
+  if (active) {
+    ctx.globalAlpha = 0.28 + Math.sin(t * 4) * 0.1;
+    ctx.fillStyle = '#E0B23C';
+    ctx.beginPath(); ctx.ellipse(x, GY, 74, 20, 0, 0, 6.3); ctx.fill();
+    ctx.globalAlpha = empty ? 0.34 : 1;
+  }
+
+  // 柱
+  ctx.fillStyle = '#5A4628';
+  ctx.fillRect(x - 20, GY - 44, 4, 44);
+  ctx.fillRect(x + 16, GY - 44, 4, 44);
+  // 雨棚
+  ctx.fillStyle = '#8A6A1E';
+  ctx.beginPath();
+  ctx.moveTo(x - 30, GY - 44); ctx.lineTo(x, GY - 60); ctx.lineTo(x + 30, GY - 44);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#C09A54';
+  for (let i = 0; i < 4; i++) ctx.fillRect(x - 28 + i * 15, GY - 44, 7, 4);
+  // 箱
+  ctx.fillStyle = '#6E5636';
+  ctx.fillRect(x - 14, GY - 16, 16, 16);
+  ctx.fillStyle = '#4A3A24';
+  ctx.fillRect(x - 14, GY - 10, 16, 3);
+  // 燈
+  const lit = 0.6 + Math.sin(t * 3) * 0.2;
+  ctx.globalAlpha = (empty ? 0.34 : 1) * lit;
+  ctx.fillStyle = '#FFD469';
+  ctx.fillRect(x + 8, GY - 34, 6, 8);
+  ctx.globalAlpha = (empty ? 0.34 : 1) * lit * 0.3;
+  ctx.fillRect(x + 2, GY - 40, 18, 20);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  label(ctx, x, GY - 70, pp.name + (empty ? '（已調度完）' : ''));
+  if (active && !empty) {
+    ctx.font = '11px "Noto Sans TC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFD469';
+    ctx.fillText('可僱用', x, GY - 84);
+  }
+}
+
+/* ── 武具 ── */
+function drawGear(ctx, e, x) {
+  const s = e.size;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.34)';
+  ctx.beginPath(); ctx.ellipse(x, GY + 2, s * 0.9, s * 0.28, 0, 0, 6.3); ctx.fill();
+  const col = e.hitFlash > 0 ? '#FFF3D0' : (e.color || '#C09A54');
+
+  if (e.gearKind === 'h_barricade' || e.isBlocker) {
+    ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.lineCap = 'square';
+    ctx.beginPath();
+    ctx.moveTo(x - s, GY); ctx.lineTo(x + s, GY - s * 1.5);
+    ctx.moveTo(x + s, GY); ctx.lineTo(x - s, GY - s * 1.5);
+    ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.fillRect(x - s, GY - s * 0.85, s * 2, 4);
+  } else if (e.gearKind === 'h_oil') {
+    ctx.fillStyle = '#4A3A24';
+    ctx.fillRect(x - s * 0.8, GY - s, s * 1.6, s);
+    ctx.fillStyle = col;
+    ctx.fillRect(x - s * 0.9, GY - s - 4, s * 1.8, 5);
+    const f = 0.7 + Math.sin(G.B.time * 9) * 0.3;
+    ctx.fillStyle = '#E0862A';
+    ctx.fillRect(x - s * 0.4, GY - s - 6 - 10 * f, s * 0.8, 10 * f);
+    ctx.fillStyle = '#FFD469';
+    ctx.fillRect(x - s * 0.18, GY - s - 4 - 8 * f, s * 0.36, 7 * f);
+  } else {
+    // 戰旗
+    ctx.fillStyle = '#5A4628';
+    ctx.fillRect(x - 2, GY - s * 3.2, 4, s * 3.2);
+    const wav = Math.sin(G.B.time * 3) * 3;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x + 2, GY - s * 3.1);
+    ctx.lineTo(x + 2 + s * 1.5, GY - s * 2.8 + wav);
+    ctx.lineTo(x + 2, GY - s * 2.0);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.16 + Math.sin(G.B.time * 2.2) * 0.05;
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, GY, (e.aura ? e.aura.radius : 200), (e.aura ? e.aura.radius : 200) * 0.3, 0, 0, 6.3); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  bar(ctx, x, GY - s * 2 - 14, Math.max(34, s * 2), 4, e.hp / e.maxHp, '#7FBF6A');
 }
 
 function bar(ctx, cx, y, w, h, pct, color) {

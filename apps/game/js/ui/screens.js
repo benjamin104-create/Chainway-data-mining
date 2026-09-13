@@ -86,6 +86,9 @@ U.renderIntro = function () {
         '每一處都留著一座還在運轉的塔，塔裡的守衛守著一個沒有人記得的答案。</p>' +
         '<p>你是一顆被派去拆塔的橘色小東西。你有一把劍、一面盾，' +
         '和一條會跟著你往前推的線。城門在你身後，主塔在最前面，中間全是別人。</p>' +
+        '<p>戰場上有幾個僱用所。殺出來的錢可以當場僱傭兵、魔法師、白魔道士，' +
+        '買攻城車與彈弩台，或是架起拒馬、火油槽與戰旗——' +
+        '但花掉的錢不會跟你回家。</p>' +
         '<p style="color:var(--parch);">拆完七座塔，你會知道那個答案。也可能只會知道，' +
         '這些塔本來就不是蓋給人懂的。</p>' +
       '</div>' +
@@ -95,7 +98,7 @@ U.renderIntro = function () {
       '<p class="controls-hint" style="margin-top:20px">' +
         '操作：<kbd>A</kbd><kbd>D</kbd> 或 <kbd>←</kbd><kbd>→</kbd> 移動　' +
         '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd> 油罐　<kbd>E</kbd> 火藥包　' +
-        '<kbd>空白鍵</kbd> 暫停。普通攻擊會自動進行。' +
+        '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。普通攻擊會自動進行。' +
       '</p>' +
     '</div>';
 };
@@ -352,6 +355,10 @@ U.showResult = function (data) {
   } else {
     rows.push(['帶回的金幣', '+' + G.fmtGold(data.gold)]);
     if (data.xp) rows.push(['經驗（打輸也算）', '+' + data.xp]);
+  }
+  if (data.spent) {
+    rows.push(['戰場收入', G.fmtGold(data.earned)]);
+    rows.push(['僱用支出', '−' + G.fmtGold(data.spent)]);
   }
   rows.push(['擊殺', String(data.kills)]);
   rows.push(['耗時', Math.floor(data.time / 60) + ':' + String(Math.floor(data.time % 60)).padStart(2, '0')]);

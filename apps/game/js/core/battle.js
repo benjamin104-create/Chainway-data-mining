@@ -51,6 +51,12 @@ B.init = function (stageKey) {
   B.waveNo = 0;
   B.kills = 0;
   B.goldEarned = 0;
+  B.goldSpent = 0;
+  B.purse = Math.round(90 * (1 + stage.chapterIdx * 0.3));   // 出發時的現場資金
+  B.activePost = null;
+  B.auras = [];
+  B.blocker = null;
+  B.blockX = null;
   B.respawnTimer = 0;
   B.paused = false;
 
@@ -121,6 +127,15 @@ B.init = function (stageKey) {
     B.boss = null;
   }
 
+  /* 僱用所：城門附近一個，每座敵塔前方各一個。
+     越深處的據點貨色越好、也越便宜，但要先把前面的塔拆掉才走得到。 */
+  B.posts = [{ x: 260, idx: 0 }].concat(
+    B.towers.map((t, i) => ({ x: Math.round(t.x - 300), idx: i + 1 }))
+  ).map(pp => {
+    const def = G.POST_OFFERS[Math.min(pp.idx, G.POST_OFFERS.length - 1)];
+    return { x: pp.x, idx: pp.idx, name: def.name, offers: def.offers.slice(), stock: def.stock.slice() };
+  });
+
   updateMainInvuln();
   return B;
 };
@@ -154,7 +169,7 @@ function allyBuffMods(key) {
 }
 
 B.heroDmg = function () {
-  let d = B.stats.dmg * (1 + heroBuffMods('dmg'));
+  let d = B.stats.dmg * (1 + heroBuffMods('dmg') + auraBonus(B.hero, 'dmg'));
   if (B.flags.has('rooted') && B.stillTimer >= 1) d *= 1.5;
   return d;
 };
@@ -193,7 +208,11 @@ function dealDamage(src, tgt, amount, opt) {
     if (B.flags.has('execute') && !tgt.isStructure && tgt.hp / tgt.maxHp < 0.25) dmg *= 1.8;
     if (tgt.isStructure) dmg *= (1 + B.stats.siege);
   }
-  if (!fromHero && tgt.isStructure && src && src.faction === 'ally' && src.kind === 'minion') dmg *= 3;
+  if (!fromHero && src && src.faction === 'ally' && tgt.isStructure) {
+    dmg *= (src.siegeMul != null ? src.siegeMul
+          : (src.kind === 'minion' || src.kind === 'hired') ? 3 : 1);
+  }
+  if (!fromHero && src && src.unitMul != null && !tgt.isStructure) dmg *= src.unitMul;
   if (tgt.vulnUntil > B.time) dmg *= (1 + tgt.vuln);
 
   dmg = mitigate(dmg, tgt.armor);
@@ -260,6 +279,7 @@ function checkDeath(e, killer) {
     B.kills++;
     const g = Math.round((e.isStructure ? 45 : e.isBoss ? 160 : 7) * (1 + B.stage.chapterIdx * 0.3) * (1 + B.stats.goldFind));
     B.goldEarned += g;
+    B.purse += g;
     pushText(e.x, -(e.size + 26), '+' + g, '#E0B23C', false);
 
     if (killer === B.hero && B.flags.has('resetOnKill')) {
@@ -356,6 +376,10 @@ function nearestStructure(e, maxRange) {
 
 /* 前方目標：小兵往前推，優先打路上的敵人，否則打最近的敵方建築 */
 function marchTarget(e) {
+  // 被路障擋住的敵人：除非有東西貼著它，否則先拆路障
+  if (e.faction === 'enemy' && B.blocker && !B.blocker.dead && Math.abs(e.x - B.blocker.x) < 60) {
+    return nearestHostile(e, 70, false) || B.blocker;
+  }
   const near = nearestHostile(e, 230, false);
   if (near) return near;
   const want = hostiles(e.faction);
@@ -432,6 +456,77 @@ function spawnEnemy(key, x, i) {
   return e;
 }
 B.spawnMinion = spawnMinion;
+
+/* ══════════ 僱用 ══════════ */
+function spawnHired(hire, x) {
+  const u = hire.unit;
+  const sc = B.stage.scale;
+  const hpMul = sc * (1 + B.stats.minionHp);
+  const dmgMul = sc * (1 + B.stats.minionDmg);
+  const e = {
+    id: nid(), kind: 'hired', faction: 'ally', unit: hire.id, hireId: hire.id,
+    x, z: (Math.random() - 0.5) * 18,
+    hp: Math.round(u.hp * hpMul), maxHp: Math.round(u.hp * hpMul),
+    dmg: u.dmg * dmgMul, speed: u.speed, range: u.range,
+    size: u.size, color: u.color, kind2: u.kind, name: hire.name,
+    atkTimer: 0, atkSpd: u.atkSpd || 0.9,
+    armor: 4 + B.stage.chapterIdx * 1.5, dead: false,
+    facing: 1, bob: Math.random() * 6, hitFlash: 0,
+    siegeMul: u.siegeMul, unitMul: u.unitMul, splash: u.splash,
+    pulse: u.pulse ? { radius: u.pulse.radius, mult: u.pulse.mult, tick: u.pulse.tick, t: 0 } : null,
+    heal: u.heal, healRadius: u.healRadius
+  };
+  B.entities.push(e);
+  return e;
+}
+
+function placeGear(hire, x) {
+  const g = hire.gear;
+  const e = mkStructure('ally', Math.round(x), g.hp * B.stage.scale, 0, 0, hire.name, 1);
+  e.isGear = true;
+  e.gearKind = hire.id;
+  e.size = g.size;
+  e.armor = 10 + B.stage.chapterIdx;
+  e.isBlocker = !!g.blocker;
+  e.burnAura = g.burn || null;
+  e.aura = g.aura || null;
+  e.color = '#C09A54';
+  B.entities.push(e);
+  return e;
+}
+
+B.hireCostAt = function (hireId, post) {
+  return G.hireCost(G.getHire(hireId), post.idx, B.stage.chapterIdx);
+};
+
+B.hire = function (hireId) {
+  if (B.over || B.paused) return { ok: false, why: '現在不能僱用' };
+  if (B.hero.dead) return { ok: false, why: '你倒下了，等重生' };
+  const post = B.activePost;
+  if (!post) return { ok: false, why: '要站到僱用所旁邊' };
+  const slot = post.offers.indexOf(hireId);
+  if (slot < 0) return { ok: false, why: '這個據點沒有這一項' };
+  if (post.stock[slot] <= 0) return { ok: false, why: '這裡已經調度完了' };
+  const hire = G.getHire(hireId);
+  const cost = B.hireCostAt(hireId, post);
+  if (B.purse < cost) return { ok: false, why: '現場資金不足' };
+
+  B.purse -= cost;
+  B.goldSpent += cost;
+  post.stock[slot]--;
+  if (hire.gear) placeGear(hire, B.hero.x);
+  else spawnHired(hire, B.hero.x + 26);
+  pushText(B.hero.x, -54, '-' + cost, '#E0B23C', false);
+  B.effects.push({ type: 'ring', x: B.hero.x, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
+  return { ok: true, hire: hire, cost: cost };
+};
+
+/* 光環：戰旗之類的武具 */
+function auraBonus(e, key) {
+  let v = 0;
+  for (const a of B.auras) if (dist(a, e) < a.aura.radius) v += (a.aura[key] || 0);
+  return v;
+}
 
 /* ══════════ 技能 ══════════ */
 B.cast = function (slot) {
@@ -634,6 +729,20 @@ B.update = function (dt, input) {
   }
   B.buffs = B.buffs.filter(b => b.until > B.time);
 
+  /* 場上的武具：光環與路障 */
+  B.auras.length = 0;
+  B.blocker = null;
+  for (const o of B.entities) {
+    if (o.dead || o.faction !== 'ally') continue;
+    if (o.aura) B.auras.push(o);
+    if (o.isBlocker && (!B.blocker || o.x > B.blocker.x)) B.blocker = o;
+  }
+  B.blockX = B.blocker ? B.blocker.x : null;
+
+  /* 站在哪個僱用所旁邊 */
+  B.activePost = (B.over || B.hero.dead) ? null :
+    (B.posts.find(pp => Math.abs(pp.x - B.hero.x) < 120) || null);
+
   /* 英雄 */
   const h = B.hero;
   if (h.dead) {
@@ -765,6 +874,19 @@ B.update = function (dt, input) {
     if (e.expire && B.time > e.expire) { e.hp = 0; checkDeath(e, null); continue; }
 
     if (e.isStructure) {
+      if (e.burnAura) {
+        e.burnTick = (e.burnTick || 0) + dt;
+        if (e.burnTick >= 0.4) {
+          e.burnTick = 0;
+          const tickDmg = e.burnAura.dps * 0.4 * B.stage.scale;
+          for (const o of B.entities) {
+            if (o.faction !== 'enemy' || o.dead || o.invuln || o.isStructure) continue;
+            if (dist(o, e) < e.burnAura.radius) dealDamage(e, o, tickDmg, { noCrit: true });
+          }
+          B.particles.push({ x: e.x + (Math.random() - .5) * 40, z: e.z, y: -10,
+            vx: (Math.random() - .5) * 20, vy: -70, vz: 0, color: '#E0862A', t: 0, dur: .5, size: 2 });
+        }
+      }
       e.atkTimer -= dt;
       if (e.atkTimer <= 0 && e.dmg > 0) {
         const tgt = nearestHostile(e, e.range, false);
@@ -781,16 +903,50 @@ B.update = function (dt, input) {
     }
 
     /* 小兵 / 頭目 AI */
-    if (B.flags.has('regen') && e.faction === 'ally' && e.kind === 'minion') {
+    if (B.flags.has('regen') && e.faction === 'ally' && (e.kind === 'minion' || e.kind === 'hired')) {
       e.regenTimer = (e.regenTimer || 0) + dt;
       if (e.regenTimer >= 3) { e.regenTimer = 0; e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.06); }
+    }
+
+    /* 白魔道士：不打人，只補血 */
+    if (e.heal) {
+      e.healTimer = (e.healTimer || 0) + dt;
+      if (e.healTimer >= 1.2) {
+        e.healTimer = 0;
+        let target = null, worst = 0.999;
+        for (const o of B.entities) {
+          if (o.dead || o.faction !== 'ally' || o.isStructure) continue;
+          if (dist(o, e) > e.healRadius) continue;
+          const f = o.hp / o.maxHp;
+          if (f < worst) { worst = f; target = o; }
+        }
+        if (target) {
+          const amt = Math.round(target.maxHp * e.heal);
+          target.hp = Math.min(target.maxHp, target.hp + amt);
+          pushText(target.x, -(target.size + 18), '+' + amt, '#8FE08A', false);
+          B.effects.push({ type: 'ring', x: e.x, z: e.z, r: 0, max: 56, t: 0, dur: 0.3, color: '#8FE08A' });
+        }
+      }
+    }
+
+    /* 鑽地機：邊走邊震 */
+    if (e.pulse) {
+      e.pulse.t += dt;
+      if (e.pulse.t >= e.pulse.tick) {
+        e.pulse.t = 0;
+        B.effects.push({ type: 'ring', x: e.x, z: e.z, r: e.pulse.radius * 0.4, max: e.pulse.radius, t: 0, dur: 0.25, color: '#B0703A' });
+        for (const o of B.entities) {
+          if (o.faction !== 'enemy' || o.dead || o.invuln || o.isStructure) continue;
+          if (dist(o, e) < e.pulse.radius) dealDamage(e, o, e.dmg * e.pulse.mult, { noCrit: true });
+        }
+      }
     }
 
     const tgt = marchTarget(e);
     const dir = e.faction === 'ally' ? 1 : -1;
     let speed = e.speed;
     if (e.slowUntil > B.time) speed *= (1 - e.slow);
-    if (e.faction === 'ally') speed *= (1 + allyBuffMods('moveSpd'));
+    if (e.faction === 'ally') speed *= (1 + allyBuffMods('moveSpd') + auraBonus(e, 'moveSpd'));
 
     if (!tgt) {
       e.x += dir * speed * dt;
@@ -810,13 +966,16 @@ B.update = function (dt, input) {
           e.swing = 0.15;
           let dmg = e.dmg;
           if (e.faction === 'ally') {
-            dmg *= (1 + allyBuffMods('dmg'));
+            dmg *= (1 + allyBuffMods('dmg') + auraBonus(e, 'dmg'));
             if (rallyOn && dist(e, h) < 180) dmg *= 1.25;
           }
-          if (e.range > 90) {
+          if (e.heal) {
+            /* 白魔道士不攻擊 */
+          } else if (e.range > 90) {
             B.projectiles.push({
               x: e.x + e.facing * 12, z: e.z, y: -e.size, vx: 0, vz: 0, homing: tgt,
-              speed: 280, dmg, src: e, faction: e.faction, pierce: 0, hits: [], size: 4,
+              speed: 280, dmg, src: e, splash: e.splash, faction: e.faction,
+              pierce: 0, hits: [], size: e.splash ? 6 : 4,
               color: e.color, life: 2.5
             });
           } else {
@@ -827,6 +986,10 @@ B.update = function (dt, input) {
     }
     if (e.swing > 0) e.swing -= dt;
     if (e.leashX != null && e.x < e.leashX) e.x = e.leashX;
+    // 路障：已經在它右邊的敵人過不去；本來就在左邊的不受影響
+    if (e.faction === 'enemy' && B.blockX != null && e.x >= B.blockX + 20) {
+      e.x = Math.max(e.x, B.blockX + 24);
+    }
 
     /* 頭目技能 */
     if (e.isBoss) {
@@ -860,6 +1023,13 @@ B.update = function (dt, input) {
       p.y += dy / len * p.speed * dt;
       if (len < 14) {
         dealDamage(p.src || null, p.homing, p.dmg, { noCrit: true });
+        if (p.splash) {
+          B.effects.push({ type: 'ring', x: p.x, z: p.z, r: 0, max: p.splash, t: 0, dur: 0.25, color: p.color });
+          for (const o of B.entities) {
+            if (o === p.homing || o.dead || o.invuln || o.isStructure || o.faction === p.faction) continue;
+            if (dist(p, o) < p.splash) dealDamage(p.src || null, o, p.dmg * 0.6, { noCrit: true });
+          }
+        }
         p.dead = true;
       }
     } else {
