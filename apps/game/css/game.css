@@ -463,7 +463,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .towers-left { font-family: var(--f-pixel); font-size: 11px; color: var(--blood); }
 .battle-top .spacer { margin-left: auto; }
 canvas#screen {
-  display: block; width: 100%; height: auto; aspect-ratio: 960 / 600;
+  display: block; width: 100%; height: auto; aspect-ratio: 960 / 720;
   background: #12100D;
   border: 1px solid var(--line);
   touch-action: manipulation;

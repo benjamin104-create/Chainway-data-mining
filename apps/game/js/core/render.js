@@ -6,7 +6,7 @@ window.G = window.G || {};
 const R = {};
 G.R = R;
 
-const W = 960, H = 600;
+const W = 960, H = 720;   // 魔王有主角九倍高，戰場得比一般俯視圖再高一截
 
 R.setup = function (canvas) {
   R.canvas = canvas;
@@ -48,6 +48,19 @@ R.draw = function () {
     const sp = map.at(c.x, c.z || 0);
     draws.push({ y: sp.y - 0.5, fn: () => drawCorpse(ctx, c, sp) });
   });
+
+  /* 魔王有主角九倍高，站在主角前面時會把玩家整個蓋掉。
+     主角落進魔王的身體範圍時就把魔王畫淡，讓玩家看得到自己在哪。
+     淡入淡出用逐幀內插，不要一格跳掉。 */
+  const bossE = B.entities.find(e => e.isBoss && !e.dead);
+  if (bossE) {
+    const bs = map.at(bossE.x, bossE.z || 0), hs = map.at(B.hero.x, B.hero.z || 0);
+    const s = bossE.size * BOSS_ART;
+    const covered = !B.hero.dead && bs.y > hs.y &&
+      Math.abs(hs.x - bs.x) < s * 1.15 && hs.y > bs.y - s * 3.3 && hs.y < bs.y + s * 0.4;
+    const want = covered ? 0.42 : 1;
+    bossE._fade = bossE._fade == null ? want : bossE._fade + (want - bossE._fade) * 0.18;
+  }
 
   B.entities.forEach(e => {
     if (e.dead) return;
@@ -519,10 +532,19 @@ function drawUnit(ctx, e, sp) {
   }
 }
 
-/* ── 魔王：比主角大上一整個量級 ── */
+/* ── 魔王：畫出來剛好是主角的九倍高 ──
+ *
+ * 為什麼畫面尺寸要跟 e.size 拆開：
+ * e.size 同時是判定用的碰撞半徑，攻擊距離算的是 dist − 目標 size × 0.6，
+ * 把它一路拉到九倍會讓主角與範圍技能更容易搆到魔王，等於偷偷送玩家一大段射程。
+ * 所以判定維持在已經驗過平衡的 58，只有畫的時候乘上 BOSS_ART。
+ * 主角畫出來約 30 像素高，魔王 58 × 1.64 × 2.84 ≈ 270 像素高，正好九倍。
+ */
+const BOSS_ART = 1.79;
+
 function drawBoss(ctx, e, sp) {
   const pop = spawnScale(e);
-  const s = e.size * pop;                       // 體型基準，主角是 16
+  const s = e.size * pop * BOSS_ART;            // 體型基準；主角的 r 是 16
   const face = (e.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
   const arc = swingArc(e);
   const hurt = hurtLean(e);
@@ -542,8 +564,10 @@ function drawBoss(ctx, e, sp) {
   const lit = shade(base, 0.28);
   const col = e.hitFlash > 0 ? '#FFF3D0' : base;
 
+  const alpha = (pop < 1 ? pop : 1) * (e._fade == null ? 1 : e._fade);
+
   ctx.save();
-  ctx.globalAlpha = pop < 1 ? pop : 1;
+  ctx.globalAlpha = alpha;
 
   /* 落地的壓迫感：兩層影子 */
   ctx.fillStyle = 'rgba(0,0,0,0.42)';
@@ -554,7 +578,7 @@ function drawBoss(ctx, e, sp) {
   /* 詠唱：腳下的光圈 */
   if (cast > 0) {
     ctx.save();
-    ctx.globalAlpha = cast * 0.7;
+    ctx.globalAlpha = alpha * cast * 0.7;
     ctx.strokeStyle = (R.palette && R.palette.accent) || '#E0B23C';
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -582,9 +606,9 @@ function drawBoss(ctx, e, sp) {
   ctx.fillStyle = col;
   ctx.beginPath(); ctx.ellipse(x, ty, s * 0.94, s * 0.70 + breath, 0, 0, 6.3); ctx.fill();
   ctx.fillStyle = lit;
-  ctx.globalAlpha = 0.35;
+  ctx.globalAlpha = alpha * 0.35;
   ctx.beginPath(); ctx.ellipse(x - face * s * 0.28, ty - s * 0.26, s * 0.36, s * 0.22, -0.4, 0, 6.3); ctx.fill();
-  ctx.globalAlpha = pop < 1 ? pop : 1;
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = 'rgba(0,0,0,0.26)';
   ctx.beginPath(); ctx.ellipse(x, ty + s * 0.50, s * 0.88, s * 0.26, 0, 0, 6.3); ctx.fill();
 
@@ -608,9 +632,9 @@ function drawBoss(ctx, e, sp) {
   ctx.restore();
 
   /* 血條壓在畫面頂端以內，魔王再高也看得到 */
-  const top = Math.max(y - s * 2.44, 40);
-  bar(ctx, sp.x, top - 16, 190, 11, e.hp / e.maxHp, '#C8503E');
-  label(ctx, sp.x, top - 22, e.name);
+  const top = Math.max(y - s * 2.62, 42);
+  bar(ctx, sp.x, top - 18, 260, 13, e.hp / e.maxHp, '#C8503E');
+  label(ctx, sp.x, top - 25, e.name, 15);
 }
 
 /* 圓角矩形，畫粗手粗腳用 */
@@ -628,6 +652,7 @@ function rr(ctx, x, y, w, h, r) {
 function bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e) {
   const eye = e.hitFlash > 0 ? '#3A1010' : '#FFE9A8';
   const glow = 0.55 + Math.sin(G.B.time * 4) * 0.25 + cast * 0.4;
+  const a = ctx.globalAlpha;                    // 魔王被畫淡時，發光處要跟著淡
 
   if (shape === 'tide') {
     ctx.fillStyle = lit;
@@ -660,9 +685,9 @@ function bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e) {
     ctx.fillStyle = '#1A1410';
     ctx.beginPath(); ctx.arc(hx + face * s * 0.1, hy - s * 0.02, s * 0.26, 0, 6.3); ctx.fill();
     ctx.fillStyle = eye;
-    ctx.globalAlpha = Math.min(1, glow);
+    ctx.globalAlpha = a * Math.min(1, glow);
     ctx.beginPath(); ctx.arc(hx + face * s * 0.12, hy - s * 0.02, s * 0.17, 0, 6.3); ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = a;
     return;
   } else if (shape === 'queen') {
     ctx.fillStyle = '#E0B23C';
@@ -685,14 +710,14 @@ function bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e) {
     ctx.beginPath();
     ctx.ellipse(hx, hy - s * 0.42, s * 0.42, s * 0.3, 0, 0, 6.3);
     ctx.fill();
-    ctx.globalAlpha = Math.min(1, glow);
+    ctx.globalAlpha = a * Math.min(1, glow);
     ctx.fillStyle = '#FFF0C0';
     ctx.beginPath();
     ctx.moveTo(hx - s * 0.34, hy - s * 0.26);
     ctx.quadraticCurveTo(hx - s * 0.12, hy - s * 0.92, hx + s * 0.04, hy - s * 0.44);
     ctx.quadraticCurveTo(hx + s * 0.22, hy - s * 0.82, hx + s * 0.34, hy - s * 0.26);
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = a;
   } else {
     ctx.fillStyle = dark;
     ctx.fillRect(hx - s * 0.46, hy - s * 0.48, s * 0.92, s * 0.2);
@@ -701,15 +726,16 @@ function bossHead(ctx, shape, hx, hy, s, face, col, dark, lit, cast, e) {
   /* 共用：兩顆發亮的眼睛 */
   ctx.fillStyle = '#120E0A';
   ctx.fillRect(hx + face * s * 0.04 - s * 0.28, hy - s * 0.08, s * 0.5, s * 0.15);
-  ctx.globalAlpha = Math.min(1, glow);
+  ctx.globalAlpha = a * Math.min(1, glow);
   ctx.fillStyle = eye;
   ctx.fillRect(hx + face * s * 0.04 - s * 0.24, hy - s * 0.05, s * 0.16, s * 0.09);
   ctx.fillRect(hx + face * s * 0.04 + s * 0.08, hy - s * 0.05, s * 0.16, s * 0.09);
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = a;
 }
 
 /* 各章魔王的武器，畫在已經旋轉好的手上 */
 function bossWeapon(ctx, shape, s, col, lit) {
+  const a = ctx.globalAlpha;
   if (shape === 'tide') {
     ctx.fillStyle = '#BCD8DE';
     ctx.fillRect(-s * 0.07, -s * 1.06, s * 0.14, s * 1.3);
@@ -745,10 +771,10 @@ function bossWeapon(ctx, shape, s, col, lit) {
     ctx.fillRect(-s * 0.08, -s * 1.0, s * 0.16, s * 1.22);
     ctx.fillStyle = '#E0B23C';
     ctx.fillRect(-s * 0.28, -s * 1.42, s * 0.56, s * 0.46);
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = a * 0.4;
     ctx.fillStyle = '#FFE4A0';
     ctx.beginPath(); ctx.arc(0, -s * 1.18, s * 0.62, 0, 6.3); ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = a;
   } else {
     ctx.fillStyle = '#C9C2B2';
     ctx.fillRect(-s * 0.11, -s * 1.2, s * 0.22, s * 1.42);
@@ -991,8 +1017,8 @@ function bar(ctx, cx, y, w, h, pct, color) {
   ctx.fillRect(Math.round(cx - w / 2), Math.round(y), Math.round(w * pct), h);
 }
 
-function label(ctx, cx, y, text) {
-  ctx.font = '11px "Noto Sans TC", sans-serif';
+function label(ctx, cx, y, text, px) {
+  ctx.font = (px || 11) + 'px "Noto Sans TC", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.fillText(text, cx + 1, y + 1);
@@ -1031,6 +1057,9 @@ function drawDeployHint(ctx, B) {
   ctx.fillText(msg, W / 2, 34);
   ctx.restore();
 }
+
+/* 給平衡／比例量測腳本用的繪製入口，遊戲本身不會走這裡 */
+R._draw = { boss: drawBoss, hero: drawHero, unit: drawUnit, corpse: drawCorpse };
 
 /* 點擊：找出離畫面座標最近的據點 */
 R.postAt = function (sx, sy) {

@@ -7,7 +7,7 @@
  */
 window.G = window.G || {};
 
-const MAP_W = 960, MAP_H = 600;
+const MAP_W = 960, MAP_H = 720;
 
 function mrng(seed) {
   let a = seed >>> 0;
@@ -51,8 +51,10 @@ G.buildMap = function (stage) {
   /* 蛇行路線：由下往上，左右來回。起點在左下（我方城門），終點在最上排（敵方主塔） */
   const rows = stage.length > 2450 ? 4 : 3;
   const padX = 118;
-  const yBottom = MAP_H - 62;
-  const yTop = 196;          // 最上排要整個放得下魔王的身體，不能貼著畫面頂
+  const yBottom = MAP_H - 44;
+  /* 魔王身體從腳底往上伸 316px（量出來的），再加血條與名字約 34px。
+     最上排壓在這裡，最高的那隻（法羅斯燈塔）才不會被切在畫面外。 */
+  const yTop = 352;
   const rowGap = (yBottom - yTop) / (rows - 1);
 
   const wp = [];
@@ -141,7 +143,7 @@ G.buildMap = function (stage) {
   const tries = 220;
   for (let i = 0; i < tries && props.length < 34; i++) {
     const px = 40 + rand() * (MAP_W - 80);
-    const py = 60 + rand() * (MAP_H - 110);
+    const py = 40 + rand() * (MAP_H - 90);
     if (distToPath(px, py) < 58) continue;
     let ok = true;
     for (const q of props) if (Math.hypot(q.x - px, q.y - py) < 54) { ok = false; break; }
