@@ -62,7 +62,7 @@ G.CLASSES = [
       { id: 'd4b', name: '一錘定音', type: 'passive', tier: 4, cost: 3, pos: P(4, 300), req: ['d3b', 'd3c'],
         icon: 'execute', desc: '對生命低於 25% 的敵人傷害 +80%。', flags: ['execute'] },
       { id: 'd4c', name: '通道', type: 'passive', tier: 4, cost: 3, pos: P(4, 430), req: ['d3c', 'd3d'],
-        icon: 'gate', desc: '摧毀一座塔後，立即回復 30% 生命並重置一個技能冷卻。', flags: ['breach'] }
+        icon: 'gate', desc: '摧毀一座塔後，回復 12% 生命並重置一個技能冷卻。', flags: ['breach'] }
     ]
   },
 
@@ -157,7 +157,7 @@ G.CLASSES = [
         icon: 'dash', desc: '影襲改為兩段蓄能，冷卻縮減 +14%。', mods: { cdr: 0.14 }, flags: ['doubleDash'] },
 
       { id: 'h4a', name: '斷句', type: 'passive', tier: 4, cost: 3, pos: P(4, 170), req: ['h3a', 'h3b'],
-        icon: 'execute', desc: '擊殺敵人時，重置影襲冷卻並回復 8% 生命。', flags: ['resetOnKill'] },
+        icon: 'execute', desc: '擊殺敵人時，重置影襲冷卻並回復 3% 生命。', flags: ['resetOnKill'] },
       { id: 'h4b', name: '影之潮', type: 'active', tier: 4, cost: 3, pos: P(4, 300), req: ['h3b', 'h3c'],
         icon: 'spin', desc: '3 秒內每 0.25 秒瞬移到最近的敵人身上並攻擊。',
         skill: { id: 's_tide', name: '影之潮', cd: 26, type: 'blinkstorm', dur: 3, tick: 0.25, mult: 0.8, reach: 260 } },
@@ -188,9 +188,9 @@ G.CLASSES = [
       { id: 'l1b', name: '芯亮', type: 'passive', tier: 1, cost: 1, pos: P(1, 390), req: ['l0'],
         icon: 'flame', desc: '所有友軍小兵傷害 +20%。', mods: { minionDmg: 0.20 } },
 
-      { id: 'l2a', name: '提燈', type: 'active', tier: 2, cost: 2, pos: P(2, 100), req: ['l1a'],
-        icon: 'heal', desc: '回復自身與周圍友軍的生命。',
-        skill: { id: 's_heal', name: '提燈', cd: 12, type: 'heal', radius: 150, amount: 0.28, allies: true } },
+      { id: 'l2a', name: '潑油', type: 'active', tier: 2, cost: 2, pos: P(2, 100), req: ['l1a'],
+        icon: 'burn', desc: '擲出一罐火油，範圍內的敵人受傷並持續灼燒 4 秒。',
+        skill: { id: 's_oil', name: '火油彈', cd: 11, type: 'ground', radius: 120, offset: 150, mult: 2.0, dot: 1.2 } },
       { id: 'l2b', name: '守夜', type: 'passive', tier: 2, cost: 2, pos: P(2, 280), req: ['l1a', 'l1b'],
         icon: 'shield', desc: '生命上限 +20%，護甲 +8。', mods: { hp: 0.20, armorFlat: 8 } },
       { id: 'l2c', name: '照明彈', type: 'active', tier: 2, cost: 2, pos: P(2, 460), req: ['l1b'],

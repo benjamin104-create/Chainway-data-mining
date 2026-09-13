@@ -14,16 +14,28 @@ window.G = window.G || {};
     const VB = G.RUN_VB;
     const cur = G.runCurrent();
 
-    /* 連線 */
-    const edges = run.edges.map(([a, b]) => {
+    /* 連線。陷阱路畫成紅色，而且事先標出要掉多少血。 */
+    let edgeLabels = '';
+    const edges = run.edges.map(e => {
+      const a = e[0], b = e[1], trap = e[2] || 0;
       const A = G.runNode(a), B = G.runNode(b);
       const open = A.done && (B.revealed || B.done);
       const onPath = A.done && B.done;
       const mx = (A.x + B.x) / 2;
+      const col = onPath ? p.accent : trap ? '#9A4436' : open ? '#6B5A42' : '#2E2A22';
+      if (trap && !onPath) {
+        const k = 0.42;
+        const lx = A.x + (B.x - A.x) * k;
+        const ly = A.y + (B.y - A.y) * k - 13;
+        edgeLabels += '<text x="' + lx.toFixed(0) + '" y="' + ly.toFixed(0) + '" ' +
+          'text-anchor="middle" font-size="15" fill="#E89684" ' +
+          'style="paint-order:stroke;stroke:#12100D;stroke-width:4">陷阱 −' +
+          Math.round(trap * 100) + '%</text>';
+      }
       return '<path d="M' + A.x + ' ' + A.y + ' C' + mx + ' ' + A.y + ' ' + mx + ' ' + B.y + ' ' + B.x + ' ' + B.y + '" ' +
-        'fill="none" stroke="' + (onPath ? p.accent : open ? '#6B5A42' : '#2E2A22') + '" ' +
-        'stroke-width="' + (onPath ? 4 : 3) + '" stroke-linecap="round" ' +
-        (onPath ? '' : 'stroke-dasharray="5 7"') + '/>';
+        'fill="none" stroke="' + col + '" ' +
+        'stroke-width="' + (onPath ? 4 : trap ? 3.5 : 3) + '" stroke-linecap="round" ' +
+        (onPath ? '' : trap ? 'stroke-dasharray="2 6"' : 'stroke-dasharray="5 7"') + '/>';
     }).join('');
 
     /* 地形斑塊，讓底圖不要只是一塊色 */
@@ -56,7 +68,9 @@ window.G = window.G || {};
         'title="' + esc(kind.name) + '">' +
         (vt === 'unknown' ? '<span class="exp-q">?</span>' : G.icon(kind.icon)) +
         '</button>' +
-        '<span class="exp-node-label" style="left:' + left + ';top:' + top + '">' + kind.name + '</span>';
+        '<span class="exp-node-label" style="left:' + left + ';top:' + top + '">' + kind.name +
+        (can && G.runTrapCost(n.id) ? '<i class="exp-trap">−' + Math.round(G.runTrapCost(n.id) * 100) + '%</i>' : '') +
+        '</span>';
     }).join('');
 
     /* 側欄 */
@@ -78,7 +92,7 @@ window.G = window.G || {};
           '<div class="exp-map" style="--field:' + (p.field || p.ground) + ';--road:' + (p.road || p.fog) + '">' +
             '<svg viewBox="0 0 ' + VB.w + ' ' + VB.h + '" preserveAspectRatio="none">' +
               '<rect width="' + VB.w + '" height="' + VB.h + '" fill="' + (p.field || p.ground) + '"/>' +
-              blobs + edges +
+              blobs + edges + edgeLabels +
             '</svg>' +
             nodesHtml +
             '<div class="exp-compass">左下出發　→　右上是大王</div>' +
@@ -89,8 +103,13 @@ window.G = window.G || {};
               '<div class="exp-hp"><i style="width:' + hpPct + '%"></i></div>' +
               '<div class="exp-hp-row"><span>生命帶到下一場</span><b>' + hpPct + '%</b></div>' +
               '<p class="exp-note">' + (run.hpPct < 0.35
-                ? '血很低了。營地可以回、油罐也可以，硬推很可能倒在路上。'
-                : '打完一場的殘血會帶到下一個地點。') + '</p>' +
+                ? '血很低了。主角沒有恢復法術，只能靠藥草、油罐或營地。'
+                : '打完一場的殘血會帶到下一個地點，倒下一次再多扣 10%。') + '</p>' +
+              '<button class="btn btn-ghost btn-full exp-herb" data-act="use-herb"' +
+                ((G.S.consumables.c_herb | 0) > 0 && run.hpPct < 0.999 ? '' : ' disabled') + '>' +
+                G.icon('herb') + '使用藥草　回復 ' + Math.round(G.HERB_HEAL * 100) + '%' +
+                '<b>×' + (G.S.consumables.c_herb | 0) + '</b></button>' +
+              '<p class="exp-note">藥草只在洞穴裡採得到，而且只能在地圖上用。</p>' +
             '</div>' +
             '<div class="exp-card">' +
               '<div class="eyebrow">加持</div>' +
@@ -115,16 +134,19 @@ window.G = window.G || {};
     if (node.id === G.S.run.at && !node.done) { U.resolveNode(node); return; }
     const r = G.runEnter(node);
     if (!r.ok) { U.toast(r.why); return; }
+    if (r.trap) U.toast('陷阱：生命 −' + Math.round(r.trap * 100) + '%');
     U.renderExpedition();
+    if (G.S.run.hpPct <= 0.03) { U.showRunEnd(false, '你倒在半路上。這趟遠征到此為止。'); return; }
     U.resolveNode(node);
   };
 
   U.resolveNode = function (node) {
     const t = node.type;
-    if (t === 'battle' || t === 'elite' || t === 'boss') {
+    if (t === 'battle' || t === 'elite' || t === 'boss' || t === 'cave') {
       const spec = G.runBattleSpec(node);
       U.startRunBattle(spec.stageKey, {
         scaleMul: spec.scaleMul,
+        cave: !!spec.cave,
         startHpPct: G.S.run.hpPct,
         label: G.NODE_KINDS[t].name,
         node: node

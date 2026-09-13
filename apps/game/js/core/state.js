@@ -37,7 +37,7 @@ G.newSave = function () {
     classes,
     gear: { ...G.DEFAULT_GEAR },
     owned: ['w_pick', 'a_cloth', 'r_none'],
-    consumables: { c_potion: 0, c_charge: 0 },
+    consumables: { c_potion: 0, c_charge: 0, c_herb: 0 },
     cleared: {},
     best: {},
     run: null,          // 進行中的遠征
@@ -61,7 +61,12 @@ G.load = function () {
       if (!Array.isArray(cc.bar) || cc.bar.length !== 4) cc.bar = [null, null, null, null];
     });
     merged.gear = Object.assign({ ...G.DEFAULT_GEAR }, merged.gear || {});
-    merged.consumables = Object.assign({ c_potion: 0, c_charge: 0 }, merged.consumables || {});
+    merged.consumables = Object.assign({ c_potion: 0, c_charge: 0, c_herb: 0 }, merged.consumables || {});
+    // 舊存檔的技能欄可能指向已經移除的技能
+    G.CLASSES.forEach(c => {
+      const cc = merged.classes[c.id];
+      cc.bar = cc.bar.map(id => (id && G.SKILLS[id]) ? id : null);
+    });
     return G.grantRoots(merged);
   } catch (e) {
     return G.newSave();

@@ -31,8 +31,8 @@ G.HIRES = [
     unit: { hp: 74, dmg: 19, speed: 40, range: 185, size: 15, color: '#6E95E0', kind: 'ranged', splash: 75, siegeMul: 2 } },
 
   { id: 'h_white', cat: 'merc', name: '白魔道士', cost: 135, icon: 'heal', key: 'Z',
-    desc: '不攻擊。持續回復周圍友軍與你自己的生命。',
-    flavor: '她說她不站到最前面，是因為前面的人需要有人在後面。',
+    desc: '不攻擊。持續回復周圍的友軍小兵——但救不了你。你的血只能靠藥草、油罐與營地。',
+    flavor: '「我只能顧前面那些人。」她說，「你自己的傷，你自己想辦法。」',
     unit: { hp: 90, dmg: 0, speed: 44, range: 150, size: 15, color: '#8FE08A', kind: 'healer',
             heal: 0.05, healRadius: 190, siegeMul: 0 } },
 

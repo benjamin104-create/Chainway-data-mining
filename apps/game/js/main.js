@@ -279,12 +279,18 @@
     /* 遠征：血量帶回地圖，贏了才算走完這個地點 */
     const run = G.runActive();
     const node = currentOpts && currentOpts.node ? G.runNode(currentOpts.node.id) : null;
-    let bossWin = false;
+    let bossWin = false, herbs = 0;
+    const deaths = B.deaths;
     if (run && node) {
-      run.hpPct = win ? Math.max(0.12, B.hero.hp / B.hero.maxHp) : 0.25;
-      if (win) {
+      // 帶出去的血 = 結束時的血，每倒下一次再扣 15%
+      const endPct = win ? Math.max(0.10, B.hero.hp / B.hero.maxHp) : 0.25;
+      run.hpPct = Math.max(0.06, endPct - deaths * 0.10);
+      if (node.type === 'cave') {
+        herbs = G.runCaveDone(node, win);
+      } else if (win) {
         G.runFinishNode(node, G.NODE_KINDS[node.type].name + '：拿下了。', 'good');
-        G.S.cleared[G.runStageKeyFor(node)] = true;   // 裝備與職業解鎖看的是關卡代號
+        const key = G.runStageKeyFor(node);
+        if (key) G.S.cleared[key] = true;             // 裝備與職業解鎖看的是關卡代號
         bossWin = node.type === 'boss';
       } else {
         run.log.push({ text: G.NODE_KINDS[node.type].name + '：被打回來了，重整再上。', kind: 'bad' });
@@ -297,6 +303,8 @@
     U.showResult({ result: B.over, stage, gold, sp, xp, levels, kills: B.kills,
                    time: B.time, earned: B.goldEarned, spent: B.goldSpent,
                    inRun: !!(run && node), bossWin: bossWin,
+                   herbs: herbs, deaths: deaths,
+                   cave: !!(node && node.type === 'cave'),
                    hpLeft: run ? Math.round(run.hpPct * 100) : null });
   }
 
@@ -428,6 +436,13 @@
       return;
     }
     if (t.dataset.act === 'back-to-run') { U.fromExpedition = false; U.show('chapters'); return; }
+    if (t.dataset.act === 'use-herb') {
+      const r = G.runUseHerb();
+      if (!r.ok) { U.toast(r.why); return; }
+      U.toast('回復到 ' + r.hp + '%');
+      U.renderExpedition();
+      return;
+    }
     if (t.dataset.nodeGo) { U.goNode(t.dataset.nodeGo); return; }
     if (t.dataset.evOpt != null) { U.chooseEventOption(parseInt(t.dataset.evOpt, 10)); return; }
     if (t.dataset.campOpt) { U.chooseCamp(t.dataset.campOpt); return; }

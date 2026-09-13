@@ -40,6 +40,7 @@ G.NODE_KINDS = {
   camp:    { name: '營地',   icon: 'heal',   color: '#7FBF6A' },
   hazard:  { name: '險地',   icon: 'burn',   color: '#8E6BE0' },
   mystery: { name: '謎團',   icon: 'mark',   color: '#4E7ECF' },
+  cave:    { name: '洞穴',   icon: 'cave',   color: '#8FB86A' },
   unknown: { name: '未知',   icon: 'echo',   color: '#75634B' }
 };
 
@@ -74,7 +75,7 @@ G.buildRun = function (chapterId, seed) {
       const spread = 94;
       const y = yc + (r - (count - 1) / 2) * spread + (rand() - 0.5) * 16;
       col.push({
-        id: 'n' + (nid++), c, r, x: Math.round(x), y: Math.round(Math.max(48, Math.min(VB_H - 44, y))),
+        id: 'n' + (nid++), c, r, x: Math.round(x), y: Math.round(Math.max(50, Math.min(VB_H - 60, y))),
         type: 'battle', hidden: false, done: false
       });
     }
@@ -140,6 +141,48 @@ G.buildRun = function (chapterId, seed) {
     });
   }
 
+  /* 死路：從主線岔出去的洞穴。走進去要花一步，打完有藥草，然後原路退回。 */
+  const spurCands = mid
+    .filter(n => n.c >= 1 && n.c <= COLS - 3 && n.type !== 'shop' && n.type !== 'camp')
+    .sort((a, b) => byCol[a.c].length - byCol[b.c].length);
+  const caveCount = rand() < 0.45 ? 2 : 1;
+  for (let i = 0; i < caveCount && spurCands.length; i++) {
+    const parent = spurCands.splice(rand() < 0.7 ? 0 : Math.floor(rand() * spurCands.length), 1)[0];
+    const side = parent.y > VB_H / 2 ? -1 : 1;
+    // 多試幾個擺法，只試一個的話大部分地圖會生不出洞穴
+    const tries = [
+      [56, side * 96], [-56, side * 96], [0, side * 112],
+      [64, -side * 96], [-64, -side * 96], [0, -side * 112],
+      [82, side * 62], [-82, side * 62]
+    ];
+    let cx = 0, cy = 0, placed = false;
+    for (const [dx, dy] of tries) {
+      cx = Math.round(Math.max(48, Math.min(VB_W - 48, parent.x + dx)));
+      cy = Math.round(Math.max(50, Math.min(VB_H - 60, parent.y + dy)));
+      if (!nodes.some(n => Math.hypot(n.x - cx, n.y - cy) < 72)) { placed = true; break; }
+    }
+    if (!placed) continue;
+    const cave = {
+      id: 'n' + (nid++), c: parent.c, r: -1, x: cx, y: cy,
+      type: 'cave', hidden: false, done: false, backTo: parent.id, spur: true
+    };
+    nodes.push(cave);
+    edges.push([parent.id, cave.id, 0]);
+  }
+
+  /* 陷阱路：走過去就掉血，而且事先看得到要掉多少。 */
+  edges.forEach(e => {
+    const to = nodes.find(n => n.id === e[1]);
+    if (!to || to.type === 'cave' || to.type === 'boss') return;
+    if (rand() < 0.2) e[2] = Math.round((0.06 + rand() * 0.10) * 100) / 100;
+  });
+  // 只有一條路的時候不設陷阱：沒得選就不叫選擇
+  nodes.forEach(n => {
+    const outs = edges.filter(e => e[0] === n.id);
+    if (outs.length <= 1) outs.forEach(e => { e[2] = 0; });
+    else if (outs.every(e => e[2])) outs[Math.floor(rand() * outs.length)][2] = 0;
+  });
+
   return {
     chapterId, seed,
     nodes, edges,
@@ -150,6 +193,24 @@ G.buildRun = function (chapterId, seed) {
     battles: 0, cleared: false, finished: false
   };
 };
+
+/* 洞穴：短、只有一個巢穴、怪有限。用原關卡當底改幾個欄位。 */
+G.caveStage = function (base) {
+  return Object.assign({}, base, {
+    name: '洞穴',
+    length: 1000,
+    towers: 1,
+    isBoss: false,
+    waveGap: 11,
+    reward: {
+      gold: Math.round(base.reward.gold * 0.45),
+      sp: 0,
+      xp: Math.round(base.reward.xp * 0.5)
+    }
+  });
+};
+
+G.HERB_HEAL = 0.25;
 
 /* ══════════ 存取 ══════════ */
 G.runNode = id => G.S.run && G.S.run.nodes.find(n => n.id === id);
@@ -178,10 +239,24 @@ G.runVisibleType = function (node) {
 G.runEnter = function (node) {
   const run = G.S.run;
   if (!G.runCanEnter(node)) return { ok: false, why: '那裡現在走不到' };
+  const edge = run.edges.find(e => e[0] === run.at && e[1] === node.id);
+  const trap = (edge && edge[2]) || 0;
   run.at = node.id;
   node.revealed = true;
+  if (trap) {
+    run.hpPct = Math.max(0.02, run.hpPct - trap);
+    run.log.push({ text: '走了陷阱路，掉了 ' + Math.round(trap * 100) + '% 生命。', kind: 'bad' });
+  }
   G.save();
-  return { ok: true, node };
+  return { ok: true, node, trap };
+};
+
+/* 從當前節點走到某個節點要付出的陷阱代價 */
+G.runTrapCost = function (nodeId) {
+  const run = G.S.run;
+  if (!run) return 0;
+  const e = run.edges.find(x => x[0] === run.at && x[1] === nodeId);
+  return (e && e[2]) || 0;
 };
 
 /* 戰鬥節點 → 用哪一關、加多少難度 */
@@ -189,6 +264,7 @@ G.runBattleSpec = function (node) {
   const ch = G.getChapter(G.S.run.chapterId);
   // 大王就是原本的核心關，不再另外加成；其餘一律用第一關當底，靠深度拉難度
   if (node.type === 'boss') return { stageKey: ch.id + '-3', scaleMul: 1 };
+  if (node.type === 'cave') return { stageKey: ch.id + '-1', scaleMul: 1 + node.c * 0.05, cave: true };
   const depth = 1 + node.c * 0.065;
   return { stageKey: ch.id + '-1', scaleMul: node.type === 'elite' ? depth * 1.2 : depth };
 };
@@ -196,6 +272,7 @@ G.runBattleSpec = function (node) {
 /* 節點打贏了，對應到哪一個關卡代號（裝備與職業解鎖看的是這個） */
 G.runStageKeyFor = function (node) {
   const ch = G.getChapter(G.S.run.chapterId);
+  if (node.type === 'cave') return null;       // 洞穴不是關卡，不解鎖任何東西
   if (node.type === 'boss') return ch.id + '-3';
   if (node.type === 'elite') return ch.id + '-2';
   return ch.id + '-1';
@@ -264,6 +341,35 @@ G.runFinishNode = function (node, logText, logKind) {
   if (logText) G.S.run.log.push({ text: logText, kind: logKind || 'info' });
   if (G.S.run.log.length > 24) G.S.run.log.shift();
   G.save();
+};
+
+/* 洞穴：清空拿藥草，然後原路退回岔路口 */
+G.runCaveDone = function (node, won) {
+  const run = G.S.run;
+  let herbs = 0;
+  if (won) {
+    herbs = 3 + Math.floor(Math.random() * 2);
+    G.S.consumables.c_herb = (G.S.consumables.c_herb | 0) + herbs;
+    G.runFinishNode(node, '洞穴清空了，採到 ' + herbs + ' 株藥草。', 'good');
+  } else {
+    run.log.push({ text: '洞穴裡的東西沒清乾淨，退了出來。', kind: 'bad' });
+  }
+  run.at = node.backTo || run.at;
+  G.save();
+  return herbs;
+};
+
+/* 在地圖上用藥草。戰鬥中不能用 —— 主角沒有恢復手段是這一版的前提。 */
+G.runUseHerb = function () {
+  const run = G.runActive();
+  if (!run) return { ok: false, why: '沒有進行中的遠征' };
+  if (!(G.S.consumables.c_herb > 0)) return { ok: false, why: '沒有藥草了。去洞穴採。' };
+  if (run.hpPct >= 0.999) return { ok: false, why: '生命已經滿了' };
+  G.S.consumables.c_herb--;
+  run.hpPct = Math.min(1, run.hpPct + G.HERB_HEAL);
+  run.log.push({ text: '嚼了一株藥草，回復 ' + Math.round(G.HERB_HEAL * 100) + '% 生命。', kind: 'good' });
+  G.save();
+  return { ok: true, hp: Math.round(run.hpPct * 100) };
 };
 
 /* 營地 */

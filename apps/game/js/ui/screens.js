@@ -87,8 +87,11 @@ U.renderIntro = function () {
         '<p>你是一顆被派去拆塔的橘色小東西。你有一把劍、一面盾，' +
         '和一條會跟著你往前推的線。城門在你身後，主塔在最前面，中間全是別人。</p>' +
         '<p>每一章都是一張有分岔的大地圖。你從左下角出發，往右、再往上，' +
-        '路上會遇到寶箱、商隊、營地、險地與謎團——有些地點走到才知道是什麼。' +
-        '血量會一路帶下去，所以走哪一條路是真的有差。</p>' +
+        '路上會遇到寶箱、商隊、營地、險地與謎團——有些地點走到才知道是什麼，' +
+        '有些岔路是死路，但死路盡頭的洞穴裡長著藥草。</p>' +
+        '<p style="color:var(--parch);">這一版你沒有任何恢復法術。' +
+        '血量一路帶到底，倒下一次再扣 10%，有些路本身就是陷阱、走過去就掉血。' +
+        '要不要走，自己量力而為。</p>' +
         '<p>戰場上有幾個僱用所。殺出來的錢可以當場僱傭兵、魔法師、白魔道士，' +
         '買攻城車與彈弩台，或是架起拒馬、火油槽與戰旗——' +
         '但花掉的錢不會跟你回家。</p>' +
@@ -362,11 +365,14 @@ U.renderShop = function () {
 U.showResult = function (data) {
   const win = data.result === 'win';
   const ch = G.getChapter(data.stage.chapterId);
-  const line = win
-    ? (data.stage.isBoss
-        ? '「' + ch.boss.name + '」倒下了。它守著的東西，現在歸你。'
-        : '主塔塌了。前面還有更深的一層。')
-    : '城門被推倒了。這條線斷在你出發的地方。';
+  const line = data.cave
+    ? (win ? '洞穴清空了。深處長著東西，你把它們採了下來。'
+           : '洞裡的東西沒清乾淨。你退了出來，什麼也沒帶走。')
+    : win
+      ? (data.stage.isBoss
+          ? '「' + ch.boss.name + '」倒下了。它守著的東西，現在歸你。'
+          : '主塔塌了。前面還有更深的一層。')
+      : '城門被推倒了。這條線斷在你出發的地方。';
 
   const rows = [];
   if (win) {
@@ -381,6 +387,8 @@ U.showResult = function (data) {
     rows.push(['戰場收入', G.fmtGold(data.earned)]);
     rows.push(['僱用支出', '−' + G.fmtGold(data.spent)]);
   }
+  if (data.herbs) rows.push(['採到藥草', '×' + data.herbs]);
+  if (data.deaths) rows.push(['倒下次數', data.deaths + ' 次　−' + (data.deaths * 10) + '%']);
   if (data.inRun && data.hpLeft != null) rows.push(['帶往下一個地點的生命', data.hpLeft + '%']);
   rows.push(['擊殺', String(data.kills)]);
   rows.push(['耗時', Math.floor(data.time / 60) + ':' + String(Math.floor(data.time % 60)).padStart(2, '0')]);

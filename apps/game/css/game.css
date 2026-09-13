@@ -348,6 +348,23 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   padding: 5px 10px;
 }
 
+.exp-trap {
+  display: block; font-style: normal; font-family: var(--f-pixel);
+  font-size: 9.5px; color: #E89684; letter-spacing: .04em;
+}
+.exp-herb {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 10px; padding: 9px 12px; font-size: 12.5px;
+}
+.exp-herb svg.ic { width: 16px; height: 16px; flex: none; }
+.exp-herb .ic path, .exp-herb .ic circle, .exp-herb .ic rect,
+.exp-herb .ic line, .exp-herb .ic polyline, .exp-herb .ic polygon {
+  stroke: var(--moss); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.exp-herb b { font-family: var(--f-pixel); font-size: 12px; color: var(--moss); }
+.exp-herb:disabled .ic path, .exp-herb:disabled .ic circle, .exp-herb:disabled .ic rect,
+.exp-herb:disabled .ic line, .exp-herb:disabled .ic polyline, .exp-herb:disabled .ic polygon { stroke: var(--parch-mute); }
+
 .exp-side { display: flex; flex-direction: column; gap: 12px; }
 .exp-card { border: 1px solid var(--line); background: var(--ink-2); padding: 13px 14px; }
 .exp-hp { height: 12px; background: var(--ink); border: 1px solid var(--line); margin: 8px 0 6px; }

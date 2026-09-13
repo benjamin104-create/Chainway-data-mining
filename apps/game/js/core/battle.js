@@ -26,7 +26,7 @@ const nid = () => ++uid;
 /* ══════════ 初始化 ══════════ */
 B.init = function (stageKey, opts) {
   opts = opts || {};
-  const stage = G.getStage(stageKey);
+  const stage = opts.cave ? G.caveStage(G.getStage(stageKey)) : G.getStage(stageKey);
   const chapter = G.getChapter(stage.chapterId);
   const built = G.computeStats();
 
@@ -65,6 +65,8 @@ B.init = function (stageKey, opts) {
   B.blockX = null;
   B.respawnTimer = 0;
   B.paused = false;
+  B.deaths = 0;                // 倒下幾次，會從帶出去的血扣掉
+  B.caveMode = !!opts.cave;    // 洞穴：短、怪有限、打完有藥草
   B.phase = 'deploy';          // 'deploy' → 按開戰 → 'fight'
 
   B.cd = [0, 0, 0, 0];
@@ -94,16 +96,16 @@ B.init = function (stageKey, opts) {
 
   /* 敵方塔 */
   const n = stage.towers;
-  const spots = n === 3 ? [0.40, 0.70, 1.0] : [0.55, 1.0];
+  const spots = n === 3 ? [0.40, 0.70, 1.0] : n === 2 ? [0.55, 1.0] : [1.0];
   B.towers = spots.map((f, i) => {
     const last = i === n - 1;
     const t = mkStructure(
       'enemy',
       Math.round(stage.length * f),
-      Math.round((last ? 620 : 340) * B.escale),
-      Math.round((last ? 22 : 16) * B.escale),
-      last ? 230 : 190,
-      last ? '主塔' : '哨塔 ' + (i + 1),
+      Math.round((last ? (B.caveMode ? 210 : 620) : 340) * B.escale),
+      Math.round((last ? (B.caveMode ? 9 : 22) : 16) * B.escale),
+      last ? (B.caveMode ? 125 : 230) : 190,
+      last ? (B.caveMode ? '巢穴' : '主塔') : '哨塔 ' + (i + 1),
       1.0
     );
     t.isMain = last;
@@ -309,13 +311,13 @@ function checkDeath(e, killer) {
 
     if (killer === B.hero && B.flags.has('resetOnKill')) {
       B.dashCharges = B.flags.has('doubleDash') ? 2 : 1;
-      B.hero.hp = Math.min(B.hero.maxHp, B.hero.hp + Math.round(B.hero.maxHp * 0.08));
+      B.hero.hp = Math.min(B.hero.maxHp, B.hero.hp + Math.round(B.hero.maxHp * 0.03));
     }
     if (e.isStructure) {
       B.shake = Math.max(B.shake, 16);
       updateMainInvuln();
       if (B.flags.has('breach')) {
-        B.hero.hp = Math.min(B.hero.maxHp, B.hero.hp + Math.round(B.hero.maxHp * 0.3));
+        B.hero.hp = Math.min(B.hero.maxHp, B.hero.hp + Math.round(B.hero.maxHp * 0.12));
         let best = 0;
         for (let i = 1; i < 4; i++) if (B.cd[i] > B.cd[best]) best = i;
         B.cd[best] = 0;
@@ -338,6 +340,7 @@ function checkDeath(e, killer) {
 function heroDown() {
   B.hero.dead = true;
   B.hero.hp = 0;
+  B.deaths++;
   B.respawnTimer = 6;
   burst(B.hero.x, B.hero.z, '#E07A3F', 26);
   B.shake = 12;
@@ -421,6 +424,19 @@ function marchTarget(e) {
 function spawnWave() {
   B.waveNo++;
   const s = B.stage;
+
+  /* 洞穴是短程遭遇：雙方都少，怪清光就結束 */
+  if (B.caveMode) {
+    ['recruit', 'recruit', 'archer'].forEach((k, i) => spawnMinion('ally', k, B.gate.x + 30 + i * 16, i));
+    if (B.waveNo > 2) return;
+    const cpool = B.chapter.enemies;
+    const src0 = B.towers[0];
+    const n0 = 3 + B.stage.idx;
+    for (let i = 0; i < n0; i++) {
+      spawnEnemy(cpool[Math.floor(Math.random() * cpool.length)], src0.x - 60 - i * 22, i);
+    }
+    return;
+  }
 
   /* 我方：跟敵方一樣隨波次變多，英雄才是決勝的那一票 */
   const growth = Math.min(3, Math.floor(B.waveNo / 3));
@@ -629,6 +645,7 @@ function runSkill(def, scale) {
           dealDamage(h, o, base * def.mult, { isSkill: true });
           if (def.slow && !o.isStructure) { o.slow = def.slow; o.slowUntil = B.time + def.slowDur; }
           if (def.vuln) { o.vuln = def.vuln; o.vulnUntil = B.time + (def.slowDur || 5); }
+          if (def.dot && !o.isStructure) o.burn = { dps: base * def.dot / 4, until: B.time + 4 };
         });
       };
       if (def.delay) {
@@ -666,22 +683,6 @@ function runSkill(def, scale) {
         }
         B.effects.push({ type: 'ring', x: m.x, z: m.z, r: 0, max: 44, t: 0, dur: 0.3, color: B.cls.color });
       }
-      break;
-    }
-    case 'heal': {
-      const amt = Math.round(h.maxHp * def.amount);
-      h.hp = Math.min(h.maxHp, h.hp + amt);
-      pushText(h.x, -40, '+' + amt, '#8FE08A', false);
-      if (def.allies) {
-        B.entities.forEach(o => {
-          if (o.faction === 'ally' && !o.dead && o !== h && !o.isStructure && dist(o, h) < def.radius) {
-            const a = Math.round(o.maxHp * def.amount);
-            o.hp = Math.min(o.maxHp, o.hp + a);
-            pushText(o.x, -(o.size + 16), '+' + a, '#8FE08A', false);
-          }
-        });
-      }
-      B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: def.radius, t: 0, dur: 0.5, color: '#8FE08A' });
       break;
     }
     case 'beam': {
@@ -798,7 +799,7 @@ B.update = function (dt, input) {
     B.respawnTimer -= dt;
     if (B.respawnTimer <= 0 && !B.over) {
       h.dead = false;
-      h.hp = Math.round(h.maxHp * 0.6);
+      h.hp = Math.round(h.maxHp * 0.4);
       h.x = B.gate.x + 30;
       h.invuln = 1.5;
       B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 70, t: 0, dur: 0.4, color: '#E07A3F' });
@@ -820,16 +821,7 @@ B.update = function (dt, input) {
     }
     // 封鎖線：不能繞過還活著的哨塔跑到無敵的主塔前面乾等
     h.x = Math.max(12, Math.min(B.frontLine, h.x));
-
-    /* 脫離戰鬥回復：附近沒有敵人滿 3 秒就開始回血 */
-    const threat = nearestHostile(h, 340, false);
-    if (threat) h.safeTimer = 0;
-    else {
-      h.safeTimer = (h.safeTimer || 0) + dt;
-      if (h.safeTimer > 3 && h.hp < h.maxHp) {
-        h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.05 * dt);
-      }
-    }
+    /* 這一版主角沒有任何自動回血。血只能靠藥草、油罐與營地。 */
 
     /* 自動普攻 */
     h.atkTimer -= dt;
@@ -963,6 +955,7 @@ B.update = function (dt, input) {
         let target = null, worst = 0.999;
         for (const o of B.entities) {
           if (o.dead || o.faction !== 'ally' || o.isStructure) continue;
+          if (o === h) continue;                       // 主角不吃治療
           if (dist(o, e) > e.healRadius) continue;
           const f = o.hp / o.maxHp;
           if (f < worst) { worst = f; target = o; }
