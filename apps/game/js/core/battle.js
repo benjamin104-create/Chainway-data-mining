@@ -49,6 +49,7 @@ B.init = function (stageKey, opts) {
   B.entities = [];
   B.projectiles = [];
   B.effects = [];
+  B.timers = [];                  // 戰鬥自己的延遲計時器；暫停會跟著停
   B.texts = [];
   B.particles = [];
   B.corpses = [];               // 倒下動畫用，純視覺
@@ -127,7 +128,8 @@ B.init = function (stageKey, opts) {
       color: chapter.palette.accent, atkTimer: 0, dead: false,
       name: chapter.boss.name, title: chapter.boss.title,
       armor: 10 + stage.chapterIdx * 3, bob: 0, hitFlash: 0,
-      isBoss: true, castTimer: 4, casting: 0, moving: false, born: 0,
+      isBoss: true, castTimer: 3, casting: 0, moving: false, born: 0,
+      skills: (chapter.boss.skills || []).slice(), skillIdx: -1,
       leashX: stage.length - 430      // 守塔：不會再一路走到你家城門
     };
     boss.maxHp = boss.hp;
@@ -209,6 +211,7 @@ B.heroAtkSpd = function () {
 B.heroMoveSpd = function () {
   let s = B.stats.moveSpd * (1 + heroBuffMods('moveSpd'));
   if (B.channel && B.channel.moveBonus) s *= (1 + B.channel.moveBonus);
+  if (B.hero && B.hero.slowUntil > B.time) s *= (1 - B.hero.slow);   // 魔王的減速
   return s;
 };
 B.cdMul = () => 1 - B.stats.cdr;
@@ -219,6 +222,208 @@ function mitigate(amount, armor) {
 }
 
 /* ══════════ 傷害 ══════════ */
+/* ══════════ 魔王技能 ══════════
+ * 平常追著主角打的是小兵；魔王守在塔前，靠技能夠到你。
+ * 每個魔王兩招，由 chapter.boss.skills 指定，輪流放。
+ * 主角靠得越近，間隔越短——貼身輸出的代價就是一直要閃。
+ */
+
+/* 延遲結算用戰鬥自己的計時器，不用 setTimeout：
+   暫停時會跟著停，離開戰鬥也不會有上一場的回呼打進新的一場。 */
+function bossAfter(delay, fn) { B.timers.push({ t: delay, fn: fn }); }
+
+function bossTele(cx, r, dur, color) {
+  B.effects.push({ type: 'telegraph', x: cx, z: 0, r: r, t: 0, dur: dur, color: color });
+}
+
+/* 會被魔王技能打到的：我方的活人，不含建築 */
+function hitBy(cx, r) {
+  return B.entities.filter(o => !o.dead && !o.invuln && o.faction === 'ally' &&
+    !o.isStructure && Math.abs(o.x - cx) < r);
+}
+
+/* 擊退。主角只吃三分之一——被推開一大段會直接讓人打不下去。 */
+function knock(o, dir, amount) {
+  o.x += dir * (o === B.hero ? amount * 0.34 : amount);
+}
+
+/* 異常狀態。完整的三種只掛在主角身上，小兵只吃減速。 */
+function afflict(o, kind, dur, power, label) {
+  if (o !== B.hero) {
+    if (kind === 'slow') { o.slow = power; o.slowUntil = B.time + dur; }
+    if (kind === 'mark') { o.vuln = power; o.vulnUntil = B.time + dur; }
+    return;
+  }
+  const h = B.hero;
+  if (kind === 'slow') { h.slow = power; h.slowUntil = B.time + dur; }
+  if (kind === 'burn') { h.burnDps = Math.max(h.burnDps || 0, power); h.burnUntil = B.time + dur; }
+  if (kind === 'weak') { h.weak = power; h.weakUntil = B.time + dur; }
+  if (kind === 'mark') { h.vuln = power; h.vulnUntil = B.time + dur; }
+  if (label) pushText(h.x, -52, label, '#C9A3F0', false);
+}
+
+/* 落點爆擊：先畫預兆圈，delay 秒後才結算，這段時間夠你走開 */
+function bossBlast(e, cx, r, mul, delay, color, apply) {
+  bossTele(cx, r, delay, color);
+  bossAfter(delay, () => {
+    if (e.dead || B.over) return;
+    B.effects.push({ type: 'ring', x: cx, z: 0, r: 0, max: r, t: 0, dur: 0.4, color: color });
+    B.shake = Math.max(B.shake, 10);
+    hitBy(cx, r).forEach(o => {
+      dealDamage(e, o, e.dmg * mul, { noCrit: true });
+      if (apply) apply(o);
+    });
+  });
+}
+
+/* 直線掃射：從魔王打到某一點。
+   一定要限長——不然主角站在地圖另一頭時，這一道會掃過整張圖，
+   把路上所有自己人都打到、還全部擊退。 */
+const BEAM_MAX = 460;
+const BOSS_CAST_RANGE = 720;   // 超過這個距離魔王不出手
+function bossBeam(e, toX, halfW, mul, delay, color, apply) {
+  toX = e.x + Math.max(-BEAM_MAX, Math.min(BEAM_MAX, toX - e.x));
+  const a = Math.min(e.x, toX), b = Math.max(e.x, toX);
+  bossTele((a + b) / 2, (b - a) / 2, delay, color);
+  bossAfter(delay, () => {
+    if (e.dead || B.over) return;
+    B.effects.push({ type: 'beam', x: e.x, x2: toX, z: 0, w: halfW, t: 0, dur: 0.45, color: color });
+    B.shake = Math.max(B.shake, 8);
+    B.entities.forEach(o => {
+      if (o.dead || o.invuln || o.faction !== 'ally' || o.isStructure) return;
+      if (o.x < a - 20 || o.x > b + 20) return;
+      dealDamage(e, o, e.dmg * mul, { noCrit: true });
+      if (apply) apply(o);
+    });
+  });
+}
+
+const BOSS_SKILLS = {
+  /* I 潮位官：把水叫上來 */
+  tide_surge: { name: '漲潮', cd: 8.5, color: '#3FB8C8', cast: (e, h) => {
+    bossBlast(e, h.x, 250, 1.35, 1.0, '#3FB8C8', o => afflict(o, 'slow', 3.5, 0.45, '陷在水裡'));
+  } },
+  tide_drag: { name: '退潮', cd: 12, color: '#2C6A7E', cast: (e, h) => {
+    bossTele(h.x, 170, 0.8, '#2C6A7E');
+    bossAfter(0.8, () => {
+      if (e.dead || B.over) return;
+      B.effects.push({ type: 'trail', x: h.x, x2: e.x - 100, z: 0, t: 0, dur: 0.35, color: '#2C6A7E' });
+      hitBy(h.x, 170).forEach(o => {
+        dealDamage(e, o, e.dmg * 0.85, { noCrit: true });
+        knock(o, Math.sign(e.x - o.x) || 1, 90);     // 往魔王腳邊拖
+      });
+      if (B.hero.slowUntil < B.time) pushText(B.hero.x, -52, '被拖過去', '#8FD6E0', false);
+    });
+  } },
+
+  /* II 米諾陶：關在迷宮裡的那隻 */
+  bull_charge: { name: '蠻牛衝撞', cd: 9, color: '#C8503E', cast: (e, h) => {
+    const to = h.x;
+    bossBeam(e, to, 26, 1.7, 0.9, '#C8503E', o => {
+      knock(o, Math.sign(o.x - e.x) || 1, 110);      // 撞飛
+      afflict(o, 'slow', 2, 0.3, '被撞開');
+    });
+    // 衝過去之後站在主角那一側，但一次最多前進 260，不會瞬移半張圖
+    bossAfter(0.9, () => {
+      if (e.dead || B.over) return;
+      const want = to + 70;
+      e.x = Math.max(e.leashX, e.x + Math.max(-260, Math.min(260, want - e.x)));
+    });
+  } },
+  bull_stomp: { name: '跺地', cd: 11, color: '#8E4A36', cast: (e) => {
+    bossBlast(e, e.x, 300, 1.2, 0.85, '#8E4A36', o => afflict(o, 'slow', 2.5, 0.55, '站不穩'));
+  } },
+
+  /* III 木馬之腹：你自己把它拉過門檻的 */
+  horse_disgorge: { name: '開腹', cd: 13, color: '#C08A4A', cast: (e, h) => {
+    bossTele(h.x, 120, 0.9, '#C08A4A');
+    bossAfter(0.9, () => {
+      if (e.dead || B.over) return;
+      const key = B.chapter.enemies[0];
+      for (let i = 0; i < 4; i++) {
+        const m = spawnEnemy(key, h.x + (i - 1.5) * 42, i);
+        if (m) { m.born = B.time; }
+      }
+      B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 120, t: 0, dur: 0.4, color: '#C08A4A' });
+    });
+  } },
+  horse_volley: { name: '城頭箭', cd: 8, color: '#D8C08A', cast: (e, h) => {
+    for (let i = 0; i < 3; i++) {
+      const at = h.x + (i - 1) * 95;
+      bossAfter(i * 0.28, () => { if (!e.dead && !B.over) bossBlast(e, at, 110, 0.75, 0.75, '#D8C08A'); });
+    }
+  } },
+
+  /* IV 波呂斐摩斯：他問了你的名字 */
+  rock_throw: { name: '擲巨岩', cd: 7.5, color: '#7FA05A', cast: (e, h) => {
+    // 丟在主角「即將到的地方」，站著不動一定被砸中
+    const lead = h.x + (h.moving ? h.facing * 105 : 0);
+    bossBlast(e, lead, 105, 2.4, 1.1, '#7FA05A');
+  } },
+  cyclops_sweep: { name: '橫掃', cd: 10, color: '#5E7A42', cast: (e, h) => {
+    const dir = Math.sign(h.x - e.x) || -1;
+    bossBeam(e, e.x + dir * 290, 30, 1.45, 0.8, '#5E7A42', o => {
+      knock(o, dir, 120);
+      afflict(o, 'slow', 1.5, 0.35, '被掃開');
+    });
+  } },
+
+  /* V 希波呂忒：腰帶上刻的是她自己的名字 */
+  arrow_rain: { name: '箭雨', cd: 9, color: '#CF8E4E', cast: (e, h) => {
+    for (let i = 0; i < 5; i++) {
+      const at = h.x + (Math.random() - 0.5) * 300;
+      bossAfter(i * 0.22, () => { if (!e.dead && !B.over) bossBlast(e, at, 95, 0.7, 0.7, '#CF8E4E'); });
+    }
+  } },
+  queen_mark: { name: '女王之印', cd: 13, color: '#E0B23C', cast: (e, h) => {
+    bossTele(h.x, 90, 0.7, '#E0B23C');
+    bossAfter(0.7, () => {
+      if (e.dead || B.over) return;
+      B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 90, t: 0, dur: 0.5, color: '#E0B23C' });
+      hitBy(h.x, 90).forEach(o => {
+        dealDamage(e, o, e.dmg * 0.6, { noCrit: true });
+        afflict(o, 'mark', 7, 0.4, '被標記　受傷 +40%');
+      });
+    });
+  } },
+
+  /* VI 折膝的太陽：地面把它放倒的 */
+  sun_beam: { name: '聚光灼燒', cd: 9.5, color: '#E8C35A', cast: (e, h) => {
+    bossBeam(e, h.x - 60, 34, 1.3, 1.1, '#E8C35A',
+      o => afflict(o, 'burn', 5, Math.max(4, e.dmg * 0.22), '被燒著了'));
+  } },
+  bronze_quake: { name: '銅身震', cd: 11.5, color: '#B0703A', cast: (e) => {
+    bossBlast(e, e.x, 380, 1.15, 1.0, '#B0703A', o => afflict(o, 'slow', 3, 0.4, '地在晃'));
+  } },
+
+  /* VII 最後一盞火：熄掉的那一晚沒有人記下來 */
+  beacon_sweep: { name: '燈塔掃射', cd: 8.5, color: '#FFE4A0', cast: (e, h) => {
+    const dir = Math.sign(h.x - e.x) || -1;
+    bossBeam(e, e.x + dir * 420, 30, 1.25, 1.0, '#FFE4A0',
+      o => afflict(o, 'weak', 6, 0.4, '被晃到眼睛　輸出 -40%'));
+  } },
+  flame_pool: { name: '潑火油', cd: 10.5, color: '#F2A93B', cast: (e, h) => {
+    const at = h.x;
+    bossTele(at, 140, 0.8, '#F2A93B');
+    bossAfter(0.8, () => {
+      if (e.dead || B.over) return;
+      // 留一攤火，站在裡面就一直燒
+      B.effects.push({ type: 'pool', x: at, z: 0, r: 140, t: 0, dur: 6, color: '#F2A93B' });
+      let tick = 0;
+      const burn = () => {
+        if (e.dead || B.over || tick >= 12) return;
+        tick++;
+        hitBy(at, 140).forEach(o => {
+          dealDamage(e, o, e.dmg * 0.16, { noCrit: true });
+          afflict(o, 'burn', 1.2, Math.max(3, e.dmg * 0.12), null);
+        });
+        bossAfter(0.5, burn);
+      };
+      burn();
+    });
+  } }
+};
+
 function dealDamage(src, tgt, amount, opt) {
   opt = opt || {};
   if (!tgt || tgt.dead || tgt.invuln) return 0;
@@ -228,6 +433,7 @@ function dealDamage(src, tgt, amount, opt) {
   let crit = !!opt.forceCrit;
 
   if (fromHero) {
+    if (B.hero.weakUntil > B.time) dmg *= (1 - B.hero.weak);   // 魔王掛的削弱
     if (!opt.noCrit) {
       if (B.flags.has('backstab') && !tgt.isStructure && Math.sign(tgt.x - B.hero.x) !== B.hero.facing) crit = true;
       if (!crit && Math.random() < B.stats.crit) crit = true;
@@ -369,6 +575,12 @@ B.dist = dist;
 function pushText(x, dy, text, color, big) {
   if (B.texts.length > 90) B.texts.shift();
   B.texts.push({ x, dy, text, color, big: !!big, t: 0, dur: 0.85, vx: (Math.random() - 0.5) * 14 });
+}
+
+/* 魔王技能名：掛在主角頭上的牌子，停久一點、不飄走 */
+function pushBanner(text, color) {
+  if (B.texts.length > 90) B.texts.shift();
+  B.texts.push({ x: B.hero.x, dy: -96, text, color, banner: true, t: 0, dur: 1.5, vx: 0 });
 }
 function burst(x, z, color, count) {
   for (let i = 0; i < count; i++) {
@@ -774,6 +986,15 @@ B.update = function (dt, input) {
 
   if (B.shake > 0) B.shake = Math.max(0, B.shake - dt * 42);
 
+  /* 戰鬥自己的延遲計時器（魔王技能的預兆→結算都走這裡）。
+     先整批取出再跑，回呼裡排的新計時器才不會在同一幀就被跑掉。 */
+  if (B.timers.length) {
+    const due = [];
+    B.timers.forEach(tm => { tm.t -= dt; if (tm.t <= 0) due.push(tm); });
+    B.timers = B.timers.filter(tm => tm.t > 0);
+    due.forEach(tm => { try { tm.fn(); } catch (err) { /* 一招壞掉不該整場崩掉 */ } });
+  }
+
   if (B.over) { B.overTimer += dt; }
 
   /* 冷卻 */
@@ -819,6 +1040,16 @@ B.update = function (dt, input) {
   } else if (!B.over) {
     h.invuln = Math.max(0, h.invuln - dt);
     h.hitFlash = Math.max(0, h.hitFlash - dt);
+    /* 魔王掛上的燒傷：每半秒跳一次 */
+    if (h.burnUntil > B.time) {
+      h.burnTick = (h.burnTick || 0) + dt;
+      if (h.burnTick >= 0.5) {
+        h.burnTick = 0;
+        dealDamage(null, h, h.burnDps * 0.5, { noCrit: true });
+        B.particles.push({ x: h.x, z: h.z, y: -22, vx: (Math.random() - 0.5) * 34, vy: -76, vz: 0,
+          color: '#F2A93B', t: 0, dur: 0.4, size: 2 });
+      }
+    }
     let mv = 0;
     if (input.left) mv -= 1;
     if (input.right) mv += 1;
@@ -1050,23 +1281,25 @@ B.update = function (dt, input) {
       e.x = Math.max(e.x, B.blockX + 24);
     }
 
-    /* 頭目技能 */
-    if (e.isBoss) {
+    /* 魔王技能：兩招輪流，主角靠得越近放得越勤 */
+    if (e.isBoss && e.skills && e.skills.length && !h.dead && !B.over) {
       e.castTimer -= dt;
-      if (e.castTimer <= 0) {
-        e.castTimer = 7;
-        e.casting = 0.9;
-        const cx = h.x;
-        const btok = B.token;
-        B.effects.push({ type: 'telegraph', x: cx, z: 0, r: 130, t: 0, dur: 0.9, color: '#D1584A' });
-        setTimeout(() => {
-          if (B.token !== btok || B.over || e.dead) return;
-          B.effects.push({ type: 'ring', x: cx, z: 0, r: 0, max: 130, t: 0, dur: 0.4, color: '#D1584A' });
-          B.shake = 12;
-          B.entities.forEach(o => {
-            if (o.faction === 'ally' && !o.dead && Math.abs(o.x - cx) < 130) dealDamage(e, o, e.dmg * 1.8, { noCrit: true });
-          });
-        }, 900);
+      if (e.castTimer <= 0 && Math.abs(h.x - e.x) > BOSS_CAST_RANGE) {
+        e.castTimer = 1.2;                 // 守著塔等你上來，不隔半張圖狙人
+      } else if (e.castTimer <= 0) {
+        e.skillIdx = (e.skillIdx + 1) % e.skills.length;
+        const def = BOSS_SKILLS[e.skills[e.skillIdx]];
+        if (!def) { e.castTimer = 6; }
+        else {
+          e.casting = 0.9;
+          e.facing = Math.sign(h.x - e.x) || e.facing;
+          pushBanner(def.name, def.color);
+          def.cast(e, h);
+          /* 距離換間隔：貼身 ×0.45，離 600 以外 ×1.25。
+             站遠一點它就放得慢，貼上去輸出就得一直閃。 */
+          const k = Math.max(0, Math.min(1, Math.abs(h.x - e.x) / 600));
+          e.castTimer = def.cd * (0.45 + 0.8 * k);
+        }
       }
     }
   }

@@ -44,14 +44,17 @@ G.NODE_KINDS = {
   unknown: { name: '未知',   icon: 'echo',   color: '#75634B' }
 };
 
+/* 這是一款戰鬥遊戲，不是選項遊戲。
+   之前戰鬥只佔 42%，一張圖點下去大半是文字視窗，玩起來像問答。
+   現在戰鬥類（battle + elite）佔 62%，文字類壓到 36%。 */
 const TYPE_TABLE = [
-  { w: 30, t: 'battle' },
-  { w: 12, t: 'elite' },
-  { w: 15, t: 'chest' },
-  { w: 16, t: 'hazard' },
-  { w: 15, t: 'mystery' },
-  { w: 7,  t: 'shop' },
-  { w: 5,  t: 'camp' }
+  { w: 46, t: 'battle' },
+  { w: 16, t: 'elite' },
+  { w: 10, t: 'chest' },
+  { w: 8,  t: 'hazard' },
+  { w: 8,  t: 'mystery' },
+  { w: 6,  t: 'shop' },
+  { w: 6,  t: 'camp' }
 ];
 
 /* 緩動：讓路線從左下往右、再往上 */
@@ -93,10 +96,15 @@ G.buildRun = function (chapterId, seed) {
   mid.forEach(n => { n.type = weighted(rand, TYPE_TABLE).t; });
 
   /* 商隊與營地各有上下限：太多就不稀奇，一個都沒有又太硬 */
-  const capKind = (kind, max) => {
+  const capKind = (kind, max, into) => {
     const has = mid.filter(n => n.type === kind);
-    for (let i = max; i < has.length; i++) has[i].type = rand() < 0.5 ? 'battle' : 'chest';
+    for (let i = max; i < has.length; i++) has[i].type = into ? into(rand) : (rand() < 0.5 ? 'battle' : 'chest');
   };
+  const toFight = r => r() < 0.72 ? 'battle' : 'elite';
+  /* 文字節點各自設上限，超過的一律換成戰鬥 */
+  capKind('hazard', 2, toFight);
+  capKind('mystery', 2, toFight);
+  capKind('chest', 3, toFight);
   capKind('shop', 2);
   capKind('camp', 2);
   if (!mid.some(n => n.type === 'shop')) {

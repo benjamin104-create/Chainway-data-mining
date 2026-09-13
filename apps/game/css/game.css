@@ -453,7 +453,17 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .item-state { grid-column: 1 / -1; font-family: var(--f-pixel); font-size: 10px; color: var(--moss); }
 
 /* ══════ 戰鬥 ══════ */
-.battle-wrap { display: flex; flex-direction: column; gap: 0; }
+/* 戰場絕對不能長到視窗外。
+   主角開場站在地圖最下排，畫布一旦超出螢幕下緣，玩家會以為「沒有戰鬥」——
+   實際上戰鬥正在他看不到的地方進行。所以高度不夠時先縮寬度，
+   上下框（93 + 63 + 85 + 底部留白）量出來約 277px，取 290 當安全值。 */
+.battle-wrap {
+  display: flex; flex-direction: column; gap: 0;
+  width: 100%;
+  max-width: calc((100vh - 290px) * 4 / 3);
+  max-width: calc((100dvh - 290px) * 4 / 3);
+  margin-inline: auto;
+}
 .battle-top {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 9px 14px; background: var(--ink-3); border: 1px solid var(--line); border-bottom: none;

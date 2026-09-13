@@ -25,7 +25,7 @@ G.CHAPTERS = [
           '兩千多年來沒有人找到它，也沒有人願意說它不存在。',
     hook: '水壓把門推開的那一刻，你才發現城裡的燈全都還亮著。',
     enemies: ['drowned', 'coralArcher', 'deepGuard'],
-    boss: { shape: 'tide', name: '潮位官', title: '把水叫上來的那個人' },
+    boss: { shape: 'tide', name: '潮位官', skills: ['tide_surge', 'tide_drag'], title: '把水叫上來的那個人' },
     reward: { gold: 220, sp: 2 }
   },
   {
@@ -45,7 +45,7 @@ G.CHAPTERS = [
           '但那座建築確實是設計來讓人迷路的。',
     hook: '迷宮不是用來困住怪物的。是用來困住那些進去找怪物的人。',
     enemies: ['threadHolder', 'ratSwarm', 'axeGuard'],
-    boss: { shape: 'minotaur', name: '米諾陶', title: '被關起來的那個，不是為了保護外面' },
+    boss: { shape: 'minotaur', name: '米諾陶', skills: ['bull_charge', 'bull_stomp'], title: '被關起來的那個，不是為了保護外面' },
     reward: { gold: 320, sp: 2 }
   },
   {
@@ -64,7 +64,7 @@ G.CHAPTERS = [
           '九層城疊在同一個土丘上。詩是真的，它只是沒說是哪一層。',
     hook: '城牆擋得住十年。擋不住一個被你親手拉進來的禮物。',
     enemies: ['spearman', 'trojanArcher', 'bronzeHoplite'],
-    boss: { shape: 'horse', name: '木馬之腹', title: '你自己把它拉過門檻的' },
+    boss: { shape: 'horse', name: '木馬之腹', skills: ['horse_volley', 'horse_disgorge'], title: '你自己把它拉過門檻的' },
     reward: { gold: 440, sp: 3 }
   },
   {
@@ -83,7 +83,7 @@ G.CHAPTERS = [
           '然後告訴他自己叫「沒有人」。',
     hook: '巨人喊救命的時候，鄰居問是誰弄的。他說：「沒有人。」於是沒有人來。',
     enemies: ['caveDweller', 'boulderThrower', 'shepherdGiant'],
-    boss: { shape: 'cyclops', name: '波呂斐摩斯', title: '他問了你的名字，你沒有給他' },
+    boss: { shape: 'cyclops', name: '波呂斐摩斯', skills: ['rock_throw', 'cyclops_sweep'], title: '他問了你的名字，你沒有給他' },
     reward: { gold: 580, sp: 3 }
   },
   {
@@ -103,7 +103,7 @@ G.CHAPTERS = [
     hook: '傳說是她們替阿提米絲立了神廟。那座神廟燒過，也重蓋過，' +
           '最後成了七大奇蹟之一。',
     enemies: ['templeSentinel', 'horseArcher', 'javelineer'],
-    boss: { shape: 'queen', name: '希波呂忒', title: '腰帶上刻的是她自己的名字' },
+    boss: { shape: 'queen', name: '希波呂忒', skills: ['arrow_rain', 'queen_mark'], title: '腰帶上刻的是她自己的名字' },
     reward: { gold: 760, sp: 3 }
   },
   {
@@ -123,7 +123,7 @@ G.CHAPTERS = [
           '倒下之後它躺了八百年，沒有人敢扶——神諭說不要。',
     hook: '它站著的時間，比它躺著的時間短得多。但人們記得的是站著的那幾十年。',
     enemies: ['bronzeSentinel', 'siegeEngine', 'fallenLimb' ],
-    boss: { shape: 'colossus', name: '折膝的太陽', title: '它不是被打倒的，是被地面放倒的' },
+    boss: { shape: 'colossus', name: '折膝的太陽', skills: ['sun_beam', 'bronze_quake'], title: '它不是被打倒的，是被地面放倒的' },
     reward: { gold: 980, sp: 4 }
   },
   {
@@ -143,7 +143,7 @@ G.CHAPTERS = [
           '幾次地震之後它終於塌了，石頭被拿去蓋了一座堡壘。',
     hook: '所有的奇蹟最後都變成別人家的石頭。問題是在那之前，它替多少船指過路。',
     enemies: ['seawallGuard', 'mirrorSoldier', 'fireKeeper'],
-    boss: { shape: 'flame', name: '最後一盞火', title: '它熄掉的那一晚，沒有人記下來' },
+    boss: { shape: 'flame', name: '最後一盞火', skills: ['beacon_sweep', 'flame_pool'], title: '它熄掉的那一晚，沒有人記下來' },
     reward: { gold: 1400, sp: 5 }
   }
 ];

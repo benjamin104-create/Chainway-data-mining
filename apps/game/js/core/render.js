@@ -927,6 +927,30 @@ function drawEffect(ctx, f, map) {
   const k = f.t / f.dur;
   const sc = map.scale;
   ctx.save();
+  if (f.type === 'pool') {
+    /* 留在地上的火油：邊緣一直在抖，快燒完會變淡 */
+    const k = f.t / f.dur;
+    const a = k > 0.75 ? (1 - k) / 0.25 : 1;
+    const c = map.at(f.x, f.z || 0);
+    ctx.save();
+    ctx.globalAlpha = a * 0.4;
+    ctx.fillStyle = f.color;
+    ctx.beginPath(); ctx.ellipse(c.x, c.y, f.r, f.r * 0.42, 0, 0, 6.3); ctx.fill();
+    ctx.globalAlpha = a * 0.85;
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= 26; i++) {
+      const th = i / 26 * 6.283;
+      const wob = 1 + Math.sin(th * 4 + G.B.time * 5) * 0.06;
+      const px = c.x + Math.cos(th) * f.r * wob;
+      const py = c.y + Math.sin(th) * f.r * 0.42 * wob;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if (f.type === 'ring' || f.type === 'telegraph' || f.type === 'arc') {
     const sp = map.at(f.x, f.z || 0);
     if (f.type === 'telegraph') {
@@ -995,8 +1019,25 @@ function drawTexts(ctx, B, map) {
   B.texts.forEach(t => {
     const sp = map.at(t.x, 0);
     ctx.globalAlpha = Math.max(0, 1 - t.t / t.dur);
-    ctx.font = (t.big ? 'bold 16px ' : 'bold 12px ') + '"Silkscreen", monospace';
     ctx.textAlign = 'center';
+
+    /* 魔王技能名：Silkscreen 沒有中文字，而且畫在魔王身上會同色看不見。
+       改成掛在主角頭上的牌子——玩家本來就在看自己，警告也該出現在那裡。 */
+    if (t.banner) {
+      ctx.font = 'bold 17px "Noto Sans TC", sans-serif';
+      const w = ctx.measureText(t.text).width + 26;
+      const by = Math.round(sp.y + t.dy);
+      ctx.fillStyle = 'rgba(14,11,8,0.88)';
+      ctx.fillRect(Math.round(sp.x) - w / 2, by - 17, w, 25);
+      ctx.fillStyle = t.color;
+      ctx.fillRect(Math.round(sp.x) - w / 2, by - 17, w, 3);
+      ctx.fillRect(Math.round(sp.x) - w / 2, by + 5, w, 3);
+      ctx.fillStyle = '#FFF0C8';
+      ctx.fillText(t.text, Math.round(sp.x), by);
+      return;
+    }
+
+    ctx.font = (t.big ? 'bold 16px ' : 'bold 12px ') + '"Silkscreen", monospace';
     const y = sp.y + t.dy * 0.55;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillText(t.text, Math.round(sp.x) + 1, Math.round(y) + 1);
