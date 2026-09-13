@@ -93,6 +93,13 @@
     R.setup(cv);
     R.buildBackdrop(G.getChapter(stage.chapterId), stage);
     cv.addEventListener('pointerdown', onCanvasPointer);
+    /* 螢幕矮的時候戰場會超出視窗，主角開場又站在地圖最下排，
+       不捲過去玩家會看到一片空戰場，以為沒有戰鬥。 */
+    try {
+      if (cv.getBoundingClientRect().bottom > window.innerHeight) {
+        cv.scrollIntoView({ block: 'center', behavior: 'auto' });
+      }
+    } catch (e) { /* 舊瀏覽器沒有就算了 */ }
     input.left = input.right = false;
     last = performance.now();
     if (raf) cancelAnimationFrame(raf);

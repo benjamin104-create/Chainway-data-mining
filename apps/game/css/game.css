@@ -460,8 +460,12 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .battle-wrap {
   display: flex; flex-direction: column; gap: 0;
   width: 100%;
-  max-width: calc((100vh - 290px) * 4 / 3);
-  max-width: calc((100dvh - 290px) * 4 / 3);
+  /* 高度不夠時先縮寬度——但絕對不能縮到消失。
+     min(100%, 420px) 是地板：視窗很矮時（App 裡的小面板、手機橫躺）
+     寧可讓頁面往下捲，也不要把戰場壓成幾十像素。
+     沒有這個地板的話，390x300 的面板會算出 13px 寬的戰場。 */
+  max-width: max(min(100%, 420px), calc((100vh - 290px) * 4 / 3));
+  max-width: max(min(100%, 420px), calc((100dvh - 290px) * 4 / 3));
   margin-inline: auto;
 }
 .battle-top {
