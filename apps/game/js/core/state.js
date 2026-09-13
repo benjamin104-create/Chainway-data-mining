@@ -40,6 +40,7 @@ G.newSave = function () {
     consumables: { c_potion: 0, c_charge: 0 },
     cleared: {},
     best: {},
+    run: null,          // 進行中的遠征
     seenIntro: false
   });
 };
@@ -179,6 +180,9 @@ G.computeStats = function (classId) {
     const it = G.getItem(G.S.gear[slot]);
     if (it) applyMods(it.mods);
   });
+
+  // 這趟遠征路上撿到的加持
+  if (G.runMods) applyMods(G.runMods());
 
   const b = cls.base;
   const stats = {

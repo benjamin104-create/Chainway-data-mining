@@ -4,10 +4,10 @@
 
   const input = { left: false, right: false };
   G.input = input;   // 方便除錯／自動測試
-  let raf = null, last = 0, hudRefs = null, currentStageKey = null;
+  let raf = null, last = 0, hudRefs = null, currentStageKey = null, currentOpts = null;
 
   /* ══════ 戰鬥畫面 ══════ */
-  function battleView(stage) {
+  function battleView(stage, opts) {
     const cls = G.getClass(G.S.classId);
     const skills = G.S.classes[cls.id].bar;
     const slots = skills.map((id, i) => {
@@ -24,7 +24,7 @@
     U.view.innerHTML =
       '<div class="battle-wrap">' +
         '<div class="battle-top">' +
-          '<span class="battle-title">' + stage.name + '</span>' +
+          '<span class="battle-title">' + ((opts && opts.label) ? opts.label + '　·　' : '') + stage.name + '</span>' +
           '<span class="sep">|</span>' +
           '<span class="towers-left" id="towersLeft"></span>' +
           '<span class="sep">|</span>' +
@@ -81,13 +81,14 @@
     };
   }
 
-  function startBattle(stageKey) {
+  function startBattle(stageKey, opts) {
     currentStageKey = stageKey;
+    currentOpts = opts || null;
     const stage = G.getStage(stageKey);
     U.screen = 'battle';
     U.renderNav();
-    battleView(stage);
-    B.init(stageKey);
+    battleView(stage, currentOpts);
+    B.init(stageKey, currentOpts || {});
     const cv = document.getElementById('screen');
     R.setup(cv);
     R.buildBackdrop(G.getChapter(stage.chapterId), stage);
@@ -97,6 +98,8 @@
     if (raf) cancelAnimationFrame(raf);
     raf = requestAnimationFrame(loop);
   }
+
+  U.startRunBattle = function (stageKey, opts) { startBattle(stageKey, opts); };
 
   function stopBattle() {
     if (raf) cancelAnimationFrame(raf);
@@ -273,11 +276,28 @@
       const t = B.time;
       if (!G.S.best[stage.key] || t < G.S.best[stage.key]) G.S.best[stage.key] = t;
     }
+    /* 遠征：血量帶回地圖，贏了才算走完這個地點 */
+    const run = G.runActive();
+    const node = currentOpts && currentOpts.node ? G.runNode(currentOpts.node.id) : null;
+    let bossWin = false;
+    if (run && node) {
+      run.hpPct = win ? Math.max(0.12, B.hero.hp / B.hero.maxHp) : 0.25;
+      if (win) {
+        G.runFinishNode(node, G.NODE_KINDS[node.type].name + '：拿下了。', 'good');
+        G.S.cleared[G.runStageKeyFor(node)] = true;   // 裝備與職業解鎖看的是關卡代號
+        bossWin = node.type === 'boss';
+      } else {
+        run.log.push({ text: G.NODE_KINDS[node.type].name + '：被打回來了，重整再上。', kind: 'bad' });
+      }
+    }
+
     G.save();
     U.renderTop();
 
     U.showResult({ result: B.over, stage, gold, sp, xp, levels, kills: B.kills,
-                   time: B.time, earned: B.goldEarned, spent: B.goldSpent });
+                   time: B.time, earned: B.goldEarned, spent: B.goldSpent,
+                   inRun: !!(run && node), bossWin: bossWin,
+                   hpLeft: run ? Math.round(run.hpPct * 100) : null });
   }
 
   function closeResult() {
@@ -371,17 +391,48 @@
       return;
     }
     if (t.dataset.act === 'begin-battle') { B.begin(); hudRefs.hireSig = ''; return; }
-    if (t.dataset.act === 'retreat') { stopBattle(); U.show('chapters'); return; }
+    if (t.dataset.act === 'retreat') {
+      stopBattle();
+      if (G.runActive() && currentOpts && currentOpts.node) {
+        G.S.run.hpPct = Math.max(0.12, B.hero.hp / B.hero.maxHp);
+        G.save();
+      }
+      U.show('chapters');
+      return;
+    }
 
     /* 結算 */
     if (t.dataset.res) {
       const which = t.dataset.res;
       closeResult();
-      if (which === 'retry') startBattle(currentStageKey);
+      if (which === 'retry') startBattle(currentStageKey, currentOpts);
       else if (which === 'tree') U.show('tree');
+      else if (which === 'runwin') {
+        U.showRunEnd(true, '大王倒了。這一章的答案，現在歸你。',
+          '完成獎勵已經入帳。地圖會在下次出發時重新生成。');
+      }
       else U.show('chapters');
       return;
     }
+
+    /* ── 遠征 ── */
+    if (t.dataset.startRun) {
+      G.S.run = G.buildRun(t.dataset.startRun, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
+      G.save();
+      U.show('chapters');
+      return;
+    }
+    if (t.dataset.resumeRun) { U.show('chapters'); return; }
+    if (t.dataset.act === 'retreat-run') {
+      U.showRunEnd(false, '你從這一章撤了出來。撿到的東西都還在，路要重走。');
+      return;
+    }
+    if (t.dataset.act === 'back-to-run') { U.fromExpedition = false; U.show('chapters'); return; }
+    if (t.dataset.nodeGo) { U.goNode(t.dataset.nodeGo); return; }
+    if (t.dataset.evOpt != null) { U.chooseEventOption(parseInt(t.dataset.evOpt, 10)); return; }
+    if (t.dataset.campOpt) { U.chooseCamp(t.dataset.campOpt); return; }
+    if (t.dataset.evClose) { U.closeEvent(); return; }
+    if (t.dataset.runEnd) { U.finishRunEnd(); return; }
   });
 
   /* 觸控：按住移動 */

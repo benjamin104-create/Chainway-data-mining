@@ -67,7 +67,7 @@ U.show = function (name) {
   U.renderTop();
   U.renderNav();
   if (name === 'intro') U.renderIntro();
-  else if (name === 'chapters') U.renderChapters();
+  else if (name === 'chapters') { if (G.runActive()) U.renderExpedition(); else U.renderChapters(); }
   else if (name === 'class') U.renderClasses();
   else if (name === 'tree') U.renderTree();
   else if (name === 'shop') U.renderShop();
@@ -86,6 +86,9 @@ U.renderIntro = function () {
         '每一處都留著一座還在運轉的塔，塔裡的守衛守著一個沒有人記得的答案。</p>' +
         '<p>你是一顆被派去拆塔的橘色小東西。你有一把劍、一面盾，' +
         '和一條會跟著你往前推的線。城門在你身後，主塔在最前面，中間全是別人。</p>' +
+        '<p>每一章都是一張有分岔的大地圖。你從左下角出發，往右、再往上，' +
+        '路上會遇到寶箱、商隊、營地、險地與謎團——有些地點走到才知道是什麼。' +
+        '血量會一路帶下去，所以走哪一條路是真的有差。</p>' +
         '<p>戰場上有幾個僱用所。殺出來的錢可以當場僱傭兵、魔法師、白魔道士，' +
         '買攻城車與彈弩台，或是架起拒馬、火油槽與戰旗——' +
         '但花掉的錢不會跟你回家。</p>' +
@@ -107,7 +110,6 @@ U.renderIntro = function () {
 U.renderChapters = function () {
   const cards = G.CHAPTERS.map((ch, ci) => {
     const unlocked = G.chapterUnlocked(ci);
-    const stages = G.STAGES.filter(s => s.chapterId === ch.id);
     return '<article class="chapter' + (unlocked ? '' : ' locked') + '">' +
       '<div class="chapter-top">' +
         '<div class="chapter-no">' + ch.no + '</div>' +
@@ -116,22 +118,34 @@ U.renderChapters = function () {
       '</div>' +
       '<p class="chapter-lore">' + ch.lore + '</p>' +
       '<p class="chapter-hook">' + ch.hook + '</p>' +
-      '<div class="stages">' + stages.map(st => {
-        const ok = unlocked && G.stageUnlocked(st);
-        const done = !!G.S.cleared[st.key];
-        return '<button class="stage' + (st.isBoss ? ' boss' : '') + '" data-stage="' + st.key + '"' +
-          (ok ? '' : ' disabled') + '>' +
-          ['前庭', '內廊', '核心'][st.idx] +
-          (st.isBoss ? '　' + ch.boss.name : '') +
-          '<span class="tick">' + (done ? '已通過' : ok ? '可進入' : '未開啟') + '</span></button>';
-      }).join('') + '</div>' +
+      '<div class="stages">' + U.chapterAction(ch, ci, unlocked) + '</div>' +
     '</article>';
   }).join('');
 
   U.view.innerHTML =
     '<section class="panel"><div class="panel-head"><h2>遠征路線</h2>' +
-    '<span class="hint">七座塔，二十一個關卡。每章的核心關有頭目。</span></div>' +
+    '<span class="hint">七座塔。每一章都是一張有分岔的大地圖，每次出發都不一樣。</span></div>' +
     '<div class="panel-body"><div class="chapters">' + cards + '</div></div></section>';
+};
+
+/* 章節卡底下那顆按鈕：出發 / 繼續 / 再走一次 */
+U.chapterAction = function (ch, ci, unlocked) {
+  const run = G.runActive();
+  const cleared = !!G.S.cleared[ch.id + '-3'];
+  if (run && run.chapterId === ch.id) {
+    return '<button class="stage boss" data-resume-run="1">繼續這趟遠征' +
+      '<span class="tick">生命 ' + Math.round(run.hpPct * 100) + '%</span></button>';
+  }
+  if (run) {
+    return '<button class="stage" disabled>先把手上那趟遠征走完' +
+      '<span class="tick">或從地圖上撤出</span></button>';
+  }
+  if (!unlocked) {
+    return '<button class="stage" disabled>未開啟<span class="tick">先通過前一章</span></button>';
+  }
+  return '<button class="stage' + (cleared ? '' : ' boss') + '" data-start-run="' + ch.id + '">' +
+    (cleared ? '再走一次' : '出發') +
+    '<span class="tick">' + (cleared ? '地圖會重新生成' : '八段路，終點是' + ch.boss.name) + '</span></button>';
 };
 
 /* ══════ 職業 ══════ */
@@ -325,10 +339,17 @@ U.renderShop = function () {
     ['攻城傷害', '+' + Math.round(st.siege * 100) + '%'], ['小兵強化', '+' + Math.round(st.minionDmg * 100) + '%']
   ].map(([k, v]) => '<div class="cls-stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
 
+  const backBar = (U.fromExpedition && G.runActive())
+    ? '<button class="btn btn-primary btn-full" data-act="back-to-run" style="margin-bottom:16px">' +
+      '補給完畢，回到征途</button>'
+    : '';
+
   U.view.innerHTML =
     '<section class="panel"><div class="panel-head"><h2>補給所</h2>' +
-    '<span class="hint">買過的裝備會留著，可以隨時換回來。</span></div>' +
-    '<div class="panel-body">' +
+    '<span class="hint">' + (U.fromExpedition && G.runActive()
+      ? '這是路上的商隊。買完按上面的鈕回地圖。'
+      : '買過的裝備會留著，可以隨時換回來。') + '</span></div>' +
+    '<div class="panel-body">' + backBar +
       '<div class="eyebrow" style="margin-bottom:8px">目前總數值　·　' + G.getClass(G.S.classId).name + '　Lv ' + G.S.level + '</div>' +
       '<div class="cls-stats" style="grid-template-columns:repeat(auto-fit,minmax(84px,1fr));margin-bottom:20px">' + statRows + '</div>' +
       '<div class="shop-cols">' + cols +
@@ -360,6 +381,7 @@ U.showResult = function (data) {
     rows.push(['戰場收入', G.fmtGold(data.earned)]);
     rows.push(['僱用支出', '−' + G.fmtGold(data.spent)]);
   }
+  if (data.inRun && data.hpLeft != null) rows.push(['帶往下一個地點的生命', data.hpLeft + '%']);
   rows.push(['擊殺', String(data.kills)]);
   rows.push(['耗時', Math.floor(data.time / 60) + ':' + String(Math.floor(data.time % 60)).padStart(2, '0')]);
 
@@ -376,9 +398,14 @@ U.showResult = function (data) {
       '<div class="result-rows">' + rows.map(([k, v]) =>
         '<div class="result-row"><span>' + k + '</span><b>' + v + '</b></div>').join('') + '</div>' +
       '<div class="result-actions">' +
-        '<button class="btn btn-primary" data-res="retry">' + (win ? '再打一次' : '重來') + '</button>' +
+        (data.bossWin
+          ? '<button class="btn btn-primary" data-res="runwin">完成遠征</button>'
+          : data.inRun
+            ? '<button class="btn btn-primary" data-res="back">回到征途</button>' +
+              (win ? '' : '<button class="btn btn-ghost" data-res="retry">立刻重打</button>')
+            : '<button class="btn btn-primary" data-res="retry">' + (win ? '再打一次' : '重來') + '</button>') +
         '<button class="btn btn-ghost" data-res="tree">技能樹</button>' +
-        '<button class="btn btn-ghost" data-res="back">回遠征路線</button>' +
+        (data.inRun ? '' : '<button class="btn btn-ghost" data-res="back">回遠征路線</button>') +
       '</div>' +
     '</div>';
   document.body.appendChild(el);

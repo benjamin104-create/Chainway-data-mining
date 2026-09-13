@@ -24,13 +24,19 @@ let uid = 0;
 const nid = () => ++uid;
 
 /* ══════════ 初始化 ══════════ */
-B.init = function (stageKey) {
+B.init = function (stageKey, opts) {
+  opts = opts || {};
   const stage = G.getStage(stageKey);
   const chapter = G.getChapter(stage.chapterId);
   const built = G.computeStats();
 
   B.stage = stage;
   B.chapter = chapter;
+  const depth = opts.scaleMul || 1;
+  B.escale = stage.scale * depth;                       // 敵方：遠征走得越深越硬
+  B.ascale = stage.scale * (1 + (depth - 1) * 0.5);     // 我方吃一半，否則整條線會被輾平
+  B.startHpPct = opts.startHpPct != null ? opts.startHpPct : 1;
+  B.nodeLabel = opts.label || null;
   B.stats = built.stats;
   B.flags = built.flags;
   B.skillDefs = built.skills;
@@ -74,7 +80,7 @@ B.init = function (stageKey) {
   /* 英雄 */
   B.hero = {
     id: nid(), kind: 'hero', faction: 'ally', x: 60, z: 0,
-    hp: B.stats.hp, maxHp: B.stats.hp, size: 18,
+    hp: Math.max(1, Math.round(B.stats.hp * B.startHpPct)), maxHp: B.stats.hp, size: 18,
     dead: false, facing: 1, atkTimer: 0, bob: 0, hitFlash: 0,
     shield: 0, invuln: 0, name: B.cls.name, color: '#E07A3F'
   };
@@ -82,7 +88,7 @@ B.init = function (stageKey) {
 
   /* 我方城門 */
   const gateAtkSpd = B.flags.has('bigwave') ? 1.5 : 1.0;
-  B.gate = mkStructure('ally', 20, 1400 * stage.scale, 14 * stage.scale, 200, '我方城門', gateAtkSpd);
+  B.gate = mkStructure('ally', 20, 1400 * B.ascale, 14 * B.escale, 200, '我方城門', gateAtkSpd);
   B.gate.armor = 18;
   B.entities.push(B.gate);
 
@@ -94,8 +100,8 @@ B.init = function (stageKey) {
     const t = mkStructure(
       'enemy',
       Math.round(stage.length * f),
-      Math.round((last ? 620 : 340) * stage.scale),
-      Math.round((last ? 22 : 16) * stage.scale),
+      Math.round((last ? 620 : 340) * B.escale),
+      Math.round((last ? 22 : 16) * B.escale),
       last ? 230 : 190,
       last ? '主塔' : '哨塔 ' + (i + 1),
       1.0
@@ -112,8 +118,8 @@ B.init = function (stageKey) {
     const boss = {
       id: nid(), kind: 'boss', faction: 'enemy',
       x: stage.length - 150, z: 0,
-      hp: Math.round(bossProto.hp * stage.scale * 7),
-      maxHp: 0, dmg: bossProto.dmg * stage.scale * 1.5,
+      hp: Math.round(bossProto.hp * B.escale * 7),
+      maxHp: 0, dmg: bossProto.dmg * B.escale * 1.5,
       speed: bossProto.speed * 0.8, range: 46, size: 34,
       color: chapter.palette.accent, atkTimer: 0, dead: false,
       name: chapter.boss.name, title: chapter.boss.title,
@@ -145,7 +151,8 @@ B.init = function (stageKey) {
 /* 封鎖線：還有哨塔活著就過不去 */
 function updateFrontLine() {
   const front = B.towers.find(t => !t.dead);
-  B.frontLine = (front && !front.isMain) ? front.x + 230 : B.stage.length + 40;
+  // 停在塔的正前方，不是塔後 230。設太遠的話往前走到底反而打不到那座塔。
+  B.frontLine = (front && !front.isMain) ? front.x + 40 : B.stage.length + 40;
 }
 
 /* 部署完畢，開打 */
@@ -442,8 +449,8 @@ function spawnWave() {
 
 function spawnMinion(faction, key, x, i) {
   const p = ALLY_UNITS[key];
-  const hpMul = B.stage.scale * (1 + B.stats.minionHp);
-  const dmgMul = B.stage.scale * (1 + B.stats.minionDmg);
+  const hpMul = B.ascale * (1 + B.stats.minionHp);
+  const dmgMul = B.ascale * (1 + B.stats.minionDmg);
   const e = {
     id: nid(), kind: 'minion', faction, unit: key,
     x, z: ((i % 5) - 2) * 9 + (Math.random() - 0.5) * 5,
@@ -459,7 +466,7 @@ function spawnMinion(faction, key, x, i) {
 
 function spawnEnemy(key, x, i) {
   const p = G.ENEMY_TYPES[key];
-  const sc = B.stage.scale;
+  const sc = B.escale;
   const e = {
     id: nid(), kind: 'minion', faction: 'enemy', unit: key,
     x, z: ((i % 5) - 2) * 9 + (Math.random() - 0.5) * 5,
@@ -478,7 +485,7 @@ B.spawnMinion = spawnMinion;
 /* ══════════ 僱用 ══════════ */
 function spawnHired(hire, x) {
   const u = hire.unit;
-  const sc = B.stage.scale;
+  const sc = B.ascale;
   const hpMul = sc * (1 + B.stats.minionHp);
   const dmgMul = sc * (1 + B.stats.minionDmg);
   const e = {
@@ -500,7 +507,7 @@ function spawnHired(hire, x) {
 
 function placeGear(hire, x) {
   const g = hire.gear;
-  const e = mkStructure('ally', Math.round(x), g.hp * B.stage.scale, 0, 0, hire.name, 1);
+  const e = mkStructure('ally', Math.round(x), g.hp * B.ascale, 0, 0, hire.name, 1);
   e.isGear = true;
   e.gearKind = hire.id;
   e.size = g.size;
@@ -918,7 +925,7 @@ B.update = function (dt, input) {
         e.burnTick = (e.burnTick || 0) + dt;
         if (e.burnTick >= 0.4) {
           e.burnTick = 0;
-          const tickDmg = e.burnAura.dps * 0.4 * B.stage.scale;
+          const tickDmg = e.burnAura.dps * 0.4 * B.ascale;
           for (const o of B.entities) {
             if (o.faction !== 'enemy' || o.dead || o.invuln || o.isStructure) continue;
             if (dist(o, e) < e.burnAura.radius) dealDamage(e, o, tickDmg, { noCrit: true });
