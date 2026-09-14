@@ -134,6 +134,15 @@ window.G = window.G || {};
     const node = G.runNode(nodeId);
     if (!node) return;
     if (node.id === G.S.run.at && !node.done) { U.resolveNode(node); return; }
+
+    /* 守衛特別處理：先問，再走過去。
+       原本是先 runEnter 把人挪過去，再跳「要不要打」的視窗——
+       但守衛站在捷徑的路口，出去的路只有捷徑那一條。
+       所以按「先不要」的人就卡在那格上了：捷徑要打贏才開，
+       原本的路又已經走過去了，只剩撤退一途。
+       現在沒按「開打」之前不會移動，反悔了還站在原地。 */
+    if (node.type === 'guardian' && !node.done) { U.showGuardian(node); return; }
+
     const r = G.runEnter(node);
     if (!r.ok) { U.toast(r.why); return; }
     if (r.trap) U.toast('陷阱：生命 −' + Math.round(r.trap * 100) + '%');

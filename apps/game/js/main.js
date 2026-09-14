@@ -632,6 +632,7 @@
 
     /* 開場 */
     if (t.dataset.act === 'begin') { G.S.seenIntro = true; G.save(); U.show('chapters'); return; }
+    if (t.dataset.act === 'crawl-skip') { U.skipCrawl(); return; }
 
     /* 關卡 */
     if (t.dataset.stage) { closeResult(); startBattle(t.dataset.stage); return; }
@@ -789,7 +790,15 @@
     if (t.dataset.guardGo) {
       const n = G.runNode(t.dataset.guardGo);
       U.closeEvent();
-      if (n) U.startGuardianFight(n);
+      if (!n) return;
+      /* 現在是「按了開打才真的走過去」。還沒走到就先 runEnter，
+         走到了（打輸要重打）就直接開打。 */
+      if (G.S.run && G.S.run.at !== n.id) {
+        const r = G.runEnter(n);
+        if (!r.ok) { U.toast(r.why); U.renderExpedition(); return; }
+        if (r.trap) U.toast('陷阱：生命 −' + Math.round(r.trap * 100) + '%');
+      }
+      U.startGuardianFight(n);
       return;
     }
     if (t.dataset.guardCancel) { U.closeEvent(); U.renderExpedition(); return; }

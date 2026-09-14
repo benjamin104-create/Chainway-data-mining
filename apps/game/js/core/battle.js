@@ -1341,6 +1341,7 @@ B.update = function (dt, input) {
       h.dead = false;
       h.hp = Math.round(h.maxHp * 0.4);
       h.x = B.gate.x + 30;
+      h.z = 0;                      // 重生回到路中間，不要還留在剛剛閃到的邊上
       h.invuln = 1.5;
       B.effects.push({ type: 'ring', x: h.x, z: 0, r: 0, max: 70, t: 0, dur: 0.4, color: '#E07A3F' });
     }
@@ -1362,10 +1363,26 @@ B.update = function (dt, input) {
     let mv = 0;
     if (input.left) mv -= 1;
     if (input.right) mv += 1;
-    h.moving = mv !== 0;
+
+    /* 上下＝在路面上左右挪（世界座標的 z）。
+       原本上下鍵完全沒有接，按了什麼都不會發生。
+       路面本來就有 −22～22 的寬度：小兵分五條線走、範圍技能與坑
+       都是照 (x, z) 判定的，所以能挪位就有意義——
+       可以閃魔王的範圍技，也可以避開只佔半邊路面的坑。
+       側向比前後慢一點，不然會變成主要的走位方式。 */
+    let side = 0;
+    if (input.up) side -= 1;
+    if (input.down) side += 1;
+    if (side !== 0) {
+      h.z = Math.max(-22, Math.min(22, (h.z || 0) + side * B.heroMoveSpd() * 0.62 * dt));
+    }
+
+    h.moving = mv !== 0 || side !== 0;
     if (mv !== 0) {
       h.facing = mv;
       h.x += mv * B.heroMoveSpd() * dt;
+    }
+    if (h.moving) {
       h.bob += dt * 12;
       B.stillTimer = 0;
     } else {

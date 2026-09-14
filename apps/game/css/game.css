@@ -761,6 +761,65 @@ canvas#screen {
 .intro-cn { font-family: var(--f-serif); font-size: clamp(17px, 3.4vw, 24px); letter-spacing: .3em; color: var(--parch); margin-top: 6px; }
 .intro-body { font-family: var(--f-serif); font-size: 14px; line-height: 2.1; color: var(--parch-dim); margin-top: 22px; text-align: left; }
 .intro-body p + p { margin-top: 14px; }
+
+/* ══════ 開場字幕：往上捲 ══════
+   往後躺的透視＋上下淡出的遮罩，做出那種「字往遠方走掉」的感覺。
+   一次只讀得到兩三行，節奏由畫面決定，不是把七段字一起丟給讀者。 */
+.crawl-stage {
+  position: relative;
+  height: clamp(280px, 52vh, 460px);
+  margin-top: 18px;
+  overflow: hidden;
+  perspective: 320px;
+  perspective-origin: 50% 0%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 76%, transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 76%, transparent 100%);
+}
+.crawl-text {
+  position: absolute;
+  left: 0; right: 0;
+  transform-origin: 50% 100%;
+  font-family: var(--f-serif);
+  font-size: clamp(14px, 2.6vw, 19px);
+  line-height: 2.0;
+  color: var(--ochre);
+  text-align: center;
+  animation: crawl 54s linear forwards;
+}
+.crawl-text p { margin: 0; }
+.crawl-text p.gap { height: 1.6em; }
+.crawl-title {
+  font-family: var(--f-disp);
+  font-size: clamp(24px, 5vw, 40px);
+  letter-spacing: .1em;
+  color: var(--ochre);
+  line-height: 1.25;
+}
+.crawl-cn {
+  font-family: var(--f-serif);
+  font-size: clamp(15px, 3vw, 22px);
+  letter-spacing: .3em;
+  color: var(--parch);
+  margin-bottom: 1.4em;
+}
+@keyframes crawl {
+  from { transform: rotateX(26deg) translateY(14%); }
+  to   { transform: rotateX(26deg) translateY(-198%); }
+}
+/* 跳過：直接停在結尾 */
+.crawl-text.done { animation: none; transform: rotateX(0deg) translateY(0); position: static; }
+.crawl-text.done { color: var(--parch-dim); text-align: left; }
+.crawl-text.done .crawl-title, .crawl-text.done .crawl-cn { text-align: center; }
+.crawl-stage:has(.crawl-text.done) {
+  height: auto; perspective: none; overflow: visible;
+  -webkit-mask-image: none; mask-image: none;
+}
+/* 會暈的人直接看靜態的版本 */
+@media (prefers-reduced-motion: reduce) {
+  .crawl-text { animation: none; transform: none; position: static; text-align: left; color: var(--parch-dim); }
+  .crawl-stage { height: auto; perspective: none; overflow: visible;
+                 -webkit-mask-image: none; mask-image: none; }
+}
 .intro-actions { margin-top: 26px; display: flex; gap: 10px; justify-content: center; }
 
 .toast {
@@ -943,9 +1002,9 @@ canvas#screen {
   background: var(--blob); color: #221108; border-color: var(--gold);
   font-family: var(--f-serif); font-size: 15px; font-weight: 700;
 }
-/* 線形戰場用不到上下，畫出來但壓暗，免得玩家以為壞掉 */
-.battle-wrap:not(.is-maze) .dp.up,
-.battle-wrap:not(.is-maze) .dp.down { opacity: .28; pointer-events: none; }
+/* 上下鍵在線形戰場也有用了：主角會在路面上左右挪位，
+   可以閃範圍技、也可以避開只佔半邊路面的坑。
+   （這裡本來把它們壓暗並擋掉點擊，因為當時真的沒接。） */
 
 /* ══════ 迷宮 ══════ */
 .maze-tip {
@@ -956,24 +1015,13 @@ canvas#screen {
 .maze-tip.hot { color: var(--gold); background: rgba(224,178,60,.10); }
 
 @media (max-width: 560px) {
-  /* 線形戰場只吃得到左右，上下本來就是灰的、也擋掉了點擊。
-     在窄螢幕上還排成三排十字，白白吃掉 90px 的高度，
-     把僱用列擠到畫面外（量出來 360x640 上三顆僱用鈕一顆都點不到）。
-     所以那裡只留左右一排；迷宮層四個方向都要用，維持十字。 */
-  .battle-wrap:not(.is-maze) .dpad {
-    grid-template-columns: repeat(2, 44px);
-    grid-template-rows: 40px;
-    gap: 6px;
-  }
-  .battle-wrap:not(.is-maze) .dp.up,
-  .battle-wrap:not(.is-maze) .dp.down { display: none; }
-  .battle-wrap:not(.is-maze) .dp.left  { grid-area: 1 / 1; width: 44px; height: 40px; }
-  .battle-wrap:not(.is-maze) .dp.right { grid-area: 1 / 2; width: 44px; height: 40px; }
-
-  .dpad { grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); }
-  .dpad.with-atk { grid-template-columns: repeat(3, 30px) 46px; }
-  .dp { width: 30px; height: 30px; font-size: 12px; }
-  .dp.atk { width: 46px; height: 46px; font-size: 13px; }
+  /* 四個方向都有用了，所以十字要留著。
+     之前為了省高度只留左右一排，是因為那時上下真的沒接。
+     高度改從別的地方省：鍵縮到 26px。 */
+  .dpad { grid-template-columns: repeat(3, 26px); grid-template-rows: repeat(3, 26px); gap: 2px; }
+  .dpad.with-atk { grid-template-columns: repeat(3, 26px) 42px; }
+  .dp { width: 26px; height: 26px; font-size: 11px; }
+  .dp.atk { width: 42px; height: 42px; font-size: 12px; }
 }
 
 /* 手機橫躺（高度不到 520）：十字鍵三排就要 108px，

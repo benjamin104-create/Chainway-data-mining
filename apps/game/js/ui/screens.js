@@ -83,40 +83,68 @@ U.show = function (name) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 };
 
-/* ══════ 開場 ══════ */
+/* ══════ 開場 ══════
+   原本是一次把七段字全部攤在畫面上，太滿了，沒有人會看。
+   改成往上捲的字幕（星際大戰那個開場的感覺）：字自己走，
+   一次只讀得到兩三行，節奏由畫面決定而不是由讀者決定。
+   捲完會停在最後一句，也可以隨時按「跳過」。 */
 U.renderIntro = function () {
+  const lines = [
+    '古代世界留下七個地方。',
+    '它們被寫進史詩、刻在石頭上，',
+    '或者只活在一份沒有人能證實的目擊報告裡。',
+    '',
+    '從柏拉圖說的那座沉城開始，',
+    '一路往後走到亞歷山大港外那盞燈——',
+    '九千年，七座塔。',
+    '每一座都還有守衛，',
+    '守著一個沒有人記得的答案。',
+    '',
+    '你是一顆被派去拆塔的橘色小東西。',
+    '你有一把劍、一面盾，',
+    '和一條會跟著你往前推的線。',
+    '',
+    '城門在你身後，主塔在最前面，',
+    '中間全是別人。',
+    '',
+    '這一版你沒有任何恢復法術。',
+    '血量一路帶到底，倒下一次再扣 10%。',
+    '有些路本身就是陷阱，走過去就掉血。',
+    '要不要走，自己量力而為。',
+    '',
+    '拆完七座塔，你會知道那個答案。',
+    '',
+    '也可能只會知道，',
+    '這些塔本來就不是蓋給人懂的。'
+  ];
+
   U.view.innerHTML =
     '<div class="intro">' +
-      '<div class="intro-title">Siege of Mysteries</div>' +
-      '<div class="intro-cn">通天鬥塔</div>' +
-      '<div class="intro-body">' +
-        '<p>古代世界留下七個地方。它們被寫進史詩、刻在石頭上、' +
-        '或者只活在一份沒有人能證實的目擊報告裡。</p>' +
-        '<p>從柏拉圖說的那座沉城開始，一路往後走到亞歷山大港外那盞燈——' +
-        '九千年、七座塔，每一座都還有守衛，守著一個沒有人記得的答案。</p>' +
-        '<p>你是一顆被派去拆塔的橘色小東西。你有一把劍、一面盾，' +
-        '和一條會跟著你往前推的線。城門在你身後，主塔在最前面，中間全是別人。</p>' +
-        '<p>每一章都是一張有分岔的大地圖。你從左下角出發，往右、再往上，' +
-        '路上會遇到寶箱、商隊、營地、險地與謎團——有些地點走到才知道是什麼，' +
-        '有些岔路是死路，但死路盡頭的洞穴裡長著藥草。</p>' +
-        '<p style="color:var(--parch);">這一版你沒有任何恢復法術。' +
-        '血量一路帶到底，倒下一次再扣 10%，有些路本身就是陷阱、走過去就掉血。' +
-        '要不要走，自己量力而為。</p>' +
-        '<p>戰場上有幾個僱用所。殺出來的錢可以當場僱傭兵、魔法師、白魔道士，' +
-        '買攻城車與彈弩台，或是架起拒馬、火油槽與戰旗——' +
-        '但花掉的錢不會跟你回家。</p>' +
-        '<p style="color:var(--parch);">拆完七座塔，你會知道那個答案。也可能只會知道，' +
-        '這些塔本來就不是蓋給人懂的。</p>' +
+      '<div class="crawl-stage">' +
+        '<div class="crawl-text" id="crawlText">' +
+          '<div class="crawl-title">Siege of Mysteries</div>' +
+          '<div class="crawl-cn">通天鬥塔</div>' +
+          lines.map(l => l ? '<p>' + l + '</p>' : '<p class="gap"></p>').join('') +
+        '</div>' +
       '</div>' +
       '<div class="intro-actions">' +
         '<button class="btn btn-primary" data-act="begin">開始第一次遠征</button>' +
+        '<button class="btn btn-ghost" data-act="crawl-skip">跳過字幕</button>' +
       '</div>' +
-      '<p class="controls-hint" style="margin-top:20px">' +
+      '<p class="controls-hint" style="margin-top:14px">' +
         '操作：<kbd>A</kbd><kbd>D</kbd> 或 <kbd>←</kbd><kbd>→</kbd> 移動　' +
-        '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd> 油罐　<kbd>E</kbd> 火藥包　' +
+        '<kbd>↑</kbd><kbd>↓</kbd> 在路面上左右挪　' +
+        '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd>／<kbd>E</kbd> 消耗品　' +
         '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。普通攻擊會自動進行。' +
       '</p>' +
     '</div>';
+};
+
+/* 跳過：把動畫直接跳到結尾，字整篇留在畫面上給想讀完的人。 */
+U.skipCrawl = function () {
+  const el = document.getElementById('crawlText');
+  if (!el) return;
+  el.classList.add('done');
 };
 
 /* ══════ 章節 ══════ */
