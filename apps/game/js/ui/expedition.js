@@ -145,6 +145,8 @@ window.G = window.G || {};
   U.resolveNode = function (node) {
     const t = node.type;
     if (t === 'guardian') { U.showGuardian(node); return; }
+    /* 魔王節點先進迷宮：九宮格裡找到魔王那一格才開打 */
+    if (t === 'boss') { U.startMaze(G.S.run.chapterId, node); return; }
     if (t === 'battle' || t === 'elite' || t === 'boss' || t === 'cave') {
       const spec = G.runBattleSpec(node);
       U.startRunBattle(spec.stageKey, {

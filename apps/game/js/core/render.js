@@ -1276,3 +1276,218 @@ R.postAt = function (sx, sy) {
 };
 
 R.W = W; R.H = H;
+
+/* ══════════════════════════════════════════
+   魔王迷宮：九宮格探索層的繪製
+   跟線形戰場共用同一張畫布與同一組章節配色。
+   ══════════════════════════════════════════ */
+R.drawMaze = function (m) {
+  const ctx = R.ctx, p = R.palette || {};
+  const T = G.MAZE.TILE, CWn = G.MAZE.CW, CHn = G.MAZE.CH;
+  const cell = G.mazeCell(m);
+  const roomW = CWn * T, roomH = CHn * T;
+  const ox = Math.round((W - roomW) / 2);
+  const oy = Math.round((H - roomH) / 2) + 14;
+
+  ctx.save();
+  if (m.hero.hurt > 0) ctx.translate((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 7);
+
+  // 底
+  ctx.fillStyle = p.near || '#0A1822';
+  ctx.fillRect(0, 0, W, H);
+
+  /* 地板與牆。
+     章節配色裡的 prop / road 明度太接近，直接拿來用會讓牆跟地板糊在一起
+     （第一版就是這樣，整個房間像一張棋盤，看不出通道）。
+     所以這裡從配色各拉一端：牆壓到很暗，地板提到很亮。 */
+  const wallC = shade(p.prop || p.mid || '#1E4C5C', -0.55);
+  const wallTop = shade(p.prop || p.mid || '#1E4C5C', -0.25);
+  const floorA = shade(p.road || p.fog || '#4E8E9C', 0.30);
+  const floorB = shade(p.road || p.fog || '#4E8E9C', 0.18);
+
+  for (let ty = 0; ty < CHn; ty++) {
+    for (let tx = 0; tx < CWn; tx++) {
+      const x = ox + tx * T, y = oy + ty * T;
+      if (cell.g[ty][tx] === 1) {
+        ctx.fillStyle = wallC;
+        ctx.fillRect(x, y, T, T);
+        // 只有「上面是通路」的牆才畫亮邊，做出立體的牆面
+        if (ty > 0 && cell.g[ty - 1][tx] === 0) {
+          ctx.fillStyle = wallTop;
+          ctx.fillRect(x, y, T, 7);
+        }
+      } else {
+        ctx.fillStyle = ((tx + ty) & 1) ? floorA : floorB;
+        ctx.fillRect(x, y, T, T);
+        ctx.fillStyle = 'rgba(0,0,0,0.10)';
+        ctx.fillRect(x, y, T, 1);
+        ctx.fillRect(x, y, 1, T);
+      }
+    }
+  }
+  // 房間外框
+  ctx.strokeStyle = shade(p.accent || '#E0B23C', -0.3);
+  ctx.lineWidth = 2;
+  ctx.strokeRect(ox - 1, oy - 1, roomW + 2, roomH + 2);
+
+  // 門：畫成亮色的口，並標出通往哪一格
+  ['n', 's', 'e', 'w'].forEach(d => {
+    const dd = cell.doors[d];
+    if (!dd) return;
+    const x = ox + dd.x * T, y = oy + dd.y * T;
+    ctx.fillStyle = '#E0B23C';
+    ctx.globalAlpha = 0.55 + Math.sin(G.__mazeT * 4) * 0.20;
+    ctx.fillRect(x + 3, y + 3, T - 6, T - 6);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#2A2116';
+    ctx.font = '13px "Noto Sans TC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('門', x + T / 2, y + T / 2 + 5);
+  });
+
+  // 房間裡的東西
+  cell.items.forEach(it => {
+    const x = ox + it.x * T + T / 2, y = oy + it.y * T + T / 2;
+    if (it.t === 'trap') {
+      ctx.strokeStyle = '#C8503E'; ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath(); ctx.arc(x, y, T * 0.3, 0, 6.3); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - T * 0.18, y - T * 0.18); ctx.lineTo(x + T * 0.18, y + T * 0.18);
+      ctx.moveTo(x + T * 0.18, y - T * 0.18); ctx.lineTo(x - T * 0.18, y + T * 0.18);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const col = it.t === 'chest' ? '#E0B23C' : it.t === 'herb' ? '#8FB86A' : '#6E95E0';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(x, y + T * 0.24, T * 0.28, T * 0.12, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = col;
+    if (it.t === 'chest') {
+      ctx.fillRect(x - T * 0.26, y - T * 0.16, T * 0.52, T * 0.34);
+      ctx.fillStyle = '#8A6A1E';
+      ctx.fillRect(x - T * 0.26, y - T * 0.04, T * 0.52, T * 0.07);
+    } else if (it.t === 'herb') {
+      ctx.beginPath(); ctx.ellipse(x - 5, y, 5, 9, -0.5, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 5, y, 5, 9, 0.5, 0, 6.3); ctx.fill();
+    } else {
+      ctx.fillRect(x - T * 0.28, y - T * 0.06, T * 0.56, T * 0.28);
+      ctx.beginPath();
+      ctx.moveTo(x - T * 0.34, y - T * 0.06); ctx.lineTo(x, y - T * 0.34);
+      ctx.lineTo(x + T * 0.34, y - T * 0.06); ctx.fill();
+    }
+  });
+
+  // 雜兵
+  cell.foes.forEach(f => {
+    const x = ox + f.x, y = oy + f.y;
+    const bob = Math.sin(G.__mazeT * 7 + f.t) * 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(x, y + T * 0.22, T * 0.26, T * 0.11, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = p.accent || '#C8503E';
+    ctx.beginPath(); ctx.ellipse(x, y + bob, T * 0.26, T * 0.3, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#14110C';
+    ctx.fillRect(x - 6, y + bob - 5, 12, 4);
+  });
+
+  // 主角
+  drawMazeHero(ctx, m, ox, oy);
+
+  ctx.restore();
+
+  // 受傷紅屏
+  if (m.hero.flash > 0) {
+    const hf = Math.min(1, m.hero.flash);
+    const rg = ctx.createRadialGradient(W / 2, H / 2, H * 0.1, W / 2, H / 2, H * 0.78);
+    rg.addColorStop(0, 'rgba(216,70,54,0)');
+    rg.addColorStop(1, 'rgba(216,70,54,' + (0.85 * hf).toFixed(3) + ')');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  }
+
+  drawMiniMap(ctx, m);
+};
+
+function drawMazeHero(ctx, m, ox, oy) {
+  const T = G.MAZE.TILE;
+  const h = m.hero;
+  const x = ox + h.x, y = oy + h.y;
+  const r = T * 0.34;
+  const step = Math.sin(h.bob);
+  const bounce = h.moving ? Math.abs(step) * r * 0.18 : 0;
+  const cls = G.getClass(G.S.classId);
+
+  ctx.save();
+  if (h.iframe > 0 && Math.floor(G.__mazeT * 18) % 2 === 0) ctx.globalAlpha = 0.5;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  ctx.beginPath(); ctx.ellipse(x, y + r * 0.62, r * 0.8, r * 0.34, 0, 0, 6.3); ctx.fill();
+
+  const ty = y - bounce;
+  // 腿
+  ctx.fillStyle = '#C4632E';
+  const sw = h.moving ? step * r * 0.3 : 0;
+  ctx.fillRect(x - r * 0.5 + sw, ty + r * 0.22, r * 0.4, r * 0.44);
+  ctx.fillRect(x + r * 0.1 - sw, ty + r * 0.22, r * 0.4, r * 0.44);
+  // 身體
+  ctx.fillStyle = h.hurt > 0 ? '#FFF0CF' : '#E07A3F';
+  ctx.beginPath(); ctx.ellipse(x, ty, r * 0.92, r * 0.88, 0, 0, 6.3); ctx.fill();
+  // 眼睛
+  const eo = h.face * r * 0.14;
+  ctx.fillStyle = '#F6EFE0';
+  ctx.fillRect(x - r * 0.44 + eo, ty - r * 0.3, r * 0.3, r * 0.42);
+  ctx.fillRect(x + r * 0.14 + eo, ty - r * 0.3, r * 0.3, r * 0.42);
+  ctx.fillStyle = '#141110';
+  ctx.fillRect(x - r * 0.36 + eo, ty - r * 0.24, r * 0.18, r * 0.3);
+  ctx.fillRect(x + r * 0.22 + eo, ty - r * 0.24, r * 0.18, r * 0.3);
+  // 盾
+  ctx.fillStyle = '#8E8477';
+  ctx.beginPath(); ctx.ellipse(x - h.face * r * 0.92, ty + r * 0.14, r * 0.3, r * 0.46, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = cls.color2;
+  ctx.beginPath(); ctx.ellipse(x - h.face * r * 0.92, ty + r * 0.14, r * 0.15, r * 0.24, 0, 0, 6.3); ctx.fill();
+  // 劍：揮擊時掃一圈
+  ctx.save();
+  ctx.translate(x + h.face * r * 0.85, ty);
+  const sa = h.swing > 0 ? (1 - h.swing / 0.28) : 0;
+  ctx.rotate(-h.face * (0.3 + sa * 1.9));
+  ctx.fillStyle = '#DCD8CC';
+  ctx.fillRect(-2.5, -r * 1.15, 5, r * 1.5);
+  ctx.restore();
+  if (h.swing > 0) {
+    ctx.globalAlpha = h.swing / 0.28 * 0.5;
+    ctx.strokeStyle = '#F2EDE0'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(x, ty, r * 1.5, -1.4, 1.4); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+/* 右上角的九宮格小地圖：走過的亮起來，魔王那格標出來 */
+function drawMiniMap(ctx, m) {
+  const s = 26, gap = 4, pad = 12;
+  const w = 3 * s + 2 * gap;
+  const bx = W - w - pad, by = pad;
+  ctx.save();
+  ctx.fillStyle = 'rgba(14,11,8,0.82)';
+  ctx.fillRect(bx - 8, by - 8, w + 16, w + 16);
+  ctx.strokeStyle = '#8A6A1E'; ctx.lineWidth = 1;
+  ctx.strokeRect(bx - 8, by - 8, w + 16, w + 16);
+  for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+    const c = m.cells[y][x];
+    const px = bx + x * (s + gap), py = by + y * (s + gap);
+    const here = m.at.x === x && m.at.y === y;
+    const isBoss = m.bossAt.x === x && m.bossAt.y === y;
+    ctx.fillStyle = here ? '#E0B23C' : c.visited ? '#4A4133' : '#241E17';
+    ctx.fillRect(px, py, s, s);
+    if (isBoss && (c.visited || here)) {
+      ctx.fillStyle = '#C8503E';
+      ctx.fillRect(px + 6, py + 6, s - 12, s - 12);
+    }
+    // 門的方向
+    ctx.fillStyle = here ? '#2A2116' : 'rgba(224,178,60,0.45)';
+    if (c.doors.n) ctx.fillRect(px + s / 2 - 3, py - 2, 6, 4);
+    if (c.doors.s) ctx.fillRect(px + s / 2 - 3, py + s - 2, 6, 4);
+    if (c.doors.w) ctx.fillRect(px - 2, py + s / 2 - 3, 4, 6);
+    if (c.doors.e) ctx.fillRect(px + s - 2, py + s / 2 - 3, 4, 6);
+  }
+  ctx.restore();
+}

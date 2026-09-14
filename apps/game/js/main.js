@@ -2,7 +2,7 @@
 (function () {
   const U = G.U, B = G.B, R = G.R;
 
-  const input = { left: false, right: false };
+  const input = { left: false, right: false, up: false, down: false };
   G.input = input;   // 方便除錯／自動測試
   let raf = null, last = 0, hudRefs = null, currentStageKey = null, currentOpts = null;
 
@@ -18,20 +18,67 @@
     if (!wrap || !cv) return;
     wrap.style.maxWidth = '';                 // 先還原，才量得到自然寬度
     const top = cv.getBoundingClientRect().top;
-    const below = (hud ? hud.getBoundingClientRect().height : 0) + 16;
+    /* 畫布底下不是只有 HUD：迷宮層還多一條提示列。
+       只量 HUD 的話，方向鍵會被擠到畫面外（橫躺的手機實測就是這樣）。
+       所以把畫布之後的每一塊都加起來。 */
+    let below = 16;
+    let sib = cv.nextElementSibling;
+    while (sib) { below += sib.getBoundingClientRect().height; sib = sib.nextElementSibling; }
+    if (!cv.nextElementSibling && hud) below += hud.getBoundingClientRect().height;
     const avail = window.innerHeight - top - below;
     const natural = wrap.getBoundingClientRect().width;
     // 4:3 的畫布：高度預算換算成寬度預算
     const byHeight = avail * (960 / 720);
     const w = Math.max(240, Math.min(natural, byHeight));
-    wrap.style.maxWidth = Math.round(w) + 'px';
+
+    /* 收窄的是整個外框，標題列與 HUD 也跟著被擠。
+       擠到 340 以下，標題列的字會折成兩三行、HUD 也長高，
+       反而把剛省下來的高度吃回去——手機橫躺實測：
+       外框被收到 264，標題列就從 28 長到 70。
+       所以太窄的時候只收畫布，外框讓它維持原寬。 */
+    if (w < 340) {
+      wrap.style.maxWidth = '';
+      cv.style.width = Math.round(w) + 'px';
+      cv.style.height = Math.round(w * 720 / 960) + 'px';
+      cv.style.margin = '0 auto';
+    } else {
+      cv.style.width = cv.style.height = cv.style.margin = '';
+      wrap.style.maxWidth = Math.round(w) + 'px';
+    }
+
+    /* 矮螢幕的十字鍵是浮在上面的（CSS 那邊設成 absolute）。
+       預設貼外框底部會壓在血條上，所以抬高一個 HUD 的高度，
+       讓它落在戰場的右下角。高度是量的，不是寫死的。 */
+    const dp = wrap.querySelector('.dpad');
+    if (dp) {
+      if (getComputedStyle(dp).position === 'absolute' && hud) {
+        dp.style.bottom = Math.round(hud.getBoundingClientRect().height + 6) + 'px';
+      } else {
+        dp.style.bottom = '';
+      }
+    }
   }
   U.fitBattle = fitBattle;
 
-  window.addEventListener('resize', () => { if (U.screen === 'battle') fitBattle(); });
+  const fitsHere = () => U.screen === 'battle' || U.screen === 'maze';
+  window.addEventListener('resize', () => { if (fitsHere()) fitBattle(); });
   window.addEventListener('orientationchange', () => {
-    if (U.screen === 'battle') setTimeout(fitBattle, 120);
+    if (fitsHere()) setTimeout(fitBattle, 120);
   });
+
+  /* 上下左右方向鍵。
+     線形戰場只吃得到左右（上下沒有意義，會自動變灰），
+     迷宮層四個方向都要用。兩邊共用同一組按鍵與同一個 input 物件。 */
+  function dpad(withAttack) {
+    return '<div class="dpad' + (withAttack ? ' with-atk' : '') + '">' +
+      '<button class="dp up"    data-hold="up"    aria-label="上">▲</button>' +
+      '<button class="dp left"  data-hold="left"  aria-label="左">◀</button>' +
+      '<button class="dp down"  data-hold="down"  aria-label="下">▼</button>' +
+      '<button class="dp right" data-hold="right" aria-label="右">▶</button>' +
+      (withAttack ? '<button class="dp atk" data-act="maze-swing" aria-label="攻擊">劍</button>' : '') +
+    '</div>';
+  }
+  U.dpad = dpad;
 
   function battleView(stage, opts) {
     const cls = G.getClass(G.S.classId);
@@ -74,8 +121,7 @@
           '<div class="consumables">' +
             '<button class="cons" data-cons-use="c_potion"><span class="key">Q</span>' + G.icon('heal') + '<span class="n" id="nPotion"></span></button>' +
             '<button class="cons" data-cons-use="c_charge"><span class="key">E</span>' + G.icon('quake') + '<span class="n" id="nCharge"></span></button>' +
-            '<button class="cons" data-hold="left" aria-label="向左移動">◀</button>' +
-            '<button class="cons" data-hold="right" aria-label="向右移動">▶</button>' +
+            dpad() +
           '</div>' +
         '</div>' +
         '<div class="hirebar" id="hirebar">' +
@@ -112,6 +158,151 @@
     };
   }
 
+  /* ══════════ 魔王迷宮 ══════════ */
+  let mazeRaf = null;
+
+  U.startMaze = function (chapterId, node) {
+    const ch = G.getChapter(chapterId);
+    G.S.maze = G.buildMaze(chapterId, (Date.now() ^ (Math.random() * 1e9)) >>> 0);
+    G.S.maze.node = node ? node.id : null;
+    G.S.maze.hp = (G.runActive() ? G.runActive().hpPct : 1);
+    G.save();
+    U.showMaze();
+  };
+
+  U.showMaze = function () {
+    const m = G.S.maze;
+    if (!m) { U.show('chapters'); return; }
+    const ch = G.getChapter(m.chapterId);
+    U.screen = 'maze';
+    U.renderTop(); U.renderNav();
+    U.view.innerHTML =
+      '<div class="battle-wrap is-maze">' +
+        '<div class="battle-top">' +
+          '<span class="battle-title">' + ch.name + ' · 魔王迷宮</span>' +
+          '<span class="sep">|</span>' +
+          '<span id="mazeWhere" style="font-size:12px;color:var(--parch-mute)"></span>' +
+          '<span class="spacer"></span>' +
+          '<button class="btn btn-ghost" data-act="maze-leave">撤退</button>' +
+        '</div>' +
+        '<canvas id="screen"></canvas>' +
+        '<div class="hud">' +
+          '<div class="vital">' +
+            '<div class="vital-row"><span>' + G.getClass(G.S.classId).name + '</span><span id="mazeHp"></span></div>' +
+            '<div class="hpbar"><i id="mazeFill"></i></div>' +
+            '<div class="vital-row"><span id="mazeLoot">撿到 0 金幣</span><span id="mazeHerb">藥草 0</span></div>' +
+          '</div>' +
+          '<div class="cons-row">' + dpad(true) + '</div>' +
+        '</div>' +
+        '<div class="maze-tip" id="mazeTip">用方向鍵走迷宮，找到亮起來的「門」就能進下一格。' +
+          '右上角的小地圖會標出魔王在哪一格。</div>' +
+      '</div>';
+    const cv = document.getElementById('screen');
+    R.setup(cv);
+    R.palette = ch.palette; R.chapter = ch;
+    input.left = input.right = input.up = input.down = false;
+    requestAnimationFrame(fitBattle);
+    G.__mazeT = 0;
+    lastMaze = performance.now();
+    if (mazeRaf) cancelAnimationFrame(mazeRaf);
+    mazeRaf = requestAnimationFrame(mazeLoop);
+  };
+
+  let lastMaze = 0;
+  function stopMaze() { if (mazeRaf) cancelAnimationFrame(mazeRaf); mazeRaf = null; }
+
+  function mazeLoop(now) {
+    const m = G.S.maze;
+    if (!m || U.screen !== 'maze') { stopMaze(); return; }
+    const dt = Math.min(0.05, (now - lastMaze) / 1000);
+    lastMaze = now;
+    G.__mazeT += dt;
+
+    const evs = G.mazeUpdate(m, dt, input);
+    R.drawMaze(m);
+    mazeHud(m);
+
+    for (const ev of evs) {
+      if (ev.t === 'boss') { stopMaze(); enterMazeBoss(); return; }
+      if (ev.t === 'down') { stopMaze(); mazeDown(); return; }
+      if (ev.t === 'village') { stopMaze(); mazeVillage(); return; }
+      if (ev.t === 'chest') tip('打開了寶箱。');
+      if (ev.t === 'herb') { tip('採到兩株藥草。'); }
+      if (ev.t === 'trap') tip('踩到陷阱。');
+      if (ev.t === 'move') tip(ev.kind === 'boss' ? '魔王就在這一格。' : '換了一格。');
+    }
+    mazeRaf = requestAnimationFrame(mazeLoop);
+  }
+
+  let tipTimer = 0;
+  function tip(text) {
+    const el = document.getElementById('mazeTip');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('hot');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => { el.classList.remove('hot'); }, 1400);
+  }
+
+  function mazeHud(m) {
+    const f = document.getElementById('mazeFill');
+    if (!f) return;
+    f.style.width = Math.round(m.hp * 100) + '%';
+    document.getElementById('mazeHp').textContent = Math.round(m.hp * 100) + '%';
+    document.getElementById('mazeLoot').textContent = '撿到 ' + m.gold + ' 金幣';
+    document.getElementById('mazeHerb').textContent = '藥草 ' + m.herbs;
+    const w = document.getElementById('mazeWhere');
+    if (w) {
+      const c = G.mazeCell(m);
+      const names = { start: '入口', boss: '魔王', treasure: '寶室', cave: '洞穴',
+                      village: '村子', trap: '陷阱區', empty: '空房' };
+      w.textContent = '第 ' + (m.at.x + 1) + ' 行 ' + (m.at.y + 1) + ' 列　·　' + (names[c.kind] || '房間');
+    }
+  }
+
+  function enterMazeBoss() {
+    const m = G.S.maze;
+    G.S.gold += m.gold;
+    G.S.consumables.c_herb = (G.S.consumables.c_herb | 0) + m.herbs;
+    const run = G.runActive();
+    if (run) run.hpPct = m.hp;
+    const node = run && m.node ? G.runNode(m.node) : null;
+    G.save();
+    U.renderTop();          // 迷宮撿到的金幣要馬上反映在上面那條，不然玩家會以為沒算到
+    startBattle(m.chapterId + '-3', { node: node, startHpPct: m.hp, label: '魔王', fromMaze: true });
+  }
+
+  function mazeDown() {
+    const m = G.S.maze;
+    G.S.gold += Math.round(m.gold * 0.5);
+    G.save();
+    U.showRunEnd(false, '你在迷宮裡倒下了。撿到的東西只帶回一半。');
+    G.S.maze = null;
+  }
+
+  function mazeVillage() {
+    const m = G.S.maze;
+    m.hp = Math.min(1, m.hp + 0.4);
+    G.save();
+    const el = document.createElement('div');
+    el.className = 'overlay';
+    el.innerHTML =
+      '<div class="event-box">' +
+        '<div class="event-head" style="--c:#7FBF6A"><span class="event-kind">村子</span><h2>還有人住在這裡</h2></div>' +
+        '<p class="event-text">他們給了你水跟一塊麵包，沒有問你要去哪裡。<b>生命回復 40%</b>。</p>' +
+        '<div class="event-options"><button class="btn btn-primary" data-act="maze-resume">繼續走</button></div>' +
+      '</div>';
+    document.body.appendChild(el);
+    U.eventEl = el;
+  }
+
+  U.resumeMaze = function () {
+    U.closeEvent();
+    lastMaze = performance.now();
+    if (mazeRaf) cancelAnimationFrame(mazeRaf);
+    mazeRaf = requestAnimationFrame(mazeLoop);
+  };
+
   function startBattle(stageKey, opts) {
     currentStageKey = stageKey;
     currentOpts = opts || null;
@@ -125,7 +316,7 @@
     R.buildBackdrop(G.getChapter(stage.chapterId), stage);
     cv.addEventListener('pointerdown', onCanvasPointer);
     requestAnimationFrame(fitBattle);
-    input.left = input.right = false;
+    input.left = input.right = input.up = input.down = false;
     hpGhostPct = null; hpPrevPct = 100;
     last = performance.now();
     if (raf) cancelAnimationFrame(raf);
@@ -372,6 +563,10 @@
       }
     }
 
+    /* 迷宮走完就丟掉，不要留一份走過的舊迷宮在存檔裡。
+       打輸了也一樣：下次再進魔王節點會重新長一張。 */
+    if (currentOpts && currentOpts.fromMaze) G.S.maze = null;
+
     G.save();
     U.renderTop();
 
@@ -538,6 +733,14 @@
       }
       return;
     }
+    if (t.dataset.act === 'maze-swing') { if (G.S.maze) G.mazeSwing(G.S.maze); return; }
+    if (t.dataset.act === 'maze-resume') { U.resumeMaze(); return; }
+    if (t.dataset.act === 'maze-leave') {
+      stopMaze();
+      U.showRunEnd(false, '你從迷宮退了出來。撿到的東西沒帶走。');
+      G.S.maze = null; G.save();
+      return;
+    }
     if (t.dataset.evClose) { U.closeEvent(); return; }
     if (t.dataset.guardGo) {
       const n = G.runNode(t.dataset.guardGo);
@@ -571,6 +774,9 @@
     }
     if (k === 'a' || e.key === 'ArrowLeft') { input.left = true; e.preventDefault(); }
     else if (k === 'd' || e.key === 'ArrowRight') { input.right = true; e.preventDefault(); }
+    else if (k === 'w' || e.key === 'ArrowUp') { input.up = true; e.preventDefault(); }
+    else if (k === 's' || e.key === 'ArrowDown') { input.down = true; e.preventDefault(); }
+    else if (e.key === ' ' && U.screen === 'maze') { if (G.S.maze) G.mazeSwing(G.S.maze); e.preventDefault(); }
     else if (k >= '1' && k <= '4') { B.cast(parseInt(k, 10) - 1); e.preventDefault(); }
     else if (k === 'z' || k === 'x' || k === 'c') { hireByKey(k.toUpperCase()); e.preventDefault(); }
     else if (k === 'q') { B.useConsumable('c_potion'); e.preventDefault(); }
@@ -585,8 +791,10 @@
     const k = e.key.toLowerCase();
     if (k === 'a' || e.key === 'ArrowLeft') input.left = false;
     if (k === 'd' || e.key === 'ArrowRight') input.right = false;
+    if (k === 'w' || e.key === 'ArrowUp') input.up = false;
+    if (k === 's' || e.key === 'ArrowDown') input.down = false;
   });
-  window.addEventListener('blur', () => { input.left = input.right = false; });
+  window.addEventListener('blur', () => { input.left = input.right = input.up = input.down = false; });
 
   /* ══════ 啟動 ══════ */
   G.S = G.load();

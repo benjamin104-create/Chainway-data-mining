@@ -461,11 +461,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   display: flex; flex-direction: column; gap: 0;
   width: 100%;
   /* 高度不夠時先縮寬度——但絕對不能縮到消失。
-     min(100%, 420px) 是地板：視窗很矮時（App 裡的小面板、手機橫躺）
+     後面的 min(100%, 560px) 是地板：視窗很矮時（App 裡的小面板、手機橫躺）
      寧可讓頁面往下捲，也不要把戰場壓成幾十像素。
-     沒有這個地板的話，390x300 的面板會算出 13px 寬的戰場。 */
-  max-width: max(min(100%, 340px), calc((100vh - 290px) * 4 / 3));
-  max-width: max(min(100%, 340px), calc((100dvh - 290px) * 4 / 3));
+     沒有這個地板的話，390x300 的面板會算出 13px 寬的戰場。
+
+     地板從 340 提到 560 的原因：外框收太窄，標題列與 HUD 的東西會折行，
+     一折就長高，反而把省下來的高度吃回去（橫躺實測標題列從 28 變 70）。
+     畫布本身由 fitBattle 另外量著縮，不靠這裡。 */
+  max-width: max(min(100%, 560px), calc((100vh - 290px) * 4 / 3));
+  max-width: max(min(100%, 560px), calc((100dvh - 290px) * 4 / 3));
   margin-inline: auto;
 }
 .battle-top {
@@ -759,4 +763,87 @@ canvas#screen {
   .sk .sk-name { display: none; }
   .sk .key { font-size: 8px; }
   .hirebar { max-height: 34px; overflow: hidden; }
+}
+
+/* ══════ 方向鍵 ══════
+   線形戰場只用得到左右（上下自動變灰），迷宮層四個方向都要。
+   排成十字，拇指按得到。 */
+.dpad {
+  display: grid; gap: 3px;
+  grid-template-columns: repeat(3, 34px);
+  grid-template-rows: repeat(3, 34px);
+  align-items: center; justify-items: center;
+}
+.dpad.with-atk { grid-template-columns: repeat(3, 34px) 52px; }
+.dp {
+  width: 34px; height: 34px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink-3); border: 1px solid var(--line);
+  color: var(--parch); font-size: 13px; line-height: 1;
+  cursor: pointer; touch-action: none; user-select: none;
+}
+.dp:active, .dp.on { background: var(--ochre); color: var(--ink); border-color: var(--gold); }
+.dp.up    { grid-area: 1 / 2; }
+.dp.left  { grid-area: 2 / 1; }
+.dp.down  { grid-area: 3 / 2; }
+.dp.right { grid-area: 2 / 3; }
+.dp.atk {
+  grid-area: 2 / 4; width: 52px; height: 52px;
+  background: var(--blob); color: #221108; border-color: var(--gold);
+  font-family: var(--f-serif); font-size: 15px; font-weight: 700;
+}
+/* 線形戰場用不到上下，畫出來但壓暗，免得玩家以為壞掉 */
+.battle-wrap:not(.is-maze) .dp.up,
+.battle-wrap:not(.is-maze) .dp.down { opacity: .28; pointer-events: none; }
+
+/* ══════ 迷宮 ══════ */
+.maze-tip {
+  padding: 9px 14px; font-size: 12px; color: var(--parch-mute);
+  background: var(--ink-3); border: 1px solid var(--line); border-top: none;
+  transition: color .2s, background .2s;
+}
+.maze-tip.hot { color: var(--gold); background: rgba(224,178,60,.10); }
+
+@media (max-width: 560px) {
+  .dpad { grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); }
+  .dpad.with-atk { grid-template-columns: repeat(3, 30px) 46px; }
+  .dp { width: 30px; height: 30px; font-size: 12px; }
+  .dp.atk { width: 46px; height: 46px; font-size: 13px; }
+}
+
+/* 手機橫躺（高度不到 520）：十字鍵三排就要 108px，
+   再加一條提示列，方向鍵整組會被擠到螢幕外——量出來底部在 495，
+   視窗只有 390。所以這裡把提示列收掉，十字鍵也壓小一點。
+   寬度條件不能用，橫躺的寬是 844。 */
+@media (max-height: 520px) {
+  .maze-tip { display: none; }
+  .dpad { grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(3, 28px); gap: 2px; }
+  .dpad.with-atk { grid-template-columns: repeat(3, 28px) 42px; }
+  .dp { width: 28px; height: 28px; font-size: 11px; }
+  .dp.atk { width: 42px; height: 42px; font-size: 12px; }
+  .hud { padding: 4px 8px; gap: 4px; }
+  /* 線形戰場的 HUD 比迷宮多了技能格、消耗品與僱用列，
+     橫躺時量出來 182px 高。把窄螢幕那套壓縮也套過來，
+     矮跟窄要救的是同一件事。 */
+  .vital-row { font-size: 9px; }
+  .hpbar { height: 11px; }
+  .hud .sk { width: 30px; height: 30px; }
+  .sk .sk-name { display: none; }
+  .sk .key { font-size: 8px; }
+  .hirebar { max-height: 22px; overflow: hidden; }
+  .battle-top { padding: 3px 10px; gap: 8px; }
+  .hud { padding: 2px 8px; }
+  /* 壓小還是不夠：十字鍵自己就佔掉一整排，
+     388 高的手機橫躺放不下（量出來底部在 471）。
+     所以直接把它從版面流裡拿出來，浮在畫布上——
+     不佔高度，手也剛好搭在那個位置。 */
+  .battle-wrap { position: relative; }
+  .battle-wrap .dpad {
+    position: absolute; right: 8px; bottom: 8px; z-index: 6;
+    padding: 4px; background: rgba(18,13,8,.58);
+    border: 1px solid var(--line);
+  }
+  /* 浮在戰場上，底要壓得夠深才看得見；
+     但攻擊鍵要留著它自己的橘色，不然整顆糊在暗底裡。 */
+  .battle-wrap .dp:not(.atk) { background: rgba(32,23,14,.92); }
 }
