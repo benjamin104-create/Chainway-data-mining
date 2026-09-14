@@ -26,25 +26,6 @@ const A = {
 };
 G.Audio = A;
 
-/* ── 音階 ──
-   每一章給一組音階與速度。用的都是自然小調／多利安這類「古老」的音階，
-   聽起來不會像流行樂。 */
-const SCALES = {
-  atlantis:  { root: 196.00, steps: [0, 2, 3, 5, 7, 8, 10], bpm: 62, wave: 'sine',     color: 620 },
-  knossos:   { root: 220.00, steps: [0, 1, 5, 7, 8],        bpm: 70, wave: 'triangle', color: 760 },
-  troy:      { root: 174.61, steps: [0, 2, 3, 7, 10],       bpm: 76, wave: 'sawtooth', color: 540 },
-  cyclops:   { root: 146.83, steps: [0, 3, 5, 6, 10],       bpm: 58, wave: 'square',   color: 420 },
-  amazon:    { root: 233.08, steps: [0, 2, 4, 7, 9],        bpm: 84, wave: 'triangle', color: 900 },
-  colossus:  { root: 164.81, steps: [0, 2, 3, 5, 7, 10],    bpm: 66, wave: 'sawtooth', color: 500 },
-  pharos:    { root: 261.63, steps: [0, 2, 5, 7, 9],        bpm: 72, wave: 'sine',     color: 1100 },
-  _default:  { root: 196.00, steps: [0, 2, 3, 5, 7],        bpm: 68, wave: 'triangle', color: 700 }
-};
-
-function freq(sc, degree, octave) {
-  const n = sc.steps[((degree % sc.steps.length) + sc.steps.length) % sc.steps.length];
-  return sc.root * Math.pow(2, (n + (octave || 0) * 12) / 12);
-}
-
 /* ── 起動 ── */
 A.unlock = function () {
   if (A.ready) return;
@@ -56,16 +37,20 @@ A.unlock = function () {
     A.master.gain.value = A.on ? 0.9 : 0;
     A.master.connect(A.ctx.destination);
 
+    /* 音量平衡是量出來的：
+       第一次設 音樂 0.30 / 音效 0.85，量到音樂峰值 0.146、音效只有 0.090，
+       打擊聲整個被墊在音樂底下。音效是短瞬間的東西，峰值要壓得過音樂才聽得到。
+       現在音效的峰值高於音樂，兩個一起響的總峰值仍離破音很遠。 */
     A.musicGain = A.ctx.createGain();
-    A.musicGain.gain.value = 0.30;         // 音樂要退到後面，不能蓋掉音效
+    A.musicGain.gain.value = 0.24;
     A.musicGain.connect(A.master);
 
     A.sfxGain = A.ctx.createGain();
-    A.sfxGain.gain.value = 0.85;
+    A.sfxGain.gain.value = 1.5;
     A.sfxGain.connect(A.master);
 
     A.ready = true;
-    if (A.pendingKey) A.music(A.pendingKey);
+    if (A.pendingKey) A.music(A.pendingKey, A.pendingMode);
   } catch (e) { /* 不能播就算了，不要讓遊戲掛掉 */ }
 };
 
@@ -73,7 +58,7 @@ A.setOn = function (v) {
   A.on = !!v;
   if (A.master) A.master.gain.value = A.on ? 0.9 : 0;
   if (!A.on) A.stopMusic();
-  else if (A.pendingKey) A.music(A.pendingKey);
+  else if (A.pendingKey) A.music(A.pendingKey, A.pendingMode);
 };
 
 /* ── 音效 ──
@@ -167,54 +152,236 @@ A.sfx = function (name) {
   try { fn(); } catch (e) { /* 播不出來就算了 */ }
 };
 
-/* ── 音樂 ──
-   一個很簡單的循環：低音長音 + 分解和弦 + 偶爾一下敲擊。
-   每一章的音階、速度、音色不同，所以七章聽起來不一樣。 */
-A.music = function (key) {
+/* ── 樂曲 ──
+ *
+ * 走的是日式 RPG 戰鬥曲那一路（太空戰士／勇者鬥惡龍那種），不是氛圍襯底。
+ * 上一版是 62～84 BPM 的長音加疏落的分解和弦，聽起來像環境音，
+ * 缺的就是「緊湊」：沒有旋律線、沒有走動的貝斯、沒有鼓。
+ *
+ * 這一版每首曲子有四層，跟那個年代的音源一樣：
+ *   lead  主旋律，方波（脈衝），帶一點顫音
+ *   bass  走動的貝斯，八分音符不停
+ *   harm  和聲墊底，跟著和弦進行
+ *   drums 大鼓／小鼓／腳踏鈸
+ *
+ * 和弦進行用的是那類曲子的常見手法：
+ *   戰鬥 i – VI – VII – i（自然小調，往前推）
+ *   魔王 i – bII – i – V（拿坡里和弦與導音，壓迫感）
+ *   迷宮 i – VI – III – VII（沒有解決，一直懸著）
+ *
+ * 旋律全部是自己寫的，不是任何一首既有曲子的複製。
+ *
+ * 時間精度：用「預先排程」而不是 setInterval 一拍排一個音。
+ * setInterval 會漂移，漂移聽起來就是不緊湊——這是這次的重點之一。
+ * 排程器每 25ms 醒一次，把未來 120ms 內該響的音先排進 WebAudio 的時間軸，
+ * 由音訊時鐘決定什麼時候出聲，誤差是取樣等級的。
+ */
+
+/* 音長單位是十六分音符。[半音, 長度]，半音是相對於該曲主音。
+   null 表示休止。 */
+const SONGS = {
+  battle: {
+    bpm: 150,
+    chords: [0, 8, 10, 0],          // i – VI – VII – i
+    lead: [
+      [12,2],[15,2],[19,2],[15,2],[12,2],[14,2],[15,4],
+      [8,2],[12,2],[15,2],[12,2],[8,2],[10,2],[12,4],
+      [10,2],[14,2],[17,2],[14,2],[10,2],[12,2],[14,4],
+      [12,2],[15,2],[19,4],[17,2],[15,2],[12,4]
+    ],
+    leadWave: 'square',
+    drums: 'drive'
+  },
+
+  boss: {
+    bpm: 168,
+    chords: [0, 1, 0, 11],          // i – bII – i – VII(導音)
+    lead: [
+      [12,1],[13,1],[12,1],[13,1],[12,2],[15,2],[18,4],[17,4],
+      [13,1],[14,1],[13,1],[14,1],[13,2],[16,2],[19,4],[18,4],
+      [12,2],[18,2],[17,2],[15,2],[12,2],[11,2],[12,4],
+      [23,2],[22,2],[20,2],[18,2],[17,4],[12,4]
+    ],
+    leadWave: 'sawtooth',
+    drums: 'heavy'
+  },
+
+  maze: {
+    bpm: 116,
+    chords: [0, 8, 3, 10],          // i – VI – III – VII，一直懸著
+    lead: [
+      [12,4],[15,2],[14,2],[12,4],[7,4],
+      [8,4],[12,2],[10,2],[8,8],
+      [15,4],[19,2],[17,2],[15,4],[12,4],
+      [14,4],[12,2],[10,2],[7,8]
+    ],
+    leadWave: 'triangle',
+    drums: 'soft'
+  }
+};
+
+/* 七章各自的主音與音色。同一首曲子換個調、換個音色，七章聽起來就不一樣。 */
+const CHAPTER_KEY = {
+  atlantis: { root: 220.00, wave: 'triangle' },   // A
+  knossos:  { root: 246.94, wave: 'square'   },   // B
+  troy:     { root: 196.00, wave: 'square'   },   // G
+  cyclops:  { root: 174.61, wave: 'sawtooth' },   // F
+  amazon:   { root: 261.63, wave: 'square'   },   // C
+  colossus: { root: 164.81, wave: 'sawtooth' },   // E
+  pharos:   { root: 293.66, wave: 'triangle' },   // D
+  _default: { root: 220.00, wave: 'square'   }
+};
+
+const semi = (root, n) => root * Math.pow(2, n / 12);
+
+/* 一個帶包絡的聲音。attack 很短、decay 收得快，才有那種顆粒感，
+   拖長的話整首會糊成一片。 */
+function voice(bus, when, f, dur, vol, wave, opt) {
+  opt = opt || {};
+  const o = A.ctx.createOscillator();
+  const g = A.ctx.createGain();
+  o.type = wave;
+  o.frequency.setValueAtTime(f, when);
+  if (opt.vibrato) {
+    const lfo = A.ctx.createOscillator();
+    const lg = A.ctx.createGain();
+    lfo.frequency.value = 5.5;
+    lg.gain.value = f * 0.008;
+    lfo.connect(lg); lg.connect(o.frequency);
+    lfo.start(when); lfo.stop(when + dur);
+  }
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(vol, when + 0.012);
+  g.gain.setValueAtTime(vol, when + Math.max(0.02, dur * 0.55));
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(g);
+  if (opt.filter) {
+    const flt = A.ctx.createBiquadFilter();
+    flt.type = 'lowpass'; flt.frequency.value = opt.filter;
+    g.connect(flt); flt.connect(bus);
+  } else g.connect(bus);
+  o.start(when);
+  o.stop(when + dur + 0.03);
+}
+
+function drumKick(bus, when) {
+  const o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(140, when);
+  o.frequency.exponentialRampToValueAtTime(42, when + 0.12);
+  g.gain.setValueAtTime(0.5, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.16);
+  o.connect(g); g.connect(bus);
+  o.start(when); o.stop(when + 0.18);
+}
+
+function drumNoise(bus, when, dur, vol, hz, type) {
+  if (!noiseBuf) {
+    noiseBuf = A.ctx.createBuffer(1, A.ctx.sampleRate * 0.5, A.ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = A.ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = A.ctx.createBiquadFilter();
+  f.type = type || 'bandpass';
+  f.frequency.value = hz;
+  const g = A.ctx.createGain();
+  g.gain.setValueAtTime(vol, when);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  src.connect(f); f.connect(g); g.connect(bus);
+  src.start(when); src.stop(when + dur + 0.02);
+}
+
+/* 鼓組。三種力度，對應三首曲子。 */
+function drums(bus, when, step16, kind) {
+  const s = step16 % 16;
+  if (kind === 'soft') {
+    if (s === 0 || s === 8) drumKick(bus, when);
+    if (s % 4 === 2) drumNoise(bus, when, 0.04, 0.05, 8000, 'highpass');
+    return;
+  }
+  const heavy = kind === 'heavy';
+  if (s === 0 || s === 8 || (heavy && s === 6) || s === 10) drumKick(bus, when);
+  if (s === 4 || s === 12) drumNoise(bus, when, 0.12, heavy ? 0.32 : 0.24, 1900);
+  if (s % 2 === 0) drumNoise(bus, when, 0.03, heavy ? 0.09 : 0.06, 9000, 'highpass');
+}
+
+/* ── 排程器 ──
+   每 25ms 醒一次，把未來 120ms 內的音先排好。
+   音什麼時候響是由音訊時鐘決定的，不是由 setInterval 決定的，
+   所以節奏不會漂。 */
+const LOOKAHEAD = 0.12, TICK = 25;
+
+A.music = function (key, mode) {
   A.pendingKey = key;
+  A.pendingMode = mode || 'battle';
   if (!A.ready || !A.on) return;
-  if (A.key === key && A.timer) return;      // 同一首就不要重開
+  const id = key + '|' + A.pendingMode;
+  if (A.key === id && A.timer) return;          // 同一首就不要重開
   A.stopMusic();
-  A.key = key;
+  A.key = id;
+
+  const song = SONGS[A.pendingMode] || SONGS.battle;
+  const ck = CHAPTER_KEY[key] || CHAPTER_KEY._default;
+  const root = ck.root;
+  const sixteenth = 60 / song.bpm / 4;
+
+  // 把旋律攤平成「第幾個十六分音符 → 音」
+  const leadAt = {};
+  let cursor = 0;
+  song.lead.forEach(([n, len]) => {
+    if (n != null) leadAt[cursor] = { n: n, len: len };
+    cursor += len;
+  });
+  const totalSteps = Math.max(cursor, song.chords.length * 16);
+
   A.step = 0;
-  const sc = SCALES[key] || SCALES._default;
-  const beat = 60 / sc.bpm / 2;              // 八分音符
+  let nextTime = A.ctx.currentTime + 0.06;
 
-  const tick = () => {
+  const schedule = () => {
     if (!A.ready || !A.on) return;
-    const s = A.step++;
-    const bar = Math.floor(s / 8);
-
     try {
-      // 低音：每兩小節換一次根音
-      if (s % 8 === 0) {
-        const deg = [0, 0, 4, 3][bar % 4];
-        tone({ f0: freq(sc, deg, -1), dur: beat * 7.5, vol: 0.16,
-               wave: 'sine', filter: sc.color * 0.5, bus: A.musicGain });
+      while (nextTime < A.ctx.currentTime + LOOKAHEAD) {
+        const s = A.step % totalSteps;
+        const bar = Math.floor(s / 16) % song.chords.length;
+        const chord = song.chords[bar];
+
+        // 貝斯：八分音符不停地走，第 3 拍跳高八度
+        if (s % 2 === 0) {
+          const jump = (s % 16 === 8 || s % 16 === 12) ? 12 : 0;
+          voice(A.musicGain, nextTime, semi(root, chord + jump - 24),
+                sixteenth * 1.9, 0.20, 'triangle', { filter: 700 });
+        }
+        // 和聲：每小節兩下，三度與五度
+        if (s % 8 === 0) {
+          voice(A.musicGain, nextTime, semi(root, chord - 12), sixteenth * 6, 0.055, 'square', { filter: 1100 });
+          voice(A.musicGain, nextTime, semi(root, chord - 12 + 7), sixteenth * 6, 0.045, 'square', { filter: 1100 });
+        }
+        // 主旋律
+        const ld = leadAt[s];
+        if (ld) {
+          voice(A.musicGain, nextTime, semi(root, ld.n), sixteenth * ld.len * 0.92,
+                0.105, ck.wave || song.leadWave, { vibrato: ld.len >= 4, filter: 3200 });
+        }
+        // 鼓
+        drums(A.musicGain, nextTime, s, song.drums);
+
+        nextTime += sixteenth;
+        A.step++;
       }
-      // 分解和弦
-      const pattern = [0, 2, 4, 2, 5, 4, 2, 0];
-      if (s % 2 === 0 || (s % 8) === 3) {
-        const deg = pattern[s % 8] + [0, 0, 2, 1][bar % 4];
-        tone({ f0: freq(sc, deg, 0), dur: beat * 1.6, vol: 0.085,
-               wave: sc.wave, filter: sc.color, bus: A.musicGain });
-      }
-      // 高一個八度的點綴，每小節一次
-      if (s % 8 === 6) {
-        tone({ f0: freq(sc, pattern[(s + 2) % 8], 1), dur: beat * 2.2, vol: 0.05,
-               wave: 'sine', filter: sc.color * 1.6, bus: A.musicGain });
-      }
-    } catch (e) { /* 忽略 */ }
+    } catch (e) { /* 排不出來就安靜 */ }
   };
 
-  tick();
-  A.timer = setInterval(tick, beat * 1000);
+  schedule();
+  A.timer = setInterval(schedule, TICK);
 };
 
 A.stopMusic = function () {
   if (A.timer) { clearInterval(A.timer); A.timer = null; }
   A.key = null;
 };
+
 
 /* 第一次互動就解鎖。用 capture，確保比其他按鈕的處理先跑到。 */
 ['pointerdown', 'keydown', 'touchstart'].forEach(ev => {

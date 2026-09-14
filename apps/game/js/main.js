@@ -232,7 +232,7 @@
     R.palette = ch.palette; R.chapter = ch;
     input.left = input.right = input.up = input.down = false;
     requestAnimationFrame(fitBattle);
-    G.Audio.music(m.chapterId);
+    G.Audio.music(m.chapterId, 'maze');
     G.__mazeT = 0;
     lastMaze = performance.now();
     if (mazeRaf) cancelAnimationFrame(mazeRaf);
@@ -341,7 +341,8 @@
     currentStageKey = stageKey;
     currentOpts = opts || null;
     const stage = G.getStage(stageKey);
-    G.Audio.music(stage.chapterId);
+    /* 魔王關用魔王曲：更快、拿坡里和弦、鼓更重。 */
+    G.Audio.music(stage.chapterId, stage.isBoss ? 'boss' : 'battle');
     U.screen = 'battle';
     U.renderNav();
     battleView(stage, currentOpts);
