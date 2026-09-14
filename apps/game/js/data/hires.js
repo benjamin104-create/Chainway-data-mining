@@ -25,6 +25,12 @@ G.HIRES = [
     flavor: '不問你要拆哪座塔，只問付多少。',
     unit: { hp: 140, dmg: 15, speed: 48, range: 28, size: 17, color: '#D0A860', kind: 'melee', siegeMul: 3 } },
 
+  { id: 'h_shield', cat: 'merc', name: '盾牌兵', cost: 95, icon: 'shield', key: 'Z',
+    desc: '不推進，就守在你僱他的地方。血極厚、傷害低——他的用處是擋住，不是打死。',
+    flavor: '「你們往前，我站這裡。」他把盾插進土裡。',
+    unit: { hp: 420, dmg: 9, speed: 44, range: 30, size: 21, color: '#8E7A54', kind: 'tank',
+            siegeMul: 0.5, hold: true, holdRange: 240, taunt: true } },
+
   { id: 'h_mage', cat: 'merc', name: '魔法師', cost: 115, icon: 'shard', key: 'Z',
     desc: '遠程法師。攻擊會在命中處炸開，對成群的敵人特別有效。',
     flavor: '他收的錢裡有一半是火藥費。',
@@ -83,7 +89,14 @@ G.POST_OFFERS = [
   { name: '僱用所・肆', offers: ['h_merc', 'h_ballista', 'h_banner'], stock: [3, 2, 2], discount: 0.80 }
 ];
 
-G.hireCost = function (hire, postIdx, chapterIdx) {
-  const post = G.POST_OFFERS[Math.min(postIdx, G.POST_OFFERS.length - 1)];
+/* 路口哨所：只賣守得住的東西。
+   岔路的側翼部隊會繞到你防線後方，所以這裡要的是擋與拒，不是推進。 */
+G.JUNCTION_OFFER = {
+  name: '路口哨所', offers: ['h_shield', 'h_barricade', 'h_ballista'],
+  stock: [3, 2, 2], discount: 0.90
+};
+
+G.hireCost = function (hire, postIdx, chapterIdx, junction) {
+  const post = junction ? G.JUNCTION_OFFER : G.POST_OFFERS[Math.min(postIdx, G.POST_OFFERS.length - 1)];
   return Math.round(hire.cost * (1 + chapterIdx * 0.3) * post.discount);
 };

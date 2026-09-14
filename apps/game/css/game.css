@@ -569,9 +569,38 @@ canvas#screen {
 }
 
 /* ══════ 結算 ══════ */
+/* 視窗內容比畫面高的時候要捲得到。
+   原本是 grid + place-items:center 而且沒有 overflow——
+   結算視窗一長（星星、撿到的帽子、守衛掉落都會多幾行），
+   下面那排按鈕就溢出到畫面外，而且捲不到，玩家等於被卡住。
+   flex + margin:auto 的好處：放得下就置中，放不下就從頂端開始捲。 */
 .overlay {
   position: fixed; inset: 0; background: rgba(10,8,6,.86);
-  display: grid; place-items: center; padding: 20px; z-index: 20;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 20px; z-index: 20;
+  overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.overlay > * { margin: auto; flex: 0 0 auto; }
+
+/* 結算視窗永遠不超過畫面：標題與按鈕固定，中間的明細自己捲。
+   不然視窗一長（星、帽子、守衛掉落），按鈕就被推到畫面外。 */
+.result {
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+}
+.result-rows { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.result-head, .result-actions, .starwin, .starmiss, .levelup { flex: 0 0 auto; }
+
+/* 矮螢幕：把結算視窗壓薄，能不捲就不捲 */
+@media (max-height: 700px) {
+  .overlay { padding: 10px; }
+  .result-head { padding: 14px 16px 9px; }
+  .result h2 { font-size: 19px; }
+  .result-rows { padding: 0 16px; }
+  .result-row { padding: 5px 0; font-size: 12px; }
+  .result-actions { padding: 12px 16px; }
 }
 .result {
   width: min(480px, 100%); border: 1px solid var(--line);
@@ -707,9 +736,12 @@ canvas#screen {
   .hud .sk { width: 42px; height: 42px; }
   main#view { padding: 6px !important; }
 }
+/* 極矮的螢幕：標題列可以不要，但導覽列絕對不能藏——
+   那是唯一的返回路徑，藏掉玩家就出不來了。壓成一條細的就好。 */
 @media (max-height: 460px) {
   .topbar { display: none; }
-  .nav { display: none; }
+  .nav { padding: 1px 4px; gap: 2px; }
+  .nav button { padding: 2px 7px; font-size: 10px; }
 }
 
 /* ══════ 窄螢幕：把 HUD 壓扁 ══════

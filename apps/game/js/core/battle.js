@@ -166,13 +166,35 @@ B.init = function (stageKey, opts) {
     B.boss = null;
   }
 
+  /* ══════ 岔路 ══════
+     主線之外有一條側道，敵人會從那裡插進來。
+     它們沿著側道往主線走（z 從外側收到 0），一旦走到路口，
+     就會出現在你的防線「後方」——這就是包夾。
+     防法是把人留在路口：側道上的敵人也算在射程內（dist 有算 z），
+     所以守在路口的單位可以在它們還沒進來之前就打掉。 */
+  B.flank = null;
+  if (!B.caveMode && stage.length > 1500) {
+    const side = (stage.chapterIdx % 2 === 0) ? 1 : -1;
+    B.flank = {
+      x: Math.round(stage.length * 0.46),
+      side: side,
+      len: 300,                       // 側道長度（z 的距離）
+      timer: 26,                      // 第一批來得比較晚，留時間佈防
+      gap: Math.max(17, 30 - stage.chapterIdx * 1.6),
+      wave: 0,
+      warn: 0
+    };
+  }
+
   /* 僱用所：城門附近一個，每座敵塔前方各一個。
      越深處的據點貨色越好、也越便宜，但要先把前面的塔拆掉才走得到。 */
   B.posts = [{ x: 260, idx: 0 }].concat(
     B.towers.map((t, i) => ({ x: Math.round(t.x - 300), idx: i + 1 }))
-  ).map(pp => {
-    const def = G.POST_OFFERS[Math.min(pp.idx, G.POST_OFFERS.length - 1)];
-    return { x: pp.x, idx: pp.idx, name: def.name, offers: def.offers.slice(), stock: def.stock.slice() };
+  ).concat(B.flank ? [{ x: B.flank.x, idx: 1, junction: true }] : []).map(pp => {
+    const def = pp.junction ? G.JUNCTION_OFFER
+              : G.POST_OFFERS[Math.min(pp.idx, G.POST_OFFERS.length - 1)];
+    return { x: pp.x, idx: pp.idx, junction: !!pp.junction,
+             name: def.name, offers: def.offers.slice(), stock: def.stock.slice() };
   });
 
   updateMainInvuln();
@@ -710,7 +732,11 @@ function nearestHostile(e, maxRange, structuresToo) {
     if (o.isStructure && !structuresToo) continue;
     if (o.invuln) continue;
     if (o === B.hero && B.hero.dead) continue;
-    const d = dist(e, o);
+    let d = dist(e, o);
+    /* 嘲諷：盾牌兵會把注意力吸過來。
+       算距離的時候給它打七折，所以同樣近的話敵人會先打盾牌兵——
+       這才是「擋住」，不然敵人會繞過它去打後面的人。 */
+    if (o.taunt) d *= 0.55;
     if (d < bd) { bd = d; best = o; }
   }
   return best;
@@ -730,6 +756,16 @@ function nearestStructure(e, maxRange) {
 
 /* 前方目標：小兵往前推，優先打路上的敵人，否則打最近的敵方建築 */
 function marchTarget(e) {
+  /* 側翼突襲隊：不跟雜兵纏鬥，直奔城門。
+     只有貼在臉上的嘲諷單位（盾牌兵）攔得住它們——
+     不然主線的小兵流順手就把岔路清光了，岔路變成純裝飾。 */
+  if (e.isFlanker && !e.onFlank) {
+    const wall = nearestHostile(e, 110, false);
+    if (wall && wall.taunt) return wall;
+    if (B.blocker && !B.blocker.dead && Math.abs(e.x - B.blocker.x) < 60) return B.blocker;
+    return B.gate && !B.gate.dead ? B.gate : nearestHostile(e, 260, true);
+  }
+
   // 被路障擋住的敵人：除非有東西貼著它，否則先拆路障
   if (e.faction === 'enemy' && B.blocker && !B.blocker.dead && Math.abs(e.x - B.blocker.x) < 60) {
     return nearestHostile(e, 70, false) || B.blocker;
@@ -844,7 +880,9 @@ function spawnHired(hire, x) {
     facing: 1, bob: Math.random() * 6, hitFlash: 0,
     siegeMul: u.siegeMul, unitMul: u.unitMul, splash: u.splash,
     pulse: u.pulse ? { radius: u.pulse.radius, mult: u.pulse.mult, tick: u.pulse.tick, t: 0 } : null,
-    heal: u.heal, healRadius: u.healRadius
+    heal: u.heal, healRadius: u.healRadius,
+    // 守點型：僱在哪就守在哪，不跟著推進線往前
+    hold: u.hold ? x : null, holdRange: u.holdRange, taunt: !!u.taunt
   };
   B.entities.push(e);
   return e;
@@ -873,7 +911,7 @@ B.selectPost = function (post) {
 };
 
 B.hireCostAt = function (hireId, post) {
-  return G.hireCost(G.getHire(hireId), post.idx, B.stage.chapterIdx);
+  return G.hireCost(G.getHire(hireId), post.idx, B.stage.chapterIdx, post.junction);
 };
 
 B.hire = function (hireId) {
@@ -1348,6 +1386,38 @@ B.update = function (dt, input) {
     if (e.slowUntil > B.time) speed *= (1 - e.slow);
     if (e.faction === 'ally') speed *= (1 + allyBuffMods('moveSpd') + auraBonus(e, 'moveSpd'));
 
+    /* 還在側道上的敵人：沿著側道往主線收，收到路口才變成一般敵人。
+       這段路上它們打不到人，但守在路口的單位打得到它們。 */
+    if (e.onFlank) {
+      const step = Math.sign(-e.z) * speed * 0.85 * dt;
+      e.z += step;
+      e.moving = true;
+      e.facing = e.z > 0 ? -1 : 1;
+      if (Math.abs(e.z) <= 8) { e.z = 0; e.onFlank = false; }
+      e.bob += dt * 11;
+      if (e.swing > 0) e.swing -= dt;
+      continue;
+    }
+
+    /* 守點的單位（盾牌兵）：不跟著推進線往前，就守在僱用的位置附近。 */
+    if (e.hold != null && !tgt) {
+      const away = e.x - e.hold;
+      if (Math.abs(away) > 12) { e.x -= Math.sign(away) * speed * dt; e.moving = true; }
+      else e.moving = false;
+      e.bob += dt * (e.moving ? 11 : 2.4);
+      if (e.swing > 0) e.swing -= dt;
+      continue;
+    }
+    if (e.hold != null && tgt && Math.abs(tgt.x - e.hold) > (e.holdRange || 230)) {
+      // 目標離守點太遠就不追，回去守著
+      const away = e.x - e.hold;
+      if (Math.abs(away) > 12) { e.x -= Math.sign(away) * speed * dt; e.moving = true; }
+      else e.moving = false;
+      e.bob += dt * (e.moving ? 11 : 2.4);
+      if (e.swing > 0) e.swing -= dt;
+      continue;
+    }
+
     if (!tgt) {
       e.x += dir * speed * dt;
       e.moving = true;
@@ -1460,6 +1530,40 @@ B.update = function (dt, input) {
     }
   }
   B.projectiles = B.projectiles.filter(p => !p.dead);
+
+  /* 岔路的波次 */
+  if (B.flank && B.phase === 'fight' && !B.over) {
+    const f = B.flank;
+    if (f.warn > 0) f.warn -= dt;
+    f.timer -= dt;
+    if (f.timer <= 4 && f.warn <= 0 && !f.warned) {
+      f.warned = true; f.warn = 4;
+      pushBanner('岔路有東西過來了', '#C8503E');
+      B.effects.push({ type: 'ring', x: f.x, z: f.side * f.len * 0.5, r: 0, max: 130, t: 0, dur: 1.2, color: '#C8503E' });
+    }
+    if (f.timer <= 0) {
+      f.timer = f.gap;
+      f.warned = false;
+      f.wave++;
+      const pool = B.chapter.enemies;
+      const n = 3 + Math.min(4, Math.floor(B.stage.chapterIdx * 0.7) + Math.floor(f.wave / 2));
+      for (let i = 0; i < n; i++) {
+        const key = pool[Math.min(pool.length - 1, i % pool.length)];
+        const m = spawnEnemy(key, f.x + (i - (n - 1) / 2) * 18, i);
+        if (m) {
+          m.onFlank = true;
+          m.z = f.side * (f.len + i * 14);
+          m.born = B.time;
+          /* 側翼是突襲隊，比正面那批硬。不然主線的小兵順手就清光了，
+             岔路變成純裝飾，玩家根本不需要派人守。 */
+          m.hp = m.maxHp = Math.round(m.maxHp * 3.0);
+          m.dmg *= 1.45;
+          m.speed *= 1.15;
+          m.isFlanker = true;
+        }
+      }
+    }
+  }
 
   updatePickups(dt);
 

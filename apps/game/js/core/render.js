@@ -30,6 +30,7 @@ R.draw = function () {
   if (B.shake > 0) ctx.translate((Math.random() - 0.5) * B.shake, (Math.random() - 0.5) * B.shake * 0.6);
 
   drawGround(ctx, p, map, B);
+  drawFlankLane(ctx, p, map, B);
   drawPath(ctx, p, map);
 
   /* 所有會互相遮擋的東西一起依畫面 y 排序，做出俯視的前後關係 */
@@ -164,6 +165,47 @@ function drawPath(ctx, p, map) {
     ctx.lineTo(a.x + a.ny * 30, a.y - a.nx * 30);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+/* ── 岔路 ──
+   從主線側邊岔出去的一條土路。敵人會從外側沿著它插進來，
+   所以路口是要留人守的地方。有波次要來的時候整條會亮紅。 */
+function drawFlankLane(ctx, p, map, B) {
+  const f = B.flank;
+  if (!f) return;
+  const a = map.at(f.x, 0);
+  const b = map.at(f.x, f.side * f.len);
+  const hot = f.warn > 0 ? Math.min(1, f.warn / 4) : 0;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  const line = w => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineWidth = w; ctx.stroke(); };
+  ctx.strokeStyle = 'rgba(0,0,0,0.30)';         line(62);
+  ctx.strokeStyle = p.roadEdge || p.far;        line(54);
+  ctx.strokeStyle = p.road || p.fog;            line(42);
+  // 虛線：跟主線區分開，一看就知道這不是主路
+  ctx.globalAlpha = 0.30;
+  ctx.strokeStyle = '#FFF2D2';
+  ctx.setLineDash([16, 12]);                    line(18);
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  if (hot > 0) {
+    ctx.globalAlpha = hot * (0.5 + Math.sin(B.time * 9) * 0.3);
+    ctx.strokeStyle = '#C8503E';                line(50);
+    ctx.globalAlpha = 1;
+  }
+
+  // 路口標記
+  ctx.fillStyle = hot > 0 ? '#C8503E' : 'rgba(224,178,60,0.55)';
+  ctx.beginPath(); ctx.arc(a.x, a.y, 9, 0, 6.3); ctx.fill();
+  ctx.font = '11px "Noto Sans TC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillText('岔路', b.x + 1, b.y - 17);
+  ctx.fillStyle = hot > 0 ? '#FF9A82' : '#B39C74';
+  ctx.fillText('岔路', b.x, b.y - 18);
   ctx.restore();
 }
 
