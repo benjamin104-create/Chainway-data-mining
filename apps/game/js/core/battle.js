@@ -69,6 +69,8 @@ B.init = function (stageKey, opts) {
   B.auras = [];
   B.blocker = null;
   B.blockX = null;
+  B.flankBreach = 0;           // 幾隻側翼已經繞到你後方
+  B.flankDeepest = 0;
   B.respawnTimer = 0;
   B.paused = false;
   B.deaths = 0;                // 倒下幾次，會從帶出去的血扣掉
@@ -193,8 +195,14 @@ B.init = function (stageKey, opts) {
   ).concat(B.flank ? [{ x: B.flank.x, idx: 1, junction: true }] : []).map(pp => {
     const def = pp.junction ? G.JUNCTION_OFFER
               : G.POST_OFFERS[Math.min(pp.idx, G.POST_OFFERS.length - 1)];
+    let stock = def.stock.slice();
+    /* 路口哨所的存量要跟著章節長。
+       原本固定 3 盾 2 拒馬 2 弩，在法羅斯（最後一章、最長的地圖、
+       最硬的側翼）量出來是守了也照輸：守的那三個盾牌兵早就死了，
+       後面四百秒路口是空的。存量跟著章節加，才守得住整場。 */
+    if (pp.junction) stock = stock.map(n => n + Math.floor(stage.chapterIdx / 2));
     return { x: pp.x, idx: pp.idx, junction: !!pp.junction,
-             name: def.name, offers: def.offers.slice(), stock: def.stock.slice() };
+             name: def.name, offers: def.offers.slice(), stock: stock };
   });
 
   updateMainInvuln();
@@ -1171,6 +1179,29 @@ B.update = function (dt, input) {
     if (o.isBlocker && (!B.blocker || o.x > B.blocker.x)) B.blocker = o;
   }
   B.blockX = B.blocker ? B.blocker.x : null;
+
+  /* 側翼突破：繞過路口、已經在你後方的敵人。
+     量出來這是後期真正會輸的原因（克羅索斯第二關不守路口是 0/5 全敗，
+     守了是 5/5 全勝），但玩家只看到開場那一行警告，
+     輸了不知道輸在哪。所以這裡把「有幾隻在你後方」一直算著，
+     畫面那邊會掛一條持續的警示。 */
+  if (B.flank) {
+    let n = 0, deepest = 0;
+    for (const o of B.entities) {
+      if (o.dead || !o.isFlanker || o.onFlank) continue;
+      if (o.x < B.flank.x - 140) { n++; deepest = Math.max(deepest, B.flank.x - o.x); }
+    }
+    B.flankBreach = n;
+    B.flankDeepest = deepest;
+    if (n > 0 && !B.flank.breachedOnce) {
+      B.flank.breachedOnce = true;
+      B.flank.breachAt = B.time;
+      pushBanner('側翼繞過去了　守路口', '#C8503E');
+    }
+  } else {
+    B.flankBreach = 0;
+    B.flankDeepest = 0;
+  }
 
   updateFrontLine();
 

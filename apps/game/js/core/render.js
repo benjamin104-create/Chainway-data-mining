@@ -110,7 +110,61 @@ R.draw = function () {
 
   if (B.phase === 'deploy') drawDeployHint(ctx, B);
   else if (B.hero.dead && !B.over) drawRespawn(ctx, B);
+  drawFlankAlert(ctx, B, map);
 };
+
+/* ── 側翼突破的警示 ──
+   後期真正會輸的是這個：側翼繞過路口，直接去拆城門。
+   但原本只有開場一行「岔路有東西過來了」，
+   玩家城門掉光了還不知道發生什麼事。
+   所以只要有敵人在你後方，就一直掛著這條，並在每一隻頭上標紅。 */
+function drawFlankAlert(ctx, B, map) {
+  if (!B.flank || B.over || B.phase === 'deploy') return;
+  const n = B.flankBreach | 0;
+  if (n <= 0) return;
+
+  // 每一隻繞到後方的，頭上標一個紅箭頭
+  ctx.save();
+  for (const o of B.entities) {
+    if (o.dead || !o.isFlanker || o.onFlank) continue;
+    if (o.x >= B.flank.x - 140) continue;
+    const s = map.at(o.x, o.z || 0);
+    const bob = Math.sin(B.time * 6 + o.x) * 3;
+    ctx.fillStyle = '#C8503E';
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y - 62 + bob);
+    ctx.lineTo(s.x - 7, s.y - 74 + bob);
+    ctx.lineTo(s.x + 7, s.y - 74 + bob);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 上方的警示條
+  const pulse = 0.62 + Math.sin(B.time * 5) * 0.18;
+  const text = '側翼突破　' + n + ' 隻已經在你後方';
+  ctx.save();
+  ctx.font = '600 15px "Noto Sans TC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = Math.max(300, ctx.measureText(text).width + 52);
+  const x = W / 2 - w / 2, y = 14, h = 34;
+  ctx.fillStyle = 'rgba(24,10,8,0.88)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(200,80,62,' + pulse.toFixed(2) + ')';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.fillStyle = '#FF9A82';
+  ctx.fillText(text, W / 2, y + h / 2 + 1);
+
+  // 第一次突破的時候把解法講出來，不然玩家只知道慘，不知道怎麼辦
+  if (B.flank.breachAt != null && B.time - B.flank.breachAt < 7) {
+    ctx.font = '12px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#D9B896';
+    ctx.fillText('去路口哨所派兵守住岔路', W / 2, y + h + 15);
+  }
+  ctx.restore();
+}
 
 /* ── 地面 ── */
 function drawGround(ctx, p, map, B) {
@@ -448,6 +502,16 @@ function drawPost(ctx, pp, sp, B) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FFD469';
     ctx.fillText(B.phase === 'deploy' ? '點一下部署' : '可僱用', x, y - 68);
+  }
+  /* 路口哨所是岔路唯一的解法，但它長得跟其他僱用所一模一樣。
+     部署階段直接把用途寫在旁邊——等側翼突破才知道就來不及了。 */
+  if (pp.junction && !empty && B.phase === 'deploy') {
+    ctx.font = '11px "Noto Sans TC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillText('守這裡擋岔路', x + 1, y - 82);
+    ctx.fillStyle = '#FF9A82';
+    ctx.fillText('守這裡擋岔路', x, y - 83);
   }
 }
 
