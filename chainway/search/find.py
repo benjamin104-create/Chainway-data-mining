@@ -110,7 +110,11 @@ def master(cfg) -> tuple[dict[str, str], dict[str, dict]]:
                              mm[nm].fillna("").astype(str)))
         st = next((c for c in ("sell_through_rate", "銷售率", "售罄率")
                    if c in mm.columns), None)
-        pr = next((c for c in ("price", "定價") if c in mm.columns), None)
+        # 主表的定價欄一律叫 list_price（見 ingest/pos.py 的欄位對照）。
+        # 先前只找 "price"／"定價"，兩個都不存在，所以每一次查詢的定價
+        # 都是空的 —— 不會報錯，只是畫面上永遠少一格。
+        pr = next((c for c in ("list_price", "price", "定價",
+                               "avg_selling_price") if c in mm.columns), None)
         if key and st:
             for _, r in mm.iterrows():
                 sales[str(r[key])] = {"售罄": r.get(st),

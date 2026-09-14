@@ -201,24 +201,30 @@ def load(folder: str | Path) -> dict[str, Any]:
     if ver != VERSION:
         return {"錯誤": f"指紋是 {ver} 版，這支程式要 {VERSION} 版 —— "
                         "比對邏輯改過了，請在有圖的機器上重跑 cli fingerprint"}
+    # **每個 z[...] 都會把那個陣列從 zip 裡重新解壓一次**，NpzFile 不做快取。
+    # 所以一律先整個取出來放進區域變數，不要在迴圈裡索引 —— 先前
+    # `z["sources"][i]` 寫在 3,320 次的迴圈內，光這一行就要 5 分鐘。
     skus = [str(s) for s in z["skus"]]
     sig = z["sig"].astype(np.float32)
+    srcs = [str(x) for x in z["sources"]] if "sources" in z else []
     out: dict[str, Any] = {
         "貨號": skus,
         "簽名": {s: _unflatten(sig[i]) for i, s in enumerate(skus)},
-        "來源": {s: str(z["sources"][i]) for i, s in enumerate(skus)}
-        if "sources" in z else {},
+        "來源": {s: srcs[i] for i, s in enumerate(skus)} if srcs else {},
         "細節": {},
     }
     dp = folder / "指紋_細節.npz" if folder.is_dir() else None
     if dp and dp.exists():
         d = np.load(dp, allow_pickle=False)
         if str(d["version"][0]) == VERSION:
+            d_skus = [str(s) for s in d["skus"]]
+            counts = d["counts"]
+            pts, desc = d["pts"], d["desc"]
             k = 0
-            for i, s in enumerate(d["skus"]):
-                n = int(d["counts"][i])
-                out["細節"][str(s)] = (d["pts"][k:k + n].astype(np.float32),
-                                       d["desc"][k:k + n].astype(np.uint8))
+            for i, s in enumerate(d_skus):
+                n = int(counts[i])
+                out["細節"][s] = (pts[k:k + n].astype(np.float32),
+                                  desc[k:k + n].astype(np.uint8))
                 k += n
     ip = folder / "指紋_商品.csv" if folder.is_dir() else None
     out["商品"] = _read_info(ip) if ip and ip.exists() else {}
