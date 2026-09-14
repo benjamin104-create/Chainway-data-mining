@@ -15,6 +15,37 @@ R.setup = function (canvas) {
   R.ctx = canvas.getContext('2d');
 };
 
+/* 畫布的邏輯尺寸是固定的 960x720，但實際顯示出來多大會隨螢幕變。
+   手機上量出來只有 300 多 px 寬，等於每個東西都被縮到三分之一。
+   要判斷「玩家眼睛看到的有多大」就得看這個比例。 */
+R.cssScale = function () {
+  if (!R.canvas) return 1;
+  const r = R.canvas.getBoundingClientRect();
+  return r.width ? r.width / W : 1;
+};
+
+/* 迷宮的放大倍率。
+   整間房（19x13 格）塞進手機的畫布時，一格只剩 17 個螢幕像素、
+   主角直徑 11 px——看不出路，眼睛很吃力。
+   所以照實際顯示尺寸回推：讓一格至少有 30 個螢幕像素。
+   桌機本來就夠大（一格約 30），算出來是 1，畫面完全不變。 */
+R.mazeZoom = function () {
+  const T = (G.MAZE && G.MAZE.TILE) || 44;
+  const px = T * R.cssScale();
+  return Math.max(1, Math.min(2.8, 30 / Math.max(1, px)));
+};
+
+/* 線形戰場的放大倍率。
+   原本的設計是「整張戰場一次看完、不捲動」——在桌機上成立，
+   在手機上不成立：量出來主角直徑只有 11～14 個螢幕像素，
+   小兵一樣大，根本分不出誰是誰。
+   所以畫布小的時候放大並跟著主角走；桌機維持原本的全景，一格都不改。 */
+R.battleZoom = function () {
+  const cs = R.cssScale();
+  // 主角畫出來是 45 個邏輯像素高，希望在螢幕上至少有 26 px
+  return Math.max(1, Math.min(2.2, 26 / Math.max(1, 45 * cs)));
+};
+
 R.buildBackdrop = function (chapter, stage) {
   R.palette = chapter.palette;
   R.chapter = chapter;
@@ -28,6 +59,24 @@ R.draw = function () {
 
   ctx.save();
   if (B.shake > 0) ctx.translate((Math.random() - 0.5) * B.shake, (Math.random() - 0.5) * B.shake * 0.6);
+
+  /* 小畫布上放大並跟著主角。地面先鋪滿整個畫布再進鏡頭，
+     不然放大之後地圖以外的地方會是空的。 */
+  const bz = R.battleZoom();
+  if (bz > 1.001) {
+    ctx.fillStyle = p.near || p.ground || '#12100D';
+    ctx.fillRect(0, 0, W, H);
+    const hp = map.at(B.hero.x, B.hero.z || 0);
+    const halfW = W / (2 * bz), halfH = H / (2 * bz);
+    const camX = Math.max(halfW, Math.min(W - halfW, hp.x));
+    const camY = Math.max(halfH, Math.min(H - halfH, hp.y));
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(bz, bz);
+    ctx.translate(-camX, -camY);
+    R.cam = { z: bz, x: camX, y: camY };
+  } else {
+    R.cam = null;
+  }
 
   drawGround(ctx, p, map, B);
   drawFlankLane(ctx, p, map, B);
@@ -1607,9 +1656,24 @@ R.drawMaze = function (m) {
   ctx.save();
   if (m.hero.hurt > 0) ctx.translate((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 7);
 
-  // 底
+  // 底（在鏡頭之外畫，放大之後room 以外的地方才不會是空的）
   ctx.fillStyle = p.near || '#0A1822';
   ctx.fillRect(0, 0, W, H);
+
+  /* 鏡頭：放大並跟著主角走，但夾在房間範圍內，不要拍到房間外面。
+     倍率是照畫布實際顯示多大算出來的（見 R.mazeZoom）。 */
+  const zoom = R.mazeZoom();
+  if (zoom > 1.001) {
+    const halfW = W / (2 * zoom), halfH = H / (2 * zoom);
+    let camX = ox + m.hero.x, camY = oy + m.hero.y;
+    if (roomW > halfW * 2) camX = Math.max(ox + halfW, Math.min(ox + roomW - halfW, camX));
+    else camX = ox + roomW / 2;
+    if (roomH > halfH * 2) camY = Math.max(oy + halfH, Math.min(oy + roomH - halfH, camY));
+    else camY = oy + roomH / 2;
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-camX, -camY);
+  }
 
   /* 地板與牆。
      章節配色裡的 prop / road 明度太接近，直接拿來用會讓牆跟地板糊在一起

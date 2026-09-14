@@ -36,6 +36,15 @@
 
 * { box-sizing: border-box; }
 
+/* 手機上長按按鈕會叫出 iOS 的選字選單（Copy / Look Up / Translate），
+   蓋住畫面而且手感很差。遊戲的操作介面一律不要能選字。
+   輸入框與可捲動的說明文字不在此列。 */
+button, .dp, .cons, .sk, .hire, canvas, .topbar, .nav, .hud, .hirebar {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* 作者樣式裡的 display 會蓋過瀏覽器預設的 [hidden]{display:none}，
    所以冷卻遮罩、開戰鈕、導覽列都關不掉。這行是必要的。 */
 [hidden] { display: none !important; }
@@ -943,12 +952,70 @@ canvas#screen {
 /* ══════ 窄螢幕：把 HUD 壓扁 ══════
    量出來手機上的 HUD 有 234px 高——技能格、消耗品、移動鍵、僱用列
    在 360px 寬裡各自換行，疊成四五排。戰場剩不到 63px，主角當然在畫面外。 */
+/* 窄螢幕的上方外框：原本只有「矮螢幕」那組會壓縮，
+   但手機是「窄而高」（390x844），那組不會生效，
+   於是頂欄折成三排吃掉 140px、戰鬥列折行吃掉 101px——
+   兩個加起來 241px，戰場只剩 275px 高。這裡按寬度再壓一次。 */
 @media (max-width: 560px) {
-  .hud {
-    grid-template-columns: 1fr auto;
-    gap: 7px; padding: 7px 8px;
+  .topbar {
+    padding: 6px 10px; gap: 8px;
+    flex-wrap: nowrap; overflow-x: auto;
   }
-  .hud .vital { grid-column: 1 / -1; gap: 3px; }
+  .topbar .brand-cn { display: none; }
+  .topbar .brand-mark { font-size: 12px; letter-spacing: .08em; }
+  .brand { margin-right: 6px; }
+  .res { gap: 4px; }
+  .res-label { font-size: 8px; letter-spacing: .1em; }
+  .res-val { font-size: 12px; }
+  .xpwrap { width: 46px; }
+  .star-track i { font-size: 9px; }
+  .sound-btn { padding: 3px 6px; font-size: 13px; }
+
+  .nav button { padding: 6px 11px; font-size: 12px; }
+
+  .battle-top {
+    padding: 5px 10px; gap: 8px;
+    flex-wrap: nowrap; overflow-x: auto;
+  }
+  .battle-top > * { white-space: nowrap; flex: 0 0 auto; }
+  .battle-top .battle-title { font-size: 12px; }
+  .battle-top .btn { padding: 5px 10px; font-size: 11px; }
+  .battle-top .sep { display: none; }
+  .battle-top .spacer { flex: 1 1 auto; min-width: 4px; }
+  .maze-tip { padding: 6px 10px; font-size: 11px; }
+}
+
+@media (max-width: 560px) {
+  /* 放大按鍵之後，技能 4x52 ＋ 消耗品 2x52 ＋ 十字鍵 3x52 = 468px，
+     擠不進 390 寬的螢幕，方向鍵會整組被推出畫面外（實測就是這樣）。
+     所以窄螢幕改成一欄，一排放不下就換行並置中。 */
+  /* 技能排在十字鍵「旁邊」而不是上面。
+     疊著排的話 血條48 ＋ 技能52 ＋ 十字鍵164 = 264px，
+     360x640 上十字鍵的最下面那顆會被底部的僱用抽屜蓋住。
+     並排之後同一塊只剩 140px，省下 76px，就有餘裕了。
+     鍵縮到 44 —— 那是觸控建議的下限，還守得住。 */
+  .hud {
+    grid-template-columns: auto auto;
+    justify-content: center; align-items: center;
+    gap: 8px; padding: 8px;
+  }
+  .hud .vital { grid-column: 1 / -1; gap: 3px; width: 100%; }
+  .skillbar {
+    display: grid; grid-template-columns: repeat(2, 44px);
+    gap: 5px; justify-content: center;
+  }
+  .consumables { flex-wrap: nowrap; justify-content: center; gap: 6px; }
+  .cons-row { display: flex; justify-content: center; }
+  .battle-wrap .dpad {
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 44px);
+    gap: 3px;
+  }
+  .battle-wrap .dpad.with-atk { grid-template-columns: repeat(3, 44px) 54px; }
+  .battle-wrap .dp { width: 44px; height: 44px; font-size: 15px; }
+  .battle-wrap .dp.atk { width: 54px; height: 54px; font-size: 16px; }
+  .hud .sk { width: 44px; height: 44px; }
+  .cons { width: 44px; height: 50px; }
   .vital-row { font-size: 9px; }
   .hpbar { height: 11px; }
   .hud .sk { width: 40px; height: 40px; }
@@ -958,7 +1025,31 @@ canvas#screen {
      結果把僱用鈕整排裁掉了——量出來手機上三顆鈕「一顆都點不到」，
      等於手機版不能僱兵。省版面不能省掉功能。
      改成壓扁成一排、橫向捲動，該點得到的還是點得到。 */
-  .hirebar { max-height: none; overflow: visible; padding: 8px 8px; gap: 6px; }
+  /* 鍵盤操作說明在觸控裝置上是純浪費：量出來佔 60～90px，
+     而那些鍵在手機上根本按不到。開場字幕已經寫過一次操作了。 */
+  .controls-hint { display: none; }
+
+  /* 僱用面板改成「貼在螢幕底部的抽屜」。
+     360x640 上整個版面要 731px 才排得完，視窗只有 640——
+     僱用鈕怎麼縮都會掉到畫面外（實測 0/3 點得到）。
+     它本來就是情境式的（走到據點旁邊才有東西可買），
+     所以沒站在據點旁邊時整條收起來，站到了才滑上來。
+     浮起來就不佔版面高度，而且剛好落在拇指的位置。 */
+  .hirebar {
+    max-height: none; overflow: visible; padding: 8px 8px; gap: 6px;
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 40;
+    margin-top: 0;
+    border-left: none;
+    border-top: 2px solid var(--blob);
+    box-shadow: 0 -6px 18px rgba(0,0,0,.55);
+    background: linear-gradient(180deg, #2B1C12, #17110C);
+  }
+  .hirebar.away { display: none; }
+  /* 抽屜滑上來的時候會蓋住最下面那顆方向鍵（實測 ▼ 點不到），
+     所以只在它真的開著的時候，把上面的內容往上推。
+     沒開的時候不留這段空白。 */
+  .battle-wrap:has(.hirebar:not(.away)) .battle-side { padding-bottom: 124px; }
   /* 三顆要在 360 寬裡並排放得下：一顆約 112px。
      鍵盤提示字母在觸控上沒用，先拿掉；分類標籤也拿掉，只留名字與價錢。 */
   .hire-opts { flex-wrap: nowrap; gap: 5px; }
@@ -1014,6 +1105,46 @@ canvas#screen {
 }
 .maze-tip.hot { color: var(--gold); background: rgba(224,178,60,.10); }
 
+/* ══════ 觸控裝置：按鍵要夠大 ══════
+   量出來方向鍵只有 26x26，遠低於觸控建議的 44。
+   手指按不準，加上畫面小，操作起來很痛苦。
+   觸控裝置一律放大到 52，並且浮在戰場的左下／右下角——
+   浮起來就不佔版面高度，才放得下。 */
+@media (pointer: coarse) {
+  /* 放大但「不要浮在戰場上」：試過浮在左下角，
+     52px 的十字加邊框有 170 寬，在 390 的螢幕上蓋掉將近一半的迷宮，
+     反而更看不到路。上面的外框壓縮已經讓出 143px，夠放在版面裡。
+     （手機橫躺沒有那個高度，那裡才浮起來——見矮螢幕那一組。） */
+  .battle-wrap .dpad {
+    grid-template-columns: repeat(3, 52px);
+    grid-template-rows: repeat(3, 52px);
+    gap: 4px;
+  }
+  .battle-wrap .dpad.with-atk { grid-template-columns: repeat(3, 52px) 64px; }
+  .battle-wrap .dp { width: 52px; height: 52px; font-size: 17px; }
+  .battle-wrap .dp.atk { width: 64px; height: 64px; font-size: 18px; }
+
+  /* 窄螢幕：52px 的技能 ＋ 消耗品 ＋ 十字鍵並排要 384px，
+     390 寬的螢幕會從左邊溢出去（實測技能第一格被切掉）。
+     這一段要贏過上面那組，所以巢狀寫在這裡。 */
+  @media (max-width: 560px) {
+    .battle-wrap .dpad {
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 44px);
+      gap: 3px;
+    }
+    .battle-wrap .dpad.with-atk { grid-template-columns: repeat(3, 44px) 54px; }
+    .battle-wrap .dp { width: 44px; height: 44px; font-size: 15px; }
+    .battle-wrap .dp.atk { width: 54px; height: 54px; font-size: 16px; }
+    .hud .sk { width: 44px; height: 44px; }
+    .cons { width: 44px; height: 50px; }
+  }
+  /* 技能與消耗品也一起放大，同樣是手指要按的東西 */
+  .hud .sk { width: 52px; height: 52px; }
+  .cons { width: 52px; height: 62px; }
+  .hire { min-height: 48px; }
+}
+
 @media (max-width: 560px) {
   /* 四個方向都有用了，所以十字要留著。
      之前為了省高度只留左右一排，是因為那時上下真的沒接。
@@ -1059,6 +1190,27 @@ canvas#screen {
     position: absolute; right: 8px; bottom: 8px; z-index: 6;
     padding: 4px; background: rgba(18,13,8,.58);
     border: 1px solid var(--line);
+  }
+  /* 橫躺又是觸控的話，鍵還是不能太小 */
+  @media (pointer: coarse) {
+    .hud .sk { width: 42px; height: 42px; }
+    .cons { width: 42px; height: 50px; }
+    /* 橫躺高度只有 390，側欄裡的僱用鈕一樣會掉到畫面外（實測 2/3）。
+       跟直立一樣改成貼底的抽屜。 */
+    .hirebar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      margin-top: 0; border-left: none; border-top: 2px solid var(--blob);
+      box-shadow: 0 -6px 18px rgba(0,0,0,.55);
+      background: linear-gradient(180deg, #2B1C12, #17110C);
+      padding: 6px 10px;
+    }
+    .hirebar.away { display: none; }
+    .hirebar .hire-head { display: none; }
+    .hirebar .hire-opts { flex-wrap: nowrap; justify-content: center; }
+    .battle-wrap .dpad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); }
+    .battle-wrap .dpad.with-atk { grid-template-columns: repeat(3, 44px) 54px; }
+    .battle-wrap .dp { width: 44px; height: 44px; font-size: 15px; }
+    .battle-wrap .dp.atk { width: 54px; height: 54px; font-size: 16px; }
   }
   /* 浮在戰場上，底要壓得夠深才看得見；
      但攻擊鍵要留著它自己的橘色，不然整顆糊在暗底裡。 */

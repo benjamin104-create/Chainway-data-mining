@@ -454,8 +454,15 @@
     if (B.phase !== 'deploy') return;
     const cv = ev.currentTarget;
     const rect = cv.getBoundingClientRect();
-    const sx = (ev.clientX - rect.left) / rect.width * R.W;
-    const sy = (ev.clientY - rect.top) / rect.height * R.H;
+    let sx = (ev.clientX - rect.left) / rect.width * R.W;
+    let sy = (ev.clientY - rect.top) / rect.height * R.H;
+    /* 小畫布上戰場是放大並跟著主角的，點下去的位置要換算回沒放大時的座標，
+       不然放大之後點據點會全部歪掉。 */
+    const cam = R.cam;
+    if (cam) {
+      sx = cam.x + (sx - R.W / 2) / cam.z;
+      sy = cam.y + (sy - R.H / 2) / cam.z;
+    }
     const post = R.postAt(sx, sy);
     if (!post) return;
     if (!B.selectPost(post)) { U.toast('這個據點要先拆掉前面的哨塔才到得了'); return; }
