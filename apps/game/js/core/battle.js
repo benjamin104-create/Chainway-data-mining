@@ -7,6 +7,10 @@ window.G = window.G || {};
 const B = {};
 G.B = B;
 
+/* 聲音：G.Audio 在使用者按過東西之前是空操作，
+   所以無頭模擬跑幾千幀也不會有任何負擔。 */
+function sfx(name) { if (G.Audio) G.Audio.sfx(name); }
+
 const GROUND_Y = 322;      // 畫面上的地平線
 const VIEW_W = 960;
 const VIEW_H = 420;
@@ -649,6 +653,7 @@ function dealDamage(src, tgt, amount, opt) {
       const frac = taken / B.hero.maxHp;
       B.shake = Math.max(B.shake, Math.min(22, 5 + frac * 90));
       B.hurtFlash = Math.min(1, Math.max(B.hurtFlash || 0, 0.28 + frac * 2.4));
+      sfx('hurt');
       B.hero.knockT = 0.18;                       // 往後踉蹌
       burst(B.hero.x, B.hero.z, '#D8503E', Math.min(18, 4 + Math.round(frac * 60)));
     }
@@ -704,7 +709,8 @@ function checkDeath(e, killer) {
 
   if (e.faction === 'enemy') {
     B.kills++;
-    const g = Math.round((e.isStructure ? 45 : e.isBoss ? 160 : 7) * (1 + B.stage.chapterIdx * 0.3) * (1 + B.stats.goldFind));
+    sfx(e.isBoss ? 'tower' : 'kill');
+  const g = Math.round((e.isStructure ? 45 : e.isBoss ? 160 : 7) * (1 + B.stage.chapterIdx * 0.3) * (1 + B.stats.goldFind));
     B.goldEarned += g;
     B.purse += g;
     pushText(e.x, -(e.size + 26), '+' + g, '#E0B23C', false);
@@ -715,6 +721,7 @@ function checkDeath(e, killer) {
     }
     if (e.isStructure) {
       B.shake = Math.max(B.shake, 16);
+      sfx('tower');
       updateMainInvuln();
       if (B.flags.has('breach')) {
         B.hero.hp = Math.min(B.hero.maxHp, B.hero.hp + Math.round(B.hero.maxHp * 0.12));
@@ -741,6 +748,7 @@ function checkDeath(e, killer) {
 }
 
 function heroDown() {
+  sfx('lose');
   B.hero.dead = true;
   B.hero.hp = 0;
   B.deaths++;
@@ -754,6 +762,7 @@ function finish(result) {
   B.over = result;
   B.overTimer = 0;
   B.shake = 20;
+  sfx(result === 'win' ? 'win' : 'lose');
 }
 
 /* ══════════ 工具 ══════════ */
@@ -1047,6 +1056,7 @@ B.hire = function (hireId) {
   const at = B.phase === 'deploy' ? post.x : B.hero.x;
   if (hire.gear) placeGear(hire, at);
   else spawnHired(hire, at + 26);
+  sfx('hire');
   pushText(at, -54, '-' + cost, '#E0B23C', false);
   B.effects.push({ type: 'ring', x: at, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
   return { ok: true, hire: hire, cost: cost };
@@ -1064,6 +1074,7 @@ B.cast = function (slot) {
   if (B.over || B.hero.dead || B.paused) return;
   const def = B.skillDefs[slot];
   if (!def) return;
+  sfx('skill');
   if (def.type === 'dash') {
     if (B.dashCharges <= 0) return;
     B.dashCharges--;

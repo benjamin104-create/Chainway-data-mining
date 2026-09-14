@@ -58,7 +58,10 @@ U.renderTop = function () {
         '<i class="' + ((s.stars | 0) > i ? 'on' : '') + '">★</i>').join('') +
       ((s.stars | 0) > G.STAR_GOAL ? '<span class="res-val">+' + ((s.stars | 0) - G.STAR_GOAL) + '</span>' : '') +
     '</span></div>' +
-    '<div class="res res-gold"><span class="res-label">Gold</span><span class="res-val">' + G.fmtGold(s.gold) + '</span></div>';
+    '<div class="res res-gold"><span class="res-label">Gold</span><span class="res-val">' + G.fmtGold(s.gold) + '</span></div>' +
+    '<button class="sound-btn" data-act="sound" aria-label="聲音開關" ' +
+      'title="' + (G.S.sound === false ? '聲音：關' : '聲音：開') + '">' +
+      (G.S.sound === false ? '🔇' : '🔊') + '</button>';
 };
 
 U.renderNav = function () {

@@ -96,6 +96,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .res-sp .res-val { color: var(--lapis-lit); }
 .res-lv .res-val { color: var(--parch); }
 
+.sound-btn {
+  font-size: 15px; line-height: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--line); background: var(--ink-2);
+  filter: grayscale(.3);
+  transition: border-color .15s, background .15s, filter .15s;
+}
+.sound-btn:hover { border-color: var(--ochre); background: var(--ink-3); filter: none; }
+
 .xpwrap { width: 90px; height: 5px; background: var(--ink); border: 1px solid var(--line); }
 .xpwrap i { display: block; height: 100%; background: var(--parch-mute); }
 
@@ -551,7 +560,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   .app:has(.battle-wrap) { max-width: 1560px; }
 }
 
-@media (min-width: 1000px) {
+/* 手機橫躺（寬但很矮）也走並排：那裡最需要把高度讓給戰場。
+   844x390 上原本什麼都往下疊，僱用列掉到 y439，整排在畫面外點不到。 */
+@media (min-width: 1000px), (min-width: 700px) and (max-height: 560px) {
   .battle-wrap {
     display: grid;
     grid-template-columns: auto 330px;
@@ -570,8 +581,17 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   .battle-wrap > .battle-side .hud .vital { grid-column: auto; }
   .battle-wrap > .battle-side .skillbar,
   .battle-wrap > .battle-side .consumables { flex-wrap: wrap; }
-  .battle-wrap > .battle-side .hire { min-width: 0; width: 100%; }
+  /* 側欄是直的，僱用鈕要一排一個。
+     矮螢幕那組規則把 hire-opts 設成 nowrap + 橫向捲，
+     在側欄裡就變成整排往右溢出視窗（實測第 2、3 顆跑到 x=969、1282，
+     視窗只有 844 寬，等於點不到）。這裡用選擇器權重蓋回來。 */
+  .battle-wrap > .battle-side .hire-opts { flex-wrap: wrap; overflow-x: visible; }
+  .battle-wrap > .battle-side .hire { min-width: 0; width: 100%; flex: 1 1 100%; }
   .battle-wrap > .battle-side .controls-hint { margin-top: 10px; }
+  /* 並排的時候側欄有空間，十字鍵不用浮起來——
+     浮著會蓋住下面的僱用鈕（橫躺實測三顆只點得到一顆）。
+     位置歸零後 fitBattle 量到 position 不是 absolute，也會把 bottom 清掉。 */
+  .battle-wrap .dpad { position: static; background: none; border: none; padding: 0; }
 }
 
 .battle-top {
@@ -875,7 +895,25 @@ canvas#screen {
   .hud .sk { width: 40px; height: 40px; }
   .sk .sk-name { display: none; }
   .sk .key { font-size: 8px; }
-  .hirebar { max-height: 34px; overflow: hidden; }
+  /* 這裡本來是 max-height:34px + overflow:hidden，想省高度。
+     結果把僱用鈕整排裁掉了——量出來手機上三顆鈕「一顆都點不到」，
+     等於手機版不能僱兵。省版面不能省掉功能。
+     改成壓扁成一排、橫向捲動，該點得到的還是點得到。 */
+  .hirebar { max-height: none; overflow: visible; padding: 8px 8px; gap: 6px; }
+  /* 三顆要在 360 寬裡並排放得下：一顆約 112px。
+     鍵盤提示字母在觸控上沒用，先拿掉；分類標籤也拿掉，只留名字與價錢。 */
+  .hire-opts { flex-wrap: nowrap; gap: 5px; }
+  .hire {
+    min-width: 0; flex: 1 1 0;
+    padding: 6px 6px; gap: 4px;
+    justify-content: center;
+  }
+  .hire-key { display: none; }
+  .hire-cat { display: none; }
+  .hire-body b { font-size: 11.5px; }
+  .hire-cost { font-size: 11px; }
+  .hire-stock { font-size: 10px; }
+  .hire svg.ic { width: 16px; height: 16px; }
 }
 
 /* ══════ 方向鍵 ══════
@@ -918,6 +956,20 @@ canvas#screen {
 .maze-tip.hot { color: var(--gold); background: rgba(224,178,60,.10); }
 
 @media (max-width: 560px) {
+  /* 線形戰場只吃得到左右，上下本來就是灰的、也擋掉了點擊。
+     在窄螢幕上還排成三排十字，白白吃掉 90px 的高度，
+     把僱用列擠到畫面外（量出來 360x640 上三顆僱用鈕一顆都點不到）。
+     所以那裡只留左右一排；迷宮層四個方向都要用，維持十字。 */
+  .battle-wrap:not(.is-maze) .dpad {
+    grid-template-columns: repeat(2, 44px);
+    grid-template-rows: 40px;
+    gap: 6px;
+  }
+  .battle-wrap:not(.is-maze) .dp.up,
+  .battle-wrap:not(.is-maze) .dp.down { display: none; }
+  .battle-wrap:not(.is-maze) .dp.left  { grid-area: 1 / 1; width: 44px; height: 40px; }
+  .battle-wrap:not(.is-maze) .dp.right { grid-area: 1 / 2; width: 44px; height: 40px; }
+
   .dpad { grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); }
   .dpad.with-atk { grid-template-columns: repeat(3, 30px) 46px; }
   .dp { width: 30px; height: 30px; font-size: 12px; }
@@ -943,7 +995,11 @@ canvas#screen {
   .hud .sk { width: 30px; height: 30px; }
   .sk .sk-name { display: none; }
   .sk .key { font-size: 8px; }
-  .hirebar { max-height: 22px; overflow: hidden; }
+  /* 同上：矮螢幕也不能把僱用鈕裁掉。 */
+  .hirebar { max-height: none; overflow: visible; padding: 6px 10px; gap: 5px; }
+  .hire-opts { flex-wrap: nowrap; overflow-x: auto; }
+  .hire { min-width: 0; flex: 0 0 auto; padding: 5px 8px; gap: 5px; }
+  .hire-cat { display: none; }
   .battle-top { padding: 3px 10px; gap: 8px; }
   .hud { padding: 2px 8px; }
   /* 壓小還是不夠：十字鍵自己就佔掉一整排，

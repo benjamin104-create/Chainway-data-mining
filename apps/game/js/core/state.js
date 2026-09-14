@@ -46,6 +46,7 @@ G.newSave = function () {
     /* 共通技能是全域的：在哪一棵樹點開都算，換職業也還在。
        他是同一個人，不是七個人。 */
     shared: [],
+    sound: true,        // 聲音開關，記在存檔裡
     cv: 2,              // 內容版本，換世界觀時用來換算進度
     seenIntro: false
   });
@@ -119,6 +120,7 @@ function migrateContent(save) {
           舊存檔沒有 shared 這個欄位，補一個空陣列就好，什麼都不用丟。 */
   if (cv < 5) {
     if (!Array.isArray(save.shared)) save.shared = [];
+    if (typeof save.sound !== 'boolean') save.sound = true;
   }
 
   save.cv = G.CONTENT_VERSION;

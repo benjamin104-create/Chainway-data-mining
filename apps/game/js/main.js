@@ -232,6 +232,7 @@
     R.palette = ch.palette; R.chapter = ch;
     input.left = input.right = input.up = input.down = false;
     requestAnimationFrame(fitBattle);
+    G.Audio.music(m.chapterId);
     G.__mazeT = 0;
     lastMaze = performance.now();
     if (mazeRaf) cancelAnimationFrame(mazeRaf);
@@ -256,9 +257,12 @@
       if (ev.t === 'boss') { stopMaze(); enterMazeBoss(); return; }
       if (ev.t === 'down') { stopMaze(); mazeDown(); return; }
       if (ev.t === 'village') { stopMaze(); mazeVillage(); return; }
-      if (ev.t === 'chest') tip('打開了寶箱。');
-      if (ev.t === 'herb') { tip('採到兩株藥草。'); }
-      if (ev.t === 'trap') tip('踩到陷阱。');
+      if (ev.t === 'chest') { tip('打開了寶箱。'); G.Audio.sfx('coin'); }
+      if (ev.t === 'herb') { tip('採到兩株藥草。'); G.Audio.sfx('pickup'); }
+      if (ev.t === 'trap') { tip('踩到陷阱。'); G.Audio.sfx('trap'); }
+      if (ev.t === 'hit') G.Audio.sfx('hurt');
+      if (ev.t === 'kill') G.Audio.sfx('kill');
+      if (ev.t === 'move') G.Audio.sfx('door');
       if (ev.t === 'move') tip(ev.kind === 'boss' ? '魔王就在這一格。' : '換了一格。');
     }
     mazeRaf = requestAnimationFrame(mazeLoop);
@@ -337,6 +341,7 @@
     currentStageKey = stageKey;
     currentOpts = opts || null;
     const stage = G.getStage(stageKey);
+    G.Audio.music(stage.chapterId);
     U.screen = 'battle';
     U.renderNav();
     battleView(stage, currentOpts);
@@ -763,7 +768,15 @@
       }
       return;
     }
-    if (t.dataset.act === 'maze-swing') { if (G.S.maze) G.mazeSwing(G.S.maze); return; }
+    if (t.dataset.act === 'sound') {
+      G.S.sound = (G.S.sound === false);
+      G.Audio.setOn(G.S.sound);
+      G.save();
+      U.renderTop();
+      if (G.S.sound) G.Audio.sfx('click');
+      return;
+    }
+    if (t.dataset.act === 'maze-swing') { if (G.S.maze) G.mazeSwing(G.S.maze); G.Audio.sfx('hit'); return; }
     if (t.dataset.act === 'maze-resume') { U.resumeMaze(); return; }
     if (t.dataset.act === 'maze-leave') {
       stopMaze();
@@ -828,6 +841,7 @@
 
   /* ══════ 啟動 ══════ */
   G.S = G.load();
+  G.Audio.on = G.S.sound !== false;     // 存檔裡記的聲音開關
   U.mount();
   U.show(G.S.seenIntro ? 'chapters' : 'intro');
 })();
