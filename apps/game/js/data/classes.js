@@ -371,6 +371,50 @@ G.CLASSES = [
   }
 ];
 
+/* ══════════════ 共通技能 ══════════════
+ *
+ * 七個職業各走各的，走到最後卻是同一個主角。
+ * 所以每一棵樹的盡頭都接上同一組共通技能：它們不屬於任何職業，
+ * 而是「這個人一路上學會的東西」。
+ *
+ * 兩個關鍵決定：
+ * 1. 共通技能是**全域**的。在掘徑者這邊點開，換成神諭祭司也還在，
+ *    不用再花一次點數——不然就變成七份互不相干的技能，
+ *    那正好跟「他是同一個人」相反。
+ * 2. 「百工之手」直接獎勵跨職業修行：你在別的職業投入越多點，
+ *    它給得越多。這是把玩家的分心變成回報，而不是懲罰。
+ */
+const SX = 880;                    // 共通那一欄的 x（viewBox 已放寬到 960）
+
+G.SHARED_NODES = [
+  { id: 'sh_hands', name: '百工之手', type: 'passive', tier: 5, cost: 3, pos: { x: SX, y: 150 },
+    shared: true, icon: 'stack',
+    desc: '在「其他職業」每投入 4 點技能點，傷害 +2%、生命上限 +2%（最多各 +20%）。' +
+          '你在別處學的東西，這裡算數。',
+    crossBonus: true },
+
+  { id: 'sh_learned', name: '一身所學', type: 'passive', tier: 5, cost: 3, pos: { x: SX, y: 300 },
+    shared: true, icon: 'cdr',
+    desc: '技能冷卻 -12%，技能威力 +15%，魔防 +12%。',
+    mods: { cdr: 0.12, power: 0.15, mdef: 0.12 } },
+
+  { id: 'sh_proof', name: '通天之證', type: 'active', tier: 5, cost: 4, pos: { x: SX, y: 450 },
+    shared: true, icon: 'rally',
+    desc: '十秒內同時披上四種路數：傷害 +35%、護甲 +14、移動 +20%、吸血 +12%。',
+    skill: { id: 's_proof', name: '通天之證', cd: 26, type: 'buff', dur: 10,
+             mods: { dmg: 0.35, armorFlat: 14, moveSpd: 0.20, lifesteal: 0.12 } } }
+];
+
+/* 把共通那三個接到每一棵樹的第四階後面 */
+G.CLASSES.forEach(cls => {
+  const tier4 = cls.nodes.filter(n => n.tier === 4).map(n => n.id);
+  G.SHARED_NODES.forEach(sn => {
+    cls.nodes.push(Object.assign({}, sn, { req: tier4.slice() }));
+  });
+});
+
+G.isSharedNode = id => G.SHARED_NODES.some(n => n.id === id);
+
 G.getClass = id => G.CLASSES.find(c => c.id === id);
 G.getNode = (classId, nodeId) => {
   const c = G.getClass(classId);

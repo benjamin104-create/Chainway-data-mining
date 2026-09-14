@@ -273,7 +273,7 @@ G.GUARDIANS = [
 
 G.guardianFor = id => G.GUARDIANS.find(g => g.chapter === id) || null;
 
-G.CONTENT_VERSION = 4;
+G.CONTENT_VERSION = 5;
 
 /* 星星：限時過關拿的。滿這個數字就開星光商店。 */
 G.STAR_GOAL = 5;

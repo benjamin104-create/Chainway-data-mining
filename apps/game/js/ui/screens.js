@@ -193,29 +193,66 @@ U.renderClasses = function () {
 U.renderTree = function () {
   const cls = G.getClass(G.S.classId);
   const cs = G.S.classes[cls.id];
-  const VB_W = 820, VB_H = 560;
+  const VB_W = 960, VB_H = 560;   // 放寬到 960，最右邊那一欄留給共通技能
 
-  /* 連線 */
+  /* 連線。三種狀態：
+     兩端都學了＝亮線＋外圍一層光暈（看得出這條路已經走通）
+     只有起點學了＝半亮的虛線（這是下一步可以走的方向）
+     都沒學＝很暗的虛線（知道有這條路，但不搶視線） */
   const edges = [];
+  const glow = [];
   cls.nodes.forEach(n => {
-    n.req.forEach(rid => {
+    /* 共通技能的前置是「第四階任一個」，照實畫會變成 3×3 九條線交叉成一團。
+       所以只畫到最靠近的那一個——判定照舊是任一個就行，線只是給人看的。 */
+    let reqs = n.req;
+    if (n.shared && reqs.length > 1) {
+      reqs = [reqs.slice().sort((a, b) => {
+        const na = cls.nodes.find(x => x.id === a), nb = cls.nodes.find(x => x.id === b);
+        return Math.abs((na ? na.pos.y : 0) - n.pos.y) - Math.abs((nb ? nb.pos.y : 0) - n.pos.y);
+      })[0]];
+    }
+    reqs.forEach(rid => {
       const from = cls.nodes.find(x => x.id === rid);
       if (!from) return;
-      const owned = cs.nodes.includes(rid) && cs.nodes.includes(n.id);
-      const half = cs.nodes.includes(rid);
+      const owned = G.hasNode(cls.id, rid) && G.hasNode(cls.id, n.id);
+      const half = G.hasNode(cls.id, rid);
       const mx = (from.pos.x + n.pos.x) / 2;
-      edges.push('<path d="M' + from.pos.x + ' ' + from.pos.y +
-        ' C' + mx + ' ' + from.pos.y + ' ' + mx + ' ' + n.pos.y + ' ' + n.pos.x + ' ' + n.pos.y + '" ' +
-        'fill="none" stroke="' + (owned ? cls.color : half ? '#4A3E2C' : '#2A2419') + '" ' +
-        'stroke-width="' + (owned ? 3 : 2) + '" ' + (owned ? '' : 'stroke-dasharray="4 5"') + '/>');
+      const d = 'M' + from.pos.x + ' ' + from.pos.y +
+        ' C' + mx + ' ' + from.pos.y + ' ' + mx + ' ' + n.pos.y + ' ' + n.pos.x + ' ' + n.pos.y;
+      if (owned) {
+        // 底下先鋪一條粗的半透明，做出發光的感覺
+        glow.push('<path d="' + d + '" fill="none" stroke="' + cls.color +
+          '" stroke-width="9" stroke-opacity="0.20" stroke-linecap="round"/>');
+        edges.push('<path d="' + d + '" fill="none" stroke="' + cls.color +
+          '" stroke-width="3.2" stroke-linecap="round"/>');
+      } else {
+        edges.push('<path d="' + d + '" fill="none" stroke="' + (half ? '#6A5A3E' : '#2A2419') +
+          '" stroke-width="' + (half ? 2.2 : 1.8) + '" stroke-dasharray="' + (half ? '5 6' : '3 7') +
+          '" stroke-linecap="round"/>');
+      }
     });
   });
 
+  /* 階層標記：每一個 tier 在最上面標一行，讓人看得出樹是往右長的 */
+  const tierX = {};
+  cls.nodes.forEach(n => {
+    const t = n.tier || 0;
+    if (tierX[t] == null) tierX[t] = [];
+    tierX[t].push(n.pos.x);
+  });
+  const tierMarks = Object.keys(tierX).sort((a, b) => a - b).map(t => {
+    const xs = tierX[t];
+    const cx = xs.reduce((s, v) => s + v, 0) / xs.length;
+    const names = ['起手', '第二階', '第三階', '第四階', '第五階', '第六階'];
+    return '<span class="tier-mark" style="left:' + (cx / VB_W * 100).toFixed(2) + '%">' +
+      (names[t] || ('第 ' + (Number(t) + 1) + ' 階')) + '</span>';
+  }).join('');
+
   const nodesHtml = cls.nodes.map(n => {
-    const owned = cs.nodes.includes(n.id);
+    const owned = G.hasNode(cls.id, n.id);
     const chk = G.canUnlock(cls.id, n.id);
     const avail = !owned && chk.ok;
-    const reqMet = !n.req.length || n.req.some(r => cs.nodes.includes(r));
+    const reqMet = !n.req.length || n.req.some(r => G.hasNode(cls.id, r));
     const classes = ['node'];
     if (owned) classes.push('owned');
     else if (avail) classes.push('avail');
@@ -245,8 +282,9 @@ U.renderTree = function () {
     '<span class="hint">可用技能點 ' + G.spAvailable() + '　·　已投入 ' + cs.spent + '</span></div>' +
     '<div class="panel-body"><div class="tree-layout">' +
       '<div class="tree-canvas" id="treeCanvas">' +
-        '<svg viewBox="0 0 ' + VB_W + ' ' + VB_H + '" preserveAspectRatio="none">' + edges.join('') + '</svg>' +
-        nodesHtml +
+        '<svg viewBox="0 0 ' + VB_W + ' ' + VB_H + '" preserveAspectRatio="none">' +
+          glow.join('') + edges.join('') + '</svg>' +
+        tierMarks + nodesHtml +
       '</div>' +
       '<div class="tree-side">' + detail + U.barConfig(cls, cs) +
         '<button class="btn btn-ghost btn-full" data-act="respec">重置這個職業的技能樹（退回全部點數）</button>' +
@@ -255,7 +293,7 @@ U.renderTree = function () {
 };
 
 U.nodeDetail = function (cls, cs, n) {
-  const owned = cs.nodes.includes(n.id);
+  const owned = G.hasNode(cls.id, n.id);
   const chk = G.canUnlock(cls.id, n.id);
   let btn;
   if (owned) btn = '<button class="btn btn-full" disabled>已學習</button>';

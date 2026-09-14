@@ -43,6 +43,9 @@ G.newSave = function () {
     stars: 0,           // 限時過關拿到的星，滿五顆開星光商店
     starred: {},        // 哪些關已經拿過星，不能重複刷
     run: null,          // 進行中的遠征
+    /* 共通技能是全域的：在哪一棵樹點開都算，換職業也還在。
+       他是同一個人，不是七個人。 */
+    shared: [],
     cv: 2,              // 內容版本，換世界觀時用來換算進度
     seenIntro: false
   });
@@ -112,6 +115,12 @@ function migrateContent(save) {
     if (save.owned.indexOf('h_none') < 0) save.owned.push('h_none');
   }
 
+  /* → 5　技能樹尾端接上共通技能（全域，不分職業）。
+          舊存檔沒有 shared 這個欄位，補一個空陣列就好，什麼都不用丟。 */
+  if (cv < 5) {
+    if (!Array.isArray(save.shared)) save.shared = [];
+  }
+
   save.cv = G.CONTENT_VERSION;
 }
 
@@ -141,12 +150,17 @@ G.spAvailable = function (classId) {
   return G.S.sp - (G.S.classes[classId].spent || 0);
 };
 
+/* 這個節點學過了沒。共通技能查全域那一份，其他查該職業自己的。 */
+G.hasNode = function (classId, nodeId) {
+  if (G.isSharedNode && G.isSharedNode(nodeId)) return (G.S.shared || []).includes(nodeId);
+  return G.S.classes[classId].nodes.includes(nodeId);
+};
+
 G.canUnlock = function (classId, nodeId) {
   const cls = G.getClass(classId);
   const node = cls.nodes.find(n => n.id === nodeId);
-  const cs = G.S.classes[classId];
-  if (!node || cs.nodes.includes(nodeId)) return { ok: false, why: '已學習' };
-  if (node.req.length && !node.req.some(r => cs.nodes.includes(r))) return { ok: false, why: '前置未學習' };
+  if (!node || G.hasNode(classId, nodeId)) return { ok: false, why: '已學習' };
+  if (node.req.length && !node.req.some(r => G.hasNode(classId, r))) return { ok: false, why: '前置未學習' };
   if (G.spAvailable(classId) < node.cost) return { ok: false, why: '技能點不足' };
   return { ok: true };
 };
@@ -156,7 +170,12 @@ G.unlockNode = function (classId, nodeId) {
   if (!chk.ok) return chk;
   const node = G.getNode(classId, nodeId);
   const cs = G.S.classes[classId];
-  cs.nodes.push(nodeId);
+  if (node.shared) {
+    G.S.shared = G.S.shared || [];
+    G.S.shared.push(nodeId);
+  } else {
+    cs.nodes.push(nodeId);
+  }
   cs.spent += node.cost;
   // 主動技能：若技能欄有空位就自動放進去
   if (node.skill) {
@@ -225,6 +244,24 @@ G.computeStats = function (classId) {
     (n.flags || []).forEach(f => flags.add(f));
   });
 
+  /* 共通技能：全域的，不管現在用哪個職業都算。 */
+  (G.S.shared || []).forEach(id => {
+    const n = (G.SHARED_NODES || []).find(x => x.id === id);
+    if (!n) return;
+    applyMods(n.mods);
+    (n.flags || []).forEach(f => flags.add(f));
+    /* 百工之手：獎勵跨職業修行。
+       算的是「別的職業」投入的點數，所以專心練一條線的人拿不到，
+       到處學的人才拿得到——這正是它想鼓勵的事。 */
+    if (n.crossBonus) {
+      let other = 0;
+      for (const cid in G.S.classes) if (cid !== classId) other += G.S.classes[cid].spent || 0;
+      const steps = Math.min(10, Math.floor(other / 4));
+      add.dmg += steps * 0.02;
+      add.hp += steps * 0.02;
+    }
+  });
+
   G.GEAR_SLOTS.forEach(slot => {
     const it = G.getItem(G.S.gear[slot]);
     if (!it) return;
@@ -270,7 +307,7 @@ G.unlockedActives = function (classId) {
   classId = classId || G.S.classId;
   const cls = G.getClass(classId);
   const cs = G.S.classes[classId];
-  return cls.nodes.filter(n => n.skill && cs.nodes.includes(n.id)).map(n => ({ ...n.skill, icon: n.icon, nodeName: n.name, desc: n.desc }));
+  return cls.nodes.filter(n => n.skill && G.hasNode(classId, n.id)).map(n => ({ ...n.skill, icon: n.icon, nodeName: n.name, desc: n.desc }));
 };
 
 G.setBarSlot = function (slot, skillId) {
