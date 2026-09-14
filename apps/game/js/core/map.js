@@ -144,9 +144,9 @@ G.buildMap = function (stage) {
   for (let i = 0; i < tries && props.length < 34; i++) {
     const px = 40 + rand() * (MAP_W - 80);
     const py = 40 + rand() * (MAP_H - 90);
-    if (distToPath(px, py) < 58) continue;
+    if (distToPath(px, py) < 76) continue;
     let ok = true;
-    for (const q of props) if (Math.hypot(q.x - px, q.y - py) < 54) { ok = false; break; }
+    for (const q of props) if (Math.hypot(q.x - px, q.y - py) < 62) { ok = false; break; }
     if (!ok) continue;
     props.push({ x: px, y: py, s: 0.7 + rand() * 0.7, r: rand(), kind: Math.floor(rand() * 3) });
   }

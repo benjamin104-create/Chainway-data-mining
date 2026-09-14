@@ -7,6 +7,32 @@
   let raf = null, last = 0, hudRefs = null, currentStageKey = null, currentOpts = null;
 
   /* ══════ 戰鬥畫面 ══════ */
+  /* 讓整個戰場一定塞得進視窗。
+     CSS 只能用固定的上下框估算值，但實際的上下框在手機、橫躺、
+     App 內的小面板各不相同——估錯就會把主角推到畫面外，
+     玩家看到一片空戰場，以為沒有戰鬥。所以這裡直接量。 */
+  function fitBattle() {
+    const wrap = document.querySelector('.battle-wrap');
+    const cv = document.getElementById('screen');
+    const hud = document.querySelector('.hud');
+    if (!wrap || !cv) return;
+    wrap.style.maxWidth = '';                 // 先還原，才量得到自然寬度
+    const top = cv.getBoundingClientRect().top;
+    const below = (hud ? hud.getBoundingClientRect().height : 0) + 16;
+    const avail = window.innerHeight - top - below;
+    const natural = wrap.getBoundingClientRect().width;
+    // 4:3 的畫布：高度預算換算成寬度預算
+    const byHeight = avail * (960 / 720);
+    const w = Math.max(240, Math.min(natural, byHeight));
+    wrap.style.maxWidth = Math.round(w) + 'px';
+  }
+  U.fitBattle = fitBattle;
+
+  window.addEventListener('resize', () => { if (U.screen === 'battle') fitBattle(); });
+  window.addEventListener('orientationchange', () => {
+    if (U.screen === 'battle') setTimeout(fitBattle, 120);
+  });
+
   function battleView(stage, opts) {
     const cls = G.getClass(G.S.classId);
     const skills = G.S.classes[cls.id].bar;
@@ -41,7 +67,7 @@
         '<div class="hud">' +
           '<div class="vital">' +
             '<div class="vital-row"><span>' + cls.name + '</span><span id="hpText"></span></div>' +
-            '<div class="hpbar"><i id="hpFill"></i></div>' +
+            '<div class="hpbar"><u id="hpGhost"></u><i id="hpFill"></i></div>' +
             '<div class="vital-row"><span id="goldRun">現場資金 0</span><span id="killRun">0 擊殺</span></div>' +
           '</div>' +
           '<div class="skillbar">' + slots + '</div>' +
@@ -66,6 +92,8 @@
 
     hudRefs = {
       hpFill: document.getElementById('hpFill'),
+      hpGhost: document.getElementById('hpGhost'),
+      hpbar: document.querySelector('.hpbar'),
       hpText: document.getElementById('hpText'),
       goldRun: document.getElementById('goldRun'),
       killRun: document.getElementById('killRun'),
@@ -96,14 +124,9 @@
     R.setup(cv);
     R.buildBackdrop(G.getChapter(stage.chapterId), stage);
     cv.addEventListener('pointerdown', onCanvasPointer);
-    /* 螢幕矮的時候戰場會超出視窗，主角開場又站在地圖最下排，
-       不捲過去玩家會看到一片空戰場，以為沒有戰鬥。 */
-    try {
-      if (cv.getBoundingClientRect().bottom > window.innerHeight) {
-        cv.scrollIntoView({ block: 'center', behavior: 'auto' });
-      }
-    } catch (e) { /* 舊瀏覽器沒有就算了 */ }
+    requestAnimationFrame(fitBattle);
     input.left = input.right = false;
+    hpGhostPct = null; hpPrevPct = 100;
     last = performance.now();
     if (raf) cancelAnimationFrame(raf);
     raf = requestAnimationFrame(loop);
@@ -121,10 +144,13 @@
     last = now;
     B.update(dt, input);
     R.draw();
+    dtHud = dt;
     updateHud();
     if (B.over && B.overTimer > 1.1) { endBattle(); return; }
     raf = requestAnimationFrame(loop);
   }
+
+  let hpGhostPct = null, hpPrevPct = 100, dtHud = 1 / 60;
 
   function updateHud() {
     const pc = document.getElementById('parClock');
@@ -141,6 +167,24 @@
     const h = B.hero;
     const pct = Math.max(0, h.hp) / h.maxHp * 100;
     hudRefs.hpFill.style.width = pct.toFixed(1) + '%';
+
+    /* 血條的掉血動畫：
+       實心的那條立刻掉到新的血量，後面留一條紅色殘影慢慢追上來，
+       追的過程中整條血條會閃一下。這樣才看得出「剛剛被打掉多少」。 */
+    if (hpGhostPct == null) hpGhostPct = pct;
+    if (pct < hpGhostPct - 0.01) {
+      if (pct < hpPrevPct - 0.01) {
+        hudRefs.hpbar.classList.remove('hit');
+        void hudRefs.hpbar.offsetWidth;      // 重跑動畫
+        hudRefs.hpbar.classList.add('hit');
+      }
+      // 殘影每秒追掉 55% 的差距，小傷追得快、大傷留得久
+      hpGhostPct = Math.max(pct, hpGhostPct - Math.max(18, (hpGhostPct - pct) * 2.4) * dtHud);
+    } else {
+      hpGhostPct = pct;
+    }
+    hpPrevPct = pct;
+    hudRefs.hpGhost.style.width = hpGhostPct.toFixed(1) + '%';
     hudRefs.hpText.textContent = Math.max(0, Math.round(h.hp)) + ' / ' + h.maxHp + (h.shield > 0 ? '  +' + Math.round(h.shield) : '');
     hudRefs.goldRun.textContent = '現場資金 ' + B.purse;
     hudRefs.killRun.textContent = B.kills + ' 擊殺';

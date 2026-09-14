@@ -29,15 +29,15 @@ G.newSave = function () {
   });
   return G.grantRoots({
     v: 1,
-    gold: 200,
-    sp: 1,
+    gold: 420,
+    sp: 3,
     level: 1,
     xp: 0,
     classId: 'delver',
     classes,
     gear: { ...G.DEFAULT_GEAR },
     owned: ['w_pick', 'a_cloth', 'h_none', 'r_none'],
-    consumables: { c_potion: 0, c_charge: 0, c_herb: 0 },
+    consumables: { c_potion: 1, c_charge: 0, c_herb: 2 },
     cleared: {},
     best: {},
     stars: 0,           // 限時過關拿到的星，滿五顆開星光商店
@@ -238,9 +238,12 @@ G.computeStats = function (classId) {
   if (G.runMods) applyMods(G.runMods());
 
   const b = cls.base;
+  /* 前五級每級多給一點。原本 1 級到 5 級只多 88 血 / 8 傷害，
+     開局那幾場每次都被磨到剩兩成血，而這一版沒有回復法術。 */
+  const early = Math.min(lv, 5);
   const stats = {
-    hp:       Math.round((b.hp + lv * 22 + flat.hpFlat) * (1 + add.hp)),
-    dmg:      (b.dmg + lv * 2.0 + flat.dmgFlat) * (1 + add.dmg),
+    hp:       Math.round((b.hp + lv * 22 + early * 26 + flat.hpFlat) * (1 + add.hp)),
+    dmg:      (b.dmg + lv * 2.0 + early * 1.6 + flat.dmgFlat) * (1 + add.dmg),
     atkSpd:   b.atkSpd * (1 + add.atkSpd),
     range:    b.range * (1 + add.range),
     moveSpd:  b.moveSpd * (1 + add.moveSpd),

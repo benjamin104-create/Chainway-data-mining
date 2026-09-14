@@ -464,8 +464,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
      min(100%, 420px) 是地板：視窗很矮時（App 裡的小面板、手機橫躺）
      寧可讓頁面往下捲，也不要把戰場壓成幾十像素。
      沒有這個地板的話，390x300 的面板會算出 13px 寬的戰場。 */
-  max-width: max(min(100%, 420px), calc((100vh - 290px) * 4 / 3));
-  max-width: max(min(100%, 420px), calc((100dvh - 290px) * 4 / 3));
+  max-width: max(min(100%, 340px), calc((100vh - 290px) * 4 / 3));
+  max-width: max(min(100%, 340px), calc((100dvh - 290px) * 4 / 3));
   margin-inline: auto;
 }
 .battle-top {
@@ -672,3 +672,59 @@ canvas#screen {
 .item.unfound { opacity: .5; }
 .item-aff { display: block; font-size: 11px; color: #9FD48A; margin-top: 2px; }
 .ward-card u { display: block; margin-top: 6px; text-decoration: none; font-size: 11px; color: #C8503E; }
+
+/* ══════ 掉血動畫 ══════ */
+.hpbar { position: relative; overflow: hidden; }
+.hpbar u {
+  position: absolute; inset: 0 auto 0 0; display: block;
+  background: #C8503E; opacity: .85;
+}
+.hpbar i { position: relative; z-index: 1; }
+/* 被打的瞬間整條閃一下 */
+@keyframes hpHit {
+  0%   { box-shadow: inset 0 0 0 2px #FF8A6A; filter: brightness(2.1); }
+  100% { box-shadow: inset 0 0 0 0 transparent; filter: brightness(1); }
+}
+.hpbar.hit { animation: hpHit .22s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .hpbar.hit { animation: none; }
+}
+
+/* ══════ 矮螢幕：把外框壓扁 ══════
+   手機橫躺或 App 內的小面板，上面的標題列＋導覽列＋戰鬥列
+   本身就吃掉三百多像素，縮畫布救不了——主角照樣在畫面外。
+   所以這裡把外框整個壓薄，把高度還給戰場。 */
+@media (max-height: 760px) {
+  .topbar { padding: 4px 10px; gap: 10px; }
+  .topbar .brand-mark { font-size: 13px; }
+  .topbar .brand-cn { display: none; }
+  .nav { padding: 2px 6px; }
+  .nav button { padding: 4px 9px; font-size: 11px; }
+  .battle-top { padding: 4px 10px; gap: 9px; }
+  .battle-top .battle-title { font-size: 12px; }
+  .battle-top .btn { padding: 4px 10px; font-size: 11px; }
+  .hud { padding: 6px 10px; gap: 9px; }
+  .hud .sk { width: 42px; height: 42px; }
+  main#view { padding: 6px !important; }
+}
+@media (max-height: 460px) {
+  .topbar { display: none; }
+  .nav { display: none; }
+}
+
+/* ══════ 窄螢幕：把 HUD 壓扁 ══════
+   量出來手機上的 HUD 有 234px 高——技能格、消耗品、移動鍵、僱用列
+   在 360px 寬裡各自換行，疊成四五排。戰場剩不到 63px，主角當然在畫面外。 */
+@media (max-width: 560px) {
+  .hud {
+    grid-template-columns: 1fr auto;
+    gap: 7px; padding: 7px 8px;
+  }
+  .hud .vital { grid-column: 1 / -1; gap: 3px; }
+  .vital-row { font-size: 9px; }
+  .hpbar { height: 11px; }
+  .hud .sk { width: 40px; height: 40px; }
+  .sk .sk-name { display: none; }
+  .sk .key { font-size: 8px; }
+  .hirebar { max-height: 34px; overflow: hidden; }
+}

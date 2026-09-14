@@ -39,7 +39,7 @@ R.draw = function () {
 
   B.posts.forEach(pp => {
     const side = pp.idx % 2 === 0 ? 1 : -1;
-    const sp = map.beside(pp.x, 54, side);
+    const sp = map.beside(pp.x, 68, side);
     pp._sx = sp.x; pp._sy = sp.y;
     draws.push({ y: sp.y, fn: () => drawPost(ctx, pp, sp, B) });
   });
@@ -62,8 +62,10 @@ R.draw = function () {
   if (bossE) {
     const bs = map.at(bossE.x, bossE.z || 0), hs = map.at(B.hero.x, B.hero.z || 0);
     const s = bossE.size * BOSS_ART;
-    const covered = !B.hero.dead && bs.y > hs.y &&
-      Math.abs(hs.x - bs.x) < s * 1.15 && hs.y > bs.y - s * 3.3 && hs.y < bs.y + s * 0.4;
+    /* 要「真的被擋住」才淡化。只差一兩個像素（兩人站同一排）不算，
+       不然並排站著魔王就變半透明了。 */
+    const covered = !B.hero.dead && bs.y > hs.y + 26 &&
+      Math.abs(hs.x - bs.x) < s * 1.0 && hs.y > bs.y - s * 3.3;
     const want = covered ? 0.42 : 1;
     bossE._fade = bossE._fade == null ? want : bossE._fade + (want - bossE._fade) * 0.18;
   }
@@ -85,6 +87,17 @@ R.draw = function () {
   drawProjectiles(ctx, B, map);
   drawParticles(ctx, B, map);
   drawTexts(ctx, B, map);
+
+  /* 主角受傷的紅屏：邊緣紅、中間透，傷得越重越紅 */
+  if (B.hurtFlash > 0) {
+    const hf = Math.min(1, B.hurtFlash);
+    const rg = ctx.createRadialGradient(W / 2, H / 2, H * 0.10, W / 2, H / 2, H * 0.78);
+    rg.addColorStop(0, 'rgba(216,70,54,0)');
+    rg.addColorStop(0.55, 'rgba(216,70,54,' + (0.30 * hf).toFixed(3) + ')');
+    rg.addColorStop(1, 'rgba(216,70,54,' + (0.92 * hf).toFixed(3) + ')');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, H * 0.95);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -135,20 +148,20 @@ function drawPath(ctx, p, map) {
     ctx.stroke();
   };
   ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.34)';        stroke(62);
-  ctx.strokeStyle = p.roadEdge || p.far;       stroke(56);
-  ctx.strokeStyle = p.road || p.fog;           stroke(46);
+  ctx.strokeStyle = 'rgba(0,0,0,0.34)';        stroke(88);
+  ctx.strokeStyle = p.roadEdge || p.far;       stroke(80);
+  ctx.strokeStyle = p.road || p.fog;           stroke(66);
   ctx.globalAlpha = 0.25;
-  ctx.strokeStyle = '#FFF2D2';                 stroke(30);
+  ctx.strokeStyle = '#FFF2D2';                 stroke(42);
   ctx.globalAlpha = 1;
 
   ctx.strokeStyle = 'rgba(0,0,0,0.16)';
   ctx.lineWidth = 2;
-  for (let L = 26; L < map.total; L += 26) {
+  for (let L = 34; L < map.total; L += 34) {
     const a = map.atLen(L);
     ctx.beginPath();
-    ctx.moveTo(a.x - a.ny * 21, a.y + a.nx * 21);
-    ctx.lineTo(a.x + a.ny * 21, a.y - a.nx * 21);
+    ctx.moveTo(a.x - a.ny * 30, a.y + a.nx * 30);
+    ctx.lineTo(a.x + a.ny * 30, a.y - a.nx * 30);
     ctx.stroke();
   }
   ctx.restore();
@@ -156,7 +169,7 @@ function drawPath(ctx, p, map) {
 
 /* ── 裝飾物：依章節主題 ── */
 function drawProp(ctx, pr, p) {
-  const s = pr.s * (pr.kind === 2 ? 12 : 18);
+  const s = pr.s * (pr.kind === 2 ? 15 : 23);
   const motif = R.chapter.motif;
   ctx.save();
   ctx.translate(pr.x, pr.y);
@@ -457,7 +470,7 @@ function drawUnit(ctx, e, sp) {
   if (e.isBoss) { drawBoss(ctx, e, sp); return; }
 
   const pop = spawnScale(e);
-  const s = e.size * 0.92 * pop;
+  const s = e.size * 0.92 * UNIT_ART * pop;
   const face = (e.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
   const arc = swingArc(e);
   const hurt = hurtLean(e);
@@ -546,6 +559,11 @@ function drawUnit(ctx, e, sp) {
  * 所以判定維持在已經驗過平衡的 58，只有畫的時候乘上 BOSS_ART。
  * 主角畫出來約 30 像素高，魔王 58 × 1.64 × 2.84 ≈ 270 像素高，正好九倍。
  */
+/* 角色放大倍率。原本主角只有 45px 高，在 960x720 的戰場上小到看不清楚。
+   魔王的絕對尺寸維持不變（它已經佔掉畫面上緣的全部預算），
+   所以放大主角之後，魔王相對主角約 6.5 倍而不是 9 倍——
+   這是「主角看得清楚」跟「魔王九倍」之間的取捨，兩個不能同時成立。 */
+const UNIT_ART = 1.40;
 const BOSS_ART = 1.79;
 
 function drawBoss(ctx, e, sp) {
@@ -910,7 +928,7 @@ function drawCorpse(ctx, c, sp) {
 /* ── 英雄：橘色黏土球戰士 ── */
 function drawHero(ctx, h, sp, B) {
   if (h.dead) return;
-  const r = 16;
+  const r = 16 * UNIT_ART;
   const face = (h.facing >= 0 ? 1 : -1) * (sp.nx >= 0 ? 1 : -1);
   const cls = B.cls;
   const arc = swingArc(h);
@@ -921,7 +939,9 @@ function drawHero(ctx, h, sp, B) {
   const step = Math.sin(ph);
   const bounce = mv ? Math.abs(step) * r * 0.16 : 0;
   const breath = mv ? 0 : Math.sin(ph) * r * 0.05;
-  const x = sp.x + face * arc * r * 0.4 - face * hurt * r * 0.3;
+  /* 踉蹌：被打到的 0.18 秒內整個人往後退，再彈回來 */
+  const knock = h.knockT > 0 ? Math.sin(h.knockT / 0.18 * Math.PI) : 0;
+  const x = sp.x + face * arc * r * 0.4 - face * (hurt * r * 0.3 + knock * r * 0.55);
   const y = sp.y;
 
   ctx.save();

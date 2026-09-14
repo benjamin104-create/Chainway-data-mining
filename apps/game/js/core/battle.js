@@ -52,6 +52,7 @@ B.init = function (stageKey, opts) {
   B.effects = [];
   B.timers = [];                  // 戰鬥自己的延遲計時器；暫停會跟著停
   B.pickups = [];                 // 路上的帽子
+  B.hurtFlash = 0;                // 主角受傷時的紅屏，0~1
   B.hatsFound = [];               // 這一場撿到哪幾頂，結算畫面要列
   B.texts = [];
   B.particles = [];
@@ -110,7 +111,7 @@ B.init = function (stageKey, opts) {
       'enemy',
       Math.round(stage.length * f),
       Math.round((last ? (B.caveMode ? 210 : 620) : 340) * B.escale),
-      Math.round((last ? (B.caveMode ? 9 : 22) : 16) * B.escale),
+      Math.round((last ? (B.caveMode ? 9 : 22) : 16) * B.escale * (stage.dmgMul || 1)),
       last ? (B.caveMode ? 125 : 230) : 190,
       last ? (B.caveMode ? '巢穴' : '主塔') : '哨塔 ' + (i + 1),
       1.0
@@ -557,8 +558,17 @@ function dealDamage(src, tgt, amount, opt) {
     }
     taken = Math.round(taken);
     B.hero.hp -= taken;
-    B.hero.hitFlash = 0.18;
-    if (taken > 0) pushText(B.hero.x, -30, '-' + taken, '#FF8A6A', false);
+    B.hero.hitFlash = 0.26;
+    if (taken > 0) {
+      pushText(B.hero.x, -30, '-' + taken, '#FF8A6A', true);
+      /* 受傷的手感：傷害越重，震得越兇、紅屏越明顯、噴的血越多。
+         這一版沒有回血，所以每一下都該讓人感覺得到。 */
+      const frac = taken / B.hero.maxHp;
+      B.shake = Math.max(B.shake, Math.min(22, 5 + frac * 90));
+      B.hurtFlash = Math.min(1, Math.max(B.hurtFlash || 0, 0.28 + frac * 2.4));
+      B.hero.knockT = 0.18;                       // 往後踉蹌
+      burst(B.hero.x, B.hero.z, '#D8503E', Math.min(18, 4 + Math.round(frac * 60)));
+    }
     if (B.flags.has('thorns') && src && !src.isStructure && dist(src, B.hero) < 60) {
       src.hp -= Math.round(taken * 0.25);
       checkDeath(src, B.hero);
@@ -805,7 +815,7 @@ function spawnEnemy(key, x, i) {
     id: nid(), kind: 'minion', faction: 'enemy', unit: key,
     x, z: ((i % 5) - 2) * 9 + (Math.random() - 0.5) * 5,
     hp: Math.round(p.hp * sc), maxHp: Math.round(p.hp * sc),
-    dmg: p.dmg * sc, speed: p.speed, range: p.range,
+    dmg: p.dmg * sc * (B.stage.dmgMul || 1), speed: p.speed, range: p.range,
     size: p.size, color: p.color, kind2: p.kind, name: p.name,
     atkTimer: Math.random(), atkSpd: p.kind === 'swarm' ? 1.5 : 0.85,
     armor: 2 + B.stage.chapterIdx * 1.5, dead: false,
@@ -1088,6 +1098,7 @@ B.update = function (dt, input) {
   }
 
   if (B.shake > 0) B.shake = Math.max(0, B.shake - dt * 42);
+  if (B.hurtFlash > 0) B.hurtFlash = Math.max(0, B.hurtFlash - dt * 3.2);
 
   /* 戰鬥自己的延遲計時器（魔王技能的預兆→結算都走這裡）。
      先整批取出再跑，回呼裡排的新計時器才不會在同一幀就被跑掉。 */
@@ -1144,6 +1155,7 @@ B.update = function (dt, input) {
     h.invuln = Math.max(0, h.invuln - dt);
     h.hitFlash = Math.max(0, h.hitFlash - dt);
     if (h.shield > 0 && h.shieldUntil && B.time > h.shieldUntil) h.shield = 0;
+    if (h.knockT > 0) h.knockT = Math.max(0, h.knockT - dt);
     /* 魔王掛上的燒傷：每半秒跳一次 */
     if (h.burnUntil > B.time) {
       h.burnTick = (h.burnTick || 0) + dt;
