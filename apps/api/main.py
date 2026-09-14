@@ -60,11 +60,17 @@ def _master() -> pd.DataFrame:
 def health() -> dict:
     cfg = get_config()
     processed = cfg.path("processed")
+    # 指紋檔的狀態要看得到：網站主機上多半沒有 2.69 GB 的系統圖，以圖搜款
+    # 全靠指紋。少了它頁面不會壞，只會每一張照片都查不到東西 —— 那種
+    # 故障最難查，所以擺在健康檢查裡。
+    from chainway.search import fingerprint as FP
+
     return {
         "ok": True,
         "project": cfg.get("project", {}).get("name"),
         "has_master": (processed / "master.parquet").exists(),
         "has_embeddings": (processed / "image_embeddings.npy").exists(),
+        "指紋": FP.describe(cfg),
     }
 
 

@@ -220,4 +220,181 @@ def load(folder: str | Path) -> dict[str, Any]:
                 out["細節"][str(s)] = (d["pts"][k:k + n].astype(np.float32),
                                        d["desc"][k:k + n].astype(np.uint8))
                 k += n
+    ip = folder / "指紋_商品.csv" if folder.is_dir() else None
+    out["商品"] = _read_info(ip) if ip and ip.exists() else {}
     return out
+
+
+def auto(cfg) -> dict[str, Any] | None:
+    """找出這台機器上可用的指紋檔；沒有就回 None。
+
+    部署到網站、或把指紋檔帶到另一台電腦時，那裡通常只有這三個檔，
+    沒有 2.69 GB 的圖，也沒有主表與 POS 報表。這支讓查詢在那種機器上
+    也能直接跑，不必每次都手動指定路徑。
+
+    **圖優先。** 有圖就用圖 —— 指紋是拍完照的快照，新品上架之後還沒
+    重跑，就會少掉那幾款；有圖的機器不該冒這個險。所以呼叫端只在
+    收不到任何參考圖時才問這支。
+    """
+    folder = _folder(cfg)
+    return load(folder) if folder else None
+
+
+def describe(cfg) -> dict[str, Any]:
+    """指紋檔的狀態，不把 16 MB 的描述子讀進記憶體。
+
+    健康檢查會被一直輪詢，所以這支只開顏色檔的表頭。要真的比對才用
+    `auto()`／`load()`。
+    """
+    folder = _folder(cfg)
+    if folder is None:
+        return {"有指紋": False}
+    cp = folder / "指紋_顏色.npz"
+    try:
+        z = np.load(cp, allow_pickle=False)
+        ver = str(z["version"][0]) if "version" in z else "?"
+        if ver != VERSION:
+            return {"有指紋": False,
+                    "錯誤": f"指紋是 {ver} 版，這支程式要 {VERSION} 版 —— "
+                            "請在有圖的機器上重跑 cli fingerprint"}
+        n = int(z["skus"].shape[0])
+    except Exception as exc:
+        return {"有指紋": False, "錯誤": f"{type(exc).__name__}: {exc}"}
+    dp = folder / "指紋_細節.npz"
+    return {"有指紋": True, "款數": n, "資料夾": str(folder),
+            "有細節": dp.exists(), "有商品資料": (folder / "指紋_商品.csv").exists(),
+            "算出來的時間": _mtime(cp)}
+
+
+def _folder(cfg) -> Path | None:
+    conf = cfg.get("search", {}) or {}
+    named = str(conf.get("index") or "").strip()
+    cands = ([Path(named)] if named else []) + [cfg.path("outputs") / "指紋"]
+    return next((f for f in cands if (f / "指紋_顏色.npz").exists()), None)
+
+
+def _mtime(p: Path) -> str:
+    from datetime import datetime
+
+    try:
+        return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    except OSError:
+        return ""
+
+
+def _read_info(path: Path) -> dict[str, dict[str, Any]]:
+    """指紋_商品.csv → `{貨號: {品名, 售罄, 定價, 可售總數, 庫存明細}}`。
+
+    查到貨號之後真正要問的是「有沒有貨、什麼顏色、什麼尺寸」。那些數字
+    本來在主表與 POS 報表裡，但帶著指紋走的機器上沒有那兩份資料，
+    所以匯出時就把它們寫進這個 CSV 一起帶走。
+    """
+    import pandas as pd
+
+    try:
+        df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    except Exception:
+        return {}
+    got: dict[str, dict[str, Any]] = {}
+    for row in df.to_dict("records"):
+        sku = str(row.get("貨號", "")).strip()
+        if not sku:
+            continue
+        got[sku] = {
+            "品名": str(row.get("品名", "")).strip(),
+            "售罄": _num(row.get("售罄")),
+            "定價": _num(row.get("定價")),
+            "可售總數": _num(row.get("可售總數")),
+            "庫存明細": _variants(row.get("顏色尺寸庫存", "")),
+        }
+    return got
+
+
+def _variants(text: Any) -> list[dict[str, Any]]:
+    """「藍/S:3；藍/M:0」→ 一筆一筆的顏色尺寸庫存。
+
+    分隔字元本身可能出現在顏色名裡（「藍/白」），所以尺寸取最後一段、
+    庫存取最後一個冒號之後 —— 拆錯也只是顯示不好看，不會影響名次。
+    """
+    rows: list[dict[str, Any]] = []
+    for part in str(text or "").split("；"):
+        part = part.strip()
+        if not part or ":" not in part:
+            continue
+        cs, qty = part.rsplit(":", 1)
+        colour, sep, size = cs.rpartition("/")
+        if not sep:
+            colour, size = cs, ""
+        rows.append({"顏色": colour, "尺寸": size, "庫存": _num(qty, int),
+                     "另一套庫存數": None, "已售": None})
+    return rows
+
+
+def _num(v: Any, kind: type = float):
+    try:
+        s = str(v).strip()
+        return kind(float(s)) if s else None
+    except (TypeError, ValueError):
+        return None
+
+
+def check() -> list[str]:
+    """回歸測試：寫得出去的，要原封不動讀得回來。
+
+    守住三件事。一是 float16 壓縮與 NaN 佔位不能把簽名弄壞 —— 壞了不會
+    報錯，只會讓名次悄悄變差。二是版本對不上一定要出聲，寧可不答也不要
+    用舊指紋算出一份看起來很正常的錯名次。三是商品 CSV 要解得回顏色
+    尺寸庫存，否則帶著指紋走的機器只答得出貨號。
+    """
+    import tempfile
+
+    from ..vision import grid as G
+
+    bad: list[str] = []
+    plain = G.cell_signature(G._synthetic(False))
+    striped = G.cell_signature(G._synthetic(True))
+    with tempfile.TemporaryDirectory() as tmp:
+        folder = Path(tmp)
+        np.savez_compressed(
+            folder / "指紋_顏色.npz", version=np.array([VERSION]),
+            skus=np.array(["KA0000001", "KA0000002"]),
+            sources=np.array(["系統圖", "系統圖"]),
+            sig=np.stack([_flatten(plain),
+                          _flatten(striped)]).astype(np.float16))
+        (folder / "指紋_商品.csv").write_text(
+            "貨號,品名,售罄,定價,可售總數,顏色尺寸庫存\n"
+            "KA0000001,素面上衣,0.42,1280,5,藍/S:3；藍/M:0；藍/白/L:2\n"
+            "KA0000002,橫紋上衣,,,,\n", encoding="utf-8-sig")
+        got = load(folder)
+
+        (folder / "指紋_顏色.npz").unlink()
+        np.savez_compressed(
+            folder / "指紋_顏色.npz", version=np.array(["fp0"]),
+            skus=np.array(["KA0000001"]), sources=np.array(["系統圖"]),
+            sig=np.stack([_flatten(plain)]).astype(np.float16))
+        if not load(folder).get("錯誤"):
+            bad.append("指紋版本對不上卻照樣載入 —— 會安靜地算出錯的名次")
+
+    if got.get("錯誤"):
+        return bad + [f"寫得出去卻讀不回來：{got['錯誤']}"]
+
+    pk = G.pack({s: got["簽名"][s] for s in got["貨號"]})
+    d = G.distance({**plain, "段": "x"}, pk)
+    if d[0] > 1.0:
+        bad.append(f"存進去再讀回來，同一張圖對自己的距離 {d[0]:.2f}，"
+                   "應該接近 0（float16 壓壞了簽名）")
+    if d[1] < 5.0:
+        bad.append(f"讀回來之後素面對橫紋只差 {d[1]:.2f}，分不出花色")
+
+    a = (got.get("商品") or {}).get("KA0000001") or {}
+    if a.get("品名") != "素面上衣":
+        bad.append(f"商品 CSV 的品名讀成 {a.get('品名')!r}")
+    if a.get("定價") != 1280:
+        bad.append(f"商品 CSV 的定價讀成 {a.get('定價')!r}")
+    v = a.get("庫存明細") or []
+    if [(x["顏色"], x["尺寸"], x["庫存"]) for x in v] != [
+            ("藍", "S", 3), ("藍", "M", 0), ("藍/白", "L", 2)]:
+        bad.append(f"顏色尺寸庫存拆錯了：{v}")
+    if (got.get("商品") or {}).get("KA0000002", {}).get("庫存明細") != []:
+        bad.append("沒有庫存的那一款應該拆出空清單")
+    return bad

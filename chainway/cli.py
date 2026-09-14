@@ -37,6 +37,40 @@ def _warn(msg: str) -> None:
     print(f"  ! {msg}")
 
 
+def _duplicate_keys(path) -> list[str]:
+    """找出 YAML 裡同一層寫了兩次的鍵，回傳「鍵名（第 n 行 → 第 m 行）」。
+
+    YAML 遇到重複的鍵不會報錯，也不會合併 —— 後面那個整段取代前面那個，
+    安靜地。真的踩過：settings.yaml 多了一段 search:，把 use_crops、
+    top_k、metric 等六個設定一次弄丟，程式照跑，只是行為悄悄變了。
+    """
+    import yaml
+
+    try:
+        node = yaml.compose(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    found: list[str] = []
+
+    def walk(n, where: str) -> None:
+        if isinstance(n, yaml.MappingNode):
+            seen: dict[str, int] = {}
+            for k, v in n.value:
+                name = str(getattr(k, "value", k))
+                line = k.start_mark.line + 1
+                if name in seen:
+                    found.append(f"{where}{name}（第 {seen[name]} 行 → "
+                                 f"第 {line} 行）")
+                seen[name] = line
+                walk(v, f"{where}{name}.")
+        elif isinstance(n, yaml.SequenceNode):
+            for item in n.value:
+                walk(item, where)
+
+    walk(node, "")
+    return found
+
+
 # ------------------------------------------------------------------ doctor
 def cmd_doctor(args) -> int:
     cfg = get_config()
@@ -122,13 +156,27 @@ def cmd_doctor(args) -> int:
         except ImportError:
             _warn(f"{mod:14s} 未安裝 — {why}")
 
+    # settings.yaml 裡同一個鍵寫兩次，YAML 會安靜地讓後面那個整段蓋掉
+    # 前面那個 —— 不是合併，是取代。真的發生過：多寫了一個 search:，
+    # 把 use_crops、top_k、metric 六個設定一起弄丟，而且什麼都不會說。
+    print("\n【2.2】設定檔重複的鍵")
+    from .config import CONFIG_DIR
+
+    dups = _duplicate_keys(CONFIG_DIR / "settings.yaml")
+    if dups:
+        for where in dups:
+            _warn(f"{where}　← 後面那個會整段蓋掉前面那個，請合併成一段")
+    else:
+        _ok("沒有重複的鍵")
+
     # 比對的自我檢查放在健檢裡，因為它不需要任何資料就跑得動 ——
     # 使用者裝好環境的那一刻就能知道「比對邏輯本身有沒有壞」，
     # 不必等到有圖、有主表、真的去查一次才發現。
     print("\n【2.5】比對邏輯自我檢查（不需要資料）")
     for name, fn in (("衣服／皮膚偵測", "chainway.vision.person"),
                      ("顏色簽名比對", "chainway.vision.grid"),
-                     ("關鍵點比對", "chainway.vision.keypoints")):
+                     ("關鍵點比對", "chainway.vision.keypoints"),
+                     ("指紋存取", "chainway.search.fingerprint")):
         if fn is None:
             continue
         try:

@@ -438,8 +438,23 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     if refs is None:
         refs = R.collect(cfg) if images is None else {
             k: [{"path": Path(v), "來源": "系統圖"}] for k, v in images.items()}
+    if not refs and index is None and images is None:
+        # 一張圖都找不到，但也許有指紋檔 —— 網站主機與帶著指紋走的電腦
+        # 都是這個樣子。圖優先，所以這一步只在收不到參考圖時才走。
+        from . import fingerprint as FP
+
+        got = FP.auto(cfg)
+        if got and got.get("錯誤"):
+            warn.append(got["錯誤"])
+        elif got:
+            index = got
+            refs = {sku: [{"path": f"指紋:{sku}",
+                           "來源": index.get("來源", {}).get(sku, "指紋")}]
+                    for sku in index["貨號"]}
+            warn.append(f"這台機器上沒有系統圖，改用指紋檔比對（{len(refs):,} 款）")
     if not refs:
-        return {"警告": ["沒有讀到任何參考圖，確認 settings.yaml 的 paths"],
+        return {"警告": ["沒有讀到任何參考圖，確認 settings.yaml 的 paths；"
+                         "或在有圖的機器上跑 cli fingerprint，把指紋檔帶過來"],
                 "候選": []}
     images = {} if index else R.primary(refs)
 
@@ -450,6 +465,19 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
 
     names, sales = master(cfg)
     inv = stock(cfg)
+    # 指紋檔自己帶著品名與庫存。帶指紋走的機器上沒有主表、也沒有 POS
+    # 報表，少了這一段就只答得出貨號 —— 而「有沒有貨」才是問完貨號之後
+    # 真正要問的。本機讀得到的永遠優先，指紋只補它讀不到的。
+    if index and index.get("商品"):
+        info_ = index["商品"]
+        if not names:
+            names = {k: v["品名"] for k, v in info_.items() if v.get("品名")}
+        if not sales:
+            sales = {k: {"售罄": v.get("售罄"), "定價": v.get("定價")}
+                     for k, v in info_.items()}
+        if not inv:
+            inv = {k: v["庫存明細"] for k, v in info_.items()
+                   if v.get("庫存明細")}
     truth = [t.upper() for t in (truth or [])]
 
     # ---------------------------------------------------------- 讀照片
