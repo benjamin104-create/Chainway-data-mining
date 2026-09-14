@@ -1,0 +1,264 @@
+<title>通天鬥塔 · 手繪風樣本</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;600;700&display=swap">
+
+<style>
+  :root {
+    --ink:    #0E1018;
+    --ink-2:  #161A26;
+    --panel:  #1C2130;
+    --line:   #3A4256;
+    --gold:   #D9B26A;
+    --gold-d: #8A6B33;
+    --parch:  #EFE4CC;
+    --dim:    #9C9482;
+    --blood:  #B3453A;
+    --f-disp: "Cinzel", "Noto Serif TC", serif;
+    --f-serif:"Noto Serif TC", serif;
+    --f-sans: "Noto Sans TC", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #08090E; color: var(--parch);
+    font-family: var(--f-sans); line-height: 1.75;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 0%, #1A1D2C 0%, rgba(8,9,14,0) 70%);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  h1 { font-family: var(--f-disp); font-size: clamp(20px,4.4vw,30px); letter-spacing: .1em;
+       color: var(--gold); margin: 0 0 4px; font-weight: 600; }
+  .sub { color: var(--dim); font-size: 13px; margin-bottom: 18px; }
+
+  /* ══ 新的介面外框：金屬邊、內陰影、角落飾件 ══ */
+  .frame {
+    position: relative;
+    background: linear-gradient(180deg, #232A3C, #12151F);
+    border: 1px solid var(--line);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      inset 0 -18px 40px rgba(0,0,0,.55),
+      0 14px 40px rgba(0,0,0,.6);
+    padding: 10px;
+  }
+  .frame::before {
+    content: ''; position: absolute; inset: 4px;
+    border: 1px solid rgba(217,178,106,.28);
+    pointer-events: none;
+  }
+  .corner {
+    position: absolute; width: 18px; height: 18px;
+    border: 2px solid var(--gold); pointer-events: none; opacity: .85;
+  }
+  .corner.tl { top: 2px; left: 2px; border-right: none; border-bottom: none; }
+  .corner.tr { top: 2px; right: 2px; border-left: none; border-bottom: none; }
+  .corner.bl { bottom: 2px; left: 2px; border-right: none; border-top: none; }
+  .corner.br { bottom: 2px; right: 2px; border-left: none; border-top: none; }
+
+  canvas { display: block; width: 100%; height: auto; }
+
+  /* ══ 戰鬥抬頭列 ══ */
+  .bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 12px; margin-bottom: 8px;
+    background: linear-gradient(180deg, rgba(48,40,26,.55), rgba(20,17,12,.75));
+    border: 1px solid rgba(217,178,106,.26);
+  }
+  .bar .name { font-family: var(--f-serif); font-size: 15px; font-weight: 600; letter-spacing: .04em; }
+  .bar .tag { font-family: var(--f-disp); font-size: 10px; letter-spacing: .2em;
+              color: #0E1018; background: var(--gold); padding: 2px 8px; }
+  .bar .meta { font-size: 12px; color: var(--dim); }
+  .bar .right { margin-left: auto; display: flex; gap: 8px; }
+
+  .btn {
+    font-family: var(--f-serif); font-size: 13px; font-weight: 600;
+    padding: 7px 16px; cursor: pointer; color: var(--parch);
+    background: linear-gradient(180deg, #2E3546, #191D28);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.5);
+  }
+  .btn.gold {
+    color: #221A0A;
+    background: linear-gradient(180deg, #F0CE8A, #C09A46);
+    border-color: #8A6B33;
+  }
+  .btn:hover { filter: brightness(1.12); }
+
+  /* ══ HUD ══ */
+  .hud {
+    display: grid; grid-template-columns: minmax(0,1.2fr) auto auto; gap: 14px;
+    align-items: center; padding: 12px; margin-top: 8px;
+    background: linear-gradient(180deg, #202634, #12151E);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .who { font-family: var(--f-serif); font-size: 13px; display: flex; justify-content: space-between; }
+  .who b { color: var(--gold); font-family: var(--f-disp); letter-spacing: .05em; }
+  /* 血條：內凹的槽 ＋ 有高光的液體 ＋ 末端的光 */
+  .hp {
+    height: 18px; margin-top: 6px; position: relative;
+    background: linear-gradient(180deg, #0A0C12, #161A24);
+    border: 1px solid #000;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.9);
+  }
+  .hp i {
+    display: block; height: 100%; width: 72%;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.34) 0 38%, rgba(255,255,255,0) 38%),
+      linear-gradient(90deg, #7E2A22, #C8533C 55%, #E88A4A);
+    box-shadow: 0 0 14px rgba(232,138,74,.55);
+  }
+  .stat { font-size: 11px; color: var(--dim); margin-top: 5px; display: flex; justify-content: space-between; }
+
+  .skills { display: flex; gap: 8px; }
+  .sk {
+    width: 56px; height: 56px; position: relative; cursor: pointer;
+    background: radial-gradient(circle at 34% 28%, #3A4256, #1A1F2B);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 3px 7px rgba(0,0,0,.55);
+    display: grid; place-items: center;
+  }
+  .sk.on { border-color: var(--gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 16px rgba(217,178,106,.4); }
+  .sk svg { width: 26px; height: 26px; }
+  .sk svg path, .sk svg circle { stroke: #C9D2E2; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .sk.on svg path, .sk.on svg circle { stroke: var(--gold); }
+  .sk em {
+    position: absolute; top: 2px; left: 4px; font-style: normal;
+    font-family: var(--f-disp); font-size: 9px; color: var(--dim);
+  }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; }
+  .compare .frame { padding: 0; }
+  .cap { font-size: 12px; color: var(--dim); padding: 8px 10px; border-top: 1px solid var(--line); }
+  .cap b { color: var(--parch); }
+
+  .note { margin-top: 26px; font-size: 13px; color: var(--dim); }
+  .note h2 { font-family: var(--f-serif); font-size: 15px; color: var(--parch); margin: 18px 0 6px; }
+  .note li { margin-bottom: 4px; }
+  @media (max-width: 620px) {
+    .hud { grid-template-columns: 1fr; }
+    .compare { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="wrap">
+  <h1>手繪風樣本</h1>
+  <p class="sub">角色 · 場景 · 介面三塊都照新風格畫一次。純 canvas，沒有載任何圖檔。</p>
+
+  <div class="bar">
+    <span class="tag">Chapter III</span>
+    <span class="name">特洛伊 · 內廊</span>
+    <span class="meta">敵塔 2 / 2　·　第 4 波</span>
+    <span class="right">
+      <button class="btn">暫停</button>
+      <button class="btn gold">開戰</button>
+    </span>
+  </div>
+
+  <div class="frame">
+    <i class="corner tl"></i><i class="corner tr"></i>
+    <i class="corner bl"></i><i class="corner br"></i>
+    <canvas id="main"></canvas>
+  </div>
+
+  <div class="hud">
+    <div>
+      <div class="who"><span>掘徑者</span><b>438 / 604</b></div>
+      <div class="hp"><i></i></div>
+      <div class="stat"><span>現場資金 340</span><span>12 擊殺</span></div>
+    </div>
+    <div class="skills">
+      <div class="sk on"><em>1</em><svg viewBox="0 0 24 24"><path d="M4 20 L20 4"/><path d="M14 4h6v6"/></svg></div>
+      <div class="sk"><em>2</em><svg viewBox="0 0 24 24"><path d="M2 17l4-6 3 4 4-9 3 7 2-3 4 7"/><path d="M2 21h20"/></svg></div>
+      <div class="sk"><em>3</em><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6z"/></svg></div>
+      <div class="sk"><em>4</em><svg viewBox="0 0 24 24"><path d="M13 2L4 13h6l-1 9 9-11h-6z"/></svg></div>
+    </div>
+    <div class="skills">
+      <div class="sk"><em>Q</em><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="sk"><em>E</em><svg viewBox="0 0 24 24"><path d="M12 21c4 0 6-2.7 6-6 0-4-3-6-3-9 0 0-2 2-2 4.5 0 0-2-1.5-2-4.5-2 2-5 5-5 9 0 3.3 2 6 6 6z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="compare">
+    <div>
+      <div class="frame"><canvas id="oldc"></canvas></div>
+      <div class="cap"><b>現在的樣子</b>：扁平色塊，沒有光源、沒有邊緣光、沒有質感</div>
+    </div>
+    <div>
+      <div class="frame"><canvas id="newc"></canvas></div>
+      <div class="cap"><b>樣本</b>：同樣三個角色，加上光影分層與筆觸</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h2>這個風格靠四件事撐起來</h2>
+    <ul>
+      <li><b>分層與空氣感</b>　遠山偏冷、偏淡、偏糊；近景才濃、才銳利。</li>
+      <li><b>單一光源</b>　右上的暖光。所有東西的亮面朝同一邊，暗面統一往藍紫偏，不是單純加黑。</li>
+      <li><b>邊緣光</b>　角色背光那一側描一道冷色亮邊，人才會從背景裡跳出來。</li>
+      <li><b>筆觸與顆粒</b>　大面積不是純色，疊上低透明度的短筆觸與雜點。</li>
+    </ul>
+    <h2>還沒做的</h2>
+    <ul>
+      <li>動作（走路、揮擊、受擊）都還是現在的那一套，這張只是靜態的風格樣本。</li>
+      <li>七章各自的配色還沒重配，這張是特洛伊。</li>
+      <li>魔王、僱用單位、迷宮、技能樹還沒換。</li>
+    </ul>
+  </div>
+</div>
+
+<script src="paint.js"></script>
+<script src="scene.js"></script>
+<script>
+(function () {
+  function fit(cv, w, h) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = w * dpr; cv.height = h * dpr;
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return c;
+  }
+
+  const ctx = fit(document.getElementById('main'), SCENE_W, SCENE_H);
+  SCENE(ctx);
+
+  /* 對照：同樣三個角色，左邊用現在的扁平畫法、右邊用新的 */
+  const CW = 460, CH = 300;
+
+  function flatGuy(c, x, y, s, col) {
+    c.fillStyle = 'rgba(0,0,0,0.3)';
+    c.beginPath(); c.ellipse(x, y + s * 0.3, s * 0.7, s * 0.3, 0, 0, 6.3); c.fill();
+    c.fillStyle = '#8A5A2E';
+    c.fillRect(x - s * 0.5, y - s * 0.1, s * 0.4, s * 0.4);
+    c.fillRect(x + s * 0.1, y - s * 0.1, s * 0.4, s * 0.4);
+    c.fillStyle = col;
+    c.beginPath(); c.ellipse(x, y - s * 0.7, s * 0.55, s * 0.6, 0, 0, 6.3); c.fill();
+    c.beginPath(); c.arc(x, y - s * 1.4, s * 0.38, 0, 6.3); c.fill();
+    c.fillStyle = '#14110C';
+    c.fillRect(x - s * 0.22, y - s * 1.46, s * 0.16, s * 0.14);
+    c.fillRect(x + s * 0.06, y - s * 1.46, s * 0.16, s * 0.14);
+    c.fillStyle = '#DCD8CC';
+    c.fillRect(x + s * 0.6, y - s * 1.5, s * 0.1, s * 1.3);
+  }
+
+  const oc = fit(document.getElementById('oldc'), CW, CH);
+  oc.fillStyle = '#1E2A33'; oc.fillRect(0, 0, CW, CH);
+  oc.fillStyle = '#2F3E48'; oc.fillRect(0, CH * 0.62, CW, CH * 0.38);
+  flatGuy(oc, CW * 0.28, CH * 0.86, 54, '#E07A3F');
+  flatGuy(oc, CW * 0.60, CH * 0.80, 42, '#55707A');
+  flatGuy(oc, CW * 0.82, CH * 0.74, 34, '#55707A');
+
+  const nc = fit(document.getElementById('newc'), CW, CH);
+  const g = nc.createLinearGradient(0, 0, 0, CH);
+  g.addColorStop(0, '#2A3350'); g.addColorStop(0.6, '#3A4257'); g.addColorStop(1, '#222836');
+  nc.fillStyle = g; nc.fillRect(0, 0, CW, CH);
+  P.strokes(nc, 0, CH * 0.5, CW, CH * 0.5, '#59607A', { n: 120, len: 50, angle: 0.1, alpha: 0.06 });
+  // 借用場景裡同一套角色畫法
+  SCENE.hero(nc, CW * 0.28, CH * 0.86, 54);
+  SCENE.grunt(nc, CW * 0.60, CH * 0.80, 42, 200);
+  SCENE.grunt(nc, CW * 0.82, CH * 0.74, 34, 300);
+  P.grain(nc, 0, 0, CW, CH, 0.05);
+})();
+</script>
