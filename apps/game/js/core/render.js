@@ -32,6 +32,7 @@ R.draw = function () {
   drawGround(ctx, p, map, B);
   drawFlankLane(ctx, p, map, B);
   drawPath(ctx, p, map);
+  drawHazards(ctx, p, map, B);
 
   /* 所有會互相遮擋的東西一起依畫面 y 排序，做出俯視的前後關係 */
   const draws = [];
@@ -225,6 +226,85 @@ function drawPath(ctx, p, map) {
 /* ── 岔路 ──
    從主線側邊岔出去的一條土路。敵人會從外側沿著它插進來，
    所以路口是要留人守的地方。有波次要來的時候整條會亮紅。 */
+/* ── 路上的坑 ──
+   畫在路面上，只佔一段寬度：另一半路還走得過去。
+   蓋了拒馬就鋪上木板；地縫張開的時候會抖，開之前一秒轉紅預警。 */
+function drawHazards(ctx, p, map, B) {
+  if (!B.hazards || !B.hazards.length) return;
+
+  for (const hz of B.hazards) {
+    const sh = hz.shake ? (Math.random() - 0.5) * hz.shake * 3 : 0;
+    const pts = [];
+    const steps = 8;
+    for (let i = 0; i <= steps; i++) {
+      const wx = hz.x - hz.r + (hz.r * 2) * (i / steps);
+      pts.push(map.at(wx, hz.z0));
+    }
+    for (let i = steps; i >= 0; i--) {
+      const wx = hz.x - hz.r + (hz.r * 2) * (i / steps);
+      pts.push(map.at(wx, hz.z1));
+    }
+
+    ctx.save();
+    ctx.translate(sh, sh * 0.5);
+    ctx.beginPath();
+    pts.forEach((q, i) => { if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y); });
+    ctx.closePath();
+
+    if (hz.covered) {
+      // 拒馬蓋住了：鋪木板
+      ctx.fillStyle = '#6E5636';
+      ctx.fill();
+      ctx.strokeStyle = '#8A6A44'; ctx.lineWidth = 2; ctx.stroke();
+      const a = map.at(hz.x - hz.r, (hz.z0 + hz.z1) / 2);
+      const bq = map.at(hz.x + hz.r, (hz.z0 + hz.z1) / 2);
+      ctx.strokeStyle = 'rgba(0,0,0,0.30)'; ctx.lineWidth = 3;
+      for (let k = 1; k < 6; k++) {
+        const t = k / 6;
+        const mx = a.x + (bq.x - a.x) * t, my = a.y + (bq.y - a.y) * t;
+        ctx.beginPath(); ctx.moveTo(mx - 9, my - 7); ctx.lineTo(mx + 9, my + 7); ctx.stroke();
+      }
+    } else if (hz.kind === 'water') {
+      ctx.fillStyle = '#1E4C5C'; ctx.fill();
+      ctx.fillStyle = 'rgba(120,200,220,0.22)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(150,215,235,0.5)'; ctx.lineWidth = 2;
+      const c = map.at(hz.x, (hz.z0 + hz.z1) / 2);
+      for (let k = 0; k < 3; k++) {
+        const rr = 7 + k * 9 + (Math.sin(B.time * 2 + k) + 1) * 4;
+        ctx.beginPath(); ctx.ellipse(c.x, c.y, rr, rr * 0.42, 0, 0, 6.3); ctx.stroke();
+      }
+    } else if (hz.kind === 'quake' && !hz.open) {
+      // 還沒張開：只是一條裂縫
+      ctx.fillStyle = 'rgba(20,14,10,0.55)'; ctx.fill();
+      ctx.strokeStyle = hz.warn > 0 ? 'rgba(200,80,62,' + (0.4 + hz.warn * 0.6).toFixed(2) + ')'
+                                    : 'rgba(40,30,20,0.8)';
+      ctx.lineWidth = hz.warn > 0 ? 3 : 2;
+      ctx.stroke();
+    } else {
+      // 張開的坑：黑洞，邊緣有一圈鬆土
+      ctx.fillStyle = '#120D08'; ctx.fill();
+      ctx.strokeStyle = '#4A3722'; ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.restore();
+
+    // 標籤：部署階段一定要看得到，不然玩家不知道要買拒馬
+    if (B.phase === 'deploy' || (!hz.covered && hz.open)) {
+      const c = map.at(hz.x, (hz.z0 + hz.z1) / 2);
+      const names = { pit: '塌洞', water: '積水', quake: '地縫' };
+      ctx.save();
+      ctx.font = '11px "Noto Sans TC", sans-serif';
+      ctx.textAlign = 'center';
+      const txt = hz.covered ? '已封住' : (names[hz.kind] || '坑') + (B.phase === 'deploy' ? '（架拒馬）' : '');
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillText(txt, c.x + 1, c.y - 25);
+      ctx.fillStyle = hz.covered ? '#7FBF6A' : '#FF9A82';
+      ctx.fillText(txt, c.x, c.y - 26);
+      ctx.restore();
+    }
+  }
+}
+
 function drawFlankLane(ctx, p, map, B) {
   const f = B.flank;
   if (!f) return;
@@ -572,6 +652,113 @@ function swoosh(ctx, x, y, r, face, arc, color) {
 }
 
 /* ── 一般單位 ── */
+/* ── 機械：攻城車、彈弩台、鑽地機 ──
+   這三個原本跟傭兵共用同一個「圓身體＋頭＋一把劍」的畫法，
+   只有顏色跟大小不一樣，玩家花了 165 金買攻城車，
+   看到的還是一隻拿劍的小人。機械就該畫成機械：沒有頭、沒有腿，有輪子。 */
+function drawMachine(ctx, e, sp, s, face, pop) {
+  const mv = e.moving ? 1 : 0;
+  const roll = (e.bob || 0) * (mv ? 1 : 0.15);
+  const x = sp.x, y = sp.y;
+  const col = e.hitFlash > 0 ? '#FFF3D0' : e.color;
+  const dark = shade(e.color, -0.45);
+  const lit = shade(e.color, 0.22);
+  const metal = '#8E8477';
+
+  ctx.save();
+  ctx.globalAlpha = pop < 1 ? pop : 1;
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(x, y + s * 0.3, s * 0.86, s * 0.3, 0, 0, 6.3); ctx.fill();
+
+  const wheel = (wx, wr) => {
+    ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.arc(wx, y + s * 0.12, wr, 0, 6.3); ctx.fill();
+    ctx.strokeStyle = shade(e.color, 0.35); ctx.lineWidth = Math.max(1, s * 0.06);
+    for (let k = 0; k < 4; k++) {
+      const a = roll + k * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(wx - Math.cos(a) * wr * 0.7, y + s * 0.12 - Math.sin(a) * wr * 0.7);
+      ctx.lineTo(wx + Math.cos(a) * wr * 0.7, y + s * 0.12 + Math.sin(a) * wr * 0.7);
+      ctx.stroke();
+    }
+  };
+
+  if (e.hireId === 'h_ram') {
+    // 攻城車：兩個大輪子＋一根撞木，撞木前端包鐵
+    wheel(x - s * 0.42, s * 0.3);
+    wheel(x + s * 0.42, s * 0.3);
+    ctx.fillStyle = col;
+    ctx.fillRect(x - s * 0.62, y - s * 0.44, s * 1.24, s * 0.4);   // 車身
+    ctx.fillStyle = dark;
+    ctx.fillRect(x - s * 0.62, y - s * 0.1, s * 1.24, s * 0.1);
+    // 撞木：懸在車身上，往前伸
+    ctx.fillStyle = lit;
+    ctx.fillRect(x - s * 0.5, y - s * 0.78, s * 1.1, s * 0.26);
+    ctx.fillStyle = metal;
+    ctx.fillRect(x + face * s * 0.6 - s * 0.16, y - s * 0.82, s * 0.32, s * 0.34);
+    ctx.fillStyle = dark;                                           // 吊繩
+    ctx.fillRect(x - s * 0.34, y - s * 0.52, s * 0.06, s * 0.1);
+    ctx.fillRect(x + s * 0.28, y - s * 0.52, s * 0.06, s * 0.1);
+  } else if (e.hireId === 'h_ballista') {
+    // 彈弩台：三腳架＋一張橫著的大弓，箭指著前面
+    ctx.strokeStyle = dark; ctx.lineWidth = Math.max(2, s * 0.12);
+    ctx.beginPath();
+    ctx.moveTo(x - s * 0.4, y + s * 0.22); ctx.lineTo(x, y - s * 0.34);
+    ctx.lineTo(x + s * 0.4, y + s * 0.22); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.fillRect(x - s * 0.5, y - s * 0.56, s * 1.0, s * 0.22);      // 台座
+    // 弓臂
+    ctx.strokeStyle = metal; ctx.lineWidth = Math.max(2, s * 0.11);
+    ctx.beginPath();
+    ctx.moveTo(x + face * s * 0.18, y - s * 0.92);
+    ctx.quadraticCurveTo(x + face * s * 0.46, y - s * 0.62, x + face * s * 0.18, y - s * 0.32);
+    ctx.stroke();
+    ctx.strokeStyle = '#D9CDAE'; ctx.lineWidth = Math.max(1, s * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(x + face * s * 0.18, y - s * 0.92); ctx.lineTo(x + face * s * 0.18, y - s * 0.32); ctx.stroke();
+    // 箭
+    ctx.fillStyle = '#E6DCC0';
+    ctx.fillRect(x - face * s * 0.3, y - s * 0.66, s * 0.9, s * 0.09);
+  } else {
+    // 鑽地機：履帶＋前面一支會轉的錐
+    ctx.fillStyle = dark;
+    ctx.fillRect(x - s * 0.62, y - s * 0.08, s * 1.24, s * 0.34);
+    ctx.fillStyle = shade(e.color, 0.4);
+    for (let k = 0; k < 6; k++) {
+      const px = x - s * 0.58 + ((k * s * 0.22 + roll * s * 0.9) % (s * 1.16));
+      ctx.fillRect(px, y - s * 0.04, s * 0.08, s * 0.26);
+    }
+    ctx.fillStyle = col;
+    ctx.fillRect(x - s * 0.5, y - s * 0.62, s * 1.0, s * 0.56);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x - s * 0.5, y - s * 0.28, s * 1.0, s * 0.1);
+    // 鑽頭
+    ctx.save();
+    ctx.translate(x + face * s * 0.62, y - s * 0.34);
+    ctx.fillStyle = metal;
+    ctx.beginPath();
+    ctx.moveTo(face * s * 0.5, 0);
+    ctx.lineTo(0, -s * 0.26); ctx.lineTo(0, s * 0.26); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = shade('#8E8477', 0.3);
+    for (let k = 0; k < 3; k++) {
+      const t = ((roll * 2 + k * 0.9) % 1.5) / 1.5;
+      ctx.fillRect(face * s * 0.5 * t, -s * 0.24 * (1 - t), s * 0.05 * face, s * 0.48 * (1 - t));
+    }
+    ctx.restore();
+  }
+
+  if (e.kind === 'hired') {
+    ctx.fillStyle = '#E0B23C';
+    ctx.fillRect(x - 4, y - s * 1.05, 8, 2);
+    ctx.fillRect(x - 1, y - s * 1.05 - 4, 2, 5);
+  }
+  ctx.restore();
+
+  if (e.hp < e.maxHp) {
+    bar(ctx, x, y - s * 1.35, s * 1.8, 3, e.hp / e.maxHp, '#7FBF6A');
+  }
+}
+
 function drawUnit(ctx, e, sp) {
   if (e.isBoss) { drawBoss(ctx, e, sp); return; }
 
@@ -582,6 +769,12 @@ function drawUnit(ctx, e, sp) {
   const hurt = hurtLean(e);
   const mv = e.moving ? 1 : 0;
   const ph = e.bob || 0;
+
+  /* 機械不是人：走另一套畫法 */
+  if (e.hireId === 'h_ram' || e.hireId === 'h_ballista' || e.hireId === 'h_drill') {
+    drawMachine(ctx, e, sp, s, face, pop);
+    return;
+  }
 
   const step = Math.sin(ph);
   const bounce = mv ? Math.abs(step) * s * 0.14 : 0;
@@ -640,6 +833,37 @@ function drawUnit(ctx, e, sp) {
   }
   ctx.restore();
   swoosh(ctx, x + face * s * 0.42, ty - s * 0.12, s * 0.78, face, arc, wc);
+
+  /* 人形僱兵的辨識特徵。原本四種人只有顏色不一樣，
+     在一堆小兵裡根本認不出哪個是自己花 135 金請的白魔道士。 */
+  if (e.hireId === 'h_shield') {
+    // 盾牌兵：一面插在身前的大盾，加一頂盔
+    const bx = x + face * s * 0.52;
+    ctx.fillStyle = '#6E6558';
+    ctx.beginPath(); ctx.ellipse(bx, ty + s * 0.06, s * 0.3, s * 0.72, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#9A8E7A';
+    ctx.beginPath(); ctx.ellipse(bx, ty + s * 0.06, s * 0.19, s * 0.56, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#C8A05E';
+    ctx.beginPath(); ctx.arc(bx, ty + s * 0.06, s * 0.1, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#B08A4A';
+    ctx.beginPath(); ctx.arc(hx, hy - s * 0.04, s * 0.38, Math.PI, 0); ctx.fill();
+    ctx.fillRect(hx - s * 0.38, hy - s * 0.06, s * 0.76, s * 0.12);
+  } else if (e.hireId === 'h_mage' || e.hireId === 'h_white') {
+    // 法師：尖頂帽，白魔再加一圈光環
+    const white = e.hireId === 'h_white';
+    ctx.fillStyle = white ? '#EFE7D4' : '#3E4E86';
+    ctx.beginPath();
+    ctx.moveTo(hx - s * 0.42, hy - s * 0.2);
+    ctx.quadraticCurveTo(hx - face * s * 0.1, hy - s * 1.25, hx + face * s * 0.3, hy - s * 0.42);
+    ctx.lineTo(hx + s * 0.42, hy - s * 0.2);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = white ? '#C8503E' : '#8FA8D4';
+    ctx.fillRect(hx - s * 0.46, hy - s * 0.24, s * 0.92, s * 0.12);
+    if (white) {
+      ctx.strokeStyle = 'rgba(190,240,180,0.75)'; ctx.lineWidth = Math.max(1, s * 0.07);
+      ctx.beginPath(); ctx.ellipse(hx, hy - s * 0.68, s * 0.34, s * 0.12, 0, 0, 6.3); ctx.stroke();
+    }
+  }
 
   if (e.kind === 'hired') {
     ctx.fillStyle = '#E0B23C';
@@ -912,6 +1136,95 @@ function bossWeapon(ctx, shape, s, col, lit) {
 }
 
 /* ── 路上的帽子 ── */
+/* ── 帽子的形狀 ──
+   本來只畫在地上的掉落物上。裝在頭上也是同一頂帽子，
+   所以把形狀抽出來，掉落物與主角頭上共用同一份，
+   不要畫兩次、日後也不會改了一邊忘了另一邊。
+   以原點為中心畫，呼叫的人自己 translate / scale。 */
+/* 把帽子戴到某顆頭上。cx/cy 是帽子要落的位置，s 是相對於原尺寸的倍率。 */
+function wearHat(ctx, id, cx, cy, s, face) {
+  if (!id || id === 'h_none') return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s * (face < 0 ? -1 : 1), s);
+  hatShape(ctx, id);
+  ctx.restore();
+}
+
+function hatShape(ctx, id) {
+  if (!id || id === 'h_none') return;
+  if (id === 'h_white' || id === 'h_black') {
+    // 尖頂法師帽
+    const body = id === 'h_white' ? '#EFE7D4' : '#3B3550';
+    const trim = id === 'h_white' ? '#C8503E' : '#8E6BE0';
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.moveTo(-13, 2); ctx.quadraticCurveTo(-3, -24, 9, -14);
+    ctx.lineTo(13, 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = trim;
+    ctx.fillRect(-14, 1, 28, 4);
+  } else if (id === 'h_helm') {
+    ctx.fillStyle = '#B08A4A';
+    ctx.beginPath(); ctx.arc(0, -2, 12, Math.PI, 0); ctx.fill();
+    ctx.fillRect(-12, -2, 24, 5);
+    ctx.fillStyle = '#C8503E';           // 盔頂的紅纓
+    ctx.fillRect(-2, -20, 4, 10);
+  } else if (id === 'h_hood') {
+    ctx.fillStyle = '#2E2840';
+    ctx.beginPath();
+    ctx.moveTo(-12, 4); ctx.quadraticCurveTo(0, -20, 12, 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#0E0C14';
+    ctx.beginPath(); ctx.ellipse(0, -1, 7, 6, 0, 0, 6.3); ctx.fill();
+  } else if (id === 'h_lamp') {
+    ctx.fillStyle = '#A8894E';
+    ctx.beginPath(); ctx.ellipse(0, 1, 17, 6, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -1, 7, Math.PI, 0); ctx.fill();
+  } else if (id === 'h_laurel') {
+    ctx.strokeStyle = '#7FBF6A'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, -2, 11, 0.25, Math.PI - 0.25, true); ctx.stroke();
+    ctx.fillStyle = '#9FD48A';
+    for (let i = 0; i < 5; i++) {
+      const a = 0.5 + i * 0.5;
+      ctx.beginPath(); ctx.ellipse((-(Math.cos(a))) * 11, -2 - Math.sin(a) * 11, 3.5, 2, a, 0, 6.3); ctx.fill();
+    }
+  } else if (id === 'h_horn') {
+    ctx.fillStyle = '#C9BFA6';
+    ctx.fillRect(-11, -2, 22, 5);
+    for (const d of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo((d) * 8, -2);
+      ctx.quadraticCurveTo((d) * 17, -12, (d) * 11, -19);
+      ctx.quadraticCurveTo((d) * 11, -9, (d) * 4, -2);
+      ctx.fill();
+    }
+  } else if (id === 'h_circlet') {
+    ctx.strokeStyle = '#E0B23C'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.ellipse(0, -1, 11, 5, 0, 0, 6.3); ctx.stroke();
+    ctx.fillStyle = '#FFE9A8';
+    ctx.beginPath(); ctx.arc(0, -6, 3, 0, 6.3); ctx.fill();
+  } else if (id === 'h_mask') {
+    ctx.fillStyle = '#E8C35A';
+    ctx.beginPath(); ctx.ellipse(0, -3, 10, 13, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#8A6A1E';
+    ctx.fillRect(-6, -6, 4, 3); ctx.fillRect(2, -6, 4, 3);
+    ctx.fillRect(-3, 3, 6, 2);
+  } else {
+    // h_crown 與其他：王冠
+    ctx.fillStyle = '#E8C35A';
+    ctx.fillRect(-12, -2, 24, 6);
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo((i) * 5 - 2.5, -2);
+      ctx.lineTo((i) * 5, -12);
+      ctx.lineTo((i) * 5 + 2.5, -2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#3FB8C8';
+    ctx.beginPath(); ctx.arc(0, 1, 2.5, 0, 6.3); ctx.fill();
+  }
+}
+
 function drawHat(ctx, pk, sp) {
   const it = G.getItem(pk.itemId) || {};
   const y = sp.y + Math.sin(pk.bob) * 4;
@@ -927,77 +1240,10 @@ function drawHat(ctx, pk, sp) {
   ctx.beginPath(); ctx.ellipse(sp.x, sp.y + 7, 19, 8, 0, 0, 6.3); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  const id = pk.itemId;
-  if (id === 'h_white' || id === 'h_black') {
-    // 尖頂法師帽
-    const body = id === 'h_white' ? '#EFE7D4' : '#3B3550';
-    const trim = id === 'h_white' ? '#C8503E' : '#8E6BE0';
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.moveTo(sp.x - 13, y + 2); ctx.quadraticCurveTo(sp.x - 3, y - 24, sp.x + 9, y - 14);
-    ctx.lineTo(sp.x + 13, y + 2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = trim;
-    ctx.fillRect(sp.x - 14, y + 1, 28, 4);
-  } else if (id === 'h_helm') {
-    ctx.fillStyle = '#B08A4A';
-    ctx.beginPath(); ctx.arc(sp.x, y - 2, 12, Math.PI, 0); ctx.fill();
-    ctx.fillRect(sp.x - 12, y - 2, 24, 5);
-    ctx.fillStyle = '#C8503E';           // 盔頂的紅纓
-    ctx.fillRect(sp.x - 2, y - 20, 4, 10);
-  } else if (id === 'h_hood') {
-    ctx.fillStyle = '#2E2840';
-    ctx.beginPath();
-    ctx.moveTo(sp.x - 12, y + 4); ctx.quadraticCurveTo(sp.x, y - 20, sp.x + 12, y + 4);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#0E0C14';
-    ctx.beginPath(); ctx.ellipse(sp.x, y - 1, 7, 6, 0, 0, 6.3); ctx.fill();
-  } else if (id === 'h_lamp') {
-    ctx.fillStyle = '#A8894E';
-    ctx.beginPath(); ctx.ellipse(sp.x, y + 1, 17, 6, 0, 0, 6.3); ctx.fill();
-    ctx.beginPath(); ctx.arc(sp.x, y - 1, 7, Math.PI, 0); ctx.fill();
-  } else if (id === 'h_laurel') {
-    ctx.strokeStyle = '#7FBF6A'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(sp.x, y - 2, 11, 0.25, Math.PI - 0.25, true); ctx.stroke();
-    ctx.fillStyle = '#9FD48A';
-    for (let i = 0; i < 5; i++) {
-      const a = 0.5 + i * 0.5;
-      ctx.beginPath(); ctx.ellipse(sp.x - Math.cos(a) * 11, y - 2 - Math.sin(a) * 11, 3.5, 2, a, 0, 6.3); ctx.fill();
-    }
-  } else if (id === 'h_horn') {
-    ctx.fillStyle = '#C9BFA6';
-    ctx.fillRect(sp.x - 11, y - 2, 22, 5);
-    for (const d of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(sp.x + d * 8, y - 2);
-      ctx.quadraticCurveTo(sp.x + d * 17, y - 12, sp.x + d * 11, y - 19);
-      ctx.quadraticCurveTo(sp.x + d * 11, y - 9, sp.x + d * 4, y - 2);
-      ctx.fill();
-    }
-  } else if (id === 'h_circlet') {
-    ctx.strokeStyle = '#E0B23C'; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.ellipse(sp.x, y - 1, 11, 5, 0, 0, 6.3); ctx.stroke();
-    ctx.fillStyle = '#FFE9A8';
-    ctx.beginPath(); ctx.arc(sp.x, y - 6, 3, 0, 6.3); ctx.fill();
-  } else if (id === 'h_mask') {
-    ctx.fillStyle = '#E8C35A';
-    ctx.beginPath(); ctx.ellipse(sp.x, y - 3, 10, 13, 0, 0, 6.3); ctx.fill();
-    ctx.fillStyle = '#8A6A1E';
-    ctx.fillRect(sp.x - 6, y - 6, 4, 3); ctx.fillRect(sp.x + 2, y - 6, 4, 3);
-    ctx.fillRect(sp.x - 3, y + 3, 6, 2);
-  } else {
-    // h_crown 與其他：王冠
-    ctx.fillStyle = '#E8C35A';
-    ctx.fillRect(sp.x - 12, y - 2, 24, 6);
-    for (let i = -2; i <= 2; i++) {
-      ctx.beginPath();
-      ctx.moveTo(sp.x + i * 5 - 2.5, y - 2);
-      ctx.lineTo(sp.x + i * 5, y - 12);
-      ctx.lineTo(sp.x + i * 5 + 2.5, y - 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#3FB8C8';
-    ctx.beginPath(); ctx.arc(sp.x, y + 1, 2.5, 0, 6.3); ctx.fill();
-  }
+  ctx.save();
+  ctx.translate(sp.x, y);
+  hatShape(ctx, pk.itemId);
+  ctx.restore();
   ctx.restore();
 
   label(ctx, sp.x, y - 30, it.name || '帽子');
@@ -1080,6 +1326,11 @@ function drawHero(ctx, h, sp, B) {
   ctx.fillStyle = '#141110';
   ctx.fillRect(x - r * 0.42 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * Math.min(0.33, eh));
   ctx.fillRect(x + r * 0.25 + eox + (face > 0 ? 2 : 0), ty - r * 0.27, r * 0.19, r * Math.min(0.33, eh));
+
+  /* 戴著的帽子：跟地上掉落物同一份形狀。
+     裝備了卻看不出來的話，玩家會以為沒生效——實際上屬性早就加了。
+     帽子的形狀是照半徑 13 畫的，這裡按主角的頭放大。 */
+  wearHat(ctx, G.S.gear && G.S.gear.hat, x, ty - r * 0.72, r / 13, face);
 
   /* 盾：受擊時往前擋 */
   const shx = x - face * r * (0.98 - hurt * 1.2);
@@ -1503,6 +1754,8 @@ function drawMazeHero(ctx, m, ox, oy) {
   ctx.fillStyle = '#141110';
   ctx.fillRect(x - r * 0.36 + eo, ty - r * 0.24, r * 0.18, r * 0.3);
   ctx.fillRect(x + r * 0.22 + eo, ty - r * 0.24, r * 0.18, r * 0.3);
+  // 戴著的帽子：跟戰場上同一頂
+  wearHat(ctx, G.S.gear && G.S.gear.hat, x, ty - r * 0.62, r / 13, h.face);
   // 盾
   ctx.fillStyle = '#8E8477';
   ctx.beginPath(); ctx.ellipse(x - h.face * r * 0.92, ty + r * 0.14, r * 0.3, r * 0.46, 0, 0, 6.3); ctx.fill();

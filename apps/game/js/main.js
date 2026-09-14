@@ -17,33 +17,56 @@
     const hud = document.querySelector('.hud');
     if (!wrap || !cv) return;
     wrap.style.maxWidth = '';                 // 先還原，才量得到自然寬度
+    const side = wrap.querySelector('.battle-side');
     const top = cv.getBoundingClientRect().top;
+
+    /* 側欄在畫布「右邊」還是「下面」，由 CSS 的斷點決定。
+       這裡用量的：側欄的左緣如果在畫布右緣之後，就是並排，
+       並排時它不吃高度。把斷點寫在 JS 裡會跟 CSS 走散。 */
+    const cb0 = cv.getBoundingClientRect();
+    const sb0 = side ? side.getBoundingClientRect() : null;
+    const beside = !!(sb0 && sb0.left >= cb0.right - 6);
+
     /* 畫布底下不是只有 HUD：迷宮層還多一條提示列。
        只量 HUD 的話，方向鍵會被擠到畫面外（橫躺的手機實測就是這樣）。
        所以把畫布之後的每一塊都加起來。 */
     let below = 16;
-    let sib = cv.nextElementSibling;
-    while (sib) { below += sib.getBoundingClientRect().height; sib = sib.nextElementSibling; }
-    if (!cv.nextElementSibling && hud) below += hud.getBoundingClientRect().height;
+    if (!beside) {
+      let sib = cv.nextElementSibling;
+      while (sib) { below += sib.getBoundingClientRect().height; sib = sib.nextElementSibling; }
+      if (!cv.nextElementSibling && hud) below += hud.getBoundingClientRect().height;
+    }
     const avail = window.innerHeight - top - below;
-    const natural = wrap.getBoundingClientRect().width;
     // 4:3 的畫布：高度預算換算成寬度預算
     const byHeight = avail * (960 / 720);
-    const w = Math.max(240, Math.min(natural, byHeight));
 
-    /* 收窄的是整個外框，標題列與 HUD 也跟著被擠。
-       擠到 340 以下，標題列的字會折成兩三行、HUD 也長高，
-       反而把剛省下來的高度吃回去——手機橫躺實測：
-       外框被收到 264，標題列就從 28 長到 70。
-       所以太窄的時候只收畫布，外框讓它維持原寬。 */
-    if (w < 340) {
+    if (beside) {
+      /* 並排：畫布能用的寬是「外框寬 − 側欄寬」，高度就是整個視窗剩下的。
+         桌機實測戰場只佔視窗寬的 19%，右邊空著 513px，就是因為
+         原本什麼都往下疊，高度被吃光、寬度卻沒人用。 */
       wrap.style.maxWidth = '';
+      const room = wrap.getBoundingClientRect().width - sb0.width - 14;
+      const w = Math.max(280, Math.min(room, byHeight));
       cv.style.width = Math.round(w) + 'px';
       cv.style.height = Math.round(w * 720 / 960) + 'px';
-      cv.style.margin = '0 auto';
+      cv.style.margin = '';
     } else {
-      cv.style.width = cv.style.height = cv.style.margin = '';
-      wrap.style.maxWidth = Math.round(w) + 'px';
+      const natural = wrap.getBoundingClientRect().width;
+      const w = Math.max(240, Math.min(natural, byHeight));
+      /* 收窄的是整個外框，標題列與 HUD 也跟著被擠。
+         擠到 340 以下，標題列的字會折成兩三行、HUD 也長高，
+         反而把剛省下來的高度吃回去——手機橫躺實測：
+         外框被收到 264，標題列就從 28 長到 70。
+         所以太窄的時候只收畫布，外框讓它維持原寬。 */
+      if (w < 340) {
+        wrap.style.maxWidth = '';
+        cv.style.width = Math.round(w) + 'px';
+        cv.style.height = Math.round(w * 720 / 960) + 'px';
+        cv.style.margin = '0 auto';
+      } else {
+        cv.style.width = cv.style.height = cv.style.margin = '';
+        wrap.style.maxWidth = Math.round(w) + 'px';
+      }
     }
 
     /* 矮螢幕的十字鍵是浮在上面的（CSS 那邊設成 absolute）。
@@ -111,6 +134,7 @@
           '<button class="btn btn-ghost" data-act="retreat">撤退</button>' +
         '</div>' +
         '<canvas id="screen"></canvas>' +
+        '<div class="battle-side">' +
         '<div class="hud">' +
           '<div class="vital">' +
             '<div class="vital-row"><span>' + cls.name + '</span><span id="hpText"></span></div>' +
@@ -124,8 +148,11 @@
             dpad() +
           '</div>' +
         '</div>' +
+        /* 僱用所是「會花錢」的區塊，跟上面「不用錢」的道具欄隔開。
+           兩排長得一樣又貼在一起，手指滑一下就變成買東西。 */
         '<div class="hirebar" id="hirebar">' +
-          '<div class="hire-head"><span class="hire-post" id="hirePostName">僱用所</span>' +
+          '<div class="hire-head"><span class="hire-spend">花錢</span>' +
+          '<span class="hire-post" id="hirePostName">僱用所</span>' +
           '<span class="hire-purse" id="hirePurse"></span></div>' +
           '<div class="hire-opts" id="hireOpts"></div>' +
         '</div>' +
@@ -134,6 +161,7 @@
         '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。' +
         '部署階段點地圖上的據點先擺好人，按<kbd>空白鍵</kbd>或「開戰」開始。' +
         '普通攻擊自動進行；先拆掉哨塔，主塔才會失去無敵。</p>' +
+        '</div>' +
       '</div>';
 
     hudRefs = {
@@ -186,6 +214,7 @@
           '<button class="btn btn-ghost" data-act="maze-leave">撤退</button>' +
         '</div>' +
         '<canvas id="screen"></canvas>' +
+        '<div class="battle-side">' +
         '<div class="hud">' +
           '<div class="vital">' +
             '<div class="vital-row"><span>' + G.getClass(G.S.classId).name + '</span><span id="mazeHp"></span></div>' +
@@ -196,6 +225,7 @@
         '</div>' +
         '<div class="maze-tip" id="mazeTip">用方向鍵走迷宮，找到亮起來的「門」就能進下一格。' +
           '右上角的小地圖會標出魔王在哪一格。</div>' +
+        '</div>' +
       '</div>';
     const cv = document.getElementById('screen');
     R.setup(cv);

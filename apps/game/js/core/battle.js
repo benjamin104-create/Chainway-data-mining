@@ -11,6 +11,20 @@ const GROUND_Y = 322;      // 畫面上的地平線
 const VIEW_W = 960;
 const VIEW_H = 420;
 
+/* 由字串長出固定的亂數序列。同一關每次開都要長出同樣的坑，
+   不然玩家上一場記住的位置這一場就不算數了。 */
+function seeded(str) {
+  let a = 0;
+  for (let i = 0; i < str.length; i++) a = (a * 31 + str.charCodeAt(i)) >>> 0;
+  return function () {
+    a += 0x6D2B79F5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /* 我方小兵原型 */
 const ALLY_UNITS = {
   recruit: { name: '志願兵', hp: 52, dmg: 8,  speed: 46, range: 26,  size: 15, color: '#C8A05E', kind: 'melee' },
@@ -204,6 +218,45 @@ B.init = function (stageKey, opts) {
     return { x: pp.x, idx: pp.idx, junction: !!pp.junction,
              name: def.name, offers: def.offers.slice(), stock: stock };
   });
+
+  /* ══════ 路上的坑 ══════
+     路面上有塌洞、積水或會裂開的地縫。小兵沿路直直走，走進去就沒了——
+     那是白花的錢。解法是花 60 金在坑上架一座「拒馬」把路面封起來，
+     小兵就會安全走過；拒馬被打爛，坑又開了。
+
+     關鍵設計：坑只佔路面的一部分寬度（z 的一段），不是整條路。
+     整條路都吃掉的話小兵一隻都過不去，那不是動腦，是硬牆。
+     現在是「會折損一部分」，玩家自己決定要不要花那 60 金。 */
+  B.hazards = [];
+  B.lostToHazard = 0;
+  /* 第一章不放坑：那一章要教的是推線與僱兵，再加一個新規則會太吵。 */
+  if (!B.caveMode && !B.guardianMode && stage.chapterIdx >= 1) {
+    const hr = seeded(stage.key + '#pit');
+    const n = 1 + (stage.chapterIdx >= 3 ? 1 : 0);
+    const kinds = ['pit', 'water', 'quake'];
+    for (let i = 0; i < n; i++) {
+      /* 避開起點、僱用所與塔前面，不然一開場就踩到、或跟據點疊在一起 */
+      const frac = 0.30 + (i * 0.26) + hr() * 0.10;
+      const hx = Math.round(stage.length * frac);
+      if (B.posts && B.posts.some(pp => Math.abs(pp.x - hx) < 150)) continue;
+      const kind = kinds[Math.floor(hr() * kinds.length)];
+      /* 佔路面的一段寬度。小兵的 z 落在 -18／-9／0／9／18 五條線上，
+         這一段剛好蓋掉其中一條，折損約兩成。
+
+         調過兩次：
+         24 寬（蓋掉兩條以上）→ 折損六成，法羅斯整章從 200 秒變成 7916 秒、輸八場；
+         15 寬（蓋掉兩條）→ 折損四到五成，還是太重。
+         不架拒馬就別想推線的話，那不是選擇，是懲罰。
+         現在是「會折損一部分」，那 60 金要不要花由玩家決定。 */
+      const side = hr() < 0.5 ? -1 : 1;
+      const z0 = side < 0 ? -14 : 4;
+      B.hazards.push({
+        x: hx, r: 44, z0: z0, z1: z0 + 11, kind: kind,
+        covered: false, open: kind !== 'quake', phase: hr() * 6, warn: 0, shake: 0
+      });
+    }
+  }
+
 
   updateMainInvuln();
   updateFrontLine();
@@ -712,6 +765,59 @@ function pushText(x, dy, text, color, big) {
   B.texts.push({ x, dy, text, color, big: !!big, t: 0, dur: 0.85, vx: (Math.random() - 0.5) * 14 });
 }
 
+/* ══════ 路上的坑 ══════
+   小兵沿路直直走，走進坑裡就沒了。主角不會——他看得到路。
+   架一座拒馬在坑上，路面就封起來了，小兵安全通過。 */
+function updateHazards(dt) {
+  if (!B.hazards || !B.hazards.length) return;
+  for (const hz of B.hazards) {
+    /* 拒馬蓋在坑上就安全了。拒馬被打爛，坑又開。 */
+    hz.covered = false;
+    for (const o of B.entities) {
+      if (o.dead || !o.isBlocker) continue;
+      if (Math.abs(o.x - hz.x) <= hz.r + 34) { hz.covered = true; break; }
+    }
+
+    /* 地縫是會開合的：平常是裂縫，震一下才張開。
+       開之前有一秒的預警，讓玩家有機會把兵停下來或補拒馬。 */
+    if (hz.kind === 'quake') {
+      hz.phase += dt;
+      const cycle = 6.4;
+      const t = hz.phase % cycle;
+      hz.warn = (t > cycle - 1.2 && t <= cycle) ? (t - (cycle - 1.2)) / 1.2 : 0;
+      hz.open = t < 1.7;
+      hz.shake = hz.open ? 1 : hz.warn;
+    } else {
+      hz.open = true;
+      hz.shake = 0;
+    }
+
+    if (hz.covered || !hz.open || B.phase !== 'fight') continue;
+
+    for (const o of B.entities) {
+      if (o.dead || o.isStructure || o === B.hero) continue;
+      if (o.onFlank) continue;                       // 還在側道上，不算走在路面上
+      if (Math.abs(o.x - hz.x) > hz.r) continue;
+      if (o.z < hz.z0 || o.z > hz.z1) continue;      // 坑只佔路面的一段寬度，邊上走得過去
+
+      o.dead = true;
+      B.corpses.push({ x: o.x, z: o.z, color: o.color, size: o.size,
+                       facing: o.facing || 1, isBoss: false, kind2: o.kind2,
+                       t: 0, dur: 0.5, sink: true });
+      B.effects.push({ type: 'ring', x: o.x, z: o.z, r: 0, max: 40, t: 0, dur: 0.4,
+                       color: hz.kind === 'water' ? '#5FA8C8' : '#3A2A1C' });
+      if (o.faction === 'ally') {
+        B.lostToHazard++;
+        pushText(o.x, -40, hz.kind === 'water' ? '掉進水裡' : '掉下去了', '#C8503E', false);
+        if (!hz.told) {
+          hz.told = true;
+          pushBanner('路上有坑　架拒馬蓋住它', '#C8503E');
+        }
+      }
+    }
+  }
+}
+
 /* 魔王技能名：掛在主角頭上的牌子，停久一點、不飄走 */
 function pushBanner(text, color) {
   if (B.texts.length > 90) B.texts.shift();
@@ -1134,6 +1240,11 @@ B.update = function (dt, input) {
   if (B.phase === 'deploy') {
     // 只讓特效與飄字動，戰局完全靜止
     updateFrontLine();
+    /* 坑要在部署階段就會變成「已封住」。
+       玩家正是在這個時候決定要不要花那 60 金，
+       架了卻還顯示「塌洞（架拒馬）」的話，等於沒給回饋。
+       裡面吃人的那段有 phase 判斷，部署階段不會有人掉下去。 */
+    updateHazards(dt);
     B.effects.forEach(f => f.t += dt);
     B.effects = B.effects.filter(f => f.t < f.dur);
     B.texts.forEach(t => { t.t += dt; t.dy -= 42 * dt; });
@@ -1179,6 +1290,8 @@ B.update = function (dt, input) {
     if (o.isBlocker && (!B.blocker || o.x > B.blocker.x)) B.blocker = o;
   }
   B.blockX = B.blocker ? B.blocker.x : null;
+
+  updateHazards(dt);
 
   /* 側翼突破：繞過路口、已經在你後方的敵人。
      量出來這是後期真正會輸的原因（克羅索斯第二關不守路口是 0/5 全敗，

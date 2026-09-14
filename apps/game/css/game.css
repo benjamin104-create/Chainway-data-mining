@@ -472,6 +472,43 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   max-width: max(min(100%, 560px), calc((100dvh - 290px) * 4 / 3));
   margin-inline: auto;
 }
+/* ══════ 寬螢幕：HUD 移到戰場右邊 ══════
+   原本什麼都往下疊：頂欄 37 ＋ 戰鬥列 75 ＋ HUD 121 ＋ 僱用列 74，
+   光上下框就吃掉三百多，高度被吃光、寬度卻沒人用——
+   1265×555 的筆電上量出來戰場只有 240×180，佔視窗寬 19%，
+   右邊空著 513px。
+
+   夠寬的時候改成並排：戰場拿整個高度，HUD 與僱用列放右邊那一欄。
+   斷點只寫在這裡，JS 用量的（側欄在不在畫布右邊）去判斷，才不會走散。 */
+/* 大螢幕上 .app 的 1140 上限會把戰場卡住（1920 的桌機只給到 760 寬）。
+   只有戰鬥／迷宮那頁放寬，章節與技能樹維持原本的閱讀寬度。 */
+@media (min-width: 1300px) {
+  .app:has(.battle-wrap) { max-width: 1560px; }
+}
+
+@media (min-width: 1000px) {
+  .battle-wrap {
+    display: grid;
+    grid-template-columns: auto 330px;
+    grid-template-areas: "top  top" "canvas side";
+    align-items: start;
+    column-gap: 14px;
+    max-width: none;
+  }
+  .battle-wrap > .battle-top { grid-area: top; }
+  .battle-wrap > canvas#screen { grid-area: canvas; width: auto; align-self: start; }
+  .battle-wrap > .battle-side { grid-area: side; min-width: 0; }
+  .battle-wrap > .battle-side .hud {
+    grid-template-columns: 1fr;
+    border-top: none;
+  }
+  .battle-wrap > .battle-side .hud .vital { grid-column: auto; }
+  .battle-wrap > .battle-side .skillbar,
+  .battle-wrap > .battle-side .consumables { flex-wrap: wrap; }
+  .battle-wrap > .battle-side .hire { min-width: 0; width: 100%; }
+  .battle-wrap > .battle-side .controls-hint { margin-top: 10px; }
+}
+
 .battle-top {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 9px 14px; background: var(--ink-3); border: 1px solid var(--line); border-bottom: none;
@@ -524,15 +561,26 @@ canvas#screen {
 .cons .n { font-family: var(--f-pixel); font-size: 14px; color: var(--ochre); }
 .cons:disabled { opacity: .35; }
 
-/* ══════ 戰場僱用 ══════ */
+/* ══════ 戰場僱用 ══════
+   這一區會花錢，上面的道具欄不會。兩排長得一樣又直接貼在一起，
+   手指滑一下就從「吃藥」變成「買兵」，錢就沒了。
+   所以這裡刻意做成另一塊：隔開、換底色、換邊框顏色，
+   還在標頭掛一個「花錢」的紅牌子。 */
 .hirebar {
   display: flex; flex-direction: column; gap: 8px;
+  margin-top: 10px;
   padding: 11px 14px;
-  background: linear-gradient(180deg, #241D12, var(--ink-2));
-  border: 1px solid var(--line); border-top: none;
+  background: linear-gradient(180deg, #2B1C12, #1E1610);
+  border: 1px solid #5A3A22;
+  border-left: 3px solid var(--blob);
 }
 .hirebar.away { opacity: .55; }
 .hire-head { display: flex; align-items: baseline; gap: 10px; }
+.hire-spend {
+  font-family: var(--f-pixel); font-size: 9px; letter-spacing: .12em;
+  color: #2A1408; background: var(--blob);
+  padding: 2px 6px; align-self: center;
+}
 .hire-post { font-family: var(--f-serif); font-size: 13px; color: var(--ochre); letter-spacing: .08em; }
 .hire-purse {
   margin-left: auto; font-family: var(--f-pixel); font-size: 12px; color: var(--ochre);
