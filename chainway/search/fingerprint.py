@@ -42,17 +42,42 @@ from typing import Any, Callable
 
 import numpy as np
 
-# 指紋格式版本。**改了比對邏輯就要進版**，否則舊指紋會安靜地算出錯的距離。
-VERSION = "fp1"
+# 指紋格式版本。**改了比對邏輯或檔案格式就要進版**，否則舊指紋會安靜地
+# 算出錯的距離。
+#   fp1 → fp2：一列從「一個貨號」改成「一張參考圖」，並加上色號欄位。
+#              fp1 每款只存一個顏色，顏色那一關等於廢掉（見 export 的註解）。
+VERSION = "fp2"
 # 每款存幾個細節特徵點。200 點 = 全庫 20 MB；查詢端仍然抓 1200 點，
 # 兩邊點數不同不影響比對（比的是描述子，不是數量）。
 MAX_KP = 200
+# 一個貨號最多存幾張參考圖。**一個顏色就是一張圖** —— 存少了，使用者拍的
+# 那個顏色就可能不在指紋裡，顏色那一關直接失效（第一版每款只存一張，
+# 實測已知正解的九宮格距離 136.8，等於完全沒比到）。
+MAX_PER_SKU = 6
 
 
 def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
-           max_kp: int = MAX_KP, limit: int = 0,
+           max_kp: int = MAX_KP, limit: int = 0, per_sku: int = MAX_PER_SKU,
            log: Callable[[str], None] = print) -> dict[str, Any]:
-    """掃過所有參考圖，寫出指紋檔。回傳產出的路徑與統計。"""
+    """掃過所有參考圖，寫出指紋檔。回傳產出的路徑與統計。
+
+    **一個貨號要存它所有的顏色，不是只存第一張。**
+
+    這是第一版最嚴重的錯。系統圖的檔名是 `KA126902670F.jpg`，其中 70 是
+    色號、F 是尺寸，但抓貨號的規則是 `KA\d{7}` —— 色號被切掉，同一款的
+    每個顏色全部歸成同一個 KA1269026，而 export 只留 `items[0]`。等於
+    每款只留下一個顏色的指紋。
+
+    後果在真照片上很致命：使用者拍的是米白那件，指紋裡存的可能是藏青
+    那件。實測一筆已知正解，九宮格距離 136.8 —— 顏色完全對不上，因為
+    比的根本不是同一個顏色。顏色那一關是整條流程最強的一關，被這個
+    bug 廢掉了。
+
+    所以改成**一張參考圖一列**，並且把檔名裡的完整編碼（含色號）一起
+    存下來，查到之後就答得出「哪一個顏色」。
+    """
+    import re as _re
+
     from ..imageio import load_rgb
     from ..vision import grid as G
     from ..vision import keypoints as KP
@@ -60,48 +85,57 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
 
     out = Path(out) if out else (cfg.path("outputs") / "指紋")
     out.mkdir(parents=True, exist_ok=True)
-    allrefs = R.collect(cfg)
+    allrefs = R.collect(cfg, max_per_sku=max(per_sku, 1))
     skus = sorted(allrefs)
     if limit:
         skus = skus[:limit]
     if not skus:
         return {"錯誤": "沒有讀到任何參考圖，確認 settings.yaml 的 paths"}
 
-    log(f"要處理 {len(skus):,} 款")
+    n_img = sum(len(allrefs.get(s) or []) for s in skus)
+    log(f"要處理 {len(skus):,} 款、{n_img:,} 張參考圖"
+        f"（平均一款 {n_img / max(len(skus), 1):.1f} 個顏色／角度）")
     sig_rows: list[np.ndarray] = []
-    kept: list[str] = []
+    kept: list[str] = []          # 每一列的貨號（會重複）
+    codes: list[str] = []         # 檔名裡的完整編碼，含色號
     srcs: list[str] = []
-    desc_store: dict[str, np.ndarray] = {}
-    pts_store: dict[str, np.ndarray] = {}
+    desc_store: list[np.ndarray] = []
+    pts_store: list[np.ndarray] = []
+    det_rows: list[int] = []      # 有細節的是第幾列
 
-    for i, sku in enumerate(skus, 1):
-        items = allrefs.get(sku) or []
-        if not items:
-            continue
-        p = items[0]["path"]
-        try:
-            im = load_rgb(p)
-            sig = G.cell_signature(im)
-        except Exception:
-            continue
-        if not sig.get("有效格"):
-            continue
-        sig_rows.append(_flatten(sig))
-        kept.append(sku)
-        srcs.append(items[0]["來源"])
-        if with_details:
+    # 檔名裡「KA + 7 碼」之後還黏著的數字就是色號（KA126902670F → 70）。
+    full = _re.compile(r"(KA\d{7})(\d{0,3})", _re.I)
+    done = 0
+    for sku in skus:
+        for it in (allrefs.get(sku) or []):
+            p_ = Path(it["path"])
             try:
-                d = KP.describe_query(im)
+                im = load_rgb(p_)
+                sig = G.cell_signature(im)
             except Exception:
-                d = None
-            if d is not None:
-                pts, des = d
-                if len(des) > max_kp:
-                    pts, des = pts[:max_kp], des[:max_kp]
-                pts_store[sku] = pts.astype(np.float32)
-                desc_store[sku] = des.astype(np.uint8)
-        if i % 200 == 0:
-            log(f"  {i}/{len(skus)}")
+                continue
+            if not sig.get("有效格"):
+                continue
+            m = full.search(p_.name)
+            sig_rows.append(_flatten(sig))
+            kept.append(sku)
+            codes.append((m.group(0).upper() if m else sku))
+            srcs.append(it["來源"])
+            if with_details:
+                try:
+                    d = KP.describe_query(im)
+                except Exception:
+                    d = None
+                if d is not None:
+                    pts, des = d
+                    if len(des) > max_kp:
+                        pts, des = pts[:max_kp], des[:max_kp]
+                    pts_store.append(pts.astype(np.float32))
+                    desc_store.append(des.astype(np.uint8))
+                    det_rows.append(len(kept) - 1)
+        done += 1
+        if done % 200 == 0:
+            log(f"  {done}/{len(skus)} 款")
 
     if not kept:
         return {"錯誤": "一款都算不出指紋"}
@@ -109,23 +143,24 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
     colour_p = out / "指紋_顏色.npz"
     np.savez_compressed(
         colour_p, version=np.array([VERSION]),
-        skus=np.array(kept), sources=np.array(srcs),
+        skus=np.array(kept), codes=np.array(codes), sources=np.array(srcs),
         sig=np.stack(sig_rows).astype(np.float16))
+    n_sku = len(set(kept))
     res: dict[str, Any] = {
-        "款數": len(kept), "顏色指紋": str(colour_p),
+        "款數": n_sku, "參考圖數": len(kept), "顏色指紋": str(colour_p),
         "顏色指紋MB": round(colour_p.stat().st_size / 1024 / 1024, 2)}
 
     if with_details and desc_store:
         det_p = out / "指紋_細節.npz"
-        order = [s for s in kept if s in desc_store]
         np.savez_compressed(
-            det_p, version=np.array([VERSION]), skus=np.array(order),
-            counts=np.array([len(desc_store[s]) for s in order]),
-            desc=np.concatenate([desc_store[s] for s in order]),
-            pts=np.concatenate([pts_store[s] for s in order]))
+            det_p, version=np.array([VERSION]),
+            rows=np.array(det_rows, dtype=np.int32),
+            counts=np.array([len(d) for d in desc_store]),
+            desc=np.concatenate(desc_store),
+            pts=np.concatenate(pts_store))
         res["細節指紋"] = str(det_p)
         res["細節指紋MB"] = round(det_p.stat().st_size / 1024 / 1024, 2)
-        res["有細節的款數"] = len(order)
+        res["有細節的參考圖數"] = len(det_rows)
 
     # 商品資料：查到貨號之後要顯示的東西。很小，一起帶走。
     try:
@@ -136,7 +171,7 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
         names, sales = master(cfg)
         inv = stock(cfg)
         rows = []
-        for sku in kept:
+        for sku in sorted(set(kept)):
             v = inv.get(sku) or []
             rows.append({
                 "貨號": sku, "品名": names.get(sku, ""),
@@ -204,27 +239,39 @@ def load(folder: str | Path) -> dict[str, Any]:
     # **每個 z[...] 都會把那個陣列從 zip 裡重新解壓一次**，NpzFile 不做快取。
     # 所以一律先整個取出來放進區域變數，不要在迴圈裡索引 —— 先前
     # `z["sources"][i]` 寫在 3,320 次的迴圈內，光這一行就要 5 分鐘。
-    skus = [str(s) for s in z["skus"]]
+    # 一列 = 一張參考圖 = 一個顏色。同一個貨號會出現好幾列，所以用
+    # 「指紋:<列號>」當鍵，再用 `貨號的圖` 把列號歸回貨號底下 ——
+    # find.run 本來就會在同一個貨號的多張參考圖裡取最好的那張。
+    row_sku = [str(s) for s in z["skus"]]
     sig = z["sig"].astype(np.float32)
     srcs = [str(x) for x in z["sources"]] if "sources" in z else []
+    codes = [str(x) for x in z["codes"]] if "codes" in z else list(row_sku)
+    per: dict[str, list[int]] = {}
+    for i, s in enumerate(row_sku):
+        per.setdefault(s, []).append(i)
     out: dict[str, Any] = {
-        "貨號": skus,
-        "簽名": {s: _unflatten(sig[i]) for i, s in enumerate(skus)},
-        "來源": {s: srcs[i] for i, s in enumerate(skus)} if srcs else {},
+        "貨號": sorted(per),
+        "列貨號": row_sku,
+        "貨號的圖": per,
+        "色號": codes,
+        "簽名": {f"指紋:{i}": _unflatten(sig[i]) for i in range(len(row_sku))},
+        "來源": {f"指紋:{i}": (srcs[i] if srcs else "指紋")
+                 for i in range(len(row_sku))},
         "細節": {},
     }
     dp = folder / "指紋_細節.npz" if folder.is_dir() else None
     if dp and dp.exists():
         d = np.load(dp, allow_pickle=False)
-        if str(d["version"][0]) == VERSION:
-            d_skus = [str(s) for s in d["skus"]]
+        if str(d["version"][0]) == VERSION and "rows" in d:
+            rows_ = d["rows"]
             counts = d["counts"]
             pts, desc = d["pts"], d["desc"]
             k = 0
-            for i, s in enumerate(d_skus):
+            for i in range(len(rows_)):
                 n = int(counts[i])
-                out["細節"][s] = (pts[k:k + n].astype(np.float32),
-                                  desc[k:k + n].astype(np.uint8))
+                out["細節"][f"指紋:{int(rows_[i])}"] = (
+                    pts[k:k + n].astype(np.float32),
+                    desc[k:k + n].astype(np.uint8))
                 k += n
     ip = folder / "指紋_商品.csv" if folder.is_dir() else None
     out["商品"] = _read_info(ip) if ip and ip.exists() else {}
@@ -361,11 +408,13 @@ def check() -> list[str]:
     striped = G.cell_signature(G._synthetic(True))
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
+        # 同一個貨號兩個顏色 —— fp2 的重點就在這裡，一定要測得到。
         np.savez_compressed(
             folder / "指紋_顏色.npz", version=np.array([VERSION]),
-            skus=np.array(["KA0000001", "KA0000002"]),
-            sources=np.array(["系統圖", "系統圖"]),
-            sig=np.stack([_flatten(plain),
+            skus=np.array(["KA0000001", "KA0000001", "KA0000002"]),
+            codes=np.array(["KA000000170", "KA000000199", "KA000000210"]),
+            sources=np.array(["系統圖", "系統圖", "系統圖"]),
+            sig=np.stack([_flatten(plain), _flatten(striped),
                           _flatten(striped)]).astype(np.float16))
         (folder / "指紋_商品.csv").write_text(
             "貨號,品名,售罄,定價,可售總數,顏色尺寸庫存\n"
@@ -376,7 +425,8 @@ def check() -> list[str]:
         (folder / "指紋_顏色.npz").unlink()
         np.savez_compressed(
             folder / "指紋_顏色.npz", version=np.array(["fp0"]),
-            skus=np.array(["KA0000001"]), sources=np.array(["系統圖"]),
+            skus=np.array(["KA0000001"]), codes=np.array(["KA000000170"]),
+            sources=np.array(["系統圖"]),
             sig=np.stack([_flatten(plain)]).astype(np.float16))
         if not load(folder).get("錯誤"):
             bad.append("指紋版本對不上卻照樣載入 —— 會安靜地算出錯的名次")
@@ -384,7 +434,14 @@ def check() -> list[str]:
     if got.get("錯誤"):
         return bad + [f"寫得出去卻讀不回來：{got['錯誤']}"]
 
-    pk = G.pack({s: got["簽名"][s] for s in got["貨號"]})
+    if got["貨號"] != ["KA0000001", "KA0000002"]:
+        bad.append(f"貨號沒有去重：{got['貨號']}")
+    if (got.get("貨號的圖") or {}).get("KA0000001") != [0, 1]:
+        bad.append("同一款的兩個顏色沒有歸在一起："
+                   f"{(got.get('貨號的圖') or {}).get('KA0000001')}")
+    if (got.get("色號") or [""])[1] != "KA000000199":
+        bad.append(f"色號讀不回來：{got.get('色號')}")
+    pk = G.pack({k: got["簽名"][k] for k in sorted(got["簽名"])})
     d = G.distance({**plain, "段": "x"}, pk)
     if d[0] > 1.0:
         bad.append(f"存進去再讀回來，同一張圖對自己的距離 {d[0]:.2f}，"

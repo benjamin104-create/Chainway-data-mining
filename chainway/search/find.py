@@ -493,6 +493,24 @@ def parse_hex(text: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _index_refs(index: dict) -> dict[str, list[dict[str, Any]]]:
+    """指紋索引 → 跟真實檔案一樣的 `{貨號: [參考圖…]}`。
+
+    **一個貨號有好幾列，因為一個顏色就是一張圖。** 這樣後面每一關都不必
+    知道自己在跑指紋模式 —— 同一個貨號取最好的那一張、來源標記、
+    ref_penalty，全部沿用有圖時的那條路。
+    """
+    codes = index.get("色號") or []
+    src = index.get("來源") or {}
+    out: dict[str, list[dict[str, Any]]] = {}
+    for sku, rows in (index.get("貨號的圖") or {}).items():
+        out[sku] = [{"path": f"指紋:{i}",
+                     "來源": src.get(f"指紋:{i}", "指紋"),
+                     "色號": codes[i] if i < len(codes) else sku}
+                    for i in rows]
+    return out
+
+
 def _dominant(head: list[dict[str, Any]]) -> dict[str, Any] | None:
     """這次查詢的關鍵點證據夠不夠強？夠就回傳那一款，不夠回 None。
 
@@ -536,8 +554,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     if index:
         # 指紋模式：這台機器上沒有圖，只有算好的指紋。
         # 比對本來就只用得到指紋，圖只是拿來算指紋的中間產物。
-        refs = {sku: [{"path": f"指紋:{sku}", "來源": index.get("來源", {}).get(sku, "指紋")}]
-                for sku in index["貨號"]}
+        refs = _index_refs(index)
     if refs is None:
         refs = R.collect(cfg) if images is None else {
             k: [{"path": Path(v), "來源": "系統圖"}] for k, v in images.items()}
@@ -551,9 +568,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             warn.append(got["錯誤"])
         elif got:
             index = got
-            refs = {sku: [{"path": f"指紋:{sku}",
-                           "來源": index.get("來源", {}).get(sku, "指紋")}]
-                    for sku in index["貨號"]}
+            refs = _index_refs(index)
             warn.append(f"這台機器上沒有系統圖，改用指紋檔比對（{len(refs):,} 款）")
     if not refs:
         return {"警告": ["沒有讀到任何參考圖，確認 settings.yaml 的 paths；"
@@ -680,10 +695,16 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     cand_paths = [str(it["path"]) for sku in cand for it in refs.get(sku, [])]
     src_of = {str(it["path"]): it["來源"]
               for sku in cand for it in refs.get(sku, [])}
+    # 檔名裡的色號（KA126902670 的 70）。使用者早就說過「請用我貨號中的
+    # 色號編碼作為輔助驗證」—— 比中哪一張參考圖就答得出是哪個顏色。
+    code_of = {str(it["path"]): (it.get("色號") or "")
+               for sku in cand for it in refs.get(sku, [])}
     if index:
         colors = {}
-        sigs = {f"指紋:{s}": index["簽名"][s] for s in cand
-                if s in index["簽名"]} if photo_sig else {}
+        sigs = ({k: index["簽名"][k]
+                 for sku in cand for it in refs.get(sku, [])
+                 if (k := str(it["path"])) in index["簽名"]}
+                if photo_sig else {})
     else:
         colors = _colors(cfg, cand_paths, recolor=recolor, log=log) if qlab else {}
         sigs = (_signatures(cfg, cand_paths, recolor=recolor, log=log)
@@ -711,19 +732,29 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                 continue
             d_, w_, p_ = min(got)
             grid_d[sku] = (d_ + R.penalty(len(got), per_ref=ref_penalty),
-                           photo_sig["視窗"][w_]["段"], src_of.get(p_, ""))
+                           photo_sig["視窗"][w_]["段"], src_of.get(p_, ""),
+                           code_of.get(p_, ""))
 
     rows: list[dict[str, Any]] = []
     for sku in cand:
         f = feat.get(sku, {})
         de, c = None, None
-        if index and qlab is not None and sku in index["簽名"]:
-            m_ = index["簽名"][sku].get("主色LAB")
-            if m_:
+        if index and qlab is not None:
+            # 一個貨號有好幾個顏色，取最接近的那一個 —— 使用者拍的是哪個
+            # 顏色我們不知道，但只要有一個對得上，這款就該留下來。
+            best_de = None
+            for it in refs.get(sku, []):
+                sg = index["簽名"].get(str(it["path"]))
+                m_ = sg.get("主色LAB") if sg else None
+                if not m_:
+                    continue
                 try:
-                    de = round(G.color_distance(qlab, m_), 1)
+                    d_ = round(G.color_distance(qlab, m_), 1)
                 except Exception:
-                    de = None
+                    continue
+                if best_de is None or d_ < best_de:
+                    best_de = d_
+            de = best_de
         elif qlab is not None:
             best = None
             for it in refs.get(sku, []):
@@ -739,10 +770,11 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             if best:
                 de, c = best
         g_abs = g_rel = None
-        seg = src = ""
+        seg = src = hit_code = ""
         if sku in grid_d:
             g_rel, seg, src = round(grid_d[sku][0], 1), grid_d[sku][1], grid_d[sku][2]
             g_abs = g_rel
+            hit_code = grid_d[sku][3] if len(grid_d[sku]) > 3 else ""
         # 「顏色對不上」這個標記只在**沒有照片**、只給色碼時才有意義。
         # 有照片時整張主色會混到皮膚、頭髮、裙子（實測同一件衣服差 15.9），
         # 而九宮格距離是三項相加的複合值，拿它跟 ΔE 的門檻比是在比蘋果
@@ -754,6 +786,7 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
             "特徵分": round(f.get("特徵分", 0.0), 2), "命中": f.get("命中", ""),
             "主色ΔE": de, "九宮格": g_rel, "格絕對": g_abs, "段": seg,
             "比中來源": src, "參考圖數": len(refs.get(sku, [])),
+            "比中色號": hit_code,
             "HEX": (c or {}).get("HEX"), "色號": (c or {}).get("色號"),
             "色名": (c or {}).get("色名", ""),
             "顏色對不上": bool(judge is not None and judge > color_max),
@@ -810,8 +843,10 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
         if KP.available():
             head = rows[:rerank]
             if index:
-                desc = {f"指紋:{r['貨號']}": index["細節"][r["貨號"]]
-                        for r in head if r["貨號"] in index.get("細節", {})}
+                det = index.get("細節", {})
+                desc = {k: det[k] for r in head
+                        for it in refs.get(r["貨號"], [])
+                        if (k := str(it["path"])) in det}
             else:
                 head_paths = [str(it["path"]) for r in head
                               for it in refs.get(r["貨號"], [])]
@@ -840,6 +875,8 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
                             v = max(KP.inliers(x, d_) for x in qs)
                             if v > best:
                                 best, r["比中來源"] = v, it["來源"]
+                                if it.get("色號"):
+                                    r["比中色號"] = it["色號"]
                         r["相同細節"] = best
                         r["_序"] = i
                     kp_hits = sum(1 for r in head if r["相同細節"])
