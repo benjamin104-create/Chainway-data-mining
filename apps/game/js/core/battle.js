@@ -87,6 +87,7 @@ B.init = function (stageKey, opts) {
   B.auras = [];
   B.blocker = null;
   B.blockX = null;
+  B.placing = null;            // 正在挑位置的武具
   B.flankBreach = 0;           // 幾隻側翼已經繞到你後方
   B.flankDeepest = 0;
   B.respawnTimer = 0;
@@ -287,6 +288,7 @@ B.begin = function () {
   B.time = 0;
   B.waveTimer = 3;
   B.activePost = null;
+  B.placing = null;          // 挑到一半就開戰的話，那筆錢不算花
   B.effects.length = 0;
   placeHats();
 };
@@ -1030,6 +1032,7 @@ B.selectPost = function (post) {
   if (B.phase !== 'deploy') return false;
   if (!post || post.x > B.frontLine) return false;
   B.activePost = post;
+  B.placing = null;          // 換據點就不算在挑了，免得圈子還掛在上一個據點上
   return true;
 };
 
@@ -1050,17 +1053,101 @@ B.hire = function (hireId) {
   const cost = B.hireCostAt(hireId, post);
   if (B.purse < cost) return { ok: false, why: '現場資金不足' };
 
+  /* 武具（拒馬、火油槽、戰旗）不是當場落地，而是先進「挑位置」的狀態：
+     玩家在地圖上滑到想放的地方再放手。
+
+     為什麼要這樣：路上的坑是在固定的位置，拒馬要蓋在坑上才有用。
+     原本部署階段一律放在哨所腳下、戰鬥中一律放在主角腳下，
+     那個距離常常搆不到坑——工具跟它要解決的問題對不起來。 */
+  if (hire.gear) {
+    if (B.placing && B.placing.hireId === hireId) {   // 再按一次＝反悔
+      B.placing = null;
+      return { ok: true, cancelled: true, hire: hire };
+    }
+    B.placing = {
+      hireId: hireId, cost: cost, slot: slot, post: post,
+      anchor: B.phase === 'deploy' ? 'post' : 'hero',
+      at: B.phase === 'deploy' ? post.x : B.hero.x,
+      /* 部署階段 720：這不是拍腦袋的數字。
+         全部 20 個坑量過一輪，用 520 有 7 個是「賣拒馬的據點就在那裡，
+         但差幾十到一百多搆不到」——最遠的缺口 665（巨像-1 的第二個地震帶）。
+         720 之後除了巨像-3 之外全部涵蓋；那一關的據點本來就在前線外，
+         是「先拆哨塔再過去架」的設計，不是搆不搆得到的問題。
+         戰鬥中 330：以主角為圓心，大約是螢幕上看得清楚的一段。 */
+      reach: B.phase === 'deploy' ? 720 : 330,
+      ok: true
+    };
+    return { ok: true, placing: true, hire: hire, cost: cost };
+  }
+
+  /* 挑位置挑到一半又去買別的東西：那筆就當沒按過。
+     不清掉的話，等一下放手還是會把武具架下去，等於買了兩樣。 */
+  B.placing = null;
+
   B.purse -= cost;
   B.goldSpent += cost;
   post.stock[slot]--;
   const at = B.phase === 'deploy' ? post.x : B.hero.x;
-  if (hire.gear) placeGear(hire, at);
-  else spawnHired(hire, at + 26);
+  spawnHired(hire, at + 26);
   sfx('hire');
   pushText(at, -54, '-' + cost, '#E0B23C', false);
   B.effects.push({ type: 'ring', x: at, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
   return { ok: true, hire: hire, cost: cost };
 };
+
+/* ══════ 挑位置 ══════ */
+
+/* 放得到的範圍是從哪裡量的。
+   部署階段以據點為圓心；打起來以後以主角為圓心，
+   所以人走過去，能放的範圍就跟著過去——搆不到就走近一點，這是玩家看得懂的規則。 */
+B.placeFrom = function () {
+  const p = B.placing;
+  if (!p) return 0;
+  return p.anchor === 'post' ? p.post.x : B.hero.x;
+};
+
+/* 這個位置放不放得下。回傳理由，讓畫面可以直接寫出來。 */
+B.placeCheck = function (x) {
+  const p = B.placing;
+  if (!p) return { ok: false, why: '' };
+  if (x < 40) return { ok: false, why: '太靠近自家城門' };
+  if (x > B.stage.length - 60) return { ok: false, why: '那是敵方主塔的位置' };
+  if (x > B.frontLine) return { ok: false, why: '還過不去，先拆掉前面的哨塔' };
+  if (Math.abs(x - B.placeFrom()) > p.reach) {
+    return { ok: false, why: p.anchor === 'post' ? '離這個據點太遠' : '離你太遠，走近一點' };
+  }
+  return { ok: true, why: '' };
+};
+
+B.placeMove = function (x) {
+  const p = B.placing;
+  if (!p) return;
+  p.at = Math.round(x);
+  const chk = B.placeCheck(p.at);
+  p.ok = chk.ok;
+  p.why = chk.why;
+};
+
+B.placeConfirm = function () {
+  const p = B.placing;
+  if (!p) return { ok: false, why: '' };
+  const chk = B.placeCheck(p.at);
+  if (!chk.ok) return { ok: false, why: chk.why };
+  const hire = G.getHire(p.hireId);
+  // 錢與存量是在這一刻才真的扣掉，取消就什麼都沒發生
+  if (B.purse < p.cost) { B.placing = null; return { ok: false, why: '現場資金不足' }; }
+  B.purse -= p.cost;
+  B.goldSpent += p.cost;
+  p.post.stock[p.slot]--;
+  placeGear(hire, p.at);
+  sfx('hire');
+  pushText(p.at, -54, '-' + p.cost, '#E0B23C', false);
+  B.effects.push({ type: 'ring', x: p.at, z: 0, r: 0, max: 72, t: 0, dur: 0.35, color: '#E0B23C' });
+  B.placing = null;
+  return { ok: true, hire: hire };
+};
+
+B.placeCancel = function () { B.placing = null; };
 
 /* 光環：戰旗之類的武具 */
 function auraBonus(e, key) {
@@ -1263,6 +1350,14 @@ B.update = function (dt, input) {
     B.particles.forEach(pp => { pp.t += dt; pp.x += pp.vx * dt; pp.y += pp.vy * dt; pp.vy += 620 * dt; });
     B.particles = B.particles.filter(pp => pp.t < pp.dur && pp.y < 30);
     return;
+  }
+
+  /* 挑位置的圈是跟著主角走的，所以人走一步「放不放得下」就可能改變，
+     每幀重算一次，不然畫面會停在按下去那一瞬間的判定上。
+     人倒下或打完了就取消——那時候沒有「你站的地方」可言。 */
+  if (B.placing) {
+    if (B.over || B.hero.dead) B.placing = null;
+    else B.placeMove(B.placing.at);
   }
 
   if (B.shake > 0) B.shake = Math.max(0, B.shake - dt * 42);

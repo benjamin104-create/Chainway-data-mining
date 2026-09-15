@@ -52,6 +52,49 @@ R.buildBackdrop = function (chapter, stage) {
   R.map = G.buildMap(stage);
 };
 
+function clampCam(z, cx, cy) {
+  const halfW = W / (2 * z), halfH = H / (2 * z);
+  return {
+    z: z,
+    x: Math.max(halfW, Math.min(W - halfW, cx)),
+    y: Math.max(halfH, Math.min(H - halfH, cy))
+  };
+}
+
+function heroCam(map, B, bz) {
+  const hp = map.at(B.hero.x, B.hero.z || 0);
+  return clampCam(bz, hp.x, hp.y);
+}
+
+/* 挑位置的時候，鏡頭改成「框住放得到的那一段」。
+
+   為什麼不繼續跟著主角：手機上放大 2.2 倍之後，
+   搆得到的地方有一大半在畫面外——手指往那邊拖，
+   東西跑到哪裡自己看不到，等於閉著眼睛放。實測克諾索斯那個水坑就是這樣。
+
+   不用「鏡頭跟著手指」是因為那會打架：鏡頭一動，
+   手指底下對應的世界座標就變了，圈子會自己一路飄走。
+   框住一整段是靜的，指哪就是哪。
+
+   放大倍率夾在 1 以上，所以桌機（本來就是 1，整張看得完）完全不變。 */
+function placeCam(map, B, bz) {
+  const p = B.placing;
+  const from = B.placeFrom();
+  const lo = Math.max(0, from - p.reach);
+  const hi = Math.max(lo + 1, Math.min(B.frontLine, from + p.reach));
+  const pts = map.slice(lo, hi);
+  const sp = map.at(p.at, 0);
+  let x0 = sp.x, x1 = sp.x, y0 = sp.y, y1 = sp.y;
+  for (const q of pts) {
+    if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x;
+    if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y;
+  }
+  const m = 80;   // 邊界留白，免得圈子貼著畫面邊
+  const z = Math.max(1, Math.min(bz,
+    Math.min(W / (x1 - x0 + m * 2), H / (y1 - y0 + m * 2))));
+  return clampCam(z, (x0 + x1) / 2, (y0 + y1) / 2);
+}
+
 /* ══════════ 主繪製 ══════════ */
 R.draw = function () {
   const B = G.B, ctx = R.ctx, map = R.map, p = R.palette;
@@ -63,20 +106,16 @@ R.draw = function () {
   /* 小畫布上放大並跟著主角。地面先鋪滿整個畫布再進鏡頭，
      不然放大之後地圖以外的地方會是空的。 */
   const bz = R.battleZoom();
-  if (bz > 1.001) {
+  const cam = B.placing ? placeCam(map, B, bz)
+    : (bz > 1.001 ? heroCam(map, B, bz) : null);
+  if (cam) {
     ctx.fillStyle = p.near || p.ground || '#12100D';
     ctx.fillRect(0, 0, W, H);
-    const hp = map.at(B.hero.x, B.hero.z || 0);
-    const halfW = W / (2 * bz), halfH = H / (2 * bz);
-    const camX = Math.max(halfW, Math.min(W - halfW, hp.x));
-    const camY = Math.max(halfH, Math.min(H - halfH, hp.y));
     ctx.translate(W / 2, H / 2);
-    ctx.scale(bz, bz);
-    ctx.translate(-camX, -camY);
-    R.cam = { z: bz, x: camX, y: camY };
-  } else {
-    R.cam = null;
+    ctx.scale(cam.z, cam.z);
+    ctx.translate(-cam.x, -cam.y);
   }
+  R.cam = cam;
 
   drawGround(ctx, p, map, B);
   drawFlankLane(ctx, p, map, B);
@@ -134,6 +173,7 @@ R.draw = function () {
   draws.forEach(d => d.fn());
 
   drawFrontLine(ctx, B, map);
+  drawPlacing(ctx, B, map);
   B.effects.forEach(f => drawEffect(ctx, f, map));
   drawProjectiles(ctx, B, map);
   drawParticles(ctx, B, map);
@@ -352,6 +392,100 @@ function drawHazards(ctx, p, map, B) {
       ctx.restore();
     }
   }
+}
+
+/* ── 挑位置 ──
+   放拒馬那類東西的時候，畫三件事：
+   放得到的範圍、手指現在指的位置、以及那裡到底放不放得下。
+   放不下的時候用紅色並寫出理由，不要讓人放了才發現沒有用。 */
+function drawPlacing(ctx, B, map) {
+  const p = B.placing;
+  if (!p) return;
+  const hire = G.getHire(p.hireId);
+
+  // 可以放的範圍：沿路畫一段亮起來的帶子
+  const from = B.placeFrom();
+  const lo = Math.max(0, from - p.reach);
+  const hi = Math.min(B.frontLine, from + p.reach);
+  const band = map.slice(lo, hi);
+  if (band.length > 1) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(224,178,60,0.16)';
+    ctx.lineWidth = 46;
+    ctx.beginPath();
+    band.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y));
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(224,178,60,0.42)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 7]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // 指到的位置
+  const sp = map.at(p.at, 0);
+  const col = p.ok ? '#E0B23C' : '#C8503E';
+  const pulse = 0.55 + Math.sin(B.time * 7) * 0.2;
+
+  /* 鏡頭為了框住整段而縮小時，圈子跟著縮就會看不見。
+     這裡照「實際在螢幕上有幾個像素」反推，讓圈子不管怎麼縮都維持約 56px 寬。
+     小安卓（360 寬）上不修的話量出來只有 32px，指哪裡自己看不清楚。 */
+  const camZ = (R.cam && R.cam.z) || 1;
+  const k = Math.max(1, Math.min(3, 56 / Math.max(1, 68 * camZ * R.cssScale())));
+
+  ctx.save();
+  ctx.translate(sp.x, sp.y);
+  ctx.scale(k, k);
+  // 地上的圈
+  ctx.strokeStyle = col;
+  ctx.globalAlpha = pulse;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(0, 0, 34, 15, 0, 0, 6.3); ctx.stroke();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.ellipse(0, 0, 34, 15, 0, 0, 6.3); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 半透明的預覽：拒馬畫成柵欄，其他畫成箱子
+  ctx.globalAlpha = p.ok ? 0.75 : 0.45;
+  if (p.hireId === 'h_barricade') {
+    ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 13 - 8, -4);
+      ctx.lineTo(i * 13 + 8, -30);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(i * 13 + 8, -4);
+      ctx.lineTo(i * 13 - 8, -30);
+      ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = col;
+    ctx.fillRect(-16, -30, 32, 26);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  /* 名字與理由。畫在圈子外面、不跟著 translate，
+     是為了能把它夾在畫面內——圈子貼到左邊時，理由本來會被切掉一半。 */
+  ctx.save();
+  ctx.font = '600 ' + Math.round(13 * k) + 'px "Noto Sans TC", sans-serif';
+  ctx.textAlign = 'center';
+  const label = p.ok ? (hire ? hire.name : '') : (p.why || '這裡放不了');
+  const halfW = ctx.measureText(label).width / 2 + 6;
+  const viewL = R.cam ? R.cam.x - W / (2 * R.cam.z) : 0;
+  const viewR = R.cam ? R.cam.x + W / (2 * R.cam.z) : W;
+  const lx = Math.max(viewL + halfW, Math.min(viewR - halfW, sp.x));
+  const ly = sp.y - 44 * k;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillText(label, lx + 1, ly + 1);
+  ctx.fillStyle = p.ok ? '#FFE9A8' : '#FF9A82';
+  ctx.fillText(label, lx, ly);
+  ctx.restore();
 }
 
 function drawFlankLane(ctx, p, map, B) {
@@ -1627,6 +1761,19 @@ function drawDeployHint(ctx, B) {
 R._draw = { boss: drawBoss, hero: drawHero, unit: drawUnit, corpse: drawCorpse };
 
 /* 點擊：找出離畫面座標最近的據點 */
+/* 畫面上的一點 → 沿路走了多遠。挑位置時要用。
+   小畫布上戰場是放大並跟著主角的，所以要先把鏡頭換算回去。 */
+R.worldAt = function (sx, sy) {
+  if (!R.map) return null;
+  const cam = R.cam;
+  let x = sx, y = sy;
+  if (cam) {
+    x = cam.x + (sx - W / 2) / cam.z;
+    y = cam.y + (sy - H / 2) / cam.z;
+  }
+  return R.map.nearest(x, y);
+};
+
 R.postAt = function (sx, sy) {
   const B = G.B;
   if (!B.posts) return null;

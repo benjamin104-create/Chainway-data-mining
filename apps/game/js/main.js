@@ -156,6 +156,14 @@
           '<span class="hire-purse" id="hirePurse"></span></div>' +
           '<div class="hire-opts" id="hireOpts"></div>' +
         '</div>' +
+        /* 挑位置的提示條。固定在畫面底端，不佔版面——
+           如果放進文件流裡，它一出現就會把畫布重新量一次、
+           拖到一半畫面跳一下，手指就跟丟了。 */
+        '<div class="placebar" id="placebar" hidden>' +
+          '<span class="place-name" id="placeName"></span>' +
+          '<span class="place-tip" id="placeTip"></span>' +
+          '<button class="btn btn-ghost" data-act="place-cancel">取消</button>' +
+        '</div>' +
         '<p class="controls-hint"><kbd>A</kbd><kbd>D</kbd>／<kbd>←</kbd><kbd>→</kbd> 移動　' +
         '<kbd>1</kbd>–<kbd>4</kbd> 技能　<kbd>Q</kbd>／<kbd>E</kbd> 消耗品　' +
         '<kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> 僱用　<kbd>空白鍵</kbd> 暫停。' +
@@ -181,6 +189,10 @@
       hirePostName: document.getElementById('hirePostName'),
       hirePurse: document.getElementById('hirePurse'),
       hireOpts: document.getElementById('hireOpts'),
+      placebar: document.getElementById('placebar'),
+      placeName: document.getElementById('placeName'),
+      placeTip: document.getElementById('placeTip'),
+      placeSig: '',
       hireSig: '',
       sks: Array.from(document.querySelectorAll('.sk'))
     };
@@ -350,7 +362,15 @@
     const cv = document.getElementById('screen');
     R.setup(cv);
     R.buildBackdrop(G.getChapter(stage.chapterId), stage);
-    cv.addEventListener('pointerdown', onCanvasPointer);
+    cv.addEventListener('pointerdown', ev => {
+      if (ev.button === 2) return;             // 右鍵留給取消
+      if (onPlacePointerDown(ev)) return;
+      onCanvasPointer(ev);
+    });
+    cv.addEventListener('pointermove', onPlacePointerMove);
+    cv.addEventListener('pointerup', onPlacePointerUp);
+    cv.addEventListener('pointercancel', () => { placeDragging = false; });
+    cv.addEventListener('contextmenu', ev => { if (cancelPlacing()) ev.preventDefault(); });
     requestAnimationFrame(fitBattle);
     input.left = input.right = input.up = input.down = false;
     hpGhostPct = null; hpPrevPct = 100;
@@ -426,6 +446,7 @@
     hudRefs.nCharge.textContent = B.consumables.c_charge;
 
     updateHireBar();
+    updatePlaceBar();
 
     hudRefs.sks.forEach((el, i) => {
       const def = B.skillDefs[i];
@@ -467,6 +488,85 @@
     if (!post) return;
     if (!B.selectPost(post)) { U.toast('這個據點要先拆掉前面的哨塔才到得了'); return; }
     hudRefs.hireSig = '';
+  }
+
+  /* ══════ 在戰場上挑位置 ══════
+     手指按著滑、或滑鼠移動都可以，放開／再點一下就定位。
+     兩種都支援是因為：觸控上「按著拖」最直覺，
+     滑鼠上「點一下→移動→再點一下」比較不會手痠。 */
+  function canvasPoint(ev) {
+    const cv = ev.currentTarget;
+    const rect = cv.getBoundingClientRect();
+    return {
+      sx: (ev.clientX - rect.left) / rect.width * R.W,
+      sy: (ev.clientY - rect.top) / rect.height * R.H
+    };
+  }
+
+  let placeDragging = false;
+
+  function onPlacePointerDown(ev) {
+    if (!B.placing) return false;
+    const pt = canvasPoint(ev);
+    const w = R.worldAt(pt.sx, pt.sy);
+    if (w) B.placeMove(w.worldX);
+    placeDragging = true;
+    ev.currentTarget.setPointerCapture && ev.currentTarget.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+    return true;
+  }
+
+  function onPlacePointerMove(ev) {
+    if (!B.placing) return;
+    // 滑鼠：不用按著也跟；觸控：按著才跟
+    if (ev.pointerType !== 'mouse' && !placeDragging) return;
+    const pt = canvasPoint(ev);
+    const w = R.worldAt(pt.sx, pt.sy);
+    if (w) B.placeMove(w.worldX);
+    ev.preventDefault();
+  }
+
+  /* 挑位置時底下那條提示。也負責把畫布的 touch-action 關掉：
+     不關的話，手指在畫布上拖會被瀏覽器當成捲動，圈子跟不上。 */
+  function updatePlaceBar() {
+    const bar = hudRefs.placebar;
+    if (!bar) return;
+    const p = B.placing;
+    const sig = p ? p.hireId + '|' + (p.ok ? '1' : '0' + p.why) : '';
+    if (sig === hudRefs.placeSig) return;
+    hudRefs.placeSig = sig;
+
+    const cv = document.getElementById('screen');
+    if (cv) cv.classList.toggle('placing', !!p);
+    bar.hidden = !p;
+    if (!p) return;
+
+    hudRefs.placeName.textContent = G.getHire(p.hireId).name;
+    hudRefs.placeTip.textContent = p.ok
+      ? '在戰場上滑到想放的位置，放開手就架好'
+      : p.why;
+    bar.classList.toggle('bad', !p.ok);
+  }
+
+  function cancelPlacing() {
+    if (!B.placing) return false;
+    B.placeCancel();
+    placeDragging = false;
+    U.toast('取消了');
+    return true;
+  }
+
+  function onPlacePointerUp(ev) {
+    if (!B.placing) return;
+    const pt = canvasPoint(ev);
+    const w = R.worldAt(pt.sx, pt.sy);
+    if (w) B.placeMove(w.worldX);
+    placeDragging = false;
+    const r = B.placeConfirm();
+    if (!r.ok) { if (r.why) U.toast(r.why); return; }
+    hudRefs.hireSig = '';
+    U.toast('架好了　' + r.hire.name);
+    ev.preventDefault();
   }
 
   function updateHireBar() {
@@ -527,12 +627,20 @@
       if (!el.dataset || !el.dataset.hire) return;
       const cost = B.hireCostAt(el.dataset.hire, post);
       el.disabled = post.stock[i] <= 0 || B.purse < cost;
+      // 正在挑位置的那一顆要看得出來是按下去的狀態
+      el.classList.toggle('picking', !!B.placing && B.placing.hireId === el.dataset.hire);
     });
   }
 
   function tryHire(id) {
     const r = B.hire(id);
     if (!r.ok) { U.toast(r.why); return; }
+    if (r.cancelled) { U.toast('取消了'); return; }
+    if (r.placing) {
+      // 武具要自己挑位置：在地圖上滑到想放的地方
+      U.toast(r.hire.name + '：在戰場上選位置');
+      return;
+    }
     hudRefs.hireSig = '';        // 逼它重畫庫存
     U.toast('僱用　' + r.hire.name + '　−' + r.cost);
   }
@@ -716,6 +824,7 @@
       t.textContent = B.paused ? '繼續' : '暫停';
       return;
     }
+    if (t.dataset.act === 'place-cancel') { cancelPlacing(); return; }
     if (t.dataset.act === 'begin-battle') { B.begin(); hudRefs.hireSig = ''; return; }
     if (t.dataset.act === 'retreat') {
       stopBattle();
@@ -827,6 +936,7 @@
   window.addEventListener('keydown', e => {
     if (U.screen !== 'battle') return;
     const k = e.key.toLowerCase();
+    if (k === 'escape' && cancelPlacing()) { e.preventDefault(); return; }
     if (B.phase === 'deploy') {
       if (k === 'z' || k === 'x' || k === 'c') { hireByKey(k.toUpperCase()); e.preventDefault(); }
       else if (k === 'enter' || k === ' ') { B.begin(); hudRefs.hireSig = ''; e.preventDefault(); }

@@ -128,6 +128,39 @@ G.buildMap = function (stage) {
     return out;
   };
 
+  /* 畫面座標 → 世界座標（map.at 的反向）
+     放拒馬那類東西要用：玩家在畫面上點一個位置，
+     得換算回「沿路走了多遠」才知道要放在哪。
+     做法是找路徑上最近的取樣點，再用它的弧長回推。 */
+  map.nearest = function (px, py) {
+    let bi = 0, bd = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      const d = (pts[i].x - px) * (pts[i].x - px) + (pts[i].y - py) * (pts[i].y - py);
+      if (d < bd) { bd = d; bi = i; }
+    }
+    // 在最近的取樣點與它的鄰居之間再細分一次，免得只有取樣點的精度
+    const lo = Math.max(0, bi - 1), hi = Math.min(pts.length - 1, bi + 1);
+    let bestLen = cum[bi], bestD = bd, bz = 0;
+    for (let i = lo; i < hi; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const vx = b.x - a.x, vy = b.y - a.y;
+      const L2 = vx * vx + vy * vy;
+      if (!L2) continue;
+      let t = ((px - a.x) * vx + (py - a.y) * vy) / L2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = a.x + vx * t, qy = a.y + vy * t;
+      const d = (qx - px) * (qx - px) + (qy - py) * (qy - py);
+      if (d <= bestD) {
+        bestD = d;
+        bestLen = cum[i] + (cum[i + 1] - cum[i]) * t;
+        const len = Math.hypot(vx, vy) || 1;
+        const nx = vx / len, ny = vy / len;
+        bz = (px - qx) * (-ny) + (py - qy) * nx;
+      }
+    }
+    return { worldX: bestLen / scale, z: bz, dist: Math.sqrt(bestD) };
+  };
+
   /* 判斷一個畫面點離路徑多遠（放裝飾物用） */
   function distToPath(px, py) {
     let best = Infinity;
