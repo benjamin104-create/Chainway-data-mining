@@ -1717,6 +1717,18 @@ def _grid_search(args, cfg, images: dict) -> int:
     return 0
 
 
+def cmd_bench(args) -> int:
+    """比對邏輯的基準測試 —— 自己畫一個庫，什麼資料都不用。"""
+    from .search import bench as B
+
+    cfg = get_config()
+    print("=" * 60)
+    print("比對基準測試（不需要任何資料）")
+    print("=" * 60)
+    B.run(cfg, n_lib=args.styles, n_query=args.questions)
+    return 0
+
+
 def cmd_fingerprint(args) -> int:
     """把整個影像庫壓成一個小檔案，讓比對可以離開這台電腦。
 
@@ -2602,6 +2614,14 @@ def main(argv: list[str] | None = None) -> int:
     fp.add_argument("--limit", type=int, default=0, metavar="N",
                     help="只做前 N 款（試跑用）")
     fp.set_defaults(func=cmd_fingerprint)
+
+    bn = sub.add_parser("bench",
+                        help="比對邏輯基準測試（自己畫一個庫，不需要任何資料）")
+    bn.add_argument("--styles", type=int, default=150, metavar="N",
+                    help="測試庫要幾款（預設 150）")
+    bn.add_argument("--questions", type=int, default=80, metavar="N",
+                    help="出幾題（預設 80）")
+    bn.set_defaults(func=cmd_bench)
 
     sev = sub.add_parser("selftest",
                          help="★ 自我測驗：用自己的系統圖出題，量 Top-1／Top-5"
