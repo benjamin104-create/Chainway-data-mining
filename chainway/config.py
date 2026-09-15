@@ -333,6 +333,17 @@ OUTPUT_PATH_KEYS = frozenset({"interim", "processed", "outputs", "feedback"})
 def get_config(config_dir: str | None = None) -> Config:
     cdir = Path(config_dir) if config_dir else CONFIG_DIR
     settings = _read_yaml(cdir / "settings.yaml")
+    # settings.local.yaml：這台機器自己的覆寫（路徑、開關）。
+    # .gitignore 早就把它排除了，但先前**根本沒有人讀它** —— 使用者照著
+    # 註解寫了一份，什麼都不會發生，而且不會有任何訊息。
+    # 只覆寫有寫到的鍵，第二層（例如 paths 底下）也逐鍵覆寫，不整段換掉。
+    lpath = cdir / "settings.local.yaml"
+    local = _read_yaml(lpath) if lpath.exists() else {}
+    for k, v in (local or {}).items():
+        if isinstance(v, dict) and isinstance(settings.get(k), dict):
+            settings[k] = {**settings[k], **v}
+        else:
+            settings[k] = v
     taxonomy = _read_yaml(cdir / "taxonomy.yaml")
     feedback_tags = _read_yaml(cdir / "feedback_tags.yaml")
 

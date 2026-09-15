@@ -1725,6 +1725,15 @@ def cmd_bench(args) -> int:
     print("=" * 60)
     print("比對基準測試（不需要任何資料）")
     print("=" * 60)
+    if args.roundtrip:
+        res = B.roundtrip(cfg)
+        if res.get("錯誤"):
+            _warn(res["錯誤"])
+            return 1
+        (_ok if res.get("成功") else _warn)(
+            f"匯出整條路{'通過' if res.get('成功') else '有問題'}"
+            f"（{res['款數']} 款 / {res['參考圖數']} 張）")
+        return 0 if res.get("成功") else 1
     B.run(cfg, n_lib=args.styles, n_query=args.questions)
     return 0
 
@@ -1740,17 +1749,39 @@ def cmd_fingerprint(args) -> int:
     cfg = get_config()
     print("開始算指紋。第一次要跑幾分鐘（每張圖都要量），之後只要重跑改動的部分。\n")
     res = FP.export(cfg, args.out, with_details=not args.no_details,
-                    max_kp=args.points, limit=args.limit)
+                    max_kp=args.points, limit=args.limit,
+                    per_sku=args.colors, with_thumbs=not args.no_thumbs)
     if res.get("錯誤"):
         _warn(res["錯誤"])
         return 1
-    _ok(f"{res['款數']:,} 款")
+    _ok(f"{res['款數']:,} 款、{res.get('參考圖數', 0):,} 張參考圖"
+        f"（一個顏色算一張）")
     print(f"  顏色指紋 {res['顏色指紋MB']} MB　{res['顏色指紋']}")
     if res.get("細節指紋"):
         print(f"  細節指紋 {res['細節指紋MB']} MB　{res['細節指紋']}"
-              f"（{res['有細節的款數']:,} 款抓得到細節）")
+              f"（{res.get('有細節的參考圖數', 0):,} 張抓得到細節）")
+    if res.get("縮圖"):
+        print(f"  縮圖　　 {res['縮圖MB']} MB　{res['縮圖']}"
+              "（不參與比對；以後改了比對邏輯就不必再重跑一次）")
     if res.get("商品資料"):
         print(f"  商品資料　{res['商品資料']}")
+
+    # 資料缺口要在這裡講完，不要等上傳之後才發現。
+    gaps = res.get("缺口") or []
+    if gaps:
+        print("\n  --- 這些欄位是空的，查到貨號之後就顯示不出來 ---")
+        for g in gaps:
+            _warn(g)
+
+    if not args.no_verify:
+        print("\n  --- 就地驗一次（不必上傳，不必找人標答案）---")
+        v = FP.verify(cfg, res["顏色指紋"].rsplit("\\", 1)[0]
+                      if "\\" in res["顏色指紋"]
+                      else str(Path(res["顏色指紋"]).parent),
+                      n=args.verify_n)
+        if v.get("錯誤"):
+            _warn(v["錯誤"])
+
     print("\n  這幾個檔案就是整個影像庫的可比對版本。")
     print("  拿它查貨號：python -m chainway.cli grid --index \"資料夾\" --photo 照片.jpg")
     print("  圖本身一步都不用離開這台電腦。")
@@ -2613,6 +2644,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="只做顏色指紋（檔案最小，但把握度判定會失效）")
     fp.add_argument("--limit", type=int, default=0, metavar="N",
                     help="只做前 N 款（試跑用）")
+    fp.add_argument("--colors", type=int, default=24, metavar="N",
+                    help="一款最多存幾個顏色／角度（預設 24）")
+    fp.add_argument("--no-thumbs", action="store_true",
+                    help="不要帶縮圖（檔案小一點，但以後改了比對邏輯要重跑）")
+    fp.add_argument("--no-verify", action="store_true",
+                    help="跳過做完之後的就地驗證")
+    fp.add_argument("--verify-n", type=int, default=40, metavar="N",
+                    help="驗證抽幾題（預設 40）")
     fp.set_defaults(func=cmd_fingerprint)
 
     bn = sub.add_parser("bench",
@@ -2621,6 +2660,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="測試庫要幾款（預設 150）")
     bn.add_argument("--questions", type=int, default=80, metavar="N",
                     help="出幾題（預設 80）")
+    bn.add_argument("--roundtrip", action="store_true",
+                    help="改測「匯出整條路」：造圖→算指紋→就地驗→查詢")
     bn.set_defaults(func=cmd_bench)
 
     sev = sub.add_parser("selftest",

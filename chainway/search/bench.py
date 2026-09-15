@@ -120,3 +120,65 @@ def run(cfg, *, n_lib: int = N_LIB, n_query: int = N_QUERY,
     log("提醒：這裡的衣服紋理比真系統圖單純，關鍵點在這裡偏可靠。")
     log("　　　真實庫的準確率要用 cli selftest，不要拿這個數字對外講。")
     return out
+
+
+def roundtrip(cfg, *, n_sku: int = 30, log: Callable[[str], None] = print
+              ) -> dict[str, Any]:
+    """走一遍真正的匯出流程：造圖 → cli fingerprint → 驗證 → 查詢。
+
+    `run()` 測的是比對邏輯，這一支測的是**使用者實際會踩的那條路** ——
+    設定檔怎麼讀、檔名裡的色號怎麼抽、四個檔案寫不寫得出來、寫出來讀不
+    讀得回去。
+
+    這一支存在是因為使用者說「我常常要跑另外一台電腦丟檔案給你，覺得
+    蠻累的」。他累是因為**驗證在我這邊**：匯出壞了要等他上傳完才發現。
+    加了這一支之後，匯出整條路在我這邊就跑得起來，他那台只需要跑一次。
+
+    第一次加上它就抓到一個會讓**所有指令都掛掉**的錯（設定檔的本機覆寫
+    檔不存在時，載入器會直接報錯）。
+    """
+    import shutil
+    import subprocess
+    import sys
+    import tempfile
+
+    from ..config import CONFIG_DIR, REPO_ROOT
+
+    tmp = Path(tempfile.mkdtemp(prefix="roundtrip-"))
+    img, out = tmp / "系統圖", tmp / "指紋"
+    img.mkdir(parents=True)
+    local = CONFIG_DIR / "settings.local.yaml"
+    if local.exists():
+        return {"錯誤": f"{local} 已存在，不覆蓋它 —— 請自行測試或先移開"}
+
+    rng = np.random.default_rng(31)
+    n_img = 0
+    for i in range(n_sku):
+        sku = f"KA9{i:06d}"
+        for j in range(int(rng.integers(1, 5))):      # 一款 1~4 個顏色
+            _garment(4000 + i).save(img / f"{sku}{70 + j * 5}F.jpg", quality=92)
+            n_img += 1
+    log(f"造了 {n_sku} 款 / {n_img} 張系統圖（檔名含色號）")
+
+    local.write_text(f'paths:\n  system_images: "{img}"\n', encoding="utf-8")
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "chainway.cli", "fingerprint",
+             "--out", str(out), "--verify-n", "15"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=1800)
+        ok = r.returncode == 0
+        for line in (r.stdout or "").splitlines():
+            if line.strip():
+                log("    " + line)
+        if not ok:
+            log("！匯出失敗：" + (r.stderr or "")[-800:])
+        got = {p_.name for p_ in out.glob("*")} if out.exists() else set()
+        want = {"指紋_顏色.npz", "指紋_細節.npz", "指紋_縮圖.npz", "指紋_商品.csv"}
+        missing = want - got
+        if missing:
+            log(f"！少了檔案：{sorted(missing)}")
+        return {"成功": ok and not missing, "產出的檔案": sorted(got),
+                "款數": n_sku, "參考圖數": n_img}
+    finally:
+        local.unlink(missing_ok=True)
+        shutil.rmtree(tmp, ignore_errors=True)

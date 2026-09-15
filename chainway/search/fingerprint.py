@@ -53,11 +53,26 @@ MAX_KP = 200
 # 一個貨號最多存幾張參考圖。**一個顏色就是一張圖** —— 存少了，使用者拍的
 # 那個顏色就可能不在指紋裡，顏色那一關直接失效（第一版每款只存一張，
 # 實測已知正解的九宮格距離 136.8，等於完全沒比到）。
-MAX_PER_SKU = 6
+MAX_PER_SKU = 24
+# 縮圖的長邊像素。**這不是拿來比對的**，比對用簽名與描述子。
+#
+# 它在的理由只有一個：讓「改了比對邏輯」不必再叫使用者重跑一次匯出。
+# 顏色簽名是從像素算出來的衍生值，格子切法一改（SCALES、SPREAD_W）舊
+# 簽名就作廢；有縮圖就能在任何機器上重算，不必再回去碰那 2.69 GB。
+# 順帶也讓我看得到參考圖長什麼樣 —— 上一個 bug（每款只存一個顏色）
+# 如果當時看得到圖，一眼就發現了。
+#
+# 128 長邊、JPEG q70 大約 4 KB；一萬張約 40 MB。
+#
+# **誠實說明**：有了縮圖，指紋檔就不再是「還原不回商品照片」的統計量，
+# 它裡面是真的（很小的）商品圖。所以只放私人倉庫，不要放公開網站。
+# 不想帶就下 --no-thumbs，比對完全不受影響。
+THUMB_PX = 128
 
 
 def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
            max_kp: int = MAX_KP, limit: int = 0, per_sku: int = MAX_PER_SKU,
+           with_thumbs: bool = True,
            log: Callable[[str], None] = print) -> dict[str, Any]:
     """掃過所有參考圖，寫出指紋檔。回傳產出的路徑與統計。
 
@@ -96,6 +111,7 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
     log(f"要處理 {len(skus):,} 款、{n_img:,} 張參考圖"
         f"（平均一款 {n_img / max(len(skus), 1):.1f} 個顏色／角度）")
     sig_rows: list[np.ndarray] = []
+    thumbs: list[bytes] = []
     kept: list[str] = []          # 每一列的貨號（會重複）
     codes: list[str] = []         # 檔名裡的完整編碼，含色號
     srcs: list[str] = []
@@ -117,6 +133,8 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
             if not sig.get("有效格"):
                 continue
             m = full.search(p_.name)
+            if with_thumbs:
+                thumbs.append(_thumb(im))
             sig_rows.append(_flatten(sig))
             kept.append(sku)
             codes.append((m.group(0).upper() if m else sku))
@@ -149,6 +167,15 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
     res: dict[str, Any] = {
         "款數": n_sku, "參考圖數": len(kept), "顏色指紋": str(colour_p),
         "顏色指紋MB": round(colour_p.stat().st_size / 1024 / 1024, 2)}
+
+    if with_thumbs and thumbs:
+        th_p = out / "指紋_縮圖.npz"
+        np.savez_compressed(
+            th_p, version=np.array([VERSION]),
+            lengths=np.array([len(b) for b in thumbs], dtype=np.int32),
+            blob=np.frombuffer(b"".join(thumbs), dtype=np.uint8))
+        res["縮圖"] = str(th_p)
+        res["縮圖MB"] = round(th_p.stat().st_size / 1024 / 1024, 2)
 
     if with_details and desc_store:
         det_p = out / "指紋_細節.npz"
@@ -184,9 +211,113 @@ def export(cfg, out: str | Path | None = None, *, with_details: bool = True,
         info_p = out / "指紋_商品.csv"
         pd.DataFrame(rows).to_csv(info_p, index=False, encoding="utf-8-sig")
         res["商品資料"] = str(info_p)
+
+        # 空欄位要在**這裡**講，不要等使用者上傳完、查了才發現查不到。
+        # 先前那一版 3,320 款裡定價 0 筆、庫存 0 筆，他是在我這邊才知道的。
+        n = len(rows)
+        gaps = []
+        miss_name = sum(1 for r in rows if not r["品名"])
+        if miss_name:
+            gaps.append(f"{miss_name:,}/{n:,} 款沒有品名 —— "
+                        "第一關（特徵詞）找不到這些款。主表缺這些貨號，"
+                        "先跑 `cli build` 重建主表。")
+        if not any(r["定價"] for r in rows):
+            gaps.append("定價全部是空的 —— 主表沒有 list_price 欄，"
+                        "ERP 匯出時請含「定價／售價」。")
+        if not any(r["顏色尺寸庫存"] for r in rows):
+            gaps.append("庫存全部是空的 —— 少了 "
+                        "data/interim/stock_by_variant.parquet。"
+                        "先跑 `cli ingest`（選單 1），"
+                        "而且 ERP 匯出要含「貨品編號＋顏色＋尺寸＋總存」。")
+        res["缺口"] = gaps
     except Exception:
         pass
     return res
+
+
+def verify(cfg, folder: str | Path, *, n: int = 40,
+           log: Callable[[str], None] = print) -> dict[str, Any]:
+    """剛做好的指紋檔，就地驗一次 —— **在有圖的那台電腦上**。
+
+    這支存在的理由跟準確率無關，跟使用者的時間有關。先前的流程是：
+    他跑匯出 → 上傳 → 我這邊發現格式或內容有問題 → 他再跑一次。
+    驗證在我這邊，他就得一直當跑腿。
+
+    所以把驗證搬到匯出的下一步：隨機抽 n 張系統圖，退化成「手機隨手拍」
+    （同 selfeval 的做法），拿剛寫好的指紋檔去查，看找不找得回原圖。
+    每張圖自己就帶著答案（檔名就是貨號），**不需要任何人工標註**。
+
+    數字不對就當場知道，不必等上傳完才發現。
+    """
+    import random
+
+    from ..imageio import load_rgb
+    from . import find as F
+    from . import refs as R
+    from . import selfeval as SE
+
+    index = load(Path(folder))
+    if index.get("錯誤"):
+        return {"錯誤": index["錯誤"]}
+    allrefs = R.collect(cfg)
+    pool = [(sku, it) for sku, items in allrefs.items() for it in items]
+    if not pool:
+        return {"錯誤": "找不到系統圖，沒辦法驗"}
+    random.Random(0).shuffle(pool)
+
+    import tempfile
+
+    t1 = t5 = done = 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for sku, it in pool:
+            if done >= n:
+                break
+            try:
+                im = load_rgb(Path(it["path"]))
+                q = Path(tmp) / "q.jpg"
+                SE.simulate(im, seed=done + 1).save(q, quality=88)
+                r = F.run(cfg, photo=str(q), index=index, top=5,
+                          log=lambda *_: None)
+            except Exception:
+                continue
+            got = [x["貨號"] for x in r["候選"]]
+            done += 1
+            t1 += got[:1] == [sku]
+            t5 += sku in got[:5]
+            if done % 10 == 0:
+                log(f"  驗到 {done}/{n}…")
+    if not done:
+        return {"錯誤": "一題都跑不起來"}
+    out = {"題數": done, "Top-1": round(t1 / done, 4),
+           "Top-5": round(t5 / done, 4)}
+    log(f"\n自我驗證：{done} 題　Top-1 {out['Top-1']:.1%}　"
+        f"Top-5 {out['Top-5']:.1%}")
+    # 這是「退化過的系統圖找回系統圖」，比真的穿搭照容易。所以它是
+    # **下限**：這裡都不及格，真照片一定更差，不必上傳了先修。
+    if out["Top-1"] < 0.60:
+        log("！這個數字太低了。指紋檔有問題，先不要上傳 —— "
+            "多半是 settings.yaml 的 system_images 路徑指到了別的東西。")
+    elif out["Top-1"] < 0.80:
+        log("△ 偏低。這是退化過的系統圖找回自己，算是最容易的題目；"
+            "真的穿搭照只會更難。")
+    else:
+        log("✓ 指紋檔沒問題。注意這是最容易的題目（系統圖找系統圖），"
+            "真的穿搭照會低不少。")
+    return out
+
+
+def _thumb(im, px: int = THUMB_PX) -> bytes:
+    """縮圖成一小塊 JPEG。理由見 THUMB_PX 的註解。"""
+    import io
+
+    from PIL import Image as _I
+
+    w, h = im.size
+    k = px / max(w, h)
+    small = im.resize((max(1, int(w * k)), max(1, int(h * k))), _I.LANCZOS)
+    buf = io.BytesIO()
+    small.convert("RGB").save(buf, "JPEG", quality=70, optimize=True)
+    return buf.getvalue()
 
 
 def _flatten(sig: dict[str, Any]) -> np.ndarray:
@@ -273,6 +404,18 @@ def load(folder: str | Path) -> dict[str, Any]:
                     pts[k:k + n].astype(np.float32),
                     desc[k:k + n].astype(np.uint8))
                 k += n
+    tp = folder / "指紋_縮圖.npz" if folder.is_dir() else None
+    out["縮圖"] = []
+    if tp and tp.exists():
+        t = np.load(tp, allow_pickle=False)
+        if str(t["version"][0]) == VERSION:
+            blob = t["blob"].tobytes()
+            k = 0
+            for ln in t["lengths"]:
+                n = int(ln)
+                out["縮圖"].append(blob[k:k + n])
+                k += n
+
     ip = folder / "指紋_商品.csv" if folder.is_dir() else None
     out["商品"] = _read_info(ip) if ip and ip.exists() else {}
     return out

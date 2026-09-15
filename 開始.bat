@@ -373,18 +373,29 @@ goto back
 
 :j13
 rem Matching never needs the pictures, only their fingerprints: a few
-rem dozen colour medians per style plus the binary detail descriptors.
-rem 3,323 styles come to well under 1 MB of colour and about 20 MB of
-rem detail, against 2.69 GB of photos. So the fingerprint file can travel
-rem to a server, a static website, or a chat window, and the photos stay
-rem where they are.
+rem dozen colour medians per reference image plus the binary detail
+rem descriptors. So the fingerprint file can travel to a server, a static
+rem website, or a chat window, and the photos stay where they are.
+rem
+rem One row per REFERENCE IMAGE, not per style. A style has several
+rem colourways and each colourway is its own file, so storing only the
+rem first one meant the colour stage compared the wrong colour. Measured
+rem cost of that bug: Top-1 82.2 percent against 97.8 percent.
+rem
+rem This run also checks itself: it degrades a sample of the product
+rem photos into phone snapshots and looks them back up. You see the score
+rem here, on this machine, instead of finding out after uploading.
 echo.
 echo   This walks every product photo once. Allow a few minutes.
+echo   It then grades itself on 40 sample questions.
 echo.
 "%VPY%" -m chainway.cli fingerprint
 echo.
 echo   The files are in  data\outputs\%%E6%%8C%%87%%E7%%B4%%8B  (folder name is Chinese,
 echo   open data\outputs and look for the newest folder).
+echo.
+echo   Read the self-check score above before you upload anything.
+echo   Under 60 percent means something is wrong - fix it first.
 start "" "%CD%\data\outputs"
 goto back
 
