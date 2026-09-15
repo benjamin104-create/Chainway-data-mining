@@ -248,6 +248,27 @@ async def find_style(file: UploadFile | None = File(None),
     return res
 
 
+@app.get("/api/vocab")
+def vocab(limit: int = 90) -> dict:
+    """可以用的特徵詞，依「能砍掉多少款」排序，給前端做成可點的標籤。
+
+    八題真照片問出來的結論：同一張照片，不給詞幾乎全錯，給對詞第一名
+    就對。差別不在照片，在有沒有詞 —— 而使用者猜不到公司品名的寫法
+    （「格布」不是「格子布」）。所以讓他用點的。
+    """
+    from chainway.search import find as F
+    from chainway.search import fingerprint as FP
+
+    cfg = get_config()
+    if "vocab" not in _index_cache:
+        try:
+            _index_cache["vocab"] = F.vocab_stats(cfg, FP.auto(cfg), limit=0)
+        except Exception:
+            _index_cache["vocab"] = []
+    rows = _index_cache["vocab"]
+    return {"總數": len(rows), "詞": rows[:limit] if limit else rows}
+
+
 @app.get("/api/search/text")
 def search_text(q: str, top_k: int = 12) -> dict:
     from chainway.search.index import VisualIndex

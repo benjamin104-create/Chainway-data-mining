@@ -125,6 +125,9 @@ RERANK_N = 100
 # 每一次都推翻顏色排好的名次。合成庫的衣服是我用隨機色塊畫的，紋理
 # 比真系統圖單純得多，關鍵點在那裡才那麼可靠 —— 拿那個數字去代表
 # 真實庫，正是先前犯的錯。所以兩邊都量，並且以真實庫那一側為準。
+# 第一關（品名特徵詞）的第一名要比第二名高幾倍，才算「明顯領先」。
+# 只影響顯示的把握度字樣，不參與排序 —— 校準依據見下面把握度那一段。
+FEAT_DOMINANCE = 1.2
 KP_DOMINANCE = 4.0
 KP_FLOOR = 25
 # 關鍵點「有話說但不夠強」的下緣，只影響顯示的判定字樣，不影響名次。
@@ -362,6 +365,46 @@ DETAIL_WORDS = [
     "防曬", "涼感", "彈性", "外套", "背心", "洋裝", "襯衫", "上衣", "帽T",
     "logo", "LOGO", "字母", "熊", "刺繡",
 ]
+
+
+# 一個詞至少要出現在這麼多款的品名裡，才算得上「款式特徵」。
+# 低於這個數的多半是規格表欄位名（褲長、肩寬、色系）誤入 taxonomy。
+MIN_VOCAB_STYLES = 4
+
+
+def vocab_stats(cfg, index: dict | None = None,
+                limit: int = 90) -> list[dict[str, Any]]:
+    """可以用的特徵詞，**依「能砍掉多少款」排序**。
+
+    這一支存在的理由是八題真照片問出來的：同樣一張照片，不給詞的時候
+    名次由顏色決定、幾乎全錯；給了「格紋 短裙 腰帶 打摺」之後，第一名
+    就是「格布腰帶左右打摺短裙」。**差別不在照片，在有沒有詞。**
+
+    但使用者不會知道該打哪些詞 —— 品名用的是公司自己的寫法（「格布」
+    不是「格子布」，「假兩件」不是「假兩件式」）。打不中就等於沒打。
+    所以把品名裡真正出現過的詞挑出來，讓人用點的，不要用猜的。
+
+    排序用出現款數由少到多：**罕見的詞砍得最兇**。「上衣」中 562 款等於
+    沒砍，「網紗」只中 47 款，一個詞就把 3,320 縮到 47。
+
+    但只中 1～2 款的要濾掉。那些多半不是款式特徵，是規格表的欄位名混進
+    taxonomy 的（「褲長」「肩寬」「色系」「裙型」）—— 排在最前面會讓整
+    排標籤看起來像亂碼，使用者第一眼就不信這個功能。
+    """
+    names = (
+        {k: v.get("品名", "") for k, v in (index.get("商品") or {}).items()}
+        if index else master(cfg)[0])
+    names = {k: v for k, v in names.items() if v}
+    if not names:
+        return []
+    got: list[dict[str, Any]] = []
+    for w in _garment_vocab():
+        n = sum(1 for v in names.values() if w in v)
+        if n >= MIN_VOCAB_STYLES:
+            got.append({"詞": w, "款數": n,
+                        "佔比": round(n / len(names), 4)})
+    got.sort(key=lambda x: x["款數"])
+    return got[:limit] if limit else got
 
 
 def _garment_vocab() -> list[str]:
@@ -845,13 +888,27 @@ def run(cfg, *, photo: str | Path | None = None, words: str = "",
     #
     # 一個錯得很有自信的答案，比「我不確定」更糟 —— 這是內部查詢工具，
     # 使用者會照著它去翻商品。所以寧可說沒把握。
+    # 先前這裡只看關鍵點，於是**第一關再怎麼明確都一律報「低」**。
+    # 實測八題真照片：「格布腰帶左右打摺短裙」特徵分 10.63、第二名 7.34
+    # （1.45 倍），品名跟照片一字不差，卻跟完全沒有證據的題目同樣被標成
+    # 「低」。那等於把第一關的證據丟掉 —— 而三關裡第一關最強。
+    #
+    # 所以特徵分也用同一套「比第二名高幾倍」來看。門檻 1.2 是從那八題量
+    # 的（領先的 1.45／1.24，並列的 1.00–1.02），樣本很小，**只拿來決定
+    # 顯示的字樣，絕不參與排序**，改壞了也不會動到名次。要重新校準就多
+    # 收幾題真照片，把倍數列出來看兩群分在哪。
     top_kp = (rows[0].get("相同細節") or 0) if rows else 0
+    f1 = (rows[0].get("特徵分") or 0) if rows else 0
+    f2 = (rows[1].get("特徵分") or 0) if len(rows) > 1 else 0
+    feat_lead = f1 >= FEAT_DOMINANCE * max(f2, 1e-9) and f1 > 0
     if kp_winner is not None and rows and rows[0] is kp_winner:
         sure = "高"
-    elif kp_winner is not None:
+    elif kp_winner is not None or feat_lead:
+        # 關鍵點站出來了（但沒排第一），或第一關明顯領先：有證據，但不到
+        # 「看到同一件東西」的程度。
         sure = "中"
     else:
-        # 關鍵點沒站出來，名次純粹由顏色決定。真照片上純顏色的 Top-1
+        # 三關都沒有人站出來，名次純粹由顏色決定。真照片上純顏色的 Top-1
         # 大約一半，所以這種時候不要說自己有把握。
         sure = "低"
     return {"照片": info, "特徵": stage1, "排序依據": how, "警告": warn,

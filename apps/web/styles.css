@@ -133,3 +133,15 @@ table.stock th{text-align:left;color:var(--muted);font-weight:500;
 table.stock td{padding:3px 6px;border-bottom:1px solid var(--line)}
 table.stock td.instock{font-weight:600}
 table.stock td.nostock{color:var(--muted)}
+
+/* 特徵詞標籤：讓人用點的，不要用猜的。品名用的是公司自己的寫法
+   （「格布」不是「格子布」），猜不中等於沒打。 */
+.vocab { margin-top: 10px; }
+.vocab .chip {
+  display: inline-block; margin: 0 6px 6px 0; padding: 3px 9px;
+  border: 1px solid #d5d5d8; border-radius: 12px; background: #fff;
+  font-size: 12px; cursor: pointer; user-select: none;
+}
+.vocab .chip:hover { border-color: #888; background: #f6f6f7; }
+.vocab .chip.on { background: #1e263e; border-color: #1e263e; color: #fff; }
+.vocab .chip small { opacity: .55; margin-left: 3px; }

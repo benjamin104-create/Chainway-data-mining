@@ -247,6 +247,36 @@ wireDrop('#searchDrop', '#searchFile', file => {
 });
 
 $('#searchTextBtn').onclick = runFind;
+
+// 特徵詞標籤。八題真照片問出來的：同一張照片，不給詞幾乎全錯，給對詞
+// 第一名就對 —— 差別不在照片，在有沒有詞。而使用者猜不到品名的寫法
+// （「格布」不是「格子布」，「假兩件」不是「假兩件式」），猜不中等於
+// 沒打。所以把品名裡真的出現過的詞列出來讓人點，罕見的排前面。
+async function loadVocab() {
+  const box = $('#vocabChips');
+  if (!box) return;
+  let rows = [];
+  try {
+    const r = await fetch('/api/vocab?limit=60').then(x => x.json());
+    rows = r['詞'] || [];
+  } catch (e) { /* 拿不到就當這個功能不存在，不要擋住查詢 */ }
+  if (!rows.length) { $('#vocabBox').style.display = 'none'; return; }
+  box.innerHTML = rows.map(x =>
+    `<span class="chip" data-w="${esc(x['詞'])}">${esc(x['詞'])}` +
+    `<small>${x['款數']}</small></span>`).join('');
+  box.querySelectorAll('.chip').forEach(el => {
+    el.onclick = () => {
+      const inp = $('#searchText');
+      const have = inp.value.split(/\s+/).filter(Boolean);
+      const w = el.dataset.w;
+      const i = have.indexOf(w);
+      if (i >= 0) { have.splice(i, 1); el.classList.remove('on'); }
+      else { have.push(w); el.classList.add('on'); }
+      inp.value = have.join(' ');
+    };
+  });
+}
+loadVocab();
 $('#searchText').onkeydown = e => e.key === 'Enter' && runFind();
 $('#searchTitle').onkeydown = e => e.key === 'Enter' && runFind();
 
