@@ -548,9 +548,13 @@ def cmd_search(args) -> int:
 
     cfg = get_config()
     idx = VisualIndex.load(cfg)
+    season = getattr(args, "season", None)
     if args.image:
-        res = (idx.search_by_crops(args.image, args.top_k) if args.crops
-               else idx.search_by_image(args.image, args.top_k, args.category))
+        # --crops 這條路徑原本沒有把 category 傳下去，限縮會被默默丟掉。
+        res = (idx.search_by_crops(args.image, args.top_k, args.category,
+                                   season=season) if args.crops
+               else idx.search_by_image(args.image, args.top_k, args.category,
+                                        season=season))
     elif args.text:
         res = idx.search_by_text(args.text, args.top_k, args.category)
     elif args.sku:
@@ -2465,7 +2469,11 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("search", help="以圖／以文反查貨號與價格")
     s.add_argument("--image"); s.add_argument("--text"); s.add_argument("--sku")
     s.add_argument("--top-k", type=int, default=None)
-    s.add_argument("--category", help="限定品類（TOP/BOTTOM_PANTS/…），可大幅提高命中率")
+    s.add_argument("--category", help="限定品類（TOP/BOTTOM_PANTS/…）"
+                                      "，量過 Top-1 +7.4pp、Top-5 +9.0pp")
+    s.add_argument("--season", help="限定季號（KA158 等），知道就填 —— "
+                                    "量過 Top-1 +21.3pp、Top-5 +22.2pp。"
+                                    "不知道就別填，不填也比不限縮好")
     s.add_argument("--crops", action="store_true", help="穿搭照：切塊後逐件搜尋")
     s.add_argument("--self-test", action="store_true",
                    help="只驗信心判定的已知案例，不讀索引（改門檻之後用這個驗）")

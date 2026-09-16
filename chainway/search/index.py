@@ -85,19 +85,37 @@ class VisualIndex:
 
     # ------------------------------------------------------------
     def _search_vec(self, q: np.ndarray, top_k: int, category: str | None = None,
-                    in_index_space: bool = False) -> pd.DataFrame:
+                    in_index_space: bool = False,
+                    season: str | None = None) -> pd.DataFrame:
         # in_index_space：向量已經是索引裡的那一份（search_similar 的情況），
         # 再置中一次等於扣兩次平均，比對出來的鄰居會整個跑掉。
         q = q.reshape(1, -1).astype("float32") if in_index_space else self._prepare_query(q)
         sims = (self.vecs @ q.T).ravel()
 
-        # 品類過濾：查詢是上衣時，不該讓裙子出現在候選名單裡佔位置。
-        # 貨號第 6 碼已經帶了品類，這個過濾幾乎沒有成本卻能明顯拉高命中率。
+        # 候選池限縮。量過的效益（122 題獨立評測，候選池 3,391 款）：
+        #
+        #     什麼都不給   Top-1 50.0%   Top-5 67.2%
+        #     只給品類     Top-1 57.4%   Top-5 76.2%
+        #     只給季別     Top-1 77.0%   Top-5 96.7%
+        #     兩個都給     Top-1 78.7%   Top-5 98.4%
+        #
+        # ⚠️ 兩者都是**使用者輸入**，不是自動的 —— 查詢時還不知道貨號，
+        #    而貨號正是要找的東西，所以不能從貨號第 6 碼推品類。
+        #    差別在詢問成本：品類看著衣服就答得出來，季別要事先知道年份與季。
+        #    所以介面上品類適合必填，季別適合做「知道就填」的可選加速器。
         mask = np.ones(len(sims), dtype=bool)
-        if category and "category" in self.meta.columns:
-            mask = (self.meta["category"] == category).to_numpy()
-            if mask.sum() < 5:      # 該品類樣本太少就不過濾，免得沒結果
-                mask = np.ones(len(sims), dtype=bool)
+
+        def _narrow(col: str, val: str) -> None:
+            nonlocal mask
+            if not val or col not in self.meta.columns:
+                return
+            m = (self.meta[col].astype(str) == str(val)).to_numpy()
+            # 限太窄就不限 —— 寧可多給幾個候選，也不要回傳空結果
+            if (mask & m).sum() >= 5:
+                mask = mask & m
+
+        _narrow("category", category)
+        _narrow("season_code", season)
 
         # 一個貨號可能有多個配色面板，取該貨號最高分的那一面板代表它，
         # 否則前十名會被同一款的不同顏色佔滿。
@@ -128,13 +146,15 @@ class VisualIndex:
         return out
 
     def search_by_image(self, image_path: str | Path, top_k: int | None = None,
-                        category: str | None = None) -> pd.DataFrame:
+                        category: str | None = None,
+                        season: str | None = None) -> pd.DataFrame:
         top_k = top_k or self.cfg.get("search", {}).get("top_k", 12)
         vec = embed_images([str(image_path)], self.cfg, show_progress=False)
-        return self._search_vec(vec[0], top_k, category)
+        return self._search_vec(vec[0], top_k, category, season=season)
 
     def search_by_crops(self, image_path: str | Path, top_k: int | None = None,
-                        category: str | None = None) -> pd.DataFrame:
+                        category: str | None = None,
+                        season: str | None = None) -> pd.DataFrame:
         """穿搭照專用：切成幾個區塊各自搜尋，同一貨號取最高分。
 
         一張穿搭照裡有上衣、下身、外套，外加臉、腿與背景。整張壓成一個
@@ -156,7 +176,7 @@ class VisualIndex:
         img = image_path if hasattr(image_path, "mode") else Image.open(image_path)
         regions = garment_regions(img.convert("RGB"))
         if not regions:
-            return self.search_by_image(image_path, top_k, category)
+            return self.search_by_image(image_path, top_k, category, season=season)
 
         names = [n for n, _ in regions]
         vecs = embed_images([c for _, c in regions], self.cfg, show_progress=False)
@@ -168,7 +188,7 @@ class VisualIndex:
         best_sims = None
         best_top = -np.inf
         for name, v in zip(names, vecs):
-            res = self._search_vec(v, top_k * 3, category)
+            res = self._search_vec(v, top_k * 3, category, season=season)
             if not res.empty and float(res["similarity"].iloc[0]) > best_top:
                 best_top = float(res["similarity"].iloc[0])
                 best_sims = res.attrs.get("全部相似度")
