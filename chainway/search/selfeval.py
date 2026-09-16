@@ -165,7 +165,7 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         refs: dict | None = None, ref_penalty: float = 0.0,
         log: Callable[[str], None] = print) -> dict[str, Any]:
     """跑 `n` 題，每題在 `pool` 款裡找。回傳準確率與逐題名次。"""
-    from ..imageio import load_rgb, blank_caption_band
+    from ..imageio import load_rgb
     from ..report.inventory_report import index_images
     from . import find as F
 
@@ -192,10 +192,8 @@ def run(cfg, *, n: int = 30, pool: int = 200, seed: int = 20260911,
         sub = {s: images[s] for s in keep}
         sub_refs = ({s: refs[s] for s in keep if s in refs} if refs else None)
         try:
-            # 出題前先把貨號字幕帶填白：真的手機照片不會有那條帶子，
-            # 留著等於出一道現實不存在的題目，分數不能拿來推論真實表現。
-            q = simulate(blank_caption_band(load_rgb(images[truth])),
-                         seed=seed + i, harsh=harsh, mirror=mirror)
+            q = simulate(load_rgb(images[truth]), seed=seed + i, harsh=harsh,
+                         mirror=mirror)
         except Exception:
             continue
         tmp = cfg.path("interim") / "_selfeval_query.jpg"

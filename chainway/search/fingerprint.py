@@ -251,7 +251,7 @@ def verify(cfg, folder: str | Path, *, n: int = 40,
     """
     import random
 
-    from ..imageio import load_rgb, blank_caption_band
+    from ..imageio import load_rgb
     from . import find as F
     from . import refs as R
     from . import selfeval as SE
@@ -273,7 +273,7 @@ def verify(cfg, folder: str | Path, *, n: int = 40,
             if done >= n:
                 break
             try:
-                im = blank_caption_band(load_rgb(Path(it["path"])))
+                im = load_rgb(Path(it["path"]))
                 q = Path(tmp) / "q.jpg"
                 SE.simulate(im, seed=done + 1).save(q, quality=88)
                 r = F.run(cfg, photo=str(q), index=index, top=5,

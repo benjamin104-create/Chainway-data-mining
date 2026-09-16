@@ -190,10 +190,8 @@ def analyse(img, *, n: int = 3, use_mask: bool = True) -> dict[str, Any]:
     `use_mask=True` 會先用 garment_mask 框出衣服再切 —— 對系統圖有用
     （去掉白底）。穿搭照框不準，設 False 直接對整張切。
     """
-    from ..imageio import blank_caption_band, to_rgb
+    from ..imageio import to_rgb
 
-    # 先把貨號字幕帶填白，再量。garment_mask 也要拿同一張，兩邊座標才對得上。
-    img = blank_caption_band(img)
     a = np.asarray(to_rgb(img))
     box = None
     if use_mask:
@@ -240,10 +238,10 @@ def garment_color(img, *, max_side: int = 320) -> dict[str, Any]:
     """
     from PIL import Image as _PIL
 
-    from ..imageio import blank_caption_band, to_rgb
+    from ..imageio import to_rgb
     from .locate import garment_mask
 
-    img = to_rgb(blank_caption_band(img))
+    img = to_rgb(img)
     if max_side and max(img.size) > max_side:
         img = img.copy()
         img.thumbnail((max_side, max_side), _PIL.LANCZOS)
@@ -445,10 +443,10 @@ def cell_signature(img, *, max_side: int = 320,
     """
     from PIL import Image as _I
 
-    from ..imageio import blank_caption_band, to_rgb
+    from ..imageio import to_rgb
     from .locate import garment_mask
 
-    img = to_rgb(blank_caption_band(img))
+    img = to_rgb(img)
     if max_side and max(img.size) > max_side:
         img = img.copy()
         img.thumbnail((max_side, max_side), _I.LANCZOS)
