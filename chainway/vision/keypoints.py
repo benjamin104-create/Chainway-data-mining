@@ -70,10 +70,12 @@ def describe(img, *, max_side: int = 640) -> tuple | None:
     cv2 = _cv2()
     if cv2 is None:
         return None
-    from ..imageio import to_rgb
+    from ..imageio import blank_caption_band, to_rgb
     from PIL import Image as _I
 
-    im = to_rgb(img)
+    # 貨號字幕帶是縮圖裡對比最強的邊緣，不裁掉的話 ORB 會大量吃在字形上，
+    # 而每張系統圖字體位置相同 —— 變成不同商品之間靠文字互相匹配。
+    im = to_rgb(blank_caption_band(img))
     if max_side and max(im.size) > max_side:
         im = im.copy()
         im.thumbnail((max_side, max_side), _I.LANCZOS)
@@ -137,10 +139,10 @@ def describe_query(img, *, max_side: int = 900, drop_head: float = 0.18
     cv2 = _cv2()
     if cv2 is None:
         return None
-    from ..imageio import to_rgb
+    from ..imageio import blank_caption_band, to_rgb
     from . import person as P
 
-    im = to_rgb(img)
+    im = to_rgb(blank_caption_band(img))
     try:
         p = P.analyse(im)
         m, sk = p["人"], p["皮膚"]

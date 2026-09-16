@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import Config, get_config
+from ..imageio import blank_caption_band
 
 log = logging.getLogger(__name__)
 
@@ -66,53 +67,6 @@ def load_model(cfg: Config | None = None):
     processor = CLIPProcessor.from_pretrained(model_id)
     _MODEL, _PROCESSOR, _DEVICE = model, processor, device
     return model, processor, device
-
-
-def strip_caption_band(img, max_frac: float = 0.30, tol: int = 12):
-    """裁掉系統圖底部印著貨號的字幕帶。
-
-    實際系統圖底部有一條純色帶，上面印著貨號（例如「KA1583008」）。
-    那條帶子會被 CLIP 一起編碼進去 —— 文字與大片色塊會污染「色系」
-    與「面料外觀」的判讀，而它跟商品本身完全無關。
-
-    作法：由下往上找「每一列都是同一個顏色」的連續區塊，
-    碰到第一列有明顯色彩變化就停。找不到就原圖返回。
-    """
-    import numpy as np
-
-    a = np.asarray(img.convert("RGB")).astype(np.int16)
-    h = a.shape[0]
-    if h < 20:
-        return img
-    limit = max(1, int(h * max_frac))
-
-    # 用每列的「中位數顏色」而不是平均或全列純色：字幕帶上印著貨號文字，
-    # 那幾列並非純色，但文字像素佔比小，中位數仍然是底色。
-    row_median = np.median(a, axis=1)
-    ref = row_median[h - 1]
-
-    cut = h
-    for y in range(h - 1, h - limit - 1, -1):
-        if np.abs(row_median[y] - ref).max() <= tol:
-            cut = y
-        else:
-            break
-
-    if h - cut < h * 0.05:
-        return img                      # 太薄，不像字幕帶
-
-    # 關鍵防呆：字幕帶的顏色必須和「整張圖的背景色」明顯不同。
-    # 背景色取四個角落的中位數（商品在中間，角落幾乎一定是底色）。
-    # 少了這道檢查，商品下方單純留白的圖會被當成字幕帶切掉一截，
-    # 淺色下擺就跟著不見了。
-    k = max(2, min(h, img.width) // 20)
-    corners = np.concatenate([
-        a[:k, :k].reshape(-1, 3), a[:k, -k:].reshape(-1, 3),
-    ])
-    background = np.median(corners, axis=0)
-    if np.abs(background - ref).max() <= tol:
-        return img                      # 底部那塊就是背景，不是字幕帶
-    return img.crop((0, 0, img.width, cut))
 
 
 def split_garments(img, min_gap_frac: float = 0.02, min_panel_frac: float = 0.08,
@@ -181,7 +135,7 @@ def prepare_image(path: str | Path, cfg: Config | None = None):
     clip_cfg = cfg.get("clip", {})
     img = Image.open(path) if not hasattr(path, "mode") else path
     if clip_cfg.get("strip_caption", True):
-        img = strip_caption_band(img)
+        img = blank_caption_band(img)
 
     if img.mode in ("RGBA", "LA", "P"):
         img = img.convert("RGBA")

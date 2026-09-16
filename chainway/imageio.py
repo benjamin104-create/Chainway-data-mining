@@ -35,6 +35,8 @@ WHITE = (255, 255, 255)
 MAX_PIXELS = 250_000_000
 # 分析用不到超過這個邊長。位置與顏色都是相對量，解析度再高也不會更準。
 DECODE_MAX_SIDE = 2000
+# 一列要多「平」才算得上是後製貼的純色字幕帶（見 blank_caption_band）。
+FLAT_TOL = 4
 
 
 def _configure() -> None:
@@ -58,6 +60,96 @@ def to_rgb(img, *, background: tuple[int, int, int] = WHITE):
         canvas.paste(rgba, mask=rgba.split()[3])
         return canvas
     return img.convert("RGB")
+
+
+def blank_caption_band(img, max_frac: float = 0.30, tol: int = 12):
+    """把系統圖底部印著貨號的字幕帶**填成白色**（不是裁掉）。
+
+    實際系統圖底部有一條純色帶，上面印著貨號（例如「KA1583008」）。
+    量過 300 張 283×354 的系統圖：帶子從 y=268 開始，**佔畫面高度 24.3%**，
+    而且每張圖都一樣（帶內跨圖標準差 17.3，帶外 66.1）。
+    顏色簽名的 3×3 最底下一排有 73% 是這條帶子，4×4 是 97%。
+
+    ## 為什麼是填白，不是裁掉 —— 這一條是量出來的，不要改回去
+
+    裁掉會把 283×354 變成 283×269，長寬比一變，每一格相對衣服整個位移。
+    全庫 3,321 款、40 題就地驗證：
+
+        不動字幕帶   Top-1 15.0%   Top-5 20.0%
+        裁掉字幕帶   Top-1  7.5%   Top-5 17.5%   ← Top-1 砍半
+
+    改成保持原尺寸、只把帶子填白，同一批圖直接比對：
+
+        只留字幕帶（衣服填白）  Top-1  0.0%   ← 帶子本身不帶任何可檢索訊號
+        只留衣服（帶子填白）    Top-1 62.5%   Top-5 65.0%
+        原圖                    Top-1 62.5%   Top-5 62.5%
+
+    所以有害的是**改變幾何**，不是去掉帶子。
+
+    另外記一筆已推翻的假設，避免有人再繞回去：ORB 關鍵點確實有 34.0%
+    落在只佔 24% 面積的帶子裡，看起來像「在讀印上去的貨號」。但只留帶子
+    去查的結果是 Top-1 0.0%（亂猜是 0.03%）—— 那些關鍵點配不出任何東西。
+
+    作法：由下往上找「每一列都是同一個顏色」的連續區塊，
+    碰到第一列有明顯色彩變化就停。找不到就原圖返回。
+    """
+    import numpy as np
+
+    a = np.asarray(to_rgb(img)).astype(np.int16)
+    h = a.shape[0]
+    if h < 20:
+        return img
+    limit = max(1, int(h * max_frac))
+
+    # 用每列的「中位數顏色」而不是平均或全列純色：字幕帶上印著貨號文字，
+    # 那幾列並非純色，但文字像素佔比小，中位數仍然是底色。
+    row_median = np.median(a, axis=1)
+
+    ref = row_median[h - 1]
+
+    cut = h
+    for y in range(h - 1, h - limit - 1, -1):
+        if np.abs(row_median[y] - ref).max() <= tol:
+            cut = y
+        else:
+            break
+
+    if h - cut < h * 0.05:
+        return img                      # 太薄，不像字幕帶
+
+    # 整段的平坦度。字幕帶是後製貼上去的純色塊，實測每列 MAD 是 0.0–1.3；
+    # 照片底部就算顏色接近均勻（牆面、地板、桌面）也帶紋理，MAD 有 8–20。
+    # 少了這道檢查，手機實拍會被當成字幕帶切掉一截 ——
+    # 實測 IMG_5738（2000×1500 吊掛實拍）被誤切 193px，佔畫面 12.9%。
+    #
+    # 取整段的**中位數**而不是逐列都要求平坦：帶子上印著貨號，那幾列有
+    # JPEG 振鈴，MAD 會偏高。逐列嚴格判定會在第一列文字就停住 ——
+    # 實測 KA1165101（8.7KB、壓得很兇）只裁到 8.2%，帶子還剩一大半。
+    band = a[cut:]
+    band_median = np.median(band, axis=1)
+    band_mad = np.median(np.abs(band - band_median[:, None, :]),
+                         axis=1).mean(axis=1)
+    if float(np.median(band_mad)) > FLAT_TOL:
+        return img                      # 底部是紋理，不是純色帶
+
+    # 關鍵防呆：字幕帶的顏色必須和「整張圖的背景色」明顯不同。
+    # 背景色取**上緣**兩個角落的中位數（下緣角落就是帶子本身）。
+    # 少了這道檢查，商品下方單純留白的圖會被當成字幕帶切掉一截，
+    # 淺色下擺就跟著不見了。
+    k = max(2, min(h, a.shape[1]) // 20)
+    corners = np.concatenate([
+        a[:k, :k].reshape(-1, 3), a[:k, -k:].reshape(-1, 3),
+    ])
+    background = np.median(corners, axis=0)
+    if np.abs(background - ref).max() <= tol:
+        return img                      # 底部那塊就是背景，不是字幕帶
+
+    # 尺寸維持原樣，只把帶子那幾列改成白底 —— 白底跟系統圖去背後的背景一致，
+    # 所以那幾格會被 garment_mask 當成背景排除，而不是當成一塊有顏色的布。
+    out = np.asarray(to_rgb(img)).copy()
+    out[cut:] = WHITE
+    from PIL import Image
+    return Image.fromarray(out)
 
 
 def load_rgb(path: str | Path, *, background: tuple[int, int, int] = WHITE,
