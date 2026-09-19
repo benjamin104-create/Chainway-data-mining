@@ -1,0 +1,251 @@
+# 卡其格穿搭建議卡 —— 結構化版本
+#
+# 和 `文案與出圖prompt.md` 是同一份內容。那份給人讀，這份給程式讀。
+# 改文案改這裡，preview.html 與後續任何自動化都吃這一份。
+#
+# 詞彙對齊：
+#   placement  → config/taxonomy.yaml 的 plaid_placement.options[].code
+#   plaid_form → chainway/analysis/motif.py 的 PLAID_FORM
+#   sku_range  → config/settings.yaml 的 plaid_category_map
+#
+# 注意 placement 的 `trim`（滾邊）與 `strap`（肩帶）目前不在 taxonomy 裡。
+# 要正式納入，往 config/taxonomy.yaml 的 plaid_placement.options 補兩筆。
+
+meta:
+  title: 格紋放對位置，比例就對了
+  subtitle: 卡其格 ╳ 5 個部位 ╳ 10 個解法
+  thesis: 格紋放在哪裡，眼睛就看哪裡。想讓人看的地方放格紋，想讓人略過的地方放素面。
+  language: zh-Hant
+  aspect_ratio: "3:4"      # IG 輪播改 1:1，短影音改 9:16，換比例要重排文字
+  source_note: 改寫自網路流傳的身形穿搭對照圖（簡體、2/6–6/6）。1/6 未取得，封面為新作。
+
+# 卡其格的色票。值來自 config/color_codes.yaml，非量測級，見該檔開頭說明。
+palette:
+  ground:    {code: "37", zh: 米卡其, hex: "#E9DBA9"}   # 底色
+  main:      {code: "38", zh: 卡其,   hex: "#CBB465"}   # 主格
+  shadow:    {code: "39", zh: 深卡其, hex: "#8D7738"}   # 深格
+  frame:     {code: "73", zh: 咖啡,   hex: "#625239"}   # 骨架線
+  overcheck: {code: "80", zh: 白,     hex: "#EBECEA"}   # 細格線
+  accent:    {code: "15", zh: 正紅,   hex: "#AD4039"}   # 強調線
+  solids:
+    - {code: "78", zh: 深褐, hex: "#35312A"}
+    - {code: "70", zh: 米白, hex: "#F0F0EB"}
+    - {code: "48", zh: 墨綠, hex: "#414C3B"}
+    - {code: "82", zh: 米灰, hex: "#D3D3C7"}
+
+# sett 是示意值，不是實際布樣 —— 見 卡其格紋系統.md 第 2 節。
+sett_is_provisional: true
+sett_threads:
+  - {color: ground,    count: 24}
+  - {color: main,      count: 8}
+  - {color: ground,    count: 24}
+  - {color: shadow,    count: 12}
+  - {color: overcheck, count: 2}
+  - {color: shadow,    count: 12}
+  - {color: ground,    count: 24}
+  - {color: frame,     count: 6}
+  - {color: accent,    count: 3}
+  - {color: frame,     count: 6}     # 軸心，之後鏡射
+
+sett_scale:
+  large:  {cm: [10, 14], effect: 放大、休閒、搶眼}
+  medium: {cm: [5, 8],   effect: 標準}
+  small:  {cm: [2, 4],   effect: 收斂、精緻、遠看接近素色}
+
+cards:
+  - card: 1
+    part: 封面
+    panels:
+      - position: cover
+        headline: 格紋放對位置，比例就對了
+        subhead: 卡其格 ╳ 5 個部位 ╳ 10 個解法
+        rationale: >-
+          格紋放在哪裡，眼睛就看哪裡。想讓人看的地方放格紋，想讓人略過的地方放素面。
+          這一句是後面五張卡的全部道理。
+
+  - card: 2
+    part: 腿
+    panels:
+      - position: top
+        headline: 闊腿褲，格紋收在腰頭。
+        subhead: 大腿與小腿較有份量時
+        original_zh_hans: 腿粗穿阔腿裤
+        body_note: 下半身較壯，大腿與小腿有厚度
+        rationale: >-
+          褲身用素面、有垂墜感的布，線條一路往下不被打斷；格紋只留腰頭一圈。
+          視線停在最細的地方，就不會去量褲管有多寬。
+        plaid:
+          placement: placket          # 腰頭一圈
+          plaid_form: 格紋配件（腰帶・領巾・蝴蝶結・披肩）
+          scale: small
+        alt_solution: KA-52 全格闊腿褲，但要選小格（sett 3cm 以下）
+        sku_range: [KA-52]
+
+      - position: bottom
+        headline: 高腰褲，格子走直不走橫。
+        subhead: 想把腿的比例拉長時
+        original_zh_hans: 腿短穿高腰裤
+        body_note: 身高中等偏下，腰線位置偏低
+        rationale: >-
+          腰線提高，上下身從 4:6 變成 3:7。格紋本身的縱向線就是現成的延長線，
+          所以直向對格。褲口別再加一條橫格帶 —— 那會把剛拉長的線又切一刀。
+        plaid:
+          placement: allover
+          plaid_form: 全格（整件格紋布）
+          scale: medium
+          match: vertical             # 直向對格
+        alt_solution: 素面褲 ＋ 格紋高腰頭
+        sku_range: [KA-52]
+
+  - card: 3
+    part: 肩
+    panels:
+      - position: top
+        headline: 泡泡袖，格紋放在袖子上。
+        subhead: 肩線較窄、肩膀偏溜時
+        original_zh_hans: 肩膀窄穿泡泡袖
+        body_note: 肩窄、溜肩、鎖骨較窄
+        rationale: >-
+          泡泡袖本來就有量感，袖子再用全格，格子的密度把寬度再加一次。
+          身片維持素面，肩線才不會整個糊掉 —— 兩邊都放格紋就沒有對比了。
+        plaid:
+          placement: panel
+          plaid_form: 拼接配格（格布接素面）
+          scale: medium
+          craft_note: 袖山只對橫格，其餘讓它走。別要求版師做不到的事。
+        sku_range: [KA-51]
+
+      - position: bottom
+        headline: 馬甲，格紋只留一條滾邊。
+        subhead: 肩線較寬、背部較厚時
+        original_zh_hans: 肩膀宽穿马甲
+        body_note: 肩寬、背厚
+        rationale: >-
+          馬甲的直向剪接線把肩線往內收。格紋這時候不能上肩 —— 上肩等於把寬度描出來。
+          只在領圍與袖襱走一條格紋滾邊，剛好框住收窄後的線條。
+        plaid:
+          placement: trim             # 滾邊，尚未進 taxonomy
+          plaid_form: 格紋滾邊／包釦
+          scale: small
+        alt_solution: 格紋內搭，只露一點在 V 型開口裡
+        sku_range: [KA-51, KA-56]
+
+  - card: 4
+    part: 頸
+    panels:
+      - position: top
+        headline: V 領，格紋往下擺走。
+        subhead: 頸部較短、肩頸線條較近時
+        original_zh_hans: 脖子短穿 V 领
+        body_note: 頸短、肩頸距離近
+        rationale: >-
+          V 的斜線是延長線，領口放格紋等於橫切它一刀。格紋改放下擺或口袋，
+          頸到胸這一段全部留白。要用格紋領巾的話，順著 V 垂下來，不要橫綁。
+        plaid:
+          placement: cuff_hem
+          plaid_form: 拼接配格（格布接素面）
+          scale: medium
+          avoid: collar               # 領口不放格
+        sku_range: [KA-51, KA-53]
+
+      - position: bottom
+        headline: 高領，格紋就該放在這裡。
+        subhead: 頸部修長、肩線較斜時
+        original_zh_hans: 脖子长穿高领
+        body_note: 頸長、肩斜
+        rationale: >-
+          頸部有空間可以填，這是全身最適合放格紋的位置 —— 離臉最近，視線一定經過。
+          格紋高領針織成立，一條格紋領巾橫繞兩圈也成立。
+        plaid:
+          placement: collar
+          plaid_form: 全格（整件格紋布）
+          scale: small
+        alt_solution: 素面高領 ＋ 格紋領巾（配件段，不佔針織庫存）
+        sku_range: [KA-59]
+        stock_warning: KA-59 格紋針織目前僅 4 款，掛連結前先確認有無現貨。
+
+  - card: 5
+    part: 腰
+    panels:
+      - position: top
+        headline: 收腰裙，腰線對準格子。
+        subhead: 腰身明顯、上下有落差時
+        original_zh_hans: 腰细穿收腰裙
+        body_note: 沙漏型，腰身明顯
+        rationale: >-
+          腰有優勢就把焦點放在腰。全格收腰裙，腰部剪接一定要對格 ——
+          前中心對上，那一圈就是整件的視覺中心。斜裁讓格子變成菱形，收腰效果再加一層。
+        plaid:
+          placement: allover
+          plaid_form: 全格（整件格紋布）
+          scale: medium
+          cut: 斜格
+          match: front_center
+          craft_note: 腰線是最顯眼的橫縫，對不上一眼就看得出來。這一格的圖要特別挑。
+        sku_range: [KA-54, KA-57]
+
+      - position: bottom
+        headline: 直筒裙，格子換小一號。
+        subhead: 腰圍想放鬆時
+        original_zh_hans: 腰粗穿直筒裙
+        body_note: H 型，腰身平直
+        rationale: >-
+          不必放棄格紋。格子放大，那個部位就放大 —— 同一塊布，把 sett 從 10cm
+          換成 3cm，遠看幾乎是素色，近看才是格紋。版型走直筒，不在腰圍最寬的地方
+          加橫向格帶。
+        plaid:
+          placement: allover
+          plaid_form: 全格（整件格紋布）
+          scale: small
+          avoid: waist_horizontal_band
+        alt_solution: 素面直筒裙 ＋ 下擺格紋滾邊
+        sku_range: [KA-54]
+        highlight: 整組最實用的一條 —— 不用改版、不用改款，只換布。
+
+  - card: 6
+    part: 臂
+    panels:
+      - position: top
+        headline: 小飛袖，格紋做在袖片上。
+        subhead: 上臂較豐厚時
+        original_zh_hans: 手臂粗选小飞袖
+        body_note: 上臂豐厚、肩頭圓
+        rationale: >-
+          飛袖蓋住上臂最上緣，格紋放在那片袖上，就在那裡做出一個結束點 ——
+          眼睛看到格子會停下來，不會再往下量手臂。身片維持素面。
+        plaid:
+          placement: panel
+          plaid_form: 拼接配格（格布接素面）
+          scale: small
+        sku_range: [KA-51, KA-53]
+
+      - position: bottom
+        headline: 細肩帶，格紋收進肩帶裡。
+        subhead: 手臂線條纖細時
+        original_zh_hans: 手臂细选吊带款
+        body_note: 上臂纖細、肩頭窄
+        rationale: >-
+          裸露面積大，格紋就不能再佔大面積，否則會壓過人。改放在細肩帶上 ——
+          全身最窄的一條，但正好在視線的最高點。想要格紋多一點，
+          外搭一件敞開的格紋襯衫當畫框。
+        plaid:
+          placement: strap            # 肩帶，尚未進 taxonomy
+          plaid_form: 拼接配格（格布接素面）
+          scale: small
+        alt_solution: KA-51 格紋襯衫外搭敞穿
+        sku_range: [KA-51]
+
+# 短影音（9:16）的播放順序 —— 不照卡片順序，把最反直覺的放前面。
+reel_order:
+  - {card: 1, panel: cover,  seconds: 2,   note: 一句話講完整支片的主張}
+  - {card: 5, panel: bottom, seconds: 3,   note: 換小格，最反直覺，留得住人}
+  - {card: 2, panel: bottom, seconds: 3}
+  - {card: 2, panel: top,    seconds: 2.5}
+  - {card: 5, panel: top,    seconds: 2.5}
+  - {card: 6, panel: top,    seconds: 2.5}
+  - {card: 6, panel: bottom, seconds: 2.5}
+  - {card: 3, panel: top,    seconds: 2.5}
+  - {card: 3, panel: bottom, seconds: 2.5}
+  - {card: 4, panel: top,    seconds: 2.5}
+  - {card: 4, panel: bottom, seconds: 2.5}
+  - {card: 1, panel: cover,  seconds: 3,   note: 收尾回到主張，然後才是商品連結}

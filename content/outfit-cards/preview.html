@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>卡其格穿搭卡</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<style>
+  :root{
+    --paper:#E7E4DA; --ink:#2A2620; --muted:#6E6959;
+    --rule:#C8C3B3; --rule-soft:#D7D3C6; --accent:#AD4039; --gold:#8D7738;
+    --serif:"Noto Serif TC",'Songti TC','PMingLiU',serif;
+    --sans:"Noto Sans TC",'PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,'SFMono-Regular',Menlo,monospace;
+    --sett-lg:92px; --sett-md:46px; --sett-sm:21px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#191713; --ink:#E5E0D2; --muted:#9C9583;
+      --rule:#3C372C; --rule-soft:#2F2B22; --accent:#D4665C; --gold:#C2A863;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#191713; --ink:#E5E0D2; --muted:#9C9583;
+    --rule:#3C372C; --rule-soft:#2F2B22; --accent:#D4665C; --gold:#C2A863;
+  }
+
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans);
+       font-size:15px; line-height:1.75; letter-spacing:.01em;}
+  .wrap{max-width:1140px; margin:0 auto; padding-inline:20px; padding-block:40px 72px;}
+  h1,h2,h3{font-family:var(--serif); text-wrap:balance; margin:0;}
+  p{margin:0;}
+  code,.mono{font-family:var(--mono); font-size:.86em; letter-spacing:0;}
+
+  .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+           color:var(--muted); font-weight:500;}
+
+  /* ── 頁首 ───────────────────────────────────────── */
+  header.head{display:flex; flex-direction:column; gap:14px;
+              border-bottom:1px solid var(--rule); padding-bottom:28px;}
+  header.head h1{font-size:clamp(30px,6vw,46px); font-weight:700; line-height:1.25;}
+  .sub{font-size:16px; color:var(--muted);}
+  .metaline{display:flex; flex-wrap:wrap; gap:8px 22px; font-size:12.5px;
+            color:var(--muted); font-family:var(--mono);}
+
+  /* ── 主張 ───────────────────────────────────────── */
+  .thesis{margin-block:40px; display:grid; gap:10px;
+          border-left:3px solid var(--accent); padding-left:22px;}
+  .thesis .big{font-family:var(--serif); font-weight:600;
+               font-size:clamp(20px,3.4vw,27px); line-height:1.5;}
+  .thesis .small{color:var(--muted); max-width:62ch;}
+
+  /* ── 格紋布樣 ───────────────────────────────────── */
+  .tartan{
+    background-color:#E9DBA9;
+    background-image:
+      linear-gradient(90deg,
+        rgba(233,219,169,0) 0 22%, rgba(203,180,101,.60) 22% 28%,
+        rgba(233,219,169,0) 28% 48%, rgba(141,119,56,.58) 48% 57%,
+        rgba(235,236,234,.72) 57% 59%, rgba(141,119,56,.58) 59% 68%,
+        rgba(233,219,169,0) 68% 88%, rgba(98,82,57,.66) 88% 93%,
+        rgba(173,64,57,.78) 93% 95%, rgba(98,82,57,.66) 95% 100%),
+      linear-gradient(0deg,
+        rgba(233,219,169,0) 0 22%, rgba(203,180,101,.60) 22% 28%,
+        rgba(233,219,169,0) 28% 48%, rgba(141,119,56,.58) 48% 57%,
+        rgba(235,236,234,.72) 57% 59%, rgba(141,119,56,.58) 59% 68%,
+        rgba(233,219,169,0) 68% 88%, rgba(98,82,57,.66) 88% 93%,
+        rgba(173,64,57,.78) 93% 95%, rgba(98,82,57,.66) 95% 100%);
+    background-size:var(--sett,46px) var(--sett,46px);
+  }
+  .bias{transform:rotate(45deg) scale(1.42);}
+
+  .swatches{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+            gap:18px; margin-top:22px;}
+  .sw{display:flex; flex-direction:column; gap:9px;}
+  .sw .chip{aspect-ratio:1/1; max-width:100%; border:1px solid var(--rule);
+            overflow:hidden;}
+  .sw .lab{display:flex; justify-content:space-between; align-items:baseline;
+           gap:10px; font-size:13px;}
+  .sw .lab b{font-weight:700;}
+  .sw .lab span{font-family:var(--mono); font-size:11.5px; color:var(--muted);}
+  .sw .why{font-size:12.5px; color:var(--muted); line-height:1.6;}
+
+  .colorrow{display:flex; flex-wrap:wrap; gap:14px; margin-top:26px;}
+  .col{display:flex; align-items:center; gap:9px; font-size:12.5px;}
+  .col i{width:26px; height:26px; display:block; border:1px solid var(--rule);
+         flex:none;}
+  .col .cd{font-family:var(--mono); color:var(--muted);}
+
+  .note{font-size:12.5px; color:var(--muted); line-height:1.65;
+        border-top:1px dashed var(--rule); padding-top:12px; margin-top:24px;}
+  .note b{color:var(--accent); font-weight:700;}
+
+  section{margin-top:56px;}
+  section > h2{font-size:clamp(20px,3vw,25px); font-weight:600; margin-bottom:6px;}
+  section > .lede{color:var(--muted); max-width:66ch; margin-bottom:26px;}
+
+  /* ── 卡片打樣 ─────────────────────────────────────
+     卡片內部固定走印刷稿的淺色，不隨介面主題翻轉 ——
+     這是看印出來長什麼樣，不是看介面。 */
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+         gap:34px;}
+  .card{display:flex; flex-direction:column; gap:14px;}
+  .proof{background:#EFEBDF; border:1px solid var(--rule);
+         display:flex; flex-direction:column; overflow:hidden;}
+  .panel{display:flex; flex-direction:column; flex:1;}
+  .panel + .panel{border-top:1px solid #D9D3C2;}
+  .art{position:relative; aspect-ratio:4/3; display:grid; place-items:center;
+       padding:16px; text-align:center; overflow:hidden;}
+  .cover .art{aspect-ratio:4/5;}
+  .art::after{content:""; position:absolute; inset:0; background:#F6F3EA;
+              opacity:.80;}
+  .art .ph{position:relative; z-index:1; display:grid; gap:5px;}
+  .art .ph .tag{font-size:10px; letter-spacing:.18em; color:#8A8271;
+                text-transform:uppercase; font-weight:500;}
+  .art .ph .body{font-size:13px; color:#3A342A; font-weight:500; line-height:1.55;}
+  .art .ph .scale{font-family:var(--mono); font-size:10.5px; color:#8A8271;}
+  .bar{background:#EFEBDF; border-top:1px solid #D9D3C2; padding:11px 14px;}
+  .bar .hl{font-family:var(--serif); font-weight:700; color:#A5322D;
+           font-size:clamp(15px,2.2vw,18px); line-height:1.4; text-wrap:balance;}
+  .bar .sh{font-size:11.5px; color:#7C7463; margin-top:3px;}
+  .cover .bar .hl{font-size:clamp(17px,2.6vw,21px);}
+
+  .cardno{display:flex; align-items:baseline; gap:10px;}
+  .cardno .n{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .cardno .p{font-family:var(--serif); font-weight:600; font-size:17px;}
+  .plabel{font-size:11px; letter-spacing:.16em; color:var(--muted);
+          font-weight:500; margin-bottom:-6px;}
+
+  .spec{display:grid; gap:0; font-size:13px; border-top:1px solid var(--rule-soft);}
+  .spec .row{display:grid; grid-template-columns:76px 1fr; gap:12px;
+             padding:8px 0; border-bottom:1px solid var(--rule-soft);
+             align-items:start;}
+  .spec .k{color:var(--muted); font-size:11.5px; letter-spacing:.06em;
+           padding-top:2px;}
+  .spec .v{line-height:1.6;}
+  .spec .v .mono{color:var(--gold);}
+  .flag{display:inline-block; font-size:11.5px; line-height:1.5;
+        border:1px solid var(--accent); color:var(--accent);
+        padding:2px 7px; margin-top:6px;}
+  .why{font-size:12.5px; color:var(--muted); line-height:1.7; margin-top:2px;}
+
+  /* ── 表格 ───────────────────────────────────────── */
+  .tablewrap{overflow-x:auto; border-top:1px solid var(--rule);}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:13.5px;}
+  th,td{text-align:left; padding:11px 14px 11px 0; vertical-align:top;
+        border-bottom:1px solid var(--rule-soft); line-height:1.65;}
+  th{font-size:11.5px; letter-spacing:.1em; color:var(--muted); font-weight:500;
+     text-transform:uppercase; white-space:nowrap;}
+  td.was{color:var(--muted);}
+  td b{font-weight:700;}
+
+  /* ── 待辦 ───────────────────────────────────────── */
+  .todo{display:grid; gap:14px; margin-top:4px;}
+  .todo li{list-style:none; display:grid; grid-template-columns:auto 1fr;
+           gap:12px; align-items:start;}
+  .todo .box{width:14px; height:14px; border:1.5px solid var(--accent);
+             margin-top:6px; flex:none;}
+  .todo .t{font-weight:500;}
+  .todo .d{color:var(--muted); font-size:13px; line-height:1.65;}
+  ul{padding:0; margin:0;}
+
+  footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule);
+         font-size:12.5px; color:var(--muted); line-height:1.8;}
+
+  @media (max-width:520px){
+    .spec .row{grid-template-columns:68px 1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">內部工作稿 · 尚未出圖</div>
+    <h1>格紋放對位置，比例就對了</h1>
+    <p class="sub">卡其格 ╳ 5 個部位 ╳ 10 個解法</p>
+    <div class="metaline">
+      <span>繁體中文</span><span>3:4 · 6 張輪播</span>
+      <span>1 封面 ＋ 10 條建議</span><span>改寫自簡體對照圖 2/6–6/6</span>
+    </div>
+  </header>
+
+  <div class="thesis">
+    <p class="big">格紋放在哪裡，眼睛就看哪裡。<br>想讓人看的地方放格紋，想讓人略過的地方放素面。</p>
+    <p class="small">10 條建議全部是這一句的展開。不是「遮缺點」，是移動視覺重心 ——
+      這也是為什麼同一句穿搭建議，別的品牌講出來是廢話，我們講出來後面有商品可以接。</p>
+  </div>
+
+  <section>
+    <h2>先看格子大小</h2>
+    <p class="lede">同一塊布、同一個版，只把 sett 換一級。這是整組最實用的一個變數 ——
+      想讓某個部位收一點，不必放棄格紋，把格子換小一號就好，不用改版也不用改款。</p>
+    <div class="swatches" id="swatches"></div>
+    <div class="colorrow" id="colorrow"></div>
+    <p class="note"><b>注意：</b>這塊格子是我用
+      <code>config/color_codes.yaml</code> 的色號推的示意 sett，<b>不是實際布樣</b>。
+      色卡 hex 足以判斷是哪一個色號，不足以驗色。出圖與對布前請提供一張實際卡其格布樣照片。</p>
+  </section>
+
+  <section>
+    <h2>六張卡</h2>
+    <p class="lede">版面沿用原圖的結構：上下兩格對比，每格下方一條標題帶。
+      換掉的是語言、人物、以及每一格背後的格紋配置。插畫尚未產出，
+      畫面區暫時鋪上該格指定的格子尺寸，順便當成規格本身。</p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section>
+    <h2>人物換成什麼</h2>
+    <p class="lede">原圖是小紅書／webtoon 的標準臉：22 歲、大眼、粉腮紅、凌亂丸子頭、
+      頭上有黃色星星，場景是堆滿衣服的租屋臥室。那個形象賣的是「跟我一樣的女生」，
+      我們賣的是「我想成為的那個人」。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>項目</th><th>原圖</th><th>換成</th></tr></thead>
+        <tbody id="persona"></tbody>
+      </table>
+    </div>
+    <p class="note"><b>最容易出錯的一點：</b>10 格建議不可以用同一個身形。
+      原圖一邊寫「腿粗穿闊腿褲」，一邊畫一個腿很細的人，讀的人立刻就不信了。
+      真的畫出那個身形，然後穿對衣服變好看 —— 這才是這組圖值得發的理由。</p>
+  </section>
+
+  <section>
+    <h2>發之前要先決定</h2>
+    <ul class="todo" id="todo"></ul>
+  </section>
+
+  <footer>
+    文案與逐格出圖 prompt：<code>content/outfit-cards/文案與出圖prompt.md</code><br>
+    結構化資料（改這裡，這一頁跟著改）：<code>content/outfit-cards/cards.yaml</code><br>
+    格紋色值與配置規則：<code>content/outfit-cards/卡其格紋系統.md</code>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const SCALE = {large:{v:'var(--sett-lg)',cm:'10–14 cm',zh:'大格'},
+                 medium:{v:'var(--sett-md)',cm:'5–8 cm',zh:'中格'},
+                 small:{v:'var(--sett-sm)',cm:'2–4 cm',zh:'小格'}};
+
+  const SWATCH = [
+    ['large','外套、大擺長裙、想成為主角的單品。放大、休閒、搶眼。'],
+    ['medium','襯衫、洋裝、裙。標準用法。'],
+    ['small','想穿格紋但不想被放大的部位。遠看接近素色，近看才是格紋。']
+  ];
+
+  const COLORS = [
+    ['37','米卡其','#E9DBA9','底色'], ['38','卡其','#CBB465','主格'],
+    ['39','深卡其','#8D7738','深格'], ['73','咖啡','#625239','骨架線'],
+    ['80','白','#EBECEA','細格線'],  ['15','正紅','#AD4039','強調線']
+  ];
+
+  const CARDS = [
+    {n:1, part:'封面', cover:true, panels:[{
+      hl:'格紋放對位置，比例就對了', sh:'卡其格 ╳ 5 個部位 ╳ 10 個解法',
+      body:'單人全身站在落地鏡前，一件卡其格紋單品；衣桿上素面與格紋交錯。左下留白給 logo。',
+      scale:'medium', spec:[['畫面','原圖缺 1/6，此張為新作封面']],
+      why:'這一句是後面五張卡的全部道理，收尾時再回來一次。'}]},
+
+    {n:2, part:'腿', panels:[
+      {hl:'闊腿褲，格紋收在腰頭。', sh:'大腿與小腿較有份量時',
+       body:'下半身較壯，大腿與小腿有厚度', scale:'small',
+       spec:[['格紋配置','腰頭配格 <span class="mono">placket</span> ＋ 褲身素面'],
+             ['貨號段','<span class="mono">KA-52</span>'],
+             ['第二解','全格闊腿褲，但要選小格（sett 3cm 以下）']],
+       why:'褲身用素面、有垂墜感的布，線條一路往下不被打斷；格紋只留腰頭一圈。視線停在最細的地方，就不會去量褲管有多寬。'},
+      {hl:'高腰褲，格子走直不走橫。', sh:'想把腿的比例拉長時',
+       body:'身高中等偏下，腰線位置偏低', scale:'medium',
+       spec:[['格紋配置','全格 <span class="mono">allover</span> ＋ 直向對格'],
+             ['貨號段','<span class="mono">KA-52</span>'],
+             ['第二解','素面褲 ＋ 格紋高腰頭']],
+       why:'腰線提高，上下身從 4:6 變成 3:7。格紋本身的縱向線就是現成的延長線。褲口別再加一條橫格帶 —— 那會把剛拉長的線又切一刀。'}]},
+
+    {n:3, part:'肩', panels:[
+      {hl:'泡泡袖，格紋放在袖子上。', sh:'肩線較窄、肩膀偏溜時',
+       body:'肩窄、溜肩、鎖骨較窄', scale:'medium',
+       spec:[['格紋配置','袖全格 ＋ 身片素面 <span class="mono">panel</span>'],
+             ['貨號段','<span class="mono">KA-51</span>'],
+             ['對格','袖山只對橫格，其餘讓它走']],
+       why:'泡泡袖本來就有量感，袖子再用全格，格子的密度把寬度再加一次。身片維持素面，肩線才不會整個糊掉 —— 兩邊都放格紋就沒有對比了。'},
+      {hl:'馬甲，格紋只留一條滾邊。', sh:'肩線較寬、背部較厚時',
+       body:'肩寬、背厚', scale:'small',
+       spec:[['格紋配置','素面馬甲 ＋ 格紋滾邊（滾格）'],
+             ['貨號段','<span class="mono">KA-51 · KA-56</span>'],
+             ['第二解','格紋內搭，只露一點在 V 型開口裡']],
+       why:'馬甲的直向剪接線把肩線往內收。格紋這時候不能上肩 —— 上肩等於把寬度描出來。只在領圍與袖襱走一條滾邊，剛好框住收窄後的線條。'}]},
+
+    {n:4, part:'頸', panels:[
+      {hl:'V 領，格紋往下擺走。', sh:'頸部較短、肩頸線條較近時',
+       body:'頸短、肩頸距離近', scale:'medium',
+       spec:[['格紋配置','領口 <span class="mono">no_plaid</span> ＋ 下擺 <span class="mono">cuff_hem</span>'],
+             ['貨號段','<span class="mono">KA-51 · KA-53</span>']],
+       why:'V 的斜線是延長線，領口放格紋等於橫切它一刀。頸到胸這一段全部留白。要用格紋領巾的話，順著 V 垂下來，不要橫綁。'},
+      {hl:'高領，格紋就該放在這裡。', sh:'頸部修長、肩線較斜時',
+       body:'頸長、肩斜', scale:'small',
+       spec:[['格紋配置','格紋高領全格 <span class="mono">collar</span>'],
+             ['貨號段','<span class="mono">KA-59</span>'],
+             ['第二解','素面高領 ＋ 格紋領巾（配件段，不佔針織庫存）']],
+       flag:'KA-59 格紋針織目前僅 4 款，掛連結前先確認有無現貨',
+       why:'頸部有空間可以填，這是全身最適合放格紋的位置 —— 離臉最近，視線一定經過。'}]},
+
+    {n:5, part:'腰', panels:[
+      {hl:'收腰裙，腰線對準格子。', sh:'腰身明顯、上下有落差時',
+       body:'沙漏型，腰身明顯', scale:'medium', bias:true,
+       spec:[['格紋配置','全格 <span class="mono">allover</span> ＋ 前中心對格，可用斜格'],
+             ['貨號段','<span class="mono">KA-54 · KA-57</span>'],
+             ['工藝','腰線是最顯眼的橫縫，對不上一眼就看得出來']],
+       why:'腰有優勢就把焦點放在腰。前中心對上，那一圈就是整件的視覺中心。斜裁讓格子變成菱形，收腰效果再加一層。'},
+      {hl:'直筒裙，格子換小一號。', sh:'腰圍想放鬆時',
+       body:'H 型，腰身平直', scale:'small',
+       spec:[['格紋配置','小格全格，不在腰圍最寬處加橫向格帶'],
+             ['貨號段','<span class="mono">KA-54</span>'],
+             ['第二解','素面直筒裙 ＋ 下擺格紋滾邊']],
+       flag:'整組最實用的一條 —— 不用改版、不用改款，只換布',
+       why:'不必放棄格紋。格子放大，那個部位就放大 —— 同一塊布，把 sett 從 10cm 換成 3cm，遠看幾乎是素色。'}]},
+
+    {n:6, part:'臂', panels:[
+      {hl:'小飛袖，格紋做在袖片上。', sh:'上臂較豐厚時',
+       body:'上臂豐厚、肩頭圓', scale:'small',
+       spec:[['格紋配置','袖片配格 <span class="mono">panel</span> ＋ 身片素面'],
+             ['貨號段','<span class="mono">KA-51 · KA-53</span>']],
+       why:'飛袖蓋住上臂最上緣，格紋放在那片袖上，就在那裡做出一個結束點 —— 眼睛看到格子會停下來，不會再往下量手臂。'},
+      {hl:'細肩帶，格紋收進肩帶裡。', sh:'手臂線條纖細時',
+       body:'上臂纖細、肩頭窄', scale:'small',
+       spec:[['格紋配置','格紋肩帶 ＋ 素面身片'],
+             ['貨號段','<span class="mono">KA-51</span>'],
+             ['第二解','格紋襯衫外搭敞穿']],
+       why:'裸露面積大，格紋就不能再佔大面積，否則會壓過人。改放在細肩帶上 —— 全身最窄的一條，但正好在視線的最高點。'}]}
+  ];
+
+  const PERSONA = [
+    ['年齡感','20–24 歲','<b>35–45 歲</b>　百貨通路主力客層'],
+    ['頭身比','約 9 頭身','<b>7～7.5 頭身</b>　9 頭身穿什麼都好看，建議就沒有說服力'],
+    ['臉','大眼、粉腮紅、漫畫感','<b>寫實時裝插畫比例</b>　眼睛正常大小，不畫腮紅'],
+    ['表情','驚喜、張嘴、頭上星星','<b>從容、嘴角微揚</b>　視線平視或看向鏡中'],
+    ['髮型','凌亂丸子頭、碎髮亂翹','<b>低髮髻／及肩鮑伯</b>　梳理過、有光澤'],
+    ['配飾','迷你包、小金鍊','<b>細金耳環、一只手錶</b>　包收掉，畫面留給衣服'],
+    ['場景','租屋臥室、塑膠衣架、雜物','<b>木質更衣間</b>　實木掛桿、同色系衣架、落地鏡、窗光'],
+    ['畫風','厚塗 cel-shading、粗黑外框','<b>水彩／gouache 時裝插畫</b>　線條克制、留白多'],
+    ['特效','黃色雙撇星星','<b>全部移除</b>　那是短影音的鉤子，不是我們的語氣']
+  ];
+
+  const TODO = [
+    ['實際的卡其格 sett','這一頁的格子是用色號表推的示意值。請給一張實際布樣照片，量出來換掉。'],
+    ['人物是一位還是六位','主題就是「不同身形有不同解法」，建議六位 —— 身形自然不同，也更接近真實客群。'],
+    ['KA-52 與 KA-59 有沒有現貨','格紋褲 15 款、格紋針織 4 款。沒貨就改推該條的第二解，或排進下一波開發。'],
+    ['發布比例','目前排 3:4。IG 輪播要 1:1、短影音要 9:16，換比例要重排文字位置。']
+  ];
+
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+  document.getElementById('swatches').innerHTML = SWATCH.map(([k,why])=>{
+    const s = SCALE[k];
+    return `<div class="sw">
+      <div class="chip tartan" style="--sett:${s.v}"></div>
+      <div class="lab"><b>${s.zh}</b><span>${s.cm}</span></div>
+      <p class="why">${why}</p></div>`;
+  }).join('');
+
+  document.getElementById('colorrow').innerHTML = COLORS.map(([code,zh,hex,role])=>
+    `<div class="col"><i style="background:${hex}"></i>
+      <div><div>${zh}<span class="cd"> · ${role}</span></div>
+      <div class="cd">${code} ${hex}</div></div></div>`).join('');
+
+  document.getElementById('cards').innerHTML = CARDS.map(c=>{
+    const panels = c.panels.map(p=>`
+      <div class="panel">
+        <div class="art">
+          <div class="tartan${p.bias?' bias':''}" style="--sett:${SCALE[p.scale].v};position:absolute;inset:0"></div>
+          <div class="ph">
+            <div class="tag">插畫待出圖</div>
+            <div class="body">${esc(p.body)}</div>
+            <div class="scale">${SCALE[p.scale].zh} · ${SCALE[p.scale].cm}${p.bias?' · 斜格':''}</div>
+          </div>
+        </div>
+        <div class="bar"><div class="hl">${esc(p.hl)}</div><div class="sh">${esc(p.sh)}</div></div>
+      </div>`).join('');
+
+    const specs = c.panels.map((p,i)=>`
+      ${c.cover?'':`<div class="plabel">${i===0?'上格':'下格'}</div>`}
+      <div class="spec">
+        ${p.spec.map(([k,v])=>`<div class="row"><div class="k">${esc(k)}</div><div class="v">${v}</div></div>`).join('')}
+      </div>
+      <p class="why">${esc(p.why)}</p>
+      ${p.flag?`<div class="flag">${esc(p.flag)}</div>`:''}`).join('');
+
+    return `<div class="card${c.cover?' cover':''}">
+      <div class="cardno"><span class="n">${c.n} / 6</span><span class="p">${c.part}</span></div>
+      <div class="proof">${panels}</div>
+      ${specs}</div>`;
+  }).join('');
+
+  document.getElementById('persona').innerHTML = PERSONA.map(([k,was,now])=>
+    `<tr><th scope="row">${k}</th><td class="was">${was}</td><td>${now}</td></tr>`).join('');
+
+  document.getElementById('todo').innerHTML = TODO.map(([t,d])=>
+    `<li><span class="box"></span><div><div class="t">${esc(t)}</div><div class="d">${esc(d)}</div></div></li>`).join('');
+})();
+</script>
+</body>
+</html>
