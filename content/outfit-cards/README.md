@@ -23,7 +23,9 @@
 | `卡其格紋系統.md` | 卡其格的色值、sett 示意、6 種配置方式、對應貨號段 |
 | `文案與出圖prompt.md` | 11 格的繁中文案 + 逐格英文出圖 prompt |
 | `cards.yaml` | 同一份內容的結構化版本，詞彙對齊 `config/taxonomy.yaml` |
-| `preview.html` | 6 張卡的版面預覽，直接用瀏覽器打開（含 CSS 畫的卡其格布樣） |
+| `make_figures.py` | 產生插畫的程式。改身形參數、換配色、重畫都在這裡 |
+| `figures/*.svg` | 11 張插畫，可以直接丟進 Illustrator 改 |
+| `preview.html` | 6 張卡的版面預覽，直接用瀏覽器打開 |
 
 `preview.html` 也發布了一份線上版，手機可以直接開：
 <https://claude.ai/artifact/Uu5aNgE1Dwu7Lf9398pQGi>
@@ -46,18 +48,35 @@
 1/6 那張沒有。我補了一張封面卡（見文案檔 Card 1），
 主標就是上面那句核心主張，讓整組有頭。
 
+## 插畫怎麼來的
+
+11 張插畫是 `make_figures.py` 畫的向量圖，**不是生成式繪圖**。三個理由：
+
+1. **生成式繪圖畫不好規則格紋。** 格距會飄、剪接處對不上 —— 而對格正是我們在意的事。
+2. **身形控制不了。** 這組內容的重點就是「10 格 10 種身形」，用 prompt 求不來。
+   程式版的身形是參數：肩寬、腰圍、大腿、頸長全部是數字，寫死在
+   `make_figures.py` 的 `BODIES`，改數字圖就變。
+3. **格子用的是色號表的實際色值**（37/38/39/73/80/15），不是它編的土黃色。
+
+重畫：
+
+```bash
+python content/outfit-cards/make_figures.py
+```
+
+會重寫 `figures/*.svg` 並把圖嵌回 `preview.html`。
+
+**這是平塗向量打樣，不是最終畫風。** 用途是把構圖、身形、格紋配置、
+文字層級一次定死。要更細緻的水彩／gouache 質感，再拿定版的打樣去發包給繪師，
+或當成生成式工具的 image reference —— 那時候人物已經不會再跑掉了。
+`文案與出圖prompt.md` 的英文 prompt 就是給這一步用的。
+
 ## 製作流程
 
-1. 看 `preview.html` 確認版面與文案 → 你改文案就改 `cards.yaml`，兩邊對得起來。
-2. `角色設定.md` 的人物設定 + `文案與出圖prompt.md` 的逐格 prompt
-   丟給生成式繪圖工具（Midjourney / Firefly / DALL·E）出 11 張圖。
-3. **人物要先定版再出全部。** 先只出 Card 2 上格一張，
-   把人物臉型、髮型、年齡感確定下來，再用同一個 seed / character reference 跑其餘 10 張。
-   不然 11 張會是 11 個人。
-4. 文字不要讓 AI 生成 —— 中文字一定會壞。圖出好之後用 Illustrator／Canva 壓字。
-   `preview.html` 的文字層級（主標級數、位置、底色）可以直接照抄。
-5. 格紋布樣不要讓 AI 亂編。出圖時把實際卡其格布樣當 style reference 餵進去，
-   或出素面之後再用真實布樣貼圖。詳見 `卡其格紋系統.md`。
+1. 看 `preview.html` 確認版面、身形與文案 → 改文案改 `cards.yaml`、改身形改
+   `make_figures.py` 的 `BODIES`。
+2. 文字不要讓 AI 生成 —— 中文字一定會壞。`preview.html` 的紅字橫條可以直接照抄級數。
+3. 格紋布樣要換成實際布：把 `make_figures.py` 的 `SETT` 換掉，整組圖一起變。
 
 ## 和商品的接點（這系列真正的用途）
 
