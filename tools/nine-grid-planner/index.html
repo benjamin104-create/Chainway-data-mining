@@ -283,7 +283,8 @@ body.ranging .gbar{pointer-events:none}
 .sheet h3{margin:0;font-size:16px;font-weight:400;display:flex;align-items:center;gap:8px}
 .sheet h3 svg{width:18px;height:18px;color:var(--accent)}
 .shead{display:flex;align-items:center;gap:8px}
-.shead h2{margin:0;font-size:19px;font-weight:400;flex:1}
+.shead h2{margin:0;font-size:19px;font-weight:400;flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.shead h2 svg{width:20px;height:20px;flex:none;color:var(--accent)}
 .sgroup{display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .row.end{justify-content:flex-end}
@@ -527,6 +528,33 @@ body.ranging .gbar{pointer-events:none}
 .score .bar2{flex:1;height:10px;border-radius:999px;background:var(--chip);overflow:hidden}
 .score .bar2 i{display:block;height:100%;background:var(--accent);border-radius:999px}
 
+/* music discovery */
+.mcard{display:flex;flex-direction:column;gap:12px;padding:14px;--r:28px;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;min-height:120px;justify-content:center}
+.mcover{position:relative;aspect-ratio:16/8;border-radius:20px;overflow:hidden}
+.mcover .play{top:50%;left:50%;width:56px;height:56px;transform:translate(-50%,-50%);background:var(--accent);color:var(--on-accent)}
+.mcover .play svg{width:22px;height:22px}
+.minfo{display:flex;flex-direction:column;gap:3px}
+.minfo b{font-weight:400;font-size:19px;line-height:1.3}
+.minfo span{color:var(--muted);font-size:14px}
+.minfo small{color:var(--accent);font-size:12px}
+.minfo em{align-self:flex-start;font-style:normal;font-size:12px;border-radius:999px;padding:1px 10px;background:var(--chip);margin-top:4px}
+.minfo p{margin:6px 0 0;font-size:14px;line-height:1.55}
+.mbtns{display:flex;align-items:center;justify-content:center;gap:14px}
+.mbtns .round{width:52px;height:52px}
+.mbtns .love{background:var(--hi);color:#fff}
+.mbtns .love svg{width:22px;height:22px}
+.mbox{display:flex;flex-direction:column;gap:8px}
+.mbox h3{margin:0;font-size:15px;font-weight:400;display:flex;align-items:center;gap:6px}
+.mbox h3 svg{width:16px;height:16px;color:var(--hi)}
+.mrow{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
+.mrow::-webkit-scrollbar{display:none}
+.mitem{flex:none;width:118px;display:flex;flex-direction:column;gap:5px;text-align:left}
+.mitem i{display:block;aspect-ratio:1;border-radius:18px;box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 10px 20px -14px var(--shade)}
+.mitem b{font-weight:400;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slotpick{display:grid;grid-template-columns:repeat(3,48px);gap:6px}
+.slotpick button{height:48px;border-radius:14px;font-family:var(--f-num);font-weight:800;--r:14px}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -690,6 +718,12 @@ const STR={
     gWin:n=>`${n} 贏了！`,gDraw:"平手",gRestart:"再來一局",gLeave:"離開",gSpect:"觀戰中",gNotYou:"還沒輪到你",
     gOnlineOff:"線上對戰要在 Claude 裡打開，並把這個網頁分享給朋友才能連線。",gBadCode:"這個代碼不對，請再確認一次",gCPU:"電腦",gP:n=>`玩家 ${n}`,
     gDone:"完成了！",gMist:n=>`錯 ${n} 次`,gErase:"清除",gQuiz:"這是什麼？",gQScore:(a,b)=>`答對 ${a}/${b}`,gUltHint:"你下在小盤的哪一格，對手就得去大盤的那一格。",gPlayers:"玩家",
+    mShuffle:"AI 隨機推薦",mCards:"音樂卡",mBox:"我的收藏",mThinking:"正在幫你挑歌…",mDeckDone:"這一輪看完了",mAgain:"再 shuffle 一次",mListen:"試聽",mSkip:"略過",mKeep:"收藏",mKept:"收藏好了",
+    moods:{focus:"專注",relax:"放鬆",move:"運動",sleep:"睡前",happy:"開心",explore:"探索新類型"},
+    genres:{jazz:"爵士",classical:"古典",citypop:"City Pop",mandopop:"華語流行",bossa:"巴薩諾瓦",ambient:"氛圍",indie:"獨立民謠",soundtrack:"電影配樂"},
+    mSend:"送出音樂卡",mRecv:"收到的音樂卡",mPick:"選一首歌",mNote:"推薦一句話",mNotePh:"例如：下雨天寫作業時聽",mMake:"做成音樂卡",
+    mShareLine:(f,t)=>`${f?f+" ":""}推薦你一首歌：「${t}」。貼到九宮格的「音樂卡」就能收藏`,mRecvHow:"把朋友傳來的音樂卡整段貼上，可以一次貼好幾張。",mOpen:"打開",mBad:"沒有讀到音樂卡",
+    mFrom:n=>`${n} 推薦`,mToGrid:"放進九格的哪一格？",mPut:"放進九格了",
     wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
     wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
     wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
@@ -781,6 +815,12 @@ const STR={
     gWin:n=>`${n} の勝ち！`,gDraw:"引き分け",gRestart:"もう一局",gLeave:"退出",gSpect:"観戦中",gNotYou:"まだ相手の番です",
     gOnlineOff:"オンライン対戦は Claude の中で開き、このページを友だちと共有すると使えます。",gBadCode:"コードが正しくありません",gCPU:"コンピューター",gP:n=>`プレイヤー ${n}`,
     gDone:"完成！",gMist:n=>`ミス ${n} 回`,gErase:"消す",gQuiz:"これは何？",gQScore:(a,b)=>`${b} 問中 ${a} 問正解`,gUltHint:"小さな盤で置いたマスの位置が、相手が次に打つ大きな盤になります。",gPlayers:"プレイヤー",
+    mShuffle:"AI シャッフル",mCards:"ミュージックカード",mBox:"お気に入り",mThinking:"曲を選んでいます…",mDeckDone:"今回はここまで",mAgain:"もう一度シャッフル",mListen:"試聴",mSkip:"スキップ",mKeep:"保存",mKept:"保存しました",
+    moods:{focus:"集中",relax:"リラックス",move:"運動",sleep:"寝る前",happy:"ハッピー",explore:"新しいジャンル"},
+    genres:{jazz:"ジャズ",classical:"クラシック",citypop:"シティポップ",mandopop:"華語ポップ",bossa:"ボサノバ",ambient:"アンビエント",indie:"インディーフォーク",soundtrack:"サウンドトラック"},
+    mSend:"カードを送る",mRecv:"届いたカード",mPick:"曲を選ぶ",mNote:"おすすめの一言",mNotePh:"例：雨の日の勉強に",mMake:"カードを作る",
+    mShareLine:(f,t)=>`${f?f+" から":""}おすすめの一曲「${t}」。九マスの「ミュージックカード」に貼ると保存できます`,mRecvHow:"友だちから届いたカードをそのまま貼り付けてください。複数でも OK。",mOpen:"開く",mBad:"カードが見つかりません",
+    mFrom:n=>`${n} のおすすめ`,mToGrid:"九マスのどこに入れますか？",mPut:"九マスに入れました",
     wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
     wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
     wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
@@ -872,6 +912,12 @@ const STR={
     gWin:n=>`${n} wins!`,gDraw:"Draw",gRestart:"Play again",gLeave:"Leave",gSpect:"Watching",gNotYou:"Not your turn yet",
     gOnlineOff:"Online play works when this page is opened inside Claude and shared with your friend.",gBadCode:"That code doesn't look right",gCPU:"Computer",gP:n=>`Player ${n}`,
     gDone:"Solved!",gMist:n=>`${n} mistake${n===1?"":"s"}`,gErase:"Erase",gQuiz:"What is this?",gQScore:(a,b)=>`${a} of ${b} right`,gUltHint:"The square you play in sends your opponent to that board.",gPlayers:"Players",
+    mShuffle:"AI shuffle",mCards:"Music cards",mBox:"Saved",mThinking:"Picking songs for you…",mDeckDone:"That's this round",mAgain:"Shuffle again",mListen:"Listen",mSkip:"Skip",mKeep:"Save",mKept:"Saved",
+    moods:{focus:"Focus",relax:"Relax",move:"Workout",sleep:"Bedtime",happy:"Happy",explore:"Something new"},
+    genres:{jazz:"Jazz",classical:"Classical",citypop:"City pop",mandopop:"Mandopop",bossa:"Bossa nova",ambient:"Ambient",indie:"Indie folk",soundtrack:"Soundtrack"},
+    mSend:"Send a card",mRecv:"Cards you got",mPick:"Pick a song",mNote:"One line on why",mNotePh:"e.g. for rainy-day homework",mMake:"Make the card",
+    mShareLine:(f,t)=>`${f?f+" ":""}recommends “${t}”. Paste this into Music cards in Nine-Grid Week to save it`,mRecvHow:"Paste the card your friend sent. Several at once is fine.",mOpen:"Open",mBad:"No music card found",
+    mFrom:n=>`From ${n}`,mToGrid:"Which square should it go in?",mPut:"Added to the grid",
     wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
     wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
     wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
@@ -1528,14 +1574,15 @@ function cover(seed){
 }
 function renderMusicFace(){
   const t=T();
-  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-imp="open">${I.music}${t.impBtn}</button></div><div class="music">${S.songs.map((s,i)=>{
+  const saved=(S.musicBox||[]).length?`<section class="mbox"><h3>${I.heart}${t.mBox} · ${S.musicBox.length}</h3><div class="mrow">${S.musicBox.map((m,i)=>`<button class="mitem" type="button" data-mbi="${i}"><i style="background:${cover(m.url+m.title)}"></i><b>${esc(m.title)}</b><small>${esc(m.from?t.mFrom(m.from):m.artist||"")}</small></button>`).join("")}</div></section>`:"";
+  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-mshuf="1">${I.sparkle}${t.mShuffle}</button><button class="pill jelly" type="button" data-mcards="1">${I.music}${t.mCards}</button><button class="pill jelly" type="button" data-imp="open">${I.upload}${t.impBtn}</button></div><div class="music">${S.songs.map((s,i)=>{
     const center=i===4;
     if(!s||!s.url)return `<button class="stile jelly blank${center?" center":""}" type="button" data-song="${i}" data-edit="${i}" aria-label="${t.addSong}"><span class="plus">+</span></button>`;
     const title=s.title||(center?t.playlist:"♪");
     return `<div class="stile${center?" center":""}" data-song="${i}"><div class="cover" style="background:${cover(s.url+s.title)}"></div>
 <a class="tlink" href="${esc(s.url)}" target="_blank" rel="noopener"><span class="play">${I.play}</span><span class="lbl"><b>${esc(title)}</b>${s.artist?`<span>${esc(s.artist)}</span>`:""}</span></a>
 <button class="pen" type="button" data-edit="${i}" aria-label="${esc(title)}">${I.pen}</button></div>`;
-  }).join("")}</div>`;
+  }).join("")}</div>${saved}`;
 }
 
 /* ---------- face 3: sponsors ---------- */
@@ -2748,6 +2795,124 @@ function openGameSetup(id){
 <div class="row"><input id="gCode" class="region jelly" style="max-width:none;flex:1;min-width:0;text-transform:uppercase;font-size:16px" maxlength="4" placeholder="${esc(t.gCodePh)}" aria-label="${esc(t.gCodePh)}"><button class="pill jelly" type="button" data-gnet="join">${t.gJoin}</button></div></div>`,true);
 }
 
+
+/* =========================================================
+   Music discovery: AI shuffle and friends' music cards
+   ========================================================= */
+// Well-known recordings used when AI isn't available. Links are YouTube searches, so nothing here is a made-up video.
+const MPOOL=[
+  ["Take Five","Dave Brubeck Quartet","jazz"],["So What","Miles Davis","jazz"],["Fly Me to the Moon","Frank Sinatra","jazz"],["What a Wonderful World","Louis Armstrong","jazz"],
+  ["Air on the G String","J.S. Bach","classical"],["Nocturne Op. 9 No. 2","Frédéric Chopin","classical"],["The Swan","Camille Saint-Saëns","classical"],["Comptine d'un autre été","Yann Tiersen","soundtrack"],
+  ["Plastic Love","竹内まりや","citypop"],["真夜中のドア〜Stay With Me","松原みき","citypop"],["Ride on Time","山下達郎","citypop"],
+  ["晴天","周杰倫","mandopop"],["小幸運","田馥甄","mandopop"],["突然好想你","五月天","mandopop"],["修煉愛情","林俊傑","mandopop"],
+  ["The Girl from Ipanema","Stan Getz & João Gilberto","bossa"],["Wave","Antônio Carlos Jobim","bossa"],
+  ["An Ending (Ascent)","Brian Eno","ambient"],["Holocene","Bon Iver","indie"],["Riptide","Vance Joy","indie"],
+  ["Merry-Go-Round of Life","久石譲","soundtrack"],["One Summer's Day","久石譲","soundtrack"]
+].map(([title,artist,genre])=>({title,artist,genre,url:yt(title+" "+artist)}));
+S.musicBox=S.musicBox||[];S.musicSkip=S.musicSkip||[];
+let deck=null;   // {cards:[...], i, kind:"ai"|"friend"}
+let mood="focus";
+const songKey=s=>(s.title+"|"+s.artist).toLowerCase();
+function knownSongs(){return [...S.songs.filter(Boolean),...S.musicBox]}
+function openShuffle(){
+  const t=T();
+  layer(`<div class="shead"><h2>${I.sparkle}${t.mShuffle}</h2>${closeBtn(t)}</div>
+<div class="qchips" id="moods">${Object.entries(t.moods).map(([k,l])=>`<button type="button" data-mood="${k}"${k===mood?' style="background:var(--accent);color:var(--on-accent)"':""}>${l}</button>`).join("")}</div>
+<div id="deckBox"></div>`,true);
+  shuffleNow();
+}
+async function shuffleNow(){
+  const t=T(),box=$("deckBox");if(!box)return;
+  box.innerHTML=`<p class="note" style="text-align:center">${t.mThinking}</p>`;
+  await aiReady;
+  let cards=null;
+  if(AI){
+    const liked=knownSongs().filter(s=>s.title).slice(0,24).map(s=>`${s.title} — ${s.artist||""}`).join("\n");
+    const skipped=S.musicSkip.slice(-20).join("\n");
+    try{
+      const r=await AI.json(`Recommend 8 songs this listener may enjoy, for the mood "${t.moods[mood]}". Mix what fits their taste with 2-3 picks from genres they don't have yet, so they can explore. Only real, well-known recordings that exist on YouTube; never invent titles. Don't repeat anything below.
+Reply with ONLY a JSON array of {"title":"song title","artist":"artist","genre":"one or two words","why":"one short line in ${t.replyLang} on why they may like it"}.
+Songs they like:
+${liked||"(none yet)"}
+Songs they skipped:
+${skipped||"(none)"}`,{modelTier:"default",cache:false});
+      if(Array.isArray(r))cards=r.filter(x=>x&&x.title&&x.artist).slice(0,8).map(x=>({title:String(x.title).slice(0,60),artist:String(x.artist).slice(0,60),genre:String(x.genre||"").slice(0,20),why:String(x.why||"").slice(0,90),url:yt(x.title+" "+x.artist)}));
+    }catch(e){if(e.code==="cancelled")return;toast(aiErrText(e))}
+  }
+  if(!cards||!cards.length){
+    // no AI: shuffle the built-in pool, favouring genres the listener doesn't have yet
+    const have=new Set(knownSongs().map(songKey)),skip=new Set(S.musicSkip.map(x=>x.toLowerCase()));
+    const fresh=MPOOL.filter(s=>!have.has(songKey(s))&&!skip.has(songKey(s)));
+    const r=rng(Date.now());cards=shuffle(fresh.length?fresh:MPOOL,r).slice(0,8).map(s=>Object.assign({},s,{genre:t.genres[s.genre]||s.genre}));
+  }
+  deck={cards,i:0,kind:"ai"};drawDeck();
+}
+function drawDeck(){
+  const t=T(),box=$("deckBox");if(!box||!deck)return;
+  if(deck.i>=deck.cards.length){
+    box.innerHTML=`<div class="mcard jelly" style="--t:var(--accent)"><b style="font-weight:400;font-size:17px">${t.mDeckDone}</b></div>
+<div class="row" style="justify-content:center">${deck.kind==="ai"?`<button class="pill pri jelly" type="button" data-mdeck="again">${I.sparkle}${t.mAgain}</button>`:""}<button class="pill jelly" type="button" data-close="1">${t.close}</button></div>`;
+    render();return;
+  }
+  const c=deck.cards[deck.i];
+  box.innerHTML=`<div class="mcard jelly" id="mcard"><div class="mcover" style="background:${cover(c.url+c.title)}"><a class="play" href="${esc(c.url)}" target="_blank" rel="noopener" aria-label="${t.mListen}">${I.play}</a></div>
+<div class="minfo">${c.from?`<small>${esc(t.mFrom(c.from))}</small>`:""}<b>${esc(c.title)}</b><span>${esc(c.artist||"")}</span>${c.genre?`<em>${esc(c.genre)}</em>`:""}${c.why||c.note?`<p>${esc(c.note||c.why)}</p>`:""}</div></div>
+<div class="mbtns"><button class="round jelly" type="button" data-mdeck="skip" aria-label="${t.mSkip}">${I.x}</button><span class="note">${deck.i+1} / ${deck.cards.length}</span><a class="round jelly" href="${esc(c.url)}" target="_blank" rel="noopener" aria-label="${t.mListen}">${I.play}</a><button class="round jelly love" type="button" data-mdeck="keep" aria-label="${t.mKeep}">${I.heart}</button></div>`;
+  swipeCard($("mcard"));
+}
+function deckAct(keep){
+  if(!deck)return;const c=deck.cards[deck.i];if(!c)return;
+  if(keep){if(!S.musicBox.some(x=>songKey(x)===songKey(c)))S.musicBox.unshift({title:c.title,artist:c.artist||"",url:c.url,genre:c.genre||"",from:c.from||"",note:c.note||""});toast(T().mKept)}
+  else S.musicSkip.push(c.title+"|"+(c.artist||""));
+  S.musicSkip=S.musicSkip.slice(-60);save();
+  const el=$("mcard");
+  if(el&&el.animate&&!reduced())el.animate([{transform:"none",opacity:1},{transform:`translateX(${keep?160:-160}px) rotate(${keep?12:-12}deg)`,opacity:0}],{duration:240,easing:"ease-in"}).finished.then(()=>{deck.i++;drawDeck()});
+  else{deck.i++;drawDeck()}
+}
+// drag a card: right keeps it, left skips it
+function swipeCard(el){
+  if(!el)return;let x0=null,dx=0;
+  el.addEventListener("pointerdown",e=>{if(e.target.closest("a,button"))return;x0=e.clientX;dx=0;el.setPointerCapture(e.pointerId)});
+  el.addEventListener("pointermove",e=>{if(x0==null)return;dx=e.clientX-x0;el.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`});
+  const end=()=>{if(x0==null)return;x0=null;if(Math.abs(dx)>80)deckAct(dx>0);else el.style.transform=""};
+  el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);
+}
+
+/* ---- music cards from friends: a short code anyone can paste into a chat ---- */
+const b64e=s=>{const b=new TextEncoder().encode(s);let x="";b.forEach(c=>x+=String.fromCharCode(c));return btoa(x).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+const b64d=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");const x=atob(s);return new TextDecoder().decode(Uint8Array.from(x,c=>c.charCodeAt(0)))};
+function openCards(tab){
+  const t=T(),songs=knownSongs().filter(s=>s&&s.url);
+  tab=tab||"send";
+  layer(`<div class="shead"><h2>${I.music}${t.mCards}</h2>${closeBtn(t)}</div>
+<div class="seg jelly small" role="group" style="align-self:flex-start"><button type="button" data-mtab="send" aria-pressed="${tab==="send"}">${t.mSend}</button><button type="button" data-mtab="recv" aria-pressed="${tab==="recv"}">${t.mRecv}</button></div>
+${tab==="send"?`<label class="fld">${t.mPick}<select id="mcSong" class="region jelly" style="max-width:none;width:100%">${songs.map((s,i)=>`<option value="${i}">${esc(s.title||t.playlist)}${s.artist?" — "+esc(s.artist):""}</option>`).join("")}</select></label>
+<label class="fld">${t.mNote}<input id="mcNote" type="text" maxlength="80" placeholder="${esc(t.mNotePh)}"></label>
+<label class="fld">${t.nick}<input id="mcFrom" type="text" maxlength="16" value="${esc(S.nick||S.account&&S.account.name||"")}"></label>
+<div class="row end"><button class="pill pri jelly" type="button" data-mcard="make">${t.mMake}</button></div><div id="mcOut"></div>`
+:`<p class="note">${t.mRecvHow}</p><textarea id="mcIn" class="impta" placeholder="🎵 …"></textarea><div class="row end"><button class="pill pri jelly" type="button" data-mcard="read">${t.mOpen}</button></div><div id="deckBox"></div>`}`,true);
+}
+function makeMusicCard(){
+  const t=T(),songs=knownSongs().filter(s=>s&&s.url),s=songs[+$("mcSong").value];if(!s)return;
+  const from=($("mcFrom").value||"").trim().slice(0,16);S.nick=from||S.nick;save();
+  const code="NGM1:"+b64e(JSON.stringify({t:s.title||"",a:s.artist||"",u:s.url,g:s.genre||"",n:($("mcNote").value||"").trim().slice(0,80),f:from}));
+  const text=`🎵 ${t.mShareLine(from||"",s.title||t.playlist)}\n${code}`;
+  $("mcOut").innerHTML=`<textarea class="impta" readonly id="mcText">${esc(text)}</textarea><div class="row end"><button class="pill pri jelly" type="button" data-mcard="copy">${t.copyCap}</button></div>`;
+}
+function readCards(){
+  const t=T(),txt=$("mcIn").value||"",cards=[];
+  for(const m of txt.matchAll(/NGM1:([A-Za-z0-9_-]+)/g)){
+    try{const o=JSON.parse(b64d(m[1]));if(typeof o.u==="string"&&/^https:\/\/\S+$/.test(o.u))cards.push({title:String(o.t||"").slice(0,60),artist:String(o.a||"").slice(0,60),url:o.u,genre:String(o.g||"").slice(0,20),note:String(o.n||"").slice(0,80),from:String(o.f||"").slice(0,16)})}catch(e){}
+  }
+  if(!cards.length){toast(t.mBad);return}
+  deck={cards,i:0,kind:"friend"};drawDeck();
+}
+function openBoxItem(i){
+  const t=T(),s=S.musicBox[i];if(!s)return;
+  layer(`<div class="shead"><h2>${esc(s.title)}</h2>${closeBtn(t)}</div>${s.artist?`<p class="note">${esc(s.artist)}${s.from?" · "+esc(t.mFrom(s.from)):""}</p>`:""}${s.note?`<p class="firsthint">${esc(s.note)}</p>`:""}
+<div class="row"><a class="pill pri jelly" href="${esc(s.url)}" target="_blank" rel="noopener">${I.play}${t.mListen}</a><button class="pill jelly" type="button" data-mbox="del" data-i="${i}">${t.remove}</button></div>
+<p class="note">${t.mToGrid}</p><div class="slotpick">${S.songs.map((x,k)=>`<button class="jelly" type="button" data-mslot="${k}" data-i="${i}">${k===4?"♫":k+1}</button>`).join("")}</div>`,true);
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -2783,6 +2948,16 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
+  if(el.closest("[data-mshuf]")){openShuffle();return}
+  if(el.closest("[data-mcards]")){openCards("send");return}
+  const mdk=el.closest("[data-mdeck]");if(mdk){const a=mdk.dataset.mdeck;if(a==="again")shuffleNow();else deckAct(a==="keep");return}
+  const mo=el.closest("[data-mood]");if(mo){mood=mo.dataset.mood;document.querySelectorAll("[data-mood]").forEach(b=>b.style.cssText=b===mo?"background:var(--accent);color:var(--on-accent)":"");shuffleNow();return}
+  const mtb=el.closest("[data-mtab]");if(mtb){openCards(mtb.dataset.mtab);return}
+  const mcd=el.closest("[data-mcard]");if(mcd){const a=mcd.dataset.mcard;if(a==="make")makeMusicCard();if(a==="read")readCards();
+    if(a==="copy"){const tx=$("mcText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>{$("mcText").select()})}catch(x){$("mcText").select()}}return}
+  const mbi=el.closest("[data-mbi]");if(mbi){openBoxItem(+mbi.dataset.mbi);return}
+  const mbx=el.closest("[data-mbox]");if(mbx){S.musicBox.splice(+mbx.dataset.i,1);save();closeLayer();render();return}
+  const msl=el.closest("[data-mslot]");if(msl){const m=S.musicBox[+msl.dataset.i];if(m){S.songs[+msl.dataset.mslot]={title:m.title,artist:m.artist,url:m.url};save();closeLayer();render();toast(T().mPut)}return}
   const gpk=el.closest("[data-gpick]");if(gpk){openGameSetup(gpk.dataset.gpick);return}
   const gmd=el.closest("[data-gmode]");if(gmd){
     const m=gmd.dataset.gmode;S.nick=($("gNick").value||"").trim();save();
