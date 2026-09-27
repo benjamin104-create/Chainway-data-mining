@@ -1,5 +1,5 @@
 // 離線可用：先用快取畫面，背景再抓新版。字型抓不到時退回系統字型。
-const CACHE = "nine-grid-v10";
+const CACHE = "nine-grid-v11";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-180.png"];
 
 self.addEventListener("install", e => {

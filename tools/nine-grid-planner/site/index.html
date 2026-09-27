@@ -791,6 +791,45 @@ body.ranging .gbar{pointer-events:none}
 input.need{box-shadow:0 0 0 2px var(--accent);animation:shake .4s}
 @media (max-width:600px){.crtile .crem{font-size:26px}.crtile b{font-size:12.5px}.crtile small{font-size:10px}.crsteps li{font-size:11px}}
 
+/* quests, EXP, stars */
+.player{padding:12px 14px;--r:22px;display:flex;flex-direction:column;gap:6px}
+.plv{display:flex;align-items:center;gap:8px}
+.plvn{font-family:var(--f-num);font-weight:800;font-size:13px;padding:2px 10px;border-radius:999px;background:var(--accent);color:var(--on-accent)}
+.plv b{font-weight:400;font-size:16px;flex:1}
+.streak{font-size:12px;color:var(--accent)}
+.pbar{height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,color-mix(in srgb,#fff 25%,var(--accent)),var(--accent));transition:width .6s var(--ease)}
+.player small{font-size:12px;color:var(--muted)}
+.quests{padding:12px 14px;--r:22px;display:flex;flex-direction:column;gap:8px}
+.quests h3{margin:0;font-size:15px;font-weight:400;display:flex;align-items:center;gap:8px}
+.quests h3 small{font-family:var(--f-num);font-weight:800;color:var(--accent);flex:1}
+.quest{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--chip);border:1px solid var(--chip-edge);text-align:left}
+.qchk{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;color:var(--on-accent);font-weight:800}
+.quest.done .qchk{background:var(--accent)}
+.quest.done .qtx b{text-decoration:line-through;opacity:.6}
+.qtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.qtx b{font-weight:400;font-size:14px;line-height:1.35}
+.qtx small{font-size:11px;color:var(--muted)}
+.qxp{font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--accent);white-space:nowrap}
+.stars{display:inline-flex;gap:1px;font-size:13px;line-height:1}
+.stars i{font-style:normal;color:color-mix(in srgb,var(--muted) 35%,transparent)}
+.stars i.on{color:#F5B83D;text-shadow:0 0 6px rgba(245,184,61,.5)}
+.skhead .stars{margin-left:auto}
+.skdots i.s1{background:color-mix(in srgb,var(--t) 45%,transparent);border-color:transparent}
+.skdots i.s2{background:var(--t);border-color:transparent}
+.skdots i.s3{background:#F5B83D;border-color:transparent;box-shadow:0 0 6px #F5B83D}
+.skct2{display:flex;align-items:center;gap:8px}.skct2 b{font-weight:400;font-size:16px}.skct2 small{margin-left:auto;font-size:11px;color:var(--muted)}
+.xppop{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:95;font-family:var(--f-num);font-weight:800;font-size:22px;color:var(--accent);text-shadow:0 2px 10px rgba(0,0,0,.2);pointer-events:none;animation:xpup 1.4s var(--ease) forwards}
+@keyframes xpup{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}20%{opacity:1;transform:translate(-50%,0) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+.lvup{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.lvmas{width:120px;height:120px}
+.lvbig{font-family:var(--f-num);font-weight:800;font-size:40px;color:var(--accent);line-height:1}
+.lvup h2{margin:0;font-weight:400;font-size:20px}
+.lvup p{margin:0;font-size:14px;color:var(--muted)}
+.lvrw{list-style:none;margin:4px 0;padding:0;display:flex;flex-direction:column;gap:6px;width:100%}
+.lvrw li{padding:10px 12px;border-radius:14px;background:var(--chip);font-size:14px;text-align:left}
+.rules{font-size:14px;line-height:1.65}.rules ul{padding-left:20px;margin:4px 0 10px}.rules p{margin:6px 0}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -930,6 +969,7 @@ const OWNER={
   mascotImg:"",                            // 小潔米果凍官方圖（https 網址或 data:），空白時用內建插畫
   proPics:true,                            // 圖鑑分類是否有加購；false 就全部免費
   picFree:["animal","plant","life"],       // 免費開放的圖鑑大類（動物、植物、生活），其餘可試看 trialCards 張
+  rewards:[{lv:6,name:{zh:"合作夥伴優惠券",ja:"パートナークーポン",en:"Partner coupon"},code:"",url:""}], // 升級獎勵的優惠券：填 code 或領取網址
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -942,7 +982,7 @@ const SPONSORS=[
 const STR={
   zh:{
     faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練","技能樹"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","選一張，打主題，AI 幫你寫好貼文","選一個部位，看動作重點和 YouTube 教學","從你做過的事長出能力，AI 幫你排職涯下一步"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","選一張，打主題，AI 幫你寫好貼文","選一個部位，看動作重點和 YouTube 教學","每天 3 個小任務，升級拿獎勵，看見自己的能力"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -1057,12 +1097,12 @@ const STR={
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
       [["#crgrid [data-crpick='0']","點一張，例如「IG 貼文文案」。"],["#crgrid .crcore","想要自己的寫法？中間可以新增一張。"],["#crapps","寫好之後，點這裡的 App 就會打開，文字已經幫你複製好。"]],
       [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]],
-      [["#skgrid","八個分枝是八種能力。行事曆上完成的事，會自動變成經驗值長在這裡。"],["[data-skflow]","先做一次心流回想：想一段做到忘了時間的經驗，AI 會找出你真正用到的能力。"],["[data-skcoach]","選一個想走的職涯方向，看差距，一鍵排成 4 週行事曆。"]]
+      [["#quests","每天有 3 個小任務，做完就得 EXP。三個都完成還有加碼。"],["#player","EXP 累積到一定就升級，升級會解鎖獎勵，例如加購字卡免費用 7 天。"],["#skgrid","八個分枝是八種能力，星星代表證據：做過、有作品、有人認可。"],["[data-skflow]","先做一次心流回想：想一段做到忘了時間的經驗，AI 會找出你真正用到的能力。"],["[data-skcoach]","選一個想走的職涯方向，看差距，一鍵排成 4 週行事曆。"]]
     ]
   },
   ja:{
     faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ","スキルツリー"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","カードを選んでテーマを入れると、AI が投稿を書きます","部位を選んで、フォームのコツと YouTube 解説","やったことから力が育ち、AI がキャリアの次の一歩を予定に"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","カードを選んでテーマを入れると、AI が投稿を書きます","部位を選んで、フォームのコツと YouTube 解説","毎日 3 つのクエストでレベルアップ、自分の力が見える"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -1177,12 +1217,12 @@ const STR={
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
       [["#crgrid [data-crpick='0']","カードを 1 枚タップ。例えば「IG 投稿文」。"],["#crgrid .crcore","自分用のカードは真ん中から追加できます。"],["#crapps","書けたらアプリをタップ。文章はコピー済みです。"]],
       [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]],
-      [["#skgrid","8 つの枝は 8 種類の力。予定を完了すると、ここに経験値として育ちます。"],["[data-skflow]","まずフローを思い出してみましょう。AI が本当に使った力を見つけます。"],["[data-skcoach]","進みたい方向を選ぶと、差を見て 4 週間の予定にできます。"]]
+      [["#quests","毎日 3 つのクエスト。達成で EXP、全部でボーナス。"],["#player","EXP がたまるとレベルアップ、ごほうびが解放されます。"],["#skgrid","8 つの枝は 8 種類の力。星は証拠：やった・作品・認められた。"],["[data-skflow]","まずフローを思い出してみましょう。AI が本当に使った力を見つけます。"],["[data-skcoach]","進みたい方向を選ぶと、差を見て 4 週間の予定にできます。"]]
     ]
   },
   en:{
     faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach","Skill tree"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Pick a card, type a topic, AI writes the post","Pick a muscle group for moves, form cues and YouTube tutorials","Skills grown from what you actually did; AI plans your next career step"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Pick a card, type a topic, AI writes the post","Pick a muscle group for moves, form cues and YouTube tutorials","Three small quests a day: level up, earn rewards, see your skills grow"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -1297,7 +1337,7 @@ const STR={
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
       [["#crgrid [data-crpick='0']","Tap a card, like IG caption."],["#crgrid .crcore","Want your own? Add a card in the middle."],["#crapps","When it's written, tap an app; the text is already copied."]],
       [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]],
-      [["#skgrid","Eight branches, eight kinds of ability. Finished calendar tasks grow here as XP."],["[data-skflow]","Start with a flow moment: recall a time you lost track of time and AI finds the abilities you used."],["[data-skcoach]","Pick a career direction, see the gap, and turn it into a 4-week calendar in one tap."]]
+      [["#quests","Three small quests a day. Each gives EXP; all three give a bonus."],["#player","Enough EXP levels you up and unlocks rewards, like 7 days of an add-on."],["#skgrid","Eight branches of ability. Stars are proof: done it, has work, vouched for."],["[data-skflow]","Start with a flow moment: recall a time you lost track of time and AI finds the abilities you used."],["[data-skcoach]","Pick a career direction, see the gap, and turn it into a 4-week calendar in one tap."]]
     ]
   }
 };
@@ -3177,6 +3217,7 @@ function renderGameFace(){
   }
   const g=GM,turnGame=TURN_GAMES.includes(g.id);
   let status="";
+  if((turnGame&&g.win)||(g.id==="sud"&&g.c&&g.c.join("")===g.sol)){const sig=g.id+":"+(g.seed||"")+":"+(g.b||g.c).join("");if(xpGameSig!==sig){xpGameSig=sig;setTimeout(()=>xpEvent("game"),600)}}
   if(g.wait)status=t.gWait;
   else if(turnGame){
     if(g.win===3)status=t.gDraw;else if(g.win)status=`${mascot("cheer","cheer")}<b>${esc(t.gWin(seatName(g.win)))}</b>`;
@@ -3195,7 +3236,7 @@ function renderGameFace(){
   if(g.id==="chaos")chaosRunWheel();
 }
 const PIECE=(p,shape)=>p?(shape?piece3d(p):`<span class="piece pc${p}"></span>`):"";
-let popSeen="",prevB=null;
+let popSeen="",prevB=null,xpGameSig="";
 const popCls=(g,i)=>i===g.last&&popSeen!==g.id+":"+g.seq?" pop":"";
 function boardHTML(g,t){
   if(g.id==="chaos")return chaosHTML(g,t);
@@ -3771,7 +3812,7 @@ const FIT=[
 ];
 const FIT_TIER={bw:0,db:1,gym:2};
 S.fit=S.fit||{lv:1,eq:"bw"};
-const fitOpen=g=>!OWNER.proFit||OWNER.fitFree.includes(g.k);
+const fitOpen=g=>!OWNER.proFit||OWNER.fitFree.includes(g.k)||(typeof unlocked==="function"&&unlocked("fit"));
 function fitYT(ex){const l=LANG[S.region],name=ex.n[l]||ex.n.zh;return yt(name+(l==="zh"?" 教學 正確姿勢":l==="ja"?" やり方 正しいフォーム":" proper form tutorial"))}
 function bodyFigure(sel){
   const hl=k=>k===sel?"var(--accent)":"color-mix(in srgb,var(--ink) 14%,transparent)";
@@ -3914,7 +3955,7 @@ const SKILLS=[
 ];
 const SKMAP=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
 const SK_TH=[0,20,50,100,180,300];   // xp for level 0..5
-const skLv=xp=>{let l=0;SK_TH.forEach((v,i)=>{if(xp>=v)l=i});return l};
+const skLv=x=>x;   // skills now carry 0-3 stars
 const skNext=xp=>{const l=skLv(xp);return l>=5?1:(xp-SK_TH[l])/(SK_TH[l+1]-SK_TH[l])};
 // ready-made roles so the coach works with no AI; the AI can read any role the person types
 const ROLES=[
@@ -3936,54 +3977,234 @@ function skTags(text,tagged){
   if(S.sk.tags[text])return S.sk.tags[text];
   return SKILLS.filter(s=>s.kw.test(text)).slice(0,2).map(s=>s.id);
 }
-// all the evidence, computed fresh from the calendar, goal and stories
+// evidence per skill, shown as stars: ⭐ done it, ⭐⭐ has a piece of work, ⭐⭐⭐ someone vouched for it
 function skCompute(){
-  const R={};SKILLS.forEach(s=>R[s.id]={xp:0,ev:[]});
-  const add=(id,xp,ev)=>{if(!R[id])return;R[id].xp+=xp;R[id].ev.push(ev)};
+  const R={};SKILLS.forEach(s=>R[s.id]={xp:0,n:0,work:0,endo:0,ev:[]});
+  const add=(id,ev)=>{if(!R[id])return;R[id].n++;if(ev.link||(ev.note&&ev.note.length>=6))R[id].work++;R[id].ev.push(ev)};
   const unknown=[];
   Object.keys(S.weeks).forEach(k=>{const mon=parse(k);S.weeks[k].days.forEach((d,i)=>d.forEach(x=>{
     if(!x.done)return;const tags=skTags(x.text,x.sk),dt=key(addDays(mon,i));
     if(!tags.length){unknown.push(x.text);return}
-    tags.forEach(id=>add(id,x.pri==="high"?15:10,{t:x.text,d:dt,src:"cal"}));
+    tags.forEach(id=>add(id,{t:x.text,d:dt,src:"cal"}));
   }))});
-  (S.goal&&S.goal.steps||[]).forEach(st=>{if(st.done&&st.text)skTags(st.text,st.sk).forEach(id=>add(id,20,{t:st.text,d:st.date||"",src:"goal"}))});
-  S.sk.stories.forEach(s=>s.skills.forEach(x=>add(x.id,30,{t:x.why||s.title,d:s.d,src:"flow"})));
-  Object.entries(S.sk.own).forEach(([id,o])=>{if(o.base)add(id,o.base,{t:"",d:"",src:"self"})});
-  Object.values(R).forEach(r=>r.ev.sort((a,b)=>(b.d||"").localeCompare(a.d||"")));
+  (S.goal&&S.goal.steps||[]).forEach(st=>{if(st.done&&st.text)skTags(st.text,st.sk).forEach(id=>add(id,{t:st.text,d:st.date||"",src:"goal"}))});
+  S.sk.stories.forEach(s=>s.skills.forEach(x=>add(x.id,{t:x.why||s.title,d:s.d,src:"flow"})));
+  (S.sk.log||[]).forEach(g=>add(g.id,{t:g.t,d:g.d,src:"quest",note:g.note,link:g.link}));
+  Object.entries(S.sk.endo||{}).forEach(([id,list])=>list.forEach(e=>{if(R[id]){R[id].endo++;R[id].ev.push({t:`${e.by}${e.rel?`（${e.rel}）`:""}${e.say?`：「${e.say}」`:""}`,d:e.d,src:"endo"})}}));
+  Object.values(R).forEach(r=>{r.xp=r.endo?3:r.work?2:r.n?1:0;r.ev.sort((a,b)=>(b.d||"").localeCompare(a.d||""))});
   return {R,unknown:[...new Set(unknown)]};
 }
-function skBranch(R,b){const ss=SKILLS.filter(s=>s.b===b),xp=ss.reduce((a,s)=>a+R[s.id].xp,0);return {ss,xp,lv:Math.max(...ss.map(s=>skLv(R[s.id].xp)))}}
-function skTop(R,n){return SKILLS.map(s=>({s,xp:R[s.id].xp})).filter(x=>x.xp>0).sort((a,b)=>b.xp-a.xp).slice(0,n)}
-function skMatch(R,req){if(!req||!req.length)return 0;return Math.round(100*req.reduce((a,[id,lv])=>a+Math.min(skLv(R[id]?R[id].xp:0)/lv,1),0)/req.length)}
-function skGaps(R,req){return req.map(([id,lv])=>({id,lv,have:skLv(R[id]?R[id].xp:0)})).filter(g=>g.have<g.lv).sort((a,b)=>(b.lv-b.have)-(a.lv-a.have))}
+const skNeed=lv=>lv>=4?3:lv>=2?2:1;   // a role's 1-5 level, read as the stars it takes
+const skStars=(n,max)=>`<span class="stars">${[1,2,3].slice(0,max||3).map(i=>`<i class="${i<=n?"on":""}">★</i>`).join("")}</span>`;
+function skBranch(R,b){const ss=SKILLS.filter(s=>s.b===b);return {ss,xp:ss.reduce((a,s)=>a+R[s.id].n,0),lv:Math.max(...ss.map(s=>R[s.id].xp))}}
+function skTop(R,n){return SKILLS.map(s=>({s,xp:R[s.id].xp,n:R[s.id].n})).filter(x=>x.xp>0).sort((a,b)=>b.xp-a.xp||b.n-a.n).slice(0,n)}
+function skMatch(R,req){if(!req||!req.length)return 0;return Math.round(100*req.reduce((a,[id,lv])=>a+Math.min((R[id]?R[id].xp:0)/skNeed(lv),1),0)/req.length)}
+function skGaps(R,req){return req.map(([id,lv])=>({id,lv:skNeed(lv),have:R[id]?R[id].xp:0})).filter(g=>g.have<g.lv).sort((a,b)=>(b.lv-b.have)-(a.lv-a.have))}
 function skWeekGain(R){const mon=key(mondayOf(new Date())),end=key(addDays(mondayOf(new Date()),6)),g={};
-  Object.entries(R).forEach(([id,r])=>r.ev.forEach(e=>{if(e.d>=mon&&e.d<=end&&e.src!=="self"){g[id]=(g[id]||0)+(e.src==="goal"?20:e.src==="flow"?30:10)}}));
+  Object.entries(R).forEach(([id,r])=>r.ev.forEach(e=>{if(e.d>=mon&&e.d<=end&&e.src!=="endo"){g[id]=(g[id]||0)+1}}));
   return Object.entries(g).sort((a,b)=>b[1]-a[1])}
-const skRing=(p,sz)=>{const C=2*Math.PI*16;return `<svg class="skring" viewBox="0 0 40 40" width="${sz}" height="${sz}"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--chip)" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--t,var(--accent))" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*Math.max(p,0.001)).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`};
+
+/* ---------- EXP, levels and rewards ---------- */
+S.xp=S.xp||{total:0,day:"",cnt:{},days:[],bonus:""};S.q=S.q||null;S.unl=S.unl||{};S.sk.log=S.sk.log||[];S.sk.endo=S.sk.endo||{};
+const XP_CAP={task:5,game:3,pic:3};          // how many a day earn EXP, so it can't be farmed
+const XP_VAL={quest:30,work:10,auto:20,task:10,game:10,pic:10,flow:20,bonus:30};
+function lvInfo(total){let L=1,acc=0,need=100;while(total>=acc+need){acc+=need;L++;need=100+50*(L-1)}return {L,into:total-acc,need,left:acc+need-total}}
+const todayKey=()=>key(new Date());
+const unlocked=k=>{const d=todayKey();return (S.unl[k]&&S.unl[k]>=d)||(S.unl.all&&S.unl.all>=d)};
+// what each level brings; OWNER.rewards adds partner coupons on top
+function rewardsFor(L){
+  const out=[{kind:"title"}];
+  const U={3:"travel",4:"fit",5:"people"};if(U[L])out.push({kind:"unlock",key:U[L],days:7});
+  if(L>=6&&L%2===0)out.push({kind:"unlock",key:"all",days:7});
+  (OWNER.rewards||[]).filter(r=>r.lv===L).forEach(r=>out.push(Object.assign({kind:"coupon"},r)));
+  return out;
+}
+function rewardText(r){const q=QT(),l=LANG[S.region];
+  if(r.kind==="title")return `🏅 ${q.titleIs(q.titles[0])}`;
+  if(r.kind==="unlock")return `🎁 ${q.unlockName[r.key]} · ${q.days(r.days)}`;
+  return `🎟️ ${(r.name&&(r.name[l]||r.name.zh))||q.coupon}${r.code?` · ${q.code} ${r.code}`:""}`}
+const lvTitle=L=>{const t=QT().titles;return t[Math.min(L-1,t.length-1)]};
+function xpAdd(kind,n){
+  const d=todayKey();if(S.xp.day!==d){S.xp.day=d;S.xp.cnt={}}
+  if(XP_CAP[kind]!=null){S.xp.cnt[kind]=(S.xp.cnt[kind]||0)+1;if(S.xp.cnt[kind]>XP_CAP[kind])return 0}
+  const before=lvInfo(S.xp.total).L;n=n||XP_VAL[kind]||10;S.xp.total+=n;
+  if(!S.xp.days.includes(d)){S.xp.days.push(d);S.xp.days=S.xp.days.slice(-60)}
+  const after=lvInfo(S.xp.total).L;save();
+  xpPop(n);
+  if(after>before)setTimeout(()=>levelUp(after),700);
+  return n;
+}
+function xpPop(n){const el=document.createElement("div");el.className="xppop";el.textContent=`+${n} EXP`;document.body.appendChild(el);setTimeout(()=>el.remove(),1400)}
+function streak(){let n=0,d=new Date();const set=new Set(S.xp.days);if(!set.has(key(d)))d=addDays(d,-1);while(set.has(key(d))){n++;d=addDays(d,-1)}return n}
+function levelUp(L){
+  const q=QT(),rs=rewardsFor(L),recent=(S.sk.log||[]).slice(-6).map(g=>g.id),fav=recent.sort((a,b)=>recent.filter(x=>x===b).length-recent.filter(x=>x===a).length)[0];
+  rs.forEach(r=>{if(r.kind==="unlock"){const until=key(addDays(new Date(),r.days-1));if(!S.unl[r.key]||S.unl[r.key]<until)S.unl[r.key]=until}});
+  save();
+  layer(`<div class="lvup">${mascot("cheer","lvmas")}<div class="lvbig">Lv ${L}</div><h2>${esc(lvTitle(L))}</h2>
+<p>${fav?esc(q.praise(skName(fav),recent.filter(x=>x===fav).length)):esc(q.praise0)}</p>
+<ul class="lvrw">${rs.map(r=>`<li>${r.kind==="title"?`🏅 ${esc(q.titleIs(lvTitle(L)))}`:r.kind==="coupon"&&!(r.code||r.url)?`🎟️ ${q.couponSoon}`:esc(rewardText(r))}${r.kind==="coupon"&&r.url?` <a class="linkbtn" href="${esc(r.url)}" target="_blank" rel="noopener">${q.claim}</a>`:""}</li>`).join("")}</ul>
+<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-close="1">${q.gotIt}</button></div></div>`,true);
+}
+
+/* ---------- today's three quests ---------- */
+const hashStr=s=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+function makeQuests(){
+  const d=todayKey(),rr=(S.q&&S.q.d===d?S.q.re:0)||0,rnd=(i)=>hashStr(d+":"+rr+":"+i);
+  const {R}=skCompute(),tg=S.sk.target,gaps=tg?skGaps(R,tg.req).map(g=>g.id):[];
+  const weak=SKILLS.filter(s=>R[s.id].xp<2).map(s=>s.id);
+  const pick=(arr,i,not)=>{const a=arr.filter(x=>!not.includes(x));return a.length?a[rnd(i)%a.length]:SKILLS[rnd(i)%SKILLS.length].id};
+  const s1=pick(gaps.length?gaps:weak,1,[]),s2=pick(weak.length?weak:SKILLS.map(s=>s.id),2,[s1]);
+  const prac=(id,i)=>{const s=SKMAP[id];return {kind:"prac",sk:id,text:s.p[rnd(i+10)%2][skL()],done:false}};
+  const autos=["task","pic","game"];if(!S.sk.stories.length)autos.unshift("flow");
+  const auto=S.sk.stories.length?autos[rnd(3)%autos.length]:"flow";
+  return {d,re:rr,items:[prac(s1,1),prac(s2,2),{kind:auto,done:false}]};
+}
+function quests(){if(!S.q||S.q.d!==todayKey()){S.q=makeQuests();save()}return S.q}
+function questText(x){const q=QT();return x.kind==="prac"?x.text:q.auto[x.kind]}
+// an in-app action finished: tick a matching quest, then the ordinary EXP for it
+function xpEvent(kind){
+  const Q=quests(),hit=Q.items.find(x=>x.kind===kind&&!x.done);
+  if(hit){hit.done=true;save();xpAdd("auto");questBonus();toast(QT().questDone(questText(hit)))}
+  else xpAdd(kind);
+}
+function questBonus(){const Q=quests();if(Q.items.every(x=>x.done)&&S.xp.bonus!==Q.d){S.xp.bonus=Q.d;setTimeout(()=>{xpAdd("bonus");toast(QT().allDone)},900)}}
+function openQuest(i){
+  const q=QT(),t=T(),x=quests().items[i];if(!x)return;
+  if(x.kind!=="prac"){const go={task:0,pic:4,game:5,flow:8}[x.kind];closeLayer();if(x.kind==="pic"){S.pd.on=true;S.pd.mode="game"}if(go!==S.face)goFace(go);if(x.kind==="flow")setTimeout(openFlowRecall,900);return}
+  layer(`<div class="shead"><h2>${esc(x.text)}</h2>${closeBtn(t)}</div>
+<p class="note">${esc(q.trains(skName(x.sk)))}</p>
+${x.done?`<p>${q.already}</p>`:`<label class="fld">${q.how}<textarea id="qNote" class="impta" style="min-height:70px" placeholder="${esc(q.howPh)}"></textarea></label>
+<label class="fld">${q.link}<input id="qLink" type="url" inputmode="url" placeholder="https://"></label>
+<p class="note">${q.starHint}</p>
+<div class="row end"><button class="pill jelly" type="button" data-qcal="${i}">${I.cal}${q.toCal}</button><button class="pill pri jelly" type="button" data-qdone="${i}">✓ ${q.did}</button></div>`}`,true);
+}
+function questDone(i){
+  const x=quests().items[i];if(!x||x.done)return;const note=($("qNote").value||"").trim().slice(0,200),link=($("qLink").value||"").trim();
+  const okLink=/^https:\/\/\S+$/i.test(link)?link:"";
+  S.sk.log.push({id:x.sk,d:todayKey(),t:x.text,note,link:okLink});x.done=true;save();closeLayer();
+  xpAdd("quest",XP_VAL.quest+((okLink||note.length>=6)?XP_VAL.work:0));questBonus();render();
+}
+// adults can log what they already did, with proof, any time
+function openLog(id){
+  const q=QT(),t=T(),s=SKMAP[id];if(!s)return;
+  layer(`<div class="shead"><h2>${esc(s.n[skL()])}</h2>${closeBtn(t)}</div>
+<label class="fld">${q.logWhat}<textarea id="qNote" class="impta" style="min-height:70px" placeholder="${esc(q.logPh)}"></textarea></label>
+<label class="fld">${q.link}<input id="qLink" type="url" inputmode="url" placeholder="https://"></label>
+<div class="row end"><button class="pill pri jelly" type="button" data-logsave="${id}">${t.save}</button></div>`,true);
+}
+function logSave(id){const note=$("qNote").value.trim().slice(0,200),link=$("qLink").value.trim();if(!note&&!link)return;
+  S.sk.log.push({id,d:todayKey(),t:note||link,note,link:/^https:\/\/\S+$/i.test(link)?link:""});save();closeLayer();render();openSkill(id)}
+// ask someone who saw it; their words become the third star
+function openEndo(id){
+  const q=QT(),t=T(),s=SKMAP[id],{R}=skCompute(),ev=R[id].ev.find(e=>e.src!=="endo"),msg=q.askMsg(s.n[skL()],ev?ev.t:"");
+  layer(`<div class="shead"><h2>⭐⭐⭐ ${esc(s.n[skL()])}</h2>${closeBtn(t)}</div>
+<p class="note">${q.endoHow}</p>
+<textarea id="endoMsg" class="impta" style="min-height:90px">${esc(msg)}</textarea>
+<div class="row end"><button class="pill jelly" type="button" data-endocopy="1">📋 ${q.copyMsg}</button></div>
+<h3>${q.gotReply}</h3>
+<label class="fld">${q.who}<input id="endoBy" type="text" maxlength="20" placeholder="${esc(q.whoPh)}"></label>
+<div class="mini-seg" id="endoRel">${q.rels.map((r,j)=>`<button type="button" data-endorel="${esc(r)}" aria-pressed="${j===0}">${esc(r)}</button>`).join("")}</div>
+<label class="fld">${q.said}<input id="endoSay" type="text" maxlength="80"></label>
+<p class="note">${q.endoNote}</p>
+<div class="row end"><button class="pill pri jelly" type="button" data-endosave="${id}">${t.save}</button></div>`,true);
+}
+function endoSave(id){const by=$("endoBy").value.trim();if(!by){$("endoBy").focus();return}
+  const rel=(document.querySelector("#endoRel [aria-pressed=true]")||{}).dataset.endorel||"",say=$("endoSay").value.trim();
+  (S.sk.endo[id]=S.sk.endo[id]||[]).push({by,rel,say,d:todayKey()});save();closeLayer();xpAdd("quest",20);render();openSkill(id)}
 
 function renderSkillFace(){
-  const t=T(),k=SKT(),{R,unknown}=skCompute(),l=skL(),cells=Array(9);
+  const t=T(),k=SKT(),q=QT(),{R,unknown}=skCompute(),l=skL(),cells=Array(9),Q=quests(),I2=lvInfo(S.xp.total),st=streak();
+  const next=rewardsFor(I2.L+1).filter(r=>r.kind!=="title");
   SKB.forEach((b,i)=>{
     const br=skBranch(R,b.k),lit=br.ss.filter(s=>R[s.id].xp>0);
     cells[RING[i]]=`<button class="sktile jelly${br.xp?"":" dim"}" type="button" data-skb="${b.k}" style="--t:var(--c${i%7})">
-<span class="skhead"><span class="ske">${b.e}</span>${skRing(Math.min(br.lv/5,1)||0,30)}<i>Lv${br.lv}</i></span>
-<b>${esc(b.n[l])}</b><span class="skdots">${br.ss.map(s=>`<i class="${R[s.id].xp?"on":""}" title="${esc(s.n[l])}"></i>`).join("")}</span>
-<small>${lit.length?esc(lit.sort((a,c)=>R[c.id].xp-R[a.id].xp).slice(0,2).map(s=>s.n[l]).join("・")):k.empty}</small></button>`;
+<span class="skhead"><span class="ske">${b.e}</span>${skStars(br.lv)}</span>
+<b>${esc(b.n[l])}</b><span class="skdots">${br.ss.map(s=>`<i class="s${R[s.id].xp}" title="${esc(s.n[l])}"></i>`).join("")}</span>
+<small>${lit.length?esc(lit.sort((a,c)=>R[c.id].xp-R[a.id].xp||R[c.id].n-R[a.id].n).slice(0,2).map(s=>s.n[l]).join("・")):k.empty}</small></button>`;
   });
   const top=skTop(R,3),tg=S.sk.target,m=tg?skMatch(R,tg.req):null;
   cells[4]=`<div class="sktile jelly center">${mascot(top.length?"wave":"idle","skme")}<b>${top.length?k.strong:k.start}</b><small>${top.length?esc(top.map(x=>x.s.n[l]).join("・")):k.startSub}</small>${tg?`<span class="skmatch">${esc(tg.role)} ${m}%</span>`:""}</div>`;
-  const gain=skWeekGain(R);
-  let h=`<div class="coachbar"><button class="pill pri jelly" type="button" data-skflow="1">${I.sparkle}${k.flowBtn}</button><button class="pill jelly" type="button" data-skcoach="1">🧭 ${k.coachBtn}</button></div>
-<div class="skgrid" id="skgrid">${cells.join("")}</div>
-<section class="skweek jelly" id="skweek"><h3>${k.weekTitle}</h3>${gain.length?`<div class="skgain">${gain.slice(0,6).map(([id,xp])=>`<button type="button" class="skchip" data-sks="${id}">${esc(skName(id))}<b>+${xp}</b></button>`).join("")}</div>`:`<p class="note">${k.weekNone}</p>`}
-${unknown.length?`<p class="note">${k.unknown(unknown.length)} <button class="linkbtn" type="button" data-sktag="1">${k.tagBtn}</button></p>`:""}</section>`;
+  let h=`<section class="player jelly" id="player"><div class="plv"><span class="plvn">Lv ${I2.L}</span><b>${esc(lvTitle(I2.L))}</b>${st>1?`<span class="streak">🔥 ${q.streak(st)}</span>`:""}</div>
+<div class="pbar"><i style="width:${Math.round(I2.into/I2.need*100)}%"></i></div>
+<small>${q.toNext(I2.left,I2.L+1)}${next.length?` · ${esc(next.map(r=>r.kind==="coupon"&&!(r.code||r.url)?q.couponSoon:rewardText(r)).join("、"))}`:""}</small></section>
+<section class="quests jelly" id="quests"><h3>☀️ ${q.today}<small>${Q.items.filter(x=>x.done).length}/3</small>${Q.items.some(x=>x.done)||Q.re>=1?"":`<button class="linkbtn" type="button" data-qre="1">${q.reroll}</button>`}</h3>
+${Q.items.map((x,i)=>`<button type="button" class="quest${x.done?" done":""}" data-quest="${i}"><span class="qchk">${x.done?"✓":""}</span><span class="qtx"><b>${esc(questText(x))}</b><small>${x.kind==="prac"?esc(skName(x.sk)):q.autoHint}</small></span><span class="qxp">+${x.kind==="prac"?XP_VAL.quest:XP_VAL.auto}</span></button>`).join("")}
+<small class="note">${q.bonusHint(XP_VAL.bonus)}</small></section>
+<div class="coachbar"><button class="pill jelly" type="button" data-skflow="1">${I.sparkle}${k.flowBtn}</button><button class="pill jelly" type="button" data-skcoach="1">🧭 ${k.coachBtn}</button><button class="linkbtn" type="button" data-skrules="1">${q.rulesBtn}</button></div>
+<div class="skgrid" id="skgrid">${cells.join("")}</div>`;
+  if(unknown.length)h+=`<p class="note">${k.unknown(unknown.length)} <button class="linkbtn" type="button" data-sktag="1">${k.tagBtn}</button></p>`;
   if(tg){const gaps=skGaps(R,tg.req).slice(0,3);
     h+=`<section class="skweek jelly" id="sktarget"><h3>🧭 ${esc(tg.role)} <span class="skpct">${m}%</span></h3>
-<div class="skbars">${tg.req.map(([id,lv])=>{const have=skLv(R[id]?R[id].xp:0);return `<div class="skbar" data-sks="${id}"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3,4,5].map(n=>`<i class="${n<=have?"have":n<=lv?"need":""}"></i>`).join("")}</span></div>`}).join("")}</div>
-${gaps.length?`<p class="note">${k.nextUp}</p><div class="row">${gaps.map(g=>`<button class="pill jelly" type="button" data-skdo="${g.id}" data-p="${(R[g.id].xp>0)?1:0}">＋ ${esc(SKMAP[g.id].p[R[g.id].xp>0?1:0][l])}</button>`).join("")}</div>`:`<p class="note">${k.ready}</p>`}
-<div class="row end"><button class="pill jelly" type="button" data-skcoach="1">${k.openPlan}</button></div></section>`}
+<div class="skbars">${tg.req.map(([id,lv])=>{const have=R[id]?R[id].xp:0,need=skNeed(lv);return `<div class="skbar" data-sks="${id}"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3].map(n=>`<i class="${n<=have?"have":n<=need?"need":""}"></i>`).join("")}</span></div>`}).join("")}</div>
+${gaps.length?"":`<p class="note">${k.ready}</p>`}<div class="row end"><button class="pill jelly" type="button" data-skcoach="1">${k.openPlan}</button></div></section>`}
   $("face").innerHTML=h;
 }
+function openRules(){const q=QT(),t=T();
+  layer(`<div class="shead"><h2>${q.rulesBtn}</h2>${closeBtn(t)}</div><div class="rules">${q.rules}</div>`,true)}
+function skCard(s,r,k,l,full){
+  const q=QT(),ev=r.ev,why=[q.st0,q.st1,q.st2,q.st3][r.xp];
+  return `<div class="skcard jelly"><div class="skct2"><b>${esc(s.n[l])}</b>${skStars(r.xp)}<small>${q.times(r.n)}</small></div>
+<p class="note">${why}</p>
+${ev.length?`<ul class="skev">${ev.slice(0,full?8:3).map(e=>`<li><span>${{cal:"📅",goal:"🎯",flow:"✨",quest:"☀️",endo:"🤝"}[e.src]||"•"}</span>${esc(e.t)}${e.link?` <a class="linkbtn" href="${esc(e.link)}" target="_blank" rel="noopener">🔗</a>`:""}${e.d?`<small>${esc(t2md(e.d))}</small>`:""}</li>`).join("")}${ev.length>(full?8:3)?`<li class="more">${k.more(ev.length-(full?8:3))}</li>`:""}</ul>`:""}
+<div class="row"><button class="pill jelly" type="button" data-sklog="${s.id}">＋ ${r.xp>=1?q.addWork:q.didBefore}</button>${r.xp>=1?`<button class="pill jelly" type="button" data-skendo="${s.id}">🤝 ${q.askVouch}</button>`:""}</div>
+<div class="row">${s.p.map((p,i)=>`<button class="pill jelly" type="button" data-skdo="${s.id}" data-p="${i}">📅 ${esc(p[l])}</button>`).join("")}</div></div>`;
+}
+const QT_STR={
+  zh:{today:"今日任務",reroll:"換一組",autoHint:"做完會自動打勾",bonusHint:n=>`三個都完成再加 ${n} EXP`,streak:n=>`連續 ${n} 天`,
+    toNext:(n,L)=>`再 ${n} EXP 升到 Lv${L}`,titles:["果凍寶寶","小小探險家","認真學徒","行動派","心流玩家","技能達人","發光導師","傳奇果凍"],
+    titleIs:s=>`新稱號「${s}」`,unlockName:{travel:"語寶「旅行」字卡免費",people:"語寶「稱謂」字卡免費",fit:"健身教練全部部位免費",all:"所有加購內容免費"},days:n=>`${n} 天`,
+    coupon:"合作夥伴優惠券",couponSoon:"合作夥伴優惠券（招募中）",code:"序號",claim:"領取",gotIt:"收下",
+    praise:(s,n)=>`你最近練了 ${n} 次「${s}」，是真的在長大。`,praise0:"每一個小行動都算數，繼續保持！",
+    auto:{task:"完成行事曆上的一件事",pic:"玩一局語寶「聽音找圖」",game:"在九宮遊戲桌下完一局",flow:"做一次心流回想"},
+    questDone:s=>`任務完成：${s}`,allDone:"今日任務全部完成！",
+    trains:s=>`這個任務練的是「${s}」。`,already:"這個任務已經完成了 ✓",how:"做得怎麼樣？寫一句（選填）",howPh:"例如：錄了 1 分鐘，第二次比較順",
+    link:"作品連結（選填：貼文、影片、雲端檔案）",starHint:"有寫心得或附作品，這個能力會點亮第二顆星 ⭐⭐，也多 10 EXP。",toCal:"排進行事曆",did:"我完成了",
+    logWhat:"你做過什麼？",logPh:"例如：帶過 3 次親子共讀活動",didBefore:"我做過（補記錄）",addWork:"加一個作品",askVouch:"請人確認",
+    endoHow:"把這段話傳給看過你做這件事的人（老師、主管、客戶、朋友）。對方回你之後，在下面記錄下來。",copyMsg:"複製訊息",gotReply:"對方回覆了？記錄下來",
+    who:"是誰？",whoPh:"例如：王老師",said:"對方說了什麼（選填）",rels:["老師","主管","客戶","朋友","家人"],
+    endoNote:"這是你自己記下的認可，會顯示對方名字。之後有登入功能，就能讓對方直接按確認。",
+    askMsg:(s,e)=>`嗨！我正在練習「${s}」${e?`，最近做了：${e}`:""}。你看過我做這件事，如果你覺得我做到了，可以回我一句話嗎？謝謝你 🙏`,
+    times:n=>n?`做過 ${n} 次`:"",st0:"還沒有紀錄。完成一個任務，或補記錄你做過的事。",st1:"⭐ 做過。附上一個作品（連結或心得）就能點亮第二顆星。",st2:"⭐⭐ 有作品。請看過的人確認，就能點亮第三顆星。",st3:"⭐⭐⭐ 有人認可，這是你真正的強項。",
+    rulesBtn:"星星和 EXP 怎麼算？",
+    rules:`<p><b>EXP（經驗值）</b>是你的行動量，用來升級：</p><ul><li>☀️ 今日任務：練習任務 +30（附心得或作品再 +10），自動任務 +20，三個都完成 +30</li><li>📅 完成行事曆的事 +10（每天最多 5 次）</li><li>🎮 下完一局遊戲、玩完一局聽音找圖 +10（每天各 3 次）</li><li>✨ 心流回想 +20；🤝 記錄一次認可 +20</li></ul><p>每天有上限，是為了讓 EXP 代表「持續行動」，不是刷分。</p><p><b>星星</b>是能力的證據，和 EXP 分開算：</p><ul><li>⭐ 做過：有完成的紀錄</li><li>⭐⭐ 有作品：附上連結或心得</li><li>⭐⭐⭐ 有人認可：看過的人確認</li></ul><p>我們不做排行榜，只跟昨天的自己比。</p>`},
+  ja:{today:"今日のクエスト",reroll:"入れ替える",autoHint:"終わると自動でチェック",bonusHint:n=>`3 つ全部で +${n} EXP`,streak:n=>`${n} 日連続`,
+    toNext:(n,L)=>`あと ${n} EXP で Lv${L}`,titles:["ぷるぷる見習い","ちいさな探検家","まじめな弟子","行動派","フロープレイヤー","スキルの達人","光る先生","伝説のゼリー"],
+    titleIs:s=>`新しい称号「${s}」`,unlockName:{travel:"語宝「旅行」カード無料",people:"語宝「呼び方」カード無料",fit:"筋トレコーチ全部位無料",all:"追加コンテンツすべて無料"},days:n=>`${n} 日間`,
+    coupon:"パートナークーポン",couponSoon:"パートナークーポン（募集中）",code:"コード",claim:"受け取る",gotIt:"受け取る",
+    praise:(s,n)=>`最近「${s}」を ${n} 回練習しました。ちゃんと育っています。`,praise0:"小さな一歩がちゃんと積み重なっています！",
+    auto:{task:"予定を 1 つ完了する",pic:"語宝「聞いてさがす」を 1 回",game:"ゲームテーブルで 1 局遊ぶ",flow:"フロー体験を思い出す"},
+    questDone:s=>`クエスト達成：${s}`,allDone:"今日のクエストをすべて達成！",
+    trains:s=>`このクエストで伸びるのは「${s}」。`,already:"達成済み ✓",how:"どうだった？ひとこと（任意）",howPh:"例：1 分録画、2 回目はスムーズ",
+    link:"作品リンク（任意：投稿・動画・ファイル）",starHint:"感想か作品があれば、この力に 2 つ目の星 ⭐⭐、さらに +10 EXP。",toCal:"予定に入れる",did:"できた",
+    logWhat:"何をしましたか？",logPh:"例：親子読書会を 3 回ひらいた",didBefore:"やったことがある（記録）",addWork:"作品を追加",askVouch:"確認をお願いする",
+    endoHow:"見ていた人（先生・上司・お客さん・友だち）にこのメッセージを送り、返事をもらったら下に記録します。",copyMsg:"メッセージをコピー",gotReply:"返事をもらったら記録",
+    who:"だれ？",whoPh:"例：田中先生",said:"ひとこと（任意）",rels:["先生","上司","お客さん","友だち","家族"],
+    endoNote:"自分で記録した承認で、相手の名前が表示されます。ログイン機能ができたら、相手が直接確認できます。",
+    askMsg:(s,e)=>`こんにちは！「${s}」を練習しています${e?`。最近：${e}`:""}。見ていてくれたあなたから見て、できていたらひとこと返事をもらえますか？🙏`,
+    times:n=>n?`${n} 回`:"",st0:"まだ記録がありません。クエストを達成するか、やったことを記録しましょう。",st1:"⭐ やった。作品（リンクか感想）で 2 つ目の星。",st2:"⭐⭐ 作品あり。見ていた人の確認で 3 つ目の星。",st3:"⭐⭐⭐ 認められた力。本当の強みです。",
+    rulesBtn:"星と EXP のしくみ",
+    rules:`<p><b>EXP</b>は行動の量で、レベルアップに使います：</p><ul><li>☀️ 今日のクエスト：練習 +30（感想・作品で +10）、自動クエスト +20、3 つ全部で +30</li><li>📅 予定を完了 +10（1 日 5 回まで）</li><li>🎮 ゲーム 1 局、聞いてさがす 1 回 +10（各 1 日 3 回まで）</li><li>✨ フロー +20、🤝 承認の記録 +20</li></ul><p>上限は「続けること」を表すためで、稼ぐためではありません。</p><p><b>星</b>は力の証拠で、EXP とは別です：</p><ul><li>⭐ やった</li><li>⭐⭐ 作品がある</li><li>⭐⭐⭐ 見ていた人が認めた</li></ul><p>ランキングはありません。比べるのは昨日の自分だけ。</p>`},
+  en:{today:"Today's quests",reroll:"Swap",autoHint:"Ticks itself when you do it",bonusHint:n=>`All three: +${n} EXP`,streak:n=>`${n}-day streak`,
+    toNext:(n,L)=>`${n} EXP to Lv${L}`,titles:["Jelly Sprout","Little Explorer","Keen Apprentice","Doer","Flow Player","Skill Master","Glowing Mentor","Legendary Jelly"],
+    titleIs:s=>`New title: ${s}`,unlockName:{travel:"Travel word cards free",people:"People word cards free",fit:"All fitness groups free",all:"Every add-on free"},days:n=>`${n} days`,
+    coupon:"Partner coupon",couponSoon:"Partner coupon (coming soon)",code:"Code",claim:"Claim",gotIt:"Nice!",
+    praise:(s,n)=>`You practised ${s} ${n} times lately. That's real growth.`,praise0:"Every small step counts. Keep going!",
+    auto:{task:"Finish one thing on your calendar",pic:"Play one round of Listen & find",game:"Finish a game at the Game Table",flow:"Recall a flow moment"},
+    questDone:s=>`Quest done: ${s}`,allDone:"All of today's quests done!",
+    trains:s=>`This quest trains ${s}.`,already:"Done ✓",how:"How did it go? (optional)",howPh:"e.g. recorded 1 minute; second take was smoother",
+    link:"Link to your work (optional: post, video, file)",starHint:"A note or a link lights this skill's second star ⭐⭐ and adds 10 EXP.",toCal:"Add to calendar",did:"I did it",
+    logWhat:"What did you do?",logPh:"e.g. ran 3 family reading sessions",didBefore:"I've done this (log it)",addWork:"Add a piece of work",askVouch:"Ask someone to vouch",
+    endoHow:"Send this to someone who saw you do it (teacher, manager, client, friend). When they reply, note it below.",copyMsg:"Copy message",gotReply:"They replied? Note it",
+    who:"Who?",whoPh:"e.g. Ms Chen",said:"What they said (optional)",rels:["Teacher","Manager","Client","Friend","Family"],
+    endoNote:"This is a vouch you recorded yourself; their name is shown. Once sign-in is available they'll be able to confirm directly.",
+    askMsg:(s,e)=>`Hi! I'm practising ${s}${e?`; lately I: ${e}`:""}. You've seen me do it; if you think I've got it, could you reply with a line? Thank you 🙏`,
+    times:n=>n?`${n}×`:"",st0:"No record yet. Finish a quest, or log something you've done.",st1:"⭐ Done it. Add a piece of work (link or note) for the second star.",st2:"⭐⭐ Has work. Ask someone who saw it to vouch for the third.",st3:"⭐⭐⭐ Vouched for. A real strength.",
+    rulesBtn:"How stars and EXP work",
+    rules:`<p><b>EXP</b> is how much you act; it levels you up:</p><ul><li>☀️ Quests: practice +30 (+10 with a note or link), auto quests +20, all three +30</li><li>📅 Finish a calendar task +10 (up to 5 a day)</li><li>🎮 Finish a game or a Listen & find round +10 (3 a day each)</li><li>✨ Flow recall +20; 🤝 recording a vouch +20</li></ul><p>Daily caps keep EXP about steady action, not farming.</p><p><b>Stars</b> are proof of ability, separate from EXP:</p><ul><li>⭐ Done it</li><li>⭐⭐ Has a piece of work</li><li>⭐⭐⭐ Someone vouched</li></ul><p>No leaderboards. Only you, compared with yesterday.</p>`}
+};
+const QT=()=>QT_STR[LANG[S.region]];
+const skRing=(p,sz)=>{const C=2*Math.PI*16;return `<svg class="skring" viewBox="0 0 40 40" width="${sz}" height="${sz}"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--chip)" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--t,var(--accent))" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*Math.max(p,0.001)).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`};
+
 // one branch: its skills, their evidence and small practice tasks
 function openSkillBranch(bk){
   const k=SKT(),t=T(),l=skL(),b=SKB.find(x=>x.k===bk),{R}=skCompute();if(!b)return;
@@ -3992,13 +4213,6 @@ function openSkillBranch(bk){
 }
 function openSkill(id){const k=SKT(),t=T(),l=skL(),s=SKMAP[id],{R}=skCompute();if(!s)return;
   layer(`<div class="shead"><h2>${esc(s.n[l])}</h2>${closeBtn(t)}</div><div class="sklist">${skCard(s,R[id],k,l,true)}</div>`,true)}
-function skCard(s,r,k,l,full){
-  const lv=skLv(r.xp),ev=r.ev.filter(e=>e.src!=="self"),base=(S.sk.own[s.id]||{}).base||0;
-  return `<div class="skcard jelly"><div class="skct"><b>${esc(s.n[l])}</b><span class="sklv">Lv${lv}</span><span class="skxp"><i style="width:${Math.round(skNext(r.xp)*100)}%"></i></span><small>${r.xp} XP</small></div>
-${ev.length?`<ul class="skev">${ev.slice(0,full?8:3).map(e=>`<li><span>${{cal:"📅",goal:"🎯",flow:"✨"}[e.src]}</span>${esc(e.t)}${e.d?`<small>${esc(t2md(e.d))}</small>`:""}</li>`).join("")}${ev.length>(full?8:3)?`<li class="more">${k.more(ev.length-(full?8:3))}</li>`:""}</ul>`:`<p class="note">${k.noEv}</p>`}
-<div class="skself"><small>${k.already}</small><div class="mini-seg">${[0,1,2,3].map(n=>`<button type="button" data-skself="${s.id}" data-lv="${n}" aria-pressed="${base===SK_TH[n]}">${n?"Lv"+n:k.none}</button>`).join("")}</div></div>
-<div class="row">${s.p.map((p,i)=>`<button class="pill jelly" type="button" data-skdo="${s.id}" data-p="${i}">＋ ${esc(p[l])}</button>`).join("")}</div></div>`;
-}
 const t2md=d=>{try{return T().md(parse(d))}catch(e){return d}};
 // put a practice task on the calendar: tomorrow, or today if it's Sunday
 function skDo(id,pi){
@@ -4034,7 +4248,7 @@ Pick 3-5 skills that the story clearly shows. Never invent details.`,{modelTier:
     const sk=SKILLS.filter(s=>s.kw.test(story)).slice(0,5).map(s=>({id:s.id,why:""}));
     res={title:ans[0].slice(0,24),skills:sk,need:"",flow:"",next:"",offline:true};
   }
-  S.sk.stories.push({title:res.title,d:key(new Date()),skills:res.skills,need:res.need,flow:res.flow});save();
+  S.sk.stories.push({title:res.title,d:key(new Date()),skills:res.skills,need:res.need,flow:res.flow});save();xpEvent("flow");
   out.innerHTML=`<div class="skres jelly"><h3>${k.recipe}</h3>
 ${res.skills.length?`<ul class="skev">${res.skills.map(x=>`<li><span>✨</span><b>${esc(skName(x.id))}</b>${x.why?` — ${esc(x.why)}`:""}</li>`).join("")}</ul>`:`<p class="note">${k.noneFound}</p>`}
 ${res.need?`<p><b>${k.need}</b>${esc(res.need)}</p>`:""}${res.flow?`<p><b>${k.cond}</b>${esc(res.flow)}</p>`:""}
@@ -4055,11 +4269,11 @@ function openCareer(){
 <div id="skCareer">${tg?careerHTML(tg,R):""}</div>`,true);
 }
 function careerHTML(tg,R){
-  const k=SKT(),l=skL(),m=skMatch(R,tg.req),gaps=skGaps(R,tg.req),have=tg.req.filter(([id,lv])=>skLv(R[id].xp)>=lv);
+  const k=SKT(),l=skL(),m=skMatch(R,tg.req),gaps=skGaps(R,tg.req),have=tg.req.filter(([id,lv])=>R[id].xp>=skNeed(lv));
   skPlan=skPlan&&skPlan.role===tg.role?skPlan:buildPlan(tg,R);
   return `<div class="skres jelly"><h3>${esc(tg.role)} <span class="skpct">${m}%</span></h3>
 ${tg.note?`<p>${esc(tg.note)}</p>`:""}
-<div class="skbars">${tg.req.map(([id,lv])=>{const hv=skLv(R[id].xp);return `<div class="skbar"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3,4,5].map(n=>`<i class="${n<=hv?"have":n<=lv?"need":""}"></i>`).join("")}</span><small>${hv>=lv?"✓":`${hv}/${lv}`}</small></div>`}).join("")}</div>
+<div class="skbars">${tg.req.map(([id,lv0])=>{const hv=R[id].xp,lv=skNeed(lv0);return `<div class="skbar"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3].map(n=>`<i class="${n<=hv?"have":n<=lv?"need":""}"></i>`).join("")}</span><small>${hv>=lv?"✓":`${hv}/${lv}★`}</small></div>`}).join("")}</div>
 ${have.length?`<p><b>${k.transfer}</b>${esc(have.map(([id])=>skName(id)).join("、"))}${R[have[0][0]].ev[0]&&R[have[0][0]].ev[0].t?` — ${k.proof}「${esc(R[have[0][0]].ev[0].t)}」`:""}</p>`:""}
 ${gaps.length?`<h3>${k.plan4}</h3><ol class="skplan">${[0,1,2,3].map(w=>`<li><b>${k.weekN(w+1)}</b>${skPlan.items.filter(x=>x.w===w).map(x=>`<span>${esc(x.text)}<small>${esc(skName(x.sk))}</small></span>`).join("")}</li>`).join("")}</ol>
 <div class="row"><button class="pill pri jelly" type="button" data-skcal="1">${I.cal}${k.toCal}</button><button class="pill jelly" type="button" data-skgoal="1">🎯 ${k.toGoal}</button><button class="pill jelly" type="button" data-skplanai="1">${I.sparkle}${k.aiTune}</button></div>
@@ -4085,7 +4299,7 @@ async function roleAI(){
   try{
     const r=await AI.json(`Target job or role: "${q}". Using ONLY ids from this skill list, choose the 5-6 skills an entry-level person in this role needs most, with the level needed (1-5).
 Skill list (id: name): ${SKILLS.map(s=>s.id+": "+s.n.en).join("; ")}
-The person's current strongest skills, with evidence: ${top.map(x=>`${x.s.n.en} (Lv${skLv(x.xp)}, e.g. "${(R[x.s.id].ev.find(e=>e.t)||{}).t||""}")`).join("; ")||"none yet"}
+The person's current strongest skills, with evidence: ${top.map(x=>`${x.s.n.en} (${x.xp} of 3 stars, e.g. "${(R[x.s.id].ev.find(e=>e.t)||{}).t||""}")`).join("; ")||"none yet"}
 Reply with ONLY JSON: {"role":"the role name in ${t.replyLang}","req":[{"id":"skill id","lv":3}],"note":"one or two sentences in ${t.replyLang}: which of their existing skills transfer to this role and why, referring to their evidence; be concrete, no empty praise"}`,{modelTier:"default",cache:false});
     const req=(Array.isArray(r.req)?r.req:[]).filter(x=>x&&SKMAP[x.id]).slice(0,6).map(x=>[x.id,Math.max(1,Math.min(5,parseInt(x.lv,10)||2))]);
     if(!req.length)throw new Error("empty");
@@ -4365,7 +4579,7 @@ function pLinks(x){
   (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
   return out;
 }
-const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine";
+const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||(typeof unlocked==="function"&&unlocked(c.k));
 const pOpen=c=>pFree(c)?Infinity:OWNER.trialCards;
 let pview=null,ptrail=[];   // a card reached through a link, and the way back
 // romaji for kana, so a Chinese speaker can read Japanese on day one
@@ -4506,7 +4720,7 @@ function pGameHTML(){
 }
 function pAnswer(n,btn){
   if(!pg||pg.done)return;const x=pg.cards[pg.q];
-  if(n===pg.q){pg.done=true;pg.score++;btn.classList.add("ok");pSpeakCard(x,S.pd.lang);setTimeout(()=>{if(!pg)return;pg.round++;if(pg.round<pg.total)pRound();render()},900)}
+  if(n===pg.q){pg.done=true;pg.score++;btn.classList.add("ok");pSpeakCard(x,S.pd.lang);setTimeout(()=>{if(!pg)return;pg.round++;if(pg.round>=pg.total)xpEvent("pic");if(pg.round<pg.total)pRound();render()},900)}
   else{btn.classList.remove("bad");void btn.offsetWidth;btn.classList.add("bad");S.pd.again[pKey(pcat(),x)]=1;save()}
 }
 function picImport(){
@@ -4591,8 +4805,17 @@ document.addEventListener("click",e=>{
   const skb=el.closest("[data-skb]");if(skb){openSkillBranch(skb.dataset.skb);return}
   const sks=el.closest("[data-sks]");if(sks){openSkill(sks.dataset.sks);return}
   const skd=el.closest("[data-skdo]");if(skd){skDo(skd.dataset.skdo,+skd.dataset.p||0);render();return}
-  const sksf=el.closest("[data-skself]");if(sksf){const id=sksf.dataset.skself,lv=+sksf.dataset.lv;S.sk.own[id]=Object.assign(S.sk.own[id]||{},{base:SK_TH[lv]});save();render();
-    const inB=document.querySelectorAll(".sklist .skcard").length>1;if(inB)openSkillBranch(SKMAP[id].b);else openSkill(id);return}
+  const qu=el.closest("[data-quest]");if(qu){openQuest(+qu.dataset.quest);return}
+  if(el.closest("[data-qre]")){const d=todayKey();S.q={d,re:1,items:[]};S.q=Object.assign(makeQuests(),{re:1});save();render();return}
+  const qd=el.closest("[data-qdone]");if(qd){questDone(+qd.dataset.qdone);return}
+  const qc=el.closest("[data-qcal]");if(qc){const x=quests().items[+qc.dataset.qcal],d=new Date(),i=(d.getDay()+6)%7,w=W(key(mondayOf(d)));if(x&&!w.days[i].some(y=>y.text===x.text))w.days[i].push({id:uid(),text:x.text,pri:"high",done:false,sk:[x.sk]});save();toast(SKT().added(`${T().days[i]} ${T().md(d)}`));return}
+  const slg=el.closest("[data-sklog]");if(slg){openLog(slg.dataset.sklog);return}
+  const lsv=el.closest("[data-logsave]");if(lsv){logSave(lsv.dataset.logsave);return}
+  const sen=el.closest("[data-skendo]");if(sen){openEndo(sen.dataset.skendo);return}
+  if(el.closest("[data-endocopy]")){const tx=$("endoMsg").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("endoMsg").select())}catch(x){$("endoMsg").select()}return}
+  const erl=el.closest("[data-endorel]");if(erl){document.querySelectorAll("[data-endorel]").forEach(b=>b.setAttribute("aria-pressed",b===erl));return}
+  const esv=el.closest("[data-endosave]");if(esv){endoSave(esv.dataset.endosave);return}
+  if(el.closest("[data-skrules]")){openRules();return}
   if(el.closest("[data-skflow]")){openFlowRecall();return}
   if(el.closest("[data-skflowgo]")){flowAnalyse();return}
   const skn=el.closest("[data-sknext]");if(skn){const d=new Date(),i=(d.getDay()+6)%7,w=W(key(mondayOf(d)));w.days[i].push({id:uid(),text:skn.dataset.sknext,pri:"mid",done:false,sk:[skn.dataset.sk]});save();toast(SKT().added(`${T().days[i]} ${T().md(d)}`));skn.disabled=true;return}
@@ -4803,7 +5026,7 @@ document.addEventListener("click",e=>{
     if(el.closest(".x")){if(src==="prev")w.dismissed.push(item.text);else list.splice(list.indexOf(item),1);if(pending&&pending.id===id)pending=null}
     else if(el.closest(".dot")){if(src!=="prev")item.pri=PRI[(PRI.indexOf(item.pri)+1)%3]}
     else if(el.closest(".bell"))editTime=id;
-    else if(el.closest(".txt")){if(src==="day")item.done=!item.done;else pending=pending&&pending.id===id?null:{src,id,text:item.text}}
+    else if(el.closest(".txt")){if(src==="day"){item.done=!item.done;if(item.done)xpEvent("task")}else pending=pending&&pending.id===id?null:{src,id,text:item.text}}
     save();render();return;
   }
   const cell=el.closest(".cell.day");if(cell&&pending)drop(pending.src,pending.id,null,cell.dataset.slot);
