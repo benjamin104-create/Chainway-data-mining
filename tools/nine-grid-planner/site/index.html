@@ -358,6 +358,35 @@ body.ranging .gbar{pointer-events:none}
 .float button.pri{background:var(--bg);color:var(--ink);border-color:var(--bg)}
 #rem{bottom:calc(148px + env(safe-area-inset-bottom,0px))}
 
+/* welcome, to-do form, share */
+.welcome{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:10px 4px 4px}
+.welcome h2{margin:0;font-size:26px;font-weight:400;letter-spacing:.04em}
+.welcome p{margin:0;max-width:30ch;color:var(--muted);line-height:1.6}
+.wlogo{display:grid;grid-template-columns:repeat(3,38px);gap:7px;margin:6px 0 4px}
+.wlogo i{width:38px;height:38px;border-radius:13px;background:linear-gradient(180deg,color-mix(in srgb,#fff 40%,var(--c)),var(--c));box-shadow:inset 0 1px 1px rgba(255,255,255,.7),0 8px 14px -8px var(--c);animation:tilein .6s var(--ease) backwards}
+.wlogo i:nth-child(5){border-radius:50%;animation-name:tilespin}
+@keyframes tilein{from{transform:scale(.3) rotate(-20deg);opacity:0}}
+@keyframes tilespin{from{transform:scale(.3) rotate(-180deg);opacity:0}}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:320px;border-radius:999px;padding:12px 18px;font-size:15px;background:#fff;color:#1F1F1F;border:1px solid #DADCE0;box-shadow:0 6px 16px -10px var(--shade)}
+.gbtn svg{width:20px;height:20px}
+.welcome .pill{width:100%;max-width:320px;justify-content:center;padding:11px 18px;font-size:15px}
+.welcome .note{max-width:34ch}
+.acct{display:flex;align-items:center;gap:10px}
+.acct img{width:34px;height:34px;border-radius:50%}
+.todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;counter-reset:td}
+.todo li{display:flex;align-items:center;gap:8px}
+.todo li::before{counter-increment:td;content:counter(td);font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--muted);width:16px;text-align:right}
+.todo input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:16px;padding:9px 12px}
+.todo .pp{flex:none;width:30px;height:30px}
+.todo .pp i{width:13px;height:13px}
+.todo .rm{flex:none;width:26px;height:26px;border-radius:50%;color:var(--muted);font-size:17px}
+.ctitle .lbtn{margin-left:auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--chip);color:var(--muted)}
+.ctitle .lbtn svg{width:15px;height:15px}
+.shimg{display:block;width:100%;max-width:320px;margin:0 auto;border-radius:22px;box-shadow:0 18px 36px -18px var(--shade);background:var(--chip);aspect-ratio:4/5;object-fit:contain}
+.shimg.story{aspect-ratio:9/16;max-width:250px}
+.seg.small button{width:auto;padding:0 12px;font-size:12px;color:var(--muted)}
+.seg.small button[aria-pressed="true"]{color:var(--on-accent)}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -410,12 +439,7 @@ body.ranging .gbar{pointer-events:none}
     </svg>
     <div class="htitle"><b id="faceTitle"></b><span id="faceSub"></span></div>
     <div class="hbtns">
-      <select id="region" class="region jelly" aria-label="Region">
-        <option value="TW">台灣</option>
-        <option value="JP">日本</option>
-        <option value="US">USA</option>
-        <option value="GB">UK</option>
-      </select>
+      <button id="shareBtn" class="round jelly" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5V2.8M6.2 6.3 10 2.5l3.8 3.8"/><path d="M5.5 9H4.2A1.7 1.7 0 0 0 2.5 10.7v5.1c0 .9.8 1.7 1.7 1.7h11.6c.9 0 1.7-.8 1.7-1.7v-5.1c0-.9-.8-1.7-1.7-1.7h-1.3"/></svg></button>
       <button id="helpBtn" class="round jelly" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7.4 7.3a2.7 2.7 0 1 1 3.6 2.6c-.6.3-1 .8-1 1.5v.6"/><circle cx="10" cy="15" r=".6" fill="currentColor"/></svg></button>
       <button id="setBtn" class="round jelly" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 2.5 9.3 10.7M11.4 12.8 7.2 8.6"/><path d="M7 11.6c-2.1 0-3.3 1.4-3.3 3.3 0 1.1-.6 2-1.7 2.4 4.5 1.3 7.6-.5 7.6-3.3"/></svg></button>
     </div>
@@ -446,7 +470,8 @@ body.ranging .gbar{pointer-events:none}
 const OWNER={
   donate:{week:"",month:""},               // 捐款頁網址（週／月），空白時顯示「即將開放」
   sponsorContact:"",                       // 想成為贊助夥伴的聯絡網址（表單或社群私訊連結）
-  sponsorPrice:{week:"",month:"NT$ 5,000"} // 贊助方案價格，空白就不顯示
+  sponsorPrice:{week:"",month:"NT$ 5,000"}, // 贊助方案價格，空白就不顯示
+  googleClientId:""                        // Google 登入用的 OAuth 用戶端 ID（只在安裝版網址有效）
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
 const SPONSORS=[
@@ -494,6 +519,13 @@ const STR={
     next:"下一步",gotIt:"知道了",skip:"略過",close:"關閉",
     rNew:"新的期間",rEdit:"編輯期間",rTitle:"主題",rNote:"註記",rStart:"開始",rEnd:"結束",rDays:n=>`共 ${n} 天`,rUntitled:"未命名",rColor:"顏色",
     rTip:"按住一個日期不放，往後拉，就能畫出一段期間。",
+    wLead:"把待辦清單變成一週的九宮格：寫下來、拖進去、完成它。",wGoogle:"用 Google 登入",wGuest:"先不登入，直接開始",
+    wGoogleNote:"登入後，資料會備份到你自己的 Google 雲端硬碟，換手機也不會不見。",wNoLogin:"Google 登入要在安裝版網址使用，這個預覽頁面沒辦法。",
+    todoTitle:"這週想完成什麼？",todoPh:n=>`第 ${n} 件事`,todoMore:"再加一件",todoGo:"放進九宮格",todoSample:"先看範例",todoPaste:"一行一件事。也可以把備忘錄的清單整段貼上。",todoBtn:"寫清單",todoEmpty:"至少寫下一件事",
+    share:"分享",shareTitle:"分享這一面",fmtPost:"貼文 4:5",fmtStory:"限時動態 9:16",shareNow:"分享到 IG／FB",saveImg:"下載圖片",fb:"分享到 Facebook",copyCap:"複製文字",copied:"已複製",
+    holdSave:"長按圖片存到手機，再到 IG 或 FB 發佈。",caption:"我的這週九宮格 #九宮格週計畫",shareFail:"這台裝置不能直接分享，改成下載圖片。",
+    account:"帳號",signedAs:n=>`已登入：${n}`,signOut:"登出",syncNow:"立即同步",synced:"已同步到 Google 雲端硬碟",syncFail:"同步沒有成功，請稍後再試。",guestNote:"目前是訪客模式，資料只存在這支手機。",region:"地區與假日",
+    cardDone:"本週完成",cardTry:"免費使用 →",
     guides:[
       [["[data-slot=inbox]","先在中間寫下這週想做的事，選一個顏色代表重要程度。"],
        ["[data-slot=d0]","按住一件事，拖到某一天，就排好了。","drag"],
@@ -549,6 +581,13 @@ const STR={
     next:"次へ",gotIt:"OK",skip:"スキップ",close:"閉じる",
     rNew:"新しい期間",rEdit:"期間を編集",rTitle:"タイトル",rNote:"メモ",rStart:"開始",rEnd:"終了",rDays:n=>`${n}日間`,rUntitled:"無題",rColor:"色",
     rTip:"日付を長押ししたままドラッグすると、期間を引けます。",
+    wLead:"ToDo リストを一週間の九マスに。書いて、ドラッグして、終わらせる。",wGoogle:"Google でログイン",wGuest:"ログインせずに始める",
+    wGoogleNote:"ログインすると、データは自分の Google ドライブに保存され、機種変更しても残ります。",wNoLogin:"Google ログインはインストール版の URL で使えます。",
+    todoTitle:"今週やりたいことは？",todoPh:n=>`${n} つ目`,todoMore:"もう一つ",todoGo:"九マスに入れる",todoSample:"サンプルを見る",todoPaste:"一行に一つ。メモアプリのリストをまとめて貼り付けても OK。",todoBtn:"リスト",todoEmpty:"少なくとも一つ書いてください",
+    share:"シェア",shareTitle:"この面をシェア",fmtPost:"投稿 4:5",fmtStory:"ストーリー 9:16",shareNow:"IG／FB にシェア",saveImg:"画像を保存",fb:"Facebook でシェア",copyCap:"テキストをコピー",copied:"コピーしました",
+    holdSave:"画像を長押しして保存し、IG や FB に投稿してください。",caption:"今週の九マス #九マス週間プランナー",shareFail:"この端末では直接シェアできないため、画像を保存します。",
+    account:"アカウント",signedAs:n=>`ログイン中：${n}`,signOut:"ログアウト",syncNow:"今すぐ同期",synced:"Google ドライブに同期しました",syncFail:"同期できませんでした。後でもう一度お試しください。",guestNote:"ゲストモードです。データはこの端末だけに保存されます。",region:"地域と祝日",
+    cardDone:"今週の完了",cardTry:"無料で使う →",
     guides:[
       [["[data-slot=inbox]","まず真ん中に今週やることを書き、色で重要度を選びます。"],
        ["[data-slot=d0]","タスクをつかんで曜日へドラッグすれば予定完了。","drag"],
@@ -604,6 +643,13 @@ const STR={
     next:"Next",gotIt:"Got it",skip:"Skip",close:"Close",
     rNew:"New span",rEdit:"Edit span",rTitle:"Title",rNote:"Note",rStart:"Start",rEnd:"End",rDays:n=>`${n} ${n>1?"days":"day"}`,rUntitled:"Untitled",rColor:"Colour",
     rTip:"Press and hold a date, then drag to draw a span.",
+    wLead:"Turn your to-do list into a nine-square week: write it, drag it, finish it.",wGoogle:"Sign in with Google",wGuest:"Start without signing in",
+    wGoogleNote:"Signed in, your plan is backed up to your own Google Drive and follows you to a new phone.",wNoLogin:"Google sign-in works on the app link, not in this preview.",
+    todoTitle:"What do you want to finish this week?",todoPh:n=>`Task ${n}`,todoMore:"Add another",todoGo:"Put them in the grid",todoSample:"See a sample",todoPaste:"One task per line. You can paste a whole list from your notes app.",todoBtn:"List",todoEmpty:"Write at least one task",
+    share:"Share",shareTitle:"Share this side",fmtPost:"Post 4:5",fmtStory:"Story 9:16",shareNow:"Share to IG / FB",saveImg:"Save image",fb:"Share on Facebook",copyCap:"Copy caption",copied:"Copied",
+    holdSave:"Press and hold the image to save it, then post it on IG or FB.",caption:"My week in nine squares #NineGridWeek",shareFail:"This device can't share directly, so the image was saved instead.",
+    account:"Account",signedAs:n=>`Signed in as ${n}`,signOut:"Sign out",syncNow:"Sync now",synced:"Synced to Google Drive",syncFail:"Sync didn't work. Try again in a moment.",guestNote:"You're a guest. Your plan is saved only on this device.",region:"Region & holidays",
+    cardDone:"Done this week",cardTry:"Try it free →",
     guides:[
       [["[data-slot=inbox]","Start in the middle: write this week's tasks and pick a colour for how important each is."],
        ["[data-slot=d0]","Grab a task and drag it onto a day. That's it.","drag"],
@@ -723,7 +769,7 @@ function holiday(d){const y=d.getFullYear(),k=key(d);for(const yy of [y,y+1,y-1]
 /* ---------- storage ---------- */
 const SKEY="nine-grid-planner-v1",WKEY="nine-grid-wall-v1";
 function load(){try{const s=JSON.parse(localStorage.getItem(SKEY));if(s&&s.weeks)return s}catch(e){}return null}
-function save(){try{localStorage.setItem(SKEY,JSON.stringify(S))}catch(e){}}
+function save(){S.savedAt=Date.now();try{localStorage.setItem(SKEY,JSON.stringify(S))}catch(e){}if(typeof schedulePush==="function")schedulePush()}
 let wall=null;try{wall=localStorage.getItem(WKEY)}catch(e){}
 const uid=()=>Math.random().toString(36).slice(2,9);
 function W(k){if(!S.weeks[k])S.weeks[k]={inbox:[],days:[[],[],[],[],[],[],[]],dismissed:[]};const w=S.weeks[k];w.dismissed=w.dismissed||[];return w}
@@ -815,6 +861,9 @@ const I={
   mind:sv('<path d="M10 17c-4-2.6-6.5-5.3-6.5-8.3a3.3 3.3 0 0 1 6.5-1 3.3 3.3 0 0 1 6.5 1c0 3-2.5 5.7-6.5 8.3z"/><path d="M7 10h2l1-2 1 4 1-2h1"/>'),
   sport:sv('<circle cx="10" cy="10" r="7.5"/><path d="M10 2.5v15M2.5 10h15M4.7 4.7c3 2.8 3 7.8 0 10.6M15.3 4.7c-3 2.8-3 7.8 0 10.6"/>'),
   career:sv('<rect x="2.5" y="6" width="15" height="11" rx="3"/><path d="M7 6V4.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 13 4.5V6M2.5 10.5h15"/>'),
+  list:sv('<path d="M7 5h10M7 10h10M7 15h10"/><circle cx="3.5" cy="5" r=".9" fill="currentColor"/><circle cx="3.5" cy="10" r=".9" fill="currentColor"/><circle cx="3.5" cy="15" r=".9" fill="currentColor"/>'),
+  globe:sv('<circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/>'),
+  user:sv('<circle cx="10" cy="7" r="3.3"/><path d="M3.5 17.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
 const FACE_ICONS=[I.grid,I.target,I.music,I.heart];
@@ -847,7 +896,9 @@ function drawArt(){
   const dpr=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
   c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
   const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
-  const pal=skin().art,cell=Math.max(90,Math.min(150,w/5));
+  artShapes(x,w,h,skin().art,Math.max(90,Math.min(150,w/5)));
+}
+function artShapes(x,w,h,pal,cell){
   let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   for(let gy=0;gy<h+cell;gy+=cell)for(let gx=0;gx<w+cell;gx+=cell){
     const col=pal[Math.floor(rnd()*pal.length)],col2=pal[Math.floor(rnd()*pal.length)],t=Math.floor(rnd()*7);
@@ -983,8 +1034,7 @@ function render(){
   const t=T();
   document.documentElement.lang={zh:"zh-Hant-TW",ja:"ja",en:"en"}[LANG[S.region]];
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
-  $("region").value=S.region;
-  $("helpBtn").setAttribute("aria-label",t.help);$("setBtn").setAttribute("aria-label",t.settings);
+  $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
   $("knob").setAttribute("aria-label",t.faces[(S.face+1)%4]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
@@ -1032,7 +1082,7 @@ function renderWeek(){
 ${hol?`<div class="htag">${esc(hol)}</div>`:""}${(rl=>rl.length?`<div class="rtags">${rl.map(r=>`<button class="gbar" type="button" data-rid="${r.id}" style="--g:${r.color}" title="${esc(r.title||t.rUntitled)}">${esc(r.title||t.rUntitled)}</button>`).join("")}</div>`:"")(rangesOn(key(d)))}<ul class="list">${items.map(x=>chip(x,"day",i)).join("")}</ul></section>`;
   };
   const center=`<section class="cell center jelly" data-slot="inbox">
-<div class="ctitle">${I.inbox}${t.inbox}</div>
+<div class="ctitle">${I.inbox}${t.inbox}<button class="lbtn" type="button" data-todo="open" aria-label="${t.todoBtn}">${I.list}</button></div>
 <form class="add" id="addForm" autocomplete="off"><input id="newTask" type="text" maxlength="80" placeholder="${esc(t.placeholder)}" aria-label="${esc(t.placeholder)}">
 <div class="addrow">${PRI.map(p=>`<button type="button" class="pp p-${p}" data-pri="${p}" aria-pressed="${p===newPri}" aria-label="${t.pri[p]}"><i></i></button>`).join("")}<button class="addbtn" type="submit" aria-label="${t.add}">+</button></div></form>
 ${w.inbox.length?`<ul class="list">${byPri(w.inbox).map(x=>chip(x,"inbox",null,placed[x.id]?`<span class="badge">${[...new Set(placed[x.id])].sort().map(i=>t.short[i]).join(" ")}</span>`:"")).join("")}</ul>`:""}
@@ -1289,9 +1339,11 @@ function goFace(n,dir){
 }
 
 /* ---------- layers: settings sheet and small popovers ---------- */
-function closeLayer(){$("layer").innerHTML="";redit=null}
-function layer(html,mid){
-  $("layer").innerHTML=`<div class="scrim${mid?" mid":""}" data-scrim="1"><div class="sheet jelly" role="dialog" aria-modal="true">${html}</div></div>`;
+let layerLock=false;
+function closeLayer(){$("layer").innerHTML="";redit=null;layerLock=false}
+function layer(html,mid,lock){
+  layerLock=!!lock;
+  $("layer").innerHTML=`<div class="scrim${mid?" mid":""}"${lock?"":` data-scrim="1"`}><div class="sheet jelly" role="dialog" aria-modal="true">${html}</div></div>`;
   if(mid){const f=$("layer").querySelector("input");if(f)setTimeout(()=>f.focus(),60)}
 }
 const closeBtn=t=>`<button class="round jelly" type="button" data-close="1" aria-label="${t.close}">${I.x}</button>`;
@@ -1301,6 +1353,8 @@ function openSettings(){
   if(IS_SITE)inst=standalone()?`<span class="status">${t.installed}</span>`:(installEvt?`<button class="pill pri jelly" type="button" data-set="install">${I.phone}${t.installBtn}</button>`:"");
   else inst=SITE_URL?`<a class="pill pri jelly" href="${esc(SITE_URL)}" target="_blank" rel="noopener">${I.phone}${t.installPreview}</a>`:`<span class="note">${t.installNoSite}</span>`;
   layer(`<div class="shead"><h2>${t.settings}</h2>${closeBtn(t)}</div>
+<div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}</div>
+<div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
 <div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b style="background:radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}"></b>${t.skins[k]}</button>`}).join("")}</div>
 <div class="row"><label class="pill jelly upload">${I.upload}${t.upload}<input id="wallFile" type="file" accept="image/*"></label>${wall?`<button class="pill jelly" type="button" data-set="wallrm">${t.wallRemove}</button>`:""}</div>
@@ -1447,6 +1501,293 @@ function scheduleStep(i,dateStr){
   save();toast(t.scheduled(`${t.days[di]} ${t.md(d)}`));return true;
 }
 
+
+/* ---------- welcome & sign-in ---------- */
+const GLOGO='<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.3 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 7l7.2 5.6c4.2-3.9 7.1-9.7 7.1-17z"/><path fill="#FBBC05" d="M10.4 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.2-5.6c-2 1.4-4.7 2.3-8.7 2.3-6.3 0-11.7-4.1-13.6-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>';
+const canGoogle=()=>IS_SITE&&!!OWNER.googleClientId;
+function regionSelect(){return `<select id="region" class="region jelly" aria-label="${T().region}">${[["TW","台灣・繁中"],["JP","日本・日本語"],["US","United States"],["GB","United Kingdom"]].map(([v,l])=>`<option value="${v}"${S.region===v?" selected":""}>${l}</option>`).join("")}</select>`}
+function accountHTML(){
+  const t=T(),a=S.account;
+  if(a)return `<div class="acct">${a.picture?`<img src="${esc(a.picture)}" alt="" referrerpolicy="no-referrer">`:""}<span>${esc(t.signedAs(a.name||a.email))}</span></div><div class="row"><button class="pill jelly" type="button" data-acc="sync">${t.syncNow}</button><button class="pill jelly" type="button" data-acc="out">${t.signOut}</button></div>`;
+  return `<p class="note">${t.guestNote}</p><div class="row"><button class="gbtn" type="button" data-acc="in" style="max-width:260px">${GLOGO}${t.wGoogle}</button></div>`;
+}
+function showWelcome(){
+  const t=T(),k=skin();
+  layer(`<div class="welcome"><div class="wlogo">${[...k.tints.slice(0,4),k.accent,...k.tints.slice(4),"#9AA6B2"].map((c,i)=>`<i style="--c:${c};animation-delay:${i*60}ms"></i>`).join("")}</div>
+<h2>${t.faces[0]}</h2><p>${t.wLead}</p>
+<button class="gbtn" type="button" data-wel="google">${GLOGO}${t.wGoogle}</button>
+<p class="note">${canGoogle()?t.wGoogleNote:t.wNoLogin}</p>
+<button class="pill pri jelly" type="button" data-wel="guest">${t.wGuest}</button>
+<div class="row" style="justify-content:center">${regionSelect()}</div></div>`,true,true);
+}
+function boot(){
+  if(!S.welcomed){showWelcome();return}
+  if(S.face===0&&needTodo()){openTodo();return}
+  maybeGuide();
+}
+
+/* ---------- the to-do list form that opens first ---------- */
+function needTodo(){
+  const k=key(mondayOf(new Date())),w=S.weeks[k];
+  return S.askedWeek!==k&&(!w||(!w.inbox.length&&!w.days.some(d=>d.length)));
+}
+function todoRow(i,text,pri){const t=T();return `<li data-pri="${pri||"high"}"><button type="button" class="pp p-${pri||"high"}" data-tp="1" aria-label="${t.cycle}"><i></i></button><input type="text" maxlength="80" placeholder="${esc(t.todoPh(i+1))}" value="${esc(text||"")}"><button type="button" class="rm" data-todo="rm" aria-label="${t.del}">×</button></li>`}
+function openTodo(){
+  const t=T();S.askedWeek=key(mondayOf(new Date()));save();
+  layer(`<div class="shead"><h2>${t.todoTitle}</h2>${closeBtn(t)}</div><p class="note">${t.todoPaste}</p>
+<ol class="todo" id="todoList">${[0,1,2].map(i=>todoRow(i,"",i===0?"high":i===1?"mid":"low")).join("")}</ol>
+<div class="row"><button class="pill jelly" type="button" data-todo="more">＋ ${t.todoMore}</button></div>
+<div class="row end">${S.example?`<button class="pill jelly" type="button" data-todo="sample">${t.todoSample}</button>`:""}<button class="pill pri jelly" type="button" data-todo="go">${t.todoGo}</button></div>`,true);
+}
+function addTodoRows(lines,after){
+  const ol=$("todoList");if(!ol)return;
+  const rows=[...ol.children];let at=after?rows.indexOf(after)+1:rows.length;
+  let last=null;
+  for(const text of lines){
+    const empty=rows.slice(at).find(li=>!li.querySelector("input").value);
+    if(empty){empty.querySelector("input").value=text;last=empty;at=rows.indexOf(empty)+1}
+    else{ol.insertAdjacentHTML("beforeend",todoRow(ol.children.length,text));last=ol.lastElementChild}
+  }
+  [...ol.children].forEach((li,i)=>li.querySelector("input").placeholder=T().todoPh(i+1));
+  return last;
+}
+function submitTodo(){
+  const t=T(),rows=[...$("todoList").children].map(li=>({text:li.querySelector("input").value.trim(),pri:li.dataset.pri})).filter(x=>x.text);
+  if(!rows.length){toast(t.todoEmpty);return}
+  if(S.example){S.weeks={};S.example=false;S.goal=seedGoal(LANG[S.region],false);walkerP=0}
+  cur=mondayOf(new Date());S.face=0;S.mode="week";
+  const w=W(key(cur));rows.forEach(x=>w.inbox.push({id:uid(),text:x.text,pri:x.pri}));
+  save();closeLayer();render();maybeGuide();
+}
+
+/* ---------- share images (drawn on a canvas, sized for IG / FB) ---------- */
+const CF='"Huninn","Noto Sans TC","PingFang TC","Hiragino Sans","Microsoft JhengHei",sans-serif',CN='"Nunito","Huninn",sans-serif';
+function rr(x,X,Y,w,h,r){r=Math.max(0,Math.min(r,w/2,h/2));x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath()}
+function clip(x,s,max){s=String(s);if(x.measureText(s).width<=max)return s;while(s.length&&x.measureText(s+"…").width>max)s=s.slice(0,-1);return s+"…"}
+function tx(x,s,X,Y,size,color,o){o=o||{};x.font=`${o.b?"800 ":""}${size}px ${o.num?CN:CF}`;x.fillStyle=color;x.textAlign=o.align||"left";x.textBaseline="alphabetic";const str=o.max?clip(x,s,o.max):String(s);x.fillText(str,X,Y);return x.measureText(str).width}
+function wrapTx(x,s,X,Y,max,size,lh,lines,color,align){
+  x.font=`${size}px ${CF}`;x.fillStyle=color;x.textAlign=align||"left";x.textBaseline="alphabetic";
+  const out=[];let line="";
+  for(const ch of String(s)){if(x.measureText(line+ch).width>max&&line){out.push(line);line=ch}else line+=ch}
+  if(line)out.push(line);
+  const shown=out.slice(0,lines);if(out.length>lines)shown[lines-1]=clip(x,shown[lines-1]+"…",max);
+  shown.forEach((l,i)=>x.fillText(l,X,Y+i*lh));return shown.length;
+}
+function jellyRect(x,X,Y,w,h,r,tint,P,a){
+  x.save();x.shadowColor=P.shadow;x.shadowBlur=34;x.shadowOffsetY=14;rr(x,X,Y,w,h,r);x.fillStyle=P.glass;x.fill();x.restore();
+  if(tint){rr(x,X,Y,w,h,r);x.globalAlpha=a==null?.24:a;x.fillStyle=tint;x.fill();x.globalAlpha=1}
+  const g=x.createLinearGradient(X,Y,X,Y+h);g.addColorStop(0,P.sheen);g.addColorStop(.45,"rgba(255,255,255,0)");rr(x,X,Y,w,h,r);x.fillStyle=g;x.fill();
+  rr(x,X,Y,w,h,r);x.lineWidth=2.5;x.strokeStyle=P.edge;x.stroke();
+}
+function pillBar(x,X,Y,w,h,color,label,P){
+  rr(x,X,Y,w,h,h/2);const g=x.createLinearGradient(X,Y,X,Y+h);g.addColorStop(0,"rgba(255,255,255,.55)");g.addColorStop(1,"rgba(255,255,255,0)");
+  x.globalAlpha=.9;x.fillStyle=color;x.fill();x.globalAlpha=1;x.fillStyle=g;x.fill();
+  if(label)tx(x,label,X+h*.55,Y+h*.72,h*.62,"#fff",{max:w-h});
+}
+function dot(x,X,Y,r,c,hollow){x.beginPath();x.arc(X,Y,r,0,Math.PI*2);if(hollow){x.lineWidth=3;x.strokeStyle=c;x.stroke()}else{x.fillStyle=c;x.fill()}}
+async function makeCard(fmt){
+  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+  const W0=1080,H0=fmt==="story"?1920:1350,c=document.createElement("canvas");c.width=W0;c.height=H0;
+  const x=c.getContext("2d"),k=skin(),t=T(),dark=!!k.dark||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches)||document.documentElement.dataset.theme==="dark";
+  const acc=wall&&S.wallAccent?(dark?S.wallAccent.d:S.wallAccent.l):(dark?k.accentD:k.accent);
+  const P={ink:dark?"#EAF0F6":"#1B2735",muted:dark?"#9AA7B6":"#5B6878",glass:dark?"rgba(30,38,52,.78)":"rgba(255,255,255,.74)",chip:dark?"rgba(255,255,255,.10)":"rgba(255,255,255,.92)",
+    sheen:dark?"rgba(255,255,255,.10)":"rgba(255,255,255,.6)",edge:dark?"rgba(255,255,255,.16)":"rgba(255,255,255,.9)",shadow:dark?"rgba(0,0,0,.45)":"rgba(27,39,53,.16)",
+    accent:acc,hi:dark?"#FF6B6F":"#E5484D",mid:dark?"#F5BE4B":"#F0A928",low:dark?"#6F7B8A":"#9AA6B2",hol:dark?"#FF8A80":"#D2453B",tints:k.tints};
+  x.fillStyle=dark?"#0E131B":k.bg;x.fillRect(0,0,W0,H0);
+  x.globalAlpha=dark?.28:.42;artShapes(x,W0,H0,k.art,180);x.globalAlpha=1;
+  // header
+  jellyRect(x,60,60,W0-120,170,52,null,P);
+  const lt=[...k.tints.slice(0,4),acc,...k.tints.slice(4),"#9AA6B2"];
+  lt.forEach((col,i)=>{rr(x,104+(i%3)*34,94+Math.floor(i/3)*34,28,28,i===4?14:9);x.fillStyle=col;x.fill()});
+  let title=t.faces[S.face],sub=t.subs[S.face];
+  if(S.face===0&&S.mode==="week"){const iw=isoWeek(cur);sub=`${t.range(cur,addDays(cur,6))} · ${t.wno(iw.y,iw.w)}`}
+  if(S.face===0&&S.mode==="month")sub=t.monthFmt(curMonth.getFullYear(),curMonth.getMonth());
+  if(S.face===1&&S.goal.title)sub=S.goal.title;
+  tx(x,title,236,140,54,P.ink,{max:W0-340});tx(x,sub,236,192,30,P.muted,{max:W0-340});
+  // footer
+  const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
+  tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
+  const B={X:60,Y:268,W:W0-120,H:H0-268-130};
+  [cardWeek,cardGoal,cardMusic,cardFriends][S.face](x,B,P,t);
+  return c;
+}
+function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
+function cardWeek(x,B,P,t){
+  if(S.mode==="month")return cardMonth(x,B,P,t);
+  const w=W(key(cur)),G=gridBox(B,20),slots=[0,1,2,3,"in",4,5,6,"st"];
+  const priC={high:P.hi,mid:P.mid,low:P.low};
+  slots.forEach((sl,n)=>{
+    const X=G.gx+(n%3)*(G.ts+G.gap),Y=G.gy+Math.floor(n/3)*(G.ts+G.gap),ts=G.ts;
+    if(typeof sl==="number"){
+      const d=addDays(cur,sl),hol=holiday(d),items=byDay(w.days[sl]),rl=rangesOn(key(d));
+      jellyRect(x,X,Y,ts,ts,40,P.tints[sl],P);
+      tx(x,t.days[sl],X+26,Y+54,34,P.ink);tx(x,t.md(d),X+ts-26,Y+54,26,hol?P.hol:P.muted,{align:"right",num:1,b:1});
+      let y=Y+78;
+      if(hol){tx(x,hol,X+26,y+18,21,P.hol,{max:ts-52});y+=30}
+      rl.slice(0,2).forEach(r=>{pillBar(x,X+22,y,ts-44,26,r.color,r.title,P);y+=32});
+      const room=Math.max(0,Math.floor((Y+ts-18-y)/40));
+      items.slice(0,room).forEach((it,i)=>{const yy=y+22+i*40;dot(x,X+34,yy-8,8,priC[it.pri],it.done);
+        const wd=tx(x,(it.time?it.time+" ":"")+it.text,X+52,yy,25,it.done?P.muted:P.ink,{max:ts-76});
+        if(it.done){x.strokeStyle=P.muted;x.lineWidth=2;x.beginPath();x.moveTo(X+52,yy-8);x.lineTo(X+52+wd,yy-8);x.stroke()}});
+      if(items.length>room&&room>0)tx(x,`+${items.length-room}`,X+ts-26,Y+ts-18,22,P.muted,{align:"right",num:1,b:1});
+    }else if(sl==="in"){
+      jellyRect(x,X,Y,ts,ts,40,"#FFFFFF",P,.4);
+      tx(x,t.inbox,X+26,Y+54,32,P.ink);
+      const items=byPri(w.inbox),room=Math.floor((ts-86)/40);
+      items.slice(0,room).forEach((it,i)=>{const yy=Y+104+i*40;dot(x,X+34,yy-8,8,priC[it.pri]);tx(x,it.text,X+52,yy,25,P.ink,{max:ts-76})});
+    }else{
+      jellyRect(x,X,Y,ts,ts,40,P.accent,P,.18);
+      const all=w.days.flat(),done=all.filter(z=>z.done).length,cx=X+ts/2,cy=Y+ts/2-18,R=ts*.26;
+      x.lineCap="round";x.lineWidth=18;x.strokeStyle=P.chip;x.beginPath();x.arc(cx,cy,R,0,Math.PI*2);x.stroke();
+      if(done){x.strokeStyle=P.accent;x.beginPath();x.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*done/all.length);x.stroke()}
+      tx(x,`${done}/${all.length}`,cx,cy+14,44,P.ink,{align:"center",num:1,b:1});tx(x,t.cardDone,cx,Y+ts-34,26,P.muted,{align:"center"});
+    }
+  });
+}
+function cardMonth(x,B,P,t){
+  const y0=curMonth.getFullYear(),mo=curMonth.getMonth(),first=D(y0,mo+1,1),last=D(y0,mo+2,0),weeks=[];
+  for(let m=mondayOf(first);m<=last;m=addDays(m,7))weeks.push(m);
+  jellyRect(x,B.X,B.Y,B.W,B.H,48,null,P);
+  const pad=24,cw=(B.W-2*pad)/7,top=B.Y+76,rh=(B.Y+B.H-pad-top)/weeks.length;
+  t.short.forEach((s,i)=>tx(x,s,B.X+pad+cw*i+cw/2,B.Y+54,26,i>4?P.hol:P.muted,{align:"center"}));
+  weeks.forEach((m,r)=>{
+    const Y=top+r*rh,wr=weekRanges(m),ws=S.weeks[key(m)];
+    for(let i=0;i<7;i++){
+      const d=addDays(m,i),X=B.X+pad+cw*i,out=d.getMonth()!==mo,hol=holiday(d);
+      rr(x,X+4,Y+4,cw-8,rh-8,22);x.fillStyle=P.chip;x.globalAlpha=out?.4:1;x.fill();x.globalAlpha=1;
+      tx(x,d.getDate(),X+18,Y+40,28,hol?P.hol:(out?P.muted:P.ink),{num:1,b:1});
+      const items=ws?ws.days[i]:[];items.slice(0,4).forEach((it,j)=>dot(x,X+22+j*18,Y+rh-24,6,{high:P.hi,mid:P.mid,low:P.low}[it.pri],it.done));
+      if(hol&&!out&&wr.lanes<2)tx(x,hol,X+14,Y+rh-(items.length?44:22),17,P.hol,{max:cw-24});
+    }
+    wr.segs.forEach(sg=>pillBar(x,B.X+pad+cw*sg.s+8,Y+52+sg.lane*30,cw*(sg.e-sg.s+1)-16,24,sg.r.color,sg.r.title,P));
+  });
+}
+function cardGoal(x,B,P,t){
+  const G=gridBox(B,20),g=S.goal,done=g.steps.filter(s=>s.done).length;
+  for(let n=0;n<9;n++){
+    const X=G.gx+(n%3)*(G.ts+G.gap),Y=G.gy+Math.floor(n/3)*(G.ts+G.gap),ts=G.ts;
+    if(n===4){
+      jellyRect(x,X,Y,ts,ts,40,P.accent,P,.2);
+      const cx=X+ts/2,cy=Y+ts*.4,R=ts*.2;x.lineCap="round";x.lineWidth=16;x.strokeStyle=P.chip;x.beginPath();x.arc(cx,cy,R,0,Math.PI*2);x.stroke();
+      if(done){x.strokeStyle=P.accent;x.beginPath();x.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*done/8);x.stroke()}
+      tx(x,`${done}/8`,cx,cy+13,38,P.ink,{align:"center",num:1,b:1});
+      wrapTx(x,g.title||t.goalPh,cx,Y+ts*.74,ts-40,26,34,2,g.title?P.ink:P.muted,"center");continue;
+    }
+    const i=RING.indexOf(n),st=g.steps[i];
+    jellyRect(x,X,Y,ts,ts,40,P.tints[i%7],P);
+    dot(x,X+44,Y+44,22,st.done?P.tints[i%7]:P.chip);tx(x,st.done?"✓":i+1,X+44,Y+54,26,st.done?"#fff":P.ink,{align:"center",num:1,b:1});
+    wrapTx(x,st.text||t.stepN(i+1),X+26,Y+112,ts-52,27,36,3,st.done?P.muted:P.ink);
+    if(st.date){pillBar(x,X+22,Y+ts-56,120,34,"rgba(27,39,53,.55)",t.md(parse(st.date)),P)}
+  }
+}
+function cardMusic(x,B,P,t){
+  const G=gridBox(B,20),pal=skin().art;
+  S.songs.forEach((s,n)=>{
+    const X=G.gx+(n%3)*(G.ts+G.gap),Y=G.gy+Math.floor(n/3)*(G.ts+G.gap),ts=G.ts;
+    if(!s||!s.url){jellyRect(x,X,Y,ts,ts,40,null,P);tx(x,"+",X+ts/2,Y+ts/2+20,60,P.muted,{align:"center"});return}
+    const h=hash(s.url+s.title),c1=pal[h%pal.length],c2=pal[(h>>>3)%pal.length];let bg=pal[(h>>>6)%pal.length];if(bg===c1)bg=pal[(h%pal.length+2)%pal.length];
+    x.save();x.shadowColor=P.shadow;x.shadowBlur=30;x.shadowOffsetY=12;rr(x,X,Y,ts,ts,40);x.fillStyle=bg;x.fill();x.restore();
+    x.save();rr(x,X,Y,ts,ts,40);x.clip();
+    const v=(h>>>9)%4;x.fillStyle=c1;x.beginPath();
+    if(v===0)x.arc(X,Y+ts,ts*.78,0,Math.PI*2);else if(v===1)x.arc(X+ts/2,Y+ts,ts/2,0,Math.PI*2);else if(v===2)x.arc(X+ts,Y+ts/2,ts*.48,0,Math.PI*2);else x.arc(X+ts*.72,Y+ts*.58,ts*.34,0,Math.PI*2);
+    x.fill();x.fillStyle=c2;x.beginPath();
+    if(v===1)x.rect(X,Y,ts,ts*.28);else x.arc(v===2?X:X+ts,v===2?Y+ts/2:Y,ts*(v===2?.3:.4),0,Math.PI*2);x.fill();
+    const g=x.createLinearGradient(X,Y,X,Y+ts*.5);g.addColorStop(0,"rgba(255,255,255,.35)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(X,Y,ts,ts);
+    x.restore();
+    jellyRect(x,X+14,Y+ts-76,ts-28,62,24,null,P);
+    tx(x,s.title||t.playlist,X+32,Y+ts-36,25,P.ink,{max:ts-64});
+    if(n===4){dot(x,X+ts/2,Y+ts*.4,40,P.accent);x.fillStyle="#fff";x.beginPath();x.moveTo(X+ts/2-12,Y+ts*.4-18);x.lineTo(X+ts/2-12,Y+ts*.4+18);x.lineTo(X+ts/2+20,Y+ts*.4);x.closePath();x.fill()}
+  });
+}
+function cardFriends(x,B,P,t){
+  const cx=B.X+B.W/2,sz=120,gap=22,top=B.Y+B.H*.16,k=skin(),lt=[...k.tints.slice(0,4),P.accent,...k.tints.slice(4),"#9AA6B2"];
+  lt.forEach((col,i)=>{const X=cx-(sz*1.5+gap)+(i%3)*(sz+gap),Y=top+Math.floor(i/3)*(sz+gap);jellyRect(x,X,Y,sz,sz,i===4?sz/2:36,col,P,.75)});
+  const y=top+3*sz+2*gap+90;
+  wrapTx(x,t.wLead,cx,y,B.W-120,40,58,3,P.ink,"center");
+  pillBar(x,cx-190,y+170,380,76,P.accent,"",P);tx(x,t.cardTry,cx,y+220,32,"#fff",{align:"center"});
+}
+let shareFmt="post",shareCanvas=null;
+async function openShare(){
+  const t=T();closeLayer();endGuide(true);
+  layer(`<div class="shead"><h2>${t.shareTitle}</h2>${closeBtn(t)}</div>
+<div class="seg jelly small" role="group" style="align-self:center"><button type="button" data-fmt="post" aria-pressed="${shareFmt==="post"}">${t.fmtPost}</button><button type="button" data-fmt="story" aria-pressed="${shareFmt==="story"}">${t.fmtStory}</button></div>
+<img id="shImg" class="shimg${shareFmt==="story"?" story":""}" alt="${esc(t.shareTitle)}">
+${IS_SITE?"":`<p class="note" style="text-align:center">${t.holdSave}</p>`}
+<div class="row" style="justify-content:center">
+${IS_SITE?`<button class="pill pri jelly" type="button" data-share="native">${t.shareNow}</button><button class="pill jelly" type="button" data-share="save">${t.saveImg}</button>`:""}
+${SITE_URL?`<a class="pill jelly" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}" target="_blank" rel="noopener">${t.fb}</a>`:""}
+<button class="pill jelly" type="button" data-share="copy">${t.copyCap}</button></div>`,true);
+  shareCanvas=await makeCard(shareFmt);
+  const img=$("shImg");if(img)img.src=shareCanvas.toDataURL("image/png");
+}
+function shareBlob(){return new Promise(r=>shareCanvas.toBlob(r,"image/png"))}
+async function doShare(kind){
+  const t=T(),name=`nine-grid-${key(new Date())}.png`;
+  if(kind==="copy"){const txt=t.caption+(SITE_URL?" "+SITE_URL:"");try{await navigator.clipboard.writeText(txt);toast(t.copied)}catch(e){toast(txt)}return}
+  if(!shareCanvas)return;
+  const blob=await shareBlob(),file=new File([blob],name,{type:"image/png"});
+  if(kind==="native"){
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:t.caption+(SITE_URL?" "+SITE_URL:"")});return}}catch(e){if(e&&e.name==="AbortError")return}
+    toast(t.shareFail);
+  }
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
+/* ---------- Google sign-in: back up to the user's own Drive (installable build only) ---------- */
+var GS={token:null,exp:0,fileId:null,timer:0};
+function gisLoad(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.async=true;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+async function gfetch(url,opt){const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({Authorization:"Bearer "+GS.token},(opt&&opt.headers)||{})}));if(!r.ok)throw new Error(r.status);return r}
+function googleToken(){
+  return new Promise(async(res)=>{
+    if(!canGoogle()){toast(T().wNoLogin);res(false);return}
+    try{await gisLoad()}catch(e){toast(T().syncFail);res(false);return}
+    const cl=google.accounts.oauth2.initTokenClient({client_id:OWNER.googleClientId,scope:"openid email profile https://www.googleapis.com/auth/drive.appdata",
+      callback:r=>{if(!r||r.error){res(false);return}GS.token=r.access_token;GS.exp=Date.now()+((+r.expires_in||3600)-60)*1000;res(true)},
+      error_callback:()=>res(false)});
+    cl.requestAccessToken({prompt:S.account?"":"consent"});
+  });
+}
+async function googleSignIn(){
+  if(!await googleToken())return false;
+  try{const u=await (await gfetch("https://www.googleapis.com/oauth2/v3/userinfo")).json();S.account={name:u.name,email:u.email,picture:u.picture}}catch(e){}
+  await syncNow();return true;
+}
+async function driveFile(){
+  if(GS.fileId)return GS.fileId;
+  const q=encodeURIComponent("name='nine-grid.json'");
+  const j=await (await gfetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`)).json();
+  GS.fileId=j.files&&j.files[0]?j.files[0].id:null;return GS.fileId;
+}
+async function pushDrive(){
+  if(!GS.token||Date.now()>GS.exp)return;
+  const body=JSON.stringify({savedAt:S.savedAt,data:S});
+  const id=await driveFile();
+  if(id)await gfetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:"PATCH",headers:{"Content-Type":"application/json"},body});
+  else{
+    const b="ngb"+Date.now(),meta=JSON.stringify({name:"nine-grid.json",parents:["appDataFolder"]});
+    const r=await gfetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body:`--${b}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`});
+    GS.fileId=(await r.json()).id;
+  }
+}
+async function syncNow(){
+  const t=T();
+  if(!GS.token||Date.now()>GS.exp){if(!await googleToken())return}
+  try{
+    const id=await driveFile();
+    if(id){
+      const remote=await (await gfetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json();
+      if(remote&&remote.data&&(remote.savedAt||0)>(S.savedAt||0)){
+        // the copy in Drive is newer: use it, but keep this device's sign-in details
+        const acct=S.account;S=Object.assign(remote.data,{account:acct,welcomed:true});try{localStorage.setItem(SKEY,JSON.stringify(S))}catch(e){}
+        applySkin();render();toast(t.synced);return;
+      }
+    }
+    save();await pushDrive();toast(t.synced);
+  }catch(e){toast(t.syncFail)}
+}
+function schedulePush(){if(!GS||!GS.token)return;clearTimeout(GS.timer);GS.timer=setTimeout(()=>pushDrive().catch(()=>{}),4000)}
+function googleSignOut(){try{if(GS.token&&window.google)google.accounts.oauth2.revoke(GS.token,()=>{})}catch(e){}GS.token=null;GS.fileId=null;delete S.account;save()}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -1454,7 +1795,7 @@ document.addEventListener("click",e=>{
   const t=T(),el=e.target;
   const g=el.closest("[data-g]");
   if(g){if(g.dataset.g==="next"){guide.i++;showGuide()}else endGuide();return}
-  if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){closeLayer();return}
+  if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList");closeLayer();if(todo)maybeGuide();return}
   const fb=el.closest(".dial .fb");if(fb){goFace(+fb.dataset.face);return}
   if(el.closest("#knob")){goFace(S.face+1,1);return}
   if(el.closest("#helpBtn")){startGuide();return}
@@ -1474,6 +1815,33 @@ document.addEventListener("click",e=>{
   }
   const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;save();applySkin();render();openSettings();return}
 
+  const wl=el.closest("[data-wel]");
+  if(wl){
+    const go=()=>{S.welcomed=true;S.face=0;S.mode="week";save();closeLayer();render();openTodo()};
+    if(wl.dataset.wel==="google"){if(!canGoogle()){toast(t.wNoLogin);return}googleSignIn().then(ok=>{if(ok)go()});return}
+    go();return;
+  }
+  const td=el.closest("[data-todo]");
+  if(td){
+    const a=td.dataset.todo;
+    if(a==="open")openTodo();
+    if(a==="more"){const li=addTodoRows([""]);if(li)li.querySelector("input").focus()}
+    if(a==="rm"){const li=td.closest("li");if($("todoList").children.length>1)li.remove();else li.querySelector("input").value=""}
+    if(a==="go")submitTodo();
+    if(a==="sample"){closeLayer();maybeGuide()}
+    return;
+  }
+  const tp=el.closest("[data-tp]");
+  if(tp){const li=tp.closest("li"),n=PRI[(PRI.indexOf(li.dataset.pri)+1)%3];li.dataset.pri=n;tp.className="pp p-"+n;return}
+  const ac=el.closest("[data-acc]");
+  if(ac){const a=ac.dataset.acc;
+    if(a==="in")googleSignIn().then(()=>openSettings());
+    if(a==="sync")syncNow();
+    if(a==="out"){googleSignOut();openSettings()}
+    return}
+  if(el.closest("#shareBtn")){openShare();return}
+  const fm=el.closest("[data-fmt]");if(fm){shareFmt=fm.dataset.fmt;openShare();return}
+  const sh=el.closest("[data-share]");if(sh){doShare(sh.dataset.share);return}
   const gc=el.closest("[data-gcol]");
   if(gc&&redit){redit.color=gc.dataset.gcol;document.querySelectorAll("[data-gcol]").forEach(b=>b.setAttribute("aria-pressed",b===gc));$("rWheels").style.setProperty("--g",redit.color);$("rPrev").style.setProperty("--g",redit.color);return}
   const rg=el.closest("[data-rng]");
@@ -1557,18 +1925,23 @@ document.addEventListener("click",e=>{
   const cell=el.closest(".cell.day");if(cell&&pending)drop(pending.src,pending.id,null,cell.dataset.slot);
 });
 document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&e.target.closest&&e.target.closest("#todoList")&&!e.isComposing){
+    e.preventDefault();const li=e.target.closest("li"),nx=li.nextElementSibling;
+    if(nx)nx.querySelector("input").focus();else if(e.target.value.trim()){const n=addTodoRows([""]);if(n)n.querySelector("input").focus()}else submitTodo();
+    return;
+  }
   const node=e.target.closest&&e.target.closest("#nodes .node");
   if(node&&(e.key==="Enter"||e.key===" ")){e.preventDefault();popStep(+node.dataset.step);return}
   if(e.key!=="Escape")return;
   if(guide){endGuide();return}
-  if($("layer").innerHTML){closeLayer();return}
+  if($("layer").innerHTML){if(!layerLock){const todo=$("todoList");closeLayer();if(todo)maybeGuide()}return}
   if(editTime){editTime=null;render();return}
   if(pending){pending=null;render()}
 });
 document.addEventListener("change",e=>{
   const el=e.target;
   if(el.id==="wallFile"){takeWallpaper(el.files&&el.files[0]);el.value="";return}
-  if(el.id==="region"){S.region=el.value;save();render();return}
+  if(el.id==="region"){S.region=el.value;save();render();if($("layer").querySelector(".welcome"))showWelcome();else if($("layer").querySelector("#region"))openSettings();return}
   if(el.classList.contains("tin")){
     const w=W(key(cur)),x=w.days[+el.dataset.day].find(y=>y.id===el.dataset.id);
     if(x){if(el.value)x.time=el.value;else delete x.time;delete x.fired}
@@ -1577,6 +1950,15 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("input",e=>{if(e.target.id==="rTitle"&&$("rPrev")){$("rPrev").textContent=e.target.value||T().rUntitled;return}if(e.target.id==="opRange"){S.wallOp=+e.target.value;document.documentElement.style.setProperty("--wall-op",(S.wallOp/100).toFixed(2));save()}});
 document.addEventListener("focusout",e=>{if(e.target.classList&&e.target.classList.contains("tin"))setTimeout(()=>{if(editTime&&!document.querySelector(".tin:focus")){editTime=null;render()}},200)});
+document.addEventListener("paste",e=>{
+  const inp=e.target.closest&&e.target.closest("#todoList input");if(!inp)return;
+  const txt=(e.clipboardData||window.clipboardData).getData("text");if(!txt||!/\n/.test(txt))return;
+  e.preventDefault();
+  const lines=txt.split(/\r?\n/).map(l=>l.replace(/^\s*(?:[-*•・‧●○◦▪□☐☑✓✔]|\[[ xX]?\]|\d+[.)、])\s*/,"").trim()).filter(Boolean);
+  if(!lines.length)return;
+  const li=inp.closest("li");if(!inp.value){inp.value=lines.shift()}
+  addTodoRows(lines,li);
+});
 document.addEventListener("submit",e=>{
   if(e.target.id!=="addForm")return;e.preventDefault();
   const v=$("newTask").value.trim();if(!v)return;
@@ -1637,7 +2019,7 @@ if(canSpeak()){try{speechSynthesis.getVoices()}catch(e){}}
 applySkin();
 render();
 checkReminders();
-maybeGuide();
+boot();
 })();
 </script>
 
