@@ -1,0 +1,4 @@
+# 從 site/ 資料夾部署：靜態網頁 + 免費 AI 轉接（netlify/functions/ai.mjs）
+[build]
+  publish = "."
+  functions = "netlify/functions"

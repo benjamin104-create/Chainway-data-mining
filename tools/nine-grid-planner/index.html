@@ -664,7 +664,8 @@ const OWNER={
   googleClientId:"",                       // Google 登入用的 OAuth 用戶端 ID（只在安裝版網址有效）
   proDecks:["grow"],                       // 需要加購的字卡（示範：成長心態）；清空就全部免費
   trialCards:3,                            // 加購字卡可以免費試玩的張數
-  wordStore:""                             // 加購頁網址；空白時顯示「即將推出」
+  wordStore:"",                            // 加購頁網址；空白時顯示「即將推出」
+  aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
 const SPONSORS=[
@@ -725,7 +726,7 @@ const STR={
     coachPh:"輸入你的想法…",send:"送出",stop:"停止",makePlan:"產生九宮格計畫",planning:"正在幫你排出八個步驟",
     planWeek:"這週先做",importPlan:"放進未來九宮格",keepTalk:"再聊聊",imported:"計畫已經放進九宮格和行事曆",
     aiOff:"AI 教練要在 Claude 裡打開這個頁面才能用。先用引導問答幫你想清楚：",
-    aiErr:{rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
+    aiErr:{bad_key:"AI 金鑰無效或沒有權限，請到「外觀與提醒」檢查一下。",rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
     fQs:["為什麼這件事對你重要？完成之後，你會變成什麼樣的人？","你現在的起點在哪？手上有哪些資源，最大的限制是什麼？","每週大概能投入多少時間在這件事上？"],
     fDone:"寫得很好！我先把目標放進九宮格中間，周圍八格請你拆成八個小步驟，每一步都寫下「做到什麼算完成」。",
     firstLbl:"第一個小行動",
@@ -748,6 +749,9 @@ const STR={
     mSend:"送出音樂卡",mRecv:"收到的音樂卡",mPick:"選一首歌",mNote:"推薦一句話",mNotePh:"例如：下雨天寫作業時聽",mMake:"做成音樂卡",
     mShareLine:(f,t)=>`${f?f+" ":""}推薦你一首歌：「${t}」。貼到九宮格的「音樂卡」就能收藏`,mRecvHow:"把朋友傳來的音樂卡整段貼上，可以一次貼好幾張。",mOpen:"打開",mBad:"沒有讀到音樂卡",
     mFrom:n=>`${n} 推薦`,mToGrid:"放進九格的哪一格？",mPut:"放進九格了",
+    aiTitle:"AI 助手",aiNow:n=>`目前使用：${n}`,aiNames:{claude:"Claude（你的 Claude 帳號）",gemini:"Gemini 免費版",openai:"你的 ChatGPT（OpenAI）金鑰",anthropic:"你的 Claude（Anthropic）金鑰",none:"沒有 AI，改用引導問答"},
+    aiAuto:"自動（預設）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API 金鑰",aiModel:"模型",aiTest:"測試連線",aiOk:"連線成功",aiGetKey:"申請金鑰",aiSave:"儲存",aiClear:"改回自動",
+    aiKeyNote:"金鑰只存在這台裝置，直接連到你選的 AI 公司，不會經過我們的伺服器。費用依各家方案計算，Gemini 有免費額度。",aiSiteOnly:"自備金鑰要在安裝版網址使用；在 Claude 裡打開時會用你的 Claude。",
     wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
     wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
     wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
@@ -824,7 +828,7 @@ const STR={
     coachPh:"思っていることを入力…",send:"送信",stop:"停止",makePlan:"九マス計画を作る",planning:"八つのステップを組み立てています",
     planWeek:"今週やること",importPlan:"未来の九マスに入れる",keepTalk:"もう少し話す",imported:"計画を九マスとカレンダーに入れました",
     aiOff:"AI コーチは Claude の中でこのページを開いたときに使えます。代わりに質問に答えて整理しましょう：",
-    aiErr:{rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
+    aiErr:{bad_key:"AI キーが無効か、権限がありません。設定を確認してください。",rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
     fQs:["なぜそれが大切ですか？叶えたとき、どんな自分になっていたいですか？","今の出発点は？使える資源と、いちばんの制約は？","毎週どれくらい時間を使えますか？"],
     fDone:"いいですね。目標を九マスの真ん中に入れました。まわりの八つに、完了の基準がわかる小さなステップを書いてみてください。",
     firstLbl:"最初の小さな行動",
@@ -847,6 +851,9 @@ const STR={
     mSend:"カードを送る",mRecv:"届いたカード",mPick:"曲を選ぶ",mNote:"おすすめの一言",mNotePh:"例：雨の日の勉強に",mMake:"カードを作る",
     mShareLine:(f,t)=>`${f?f+" から":""}おすすめの一曲「${t}」。九マスの「ミュージックカード」に貼ると保存できます`,mRecvHow:"友だちから届いたカードをそのまま貼り付けてください。複数でも OK。",mOpen:"開く",mBad:"カードが見つかりません",
     mFrom:n=>`${n} のおすすめ`,mToGrid:"九マスのどこに入れますか？",mPut:"九マスに入れました",
+    aiTitle:"AI アシスタント",aiNow:n=>`使用中：${n}`,aiNames:{claude:"Claude（あなたの Claude アカウント）",gemini:"Gemini 無料版",openai:"あなたの ChatGPT（OpenAI）キー",anthropic:"あなたの Claude（Anthropic）キー",none:"AI なし（質問形式で進めます）"},
+    aiAuto:"自動（おすすめ）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API キー",aiModel:"モデル",aiTest:"接続テスト",aiOk:"接続できました",aiGetKey:"キーを取得",aiSave:"保存",aiClear:"自動に戻す",
+    aiKeyNote:"キーはこの端末だけに保存され、選んだ AI 会社へ直接つながります。料金は各社のプラン次第で、Gemini には無料枠があります。",aiSiteOnly:"自分のキーはインストール版の URL で使えます。Claude の中では Claude を使います。",
     wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
     wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
     wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
@@ -923,7 +930,7 @@ const STR={
     coachPh:"Type your thoughts…",send:"Send",stop:"Stop",makePlan:"Make my grid plan",planning:"Laying out your eight steps",
     planWeek:"Start this week",importPlan:"Put it in the Future Grid",keepTalk:"Keep talking",imported:"Your plan is in the grid and the calendar",
     aiOff:"The AI coach works when this page is opened inside Claude. Let's think it through with a few questions instead:",
-    aiErr:{rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
+    aiErr:{bad_key:"That AI key didn't work. Check it under Look & reminders.",rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
     fQs:["Why does this matter to you? Who do you want to become by doing it?","Where are you starting from? What resources do you have, and what's your biggest limit?","How much time can you give it each week?"],
     fDone:"Nice work. Your goal is now in the middle of the grid. Fill the eight squares around it with small steps, each with a clear finish line.",
     firstLbl:"First small action",
@@ -946,6 +953,9 @@ const STR={
     mSend:"Send a card",mRecv:"Cards you got",mPick:"Pick a song",mNote:"One line on why",mNotePh:"e.g. for rainy-day homework",mMake:"Make the card",
     mShareLine:(f,t)=>`${f?f+" ":""}recommends “${t}”. Paste this into Music cards in Nine-Grid Week to save it`,mRecvHow:"Paste the card your friend sent. Several at once is fine.",mOpen:"Open",mBad:"No music card found",
     mFrom:n=>`From ${n}`,mToGrid:"Which square should it go in?",mPut:"Added to the grid",
+    aiTitle:"AI helper",aiNow:n=>`Using: ${n}`,aiNames:{claude:"Claude (your Claude account)",gemini:"Gemini free tier",openai:"Your ChatGPT (OpenAI) key",anthropic:"Your Claude (Anthropic) key",none:"No AI — guided questions instead"},
+    aiAuto:"Automatic (default)",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API key",aiModel:"Model",aiTest:"Test",aiOk:"Connected",aiGetKey:"Get a key",aiSave:"Save",aiClear:"Back to automatic",
+    aiKeyNote:"Your key stays on this device and goes straight to the AI company you pick, never through our server. Costs follow their plans; Gemini has a free tier.",aiSiteOnly:"Your own key works on the app link. Inside Claude, your Claude is used.",
     wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
     wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
     wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
@@ -1681,6 +1691,7 @@ function openSettings(){
   else inst=SITE_URL?`<a class="pill pri jelly" href="${esc(SITE_URL)}" target="_blank" rel="noopener">${I.phone}${t.installPreview}</a>`:`<span class="note">${t.installNoSite}</span>`;
   layer(`<div class="shead"><h2>${t.settings}</h2>${closeBtn(t)}</div>
 <div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}</div>
+<div class="sgroup"><h3>${I.sparkle}${t.aiTitle}</h3>${aiSettingsHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
 <div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b style="background:radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}"></b>${t.skins[k]}</button>`}).join("")}</div>
@@ -2118,8 +2129,80 @@ function googleSignOut(){try{if(GS.token&&window.google)google.accounts.oauth2.r
 
 
 /* ---------- AI goal coach (uses the viewer's own Claude through the `sample` capability) ---------- */
-let AI;   // undefined: still connecting; null: not available here; function: ready
-const aiReady=(window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").then(f=>(AI=f||null),()=>(AI=null)):Promise.resolve(AI=null);
+/* ---------- AI engine: the viewer's own key, else Claude (inside Claude), else free Gemini (app link), else none ---------- */
+let AI;   // undefined: still connecting; null: no AI here (guided questions instead); function: ready
+let SAMPLE=null;
+const AIKEY="nine-grid-ai-v1";   // kept apart from the plan so Drive backups never carry an API key
+const PROVIDERS={
+  gemini:{model:"gemini-2.5-flash",keyUrl:"https://aistudio.google.com/apikey"},
+  openai:{model:"gpt-4o-mini",keyUrl:"https://platform.openai.com/api-keys"},
+  anthropic:{model:"claude-haiku-4-5-20251001",keyUrl:"https://console.anthropic.com/settings/keys"}
+};
+function aiCfg(){try{return JSON.parse(localStorage.getItem(AIKEY))||{}}catch(e){return {}}}
+function setAiCfg(c){try{localStorage.setItem(AIKEY,JSON.stringify(c))}catch(e){}}
+function aiFail(code,message){return {code,message:message||code}}
+// turns in, turns out: consecutive same-role turns merged, starting and ending on user
+function toTurns(input){
+  const raw=typeof input==="string"?[{role:"user",content:input}]:input.map(m=>({role:m.role==="assistant"?"assistant":"user",content:String(m.content||"")}));
+  const out=[];for(const m of raw){if(!m.content)continue;const l=out[out.length-1];if(l&&l.role===m.role)l.content+="\n\n"+m.content;else out.push(Object.assign({},m))}
+  while(out.length&&out[0].role!=="user")out.shift();
+  return out;
+}
+function parseJSONLoose(text){
+  try{return JSON.parse(text)}catch(e){}
+  const f=text.match(/```(?:json)?\s*([\s\S]*?)```/);if(f)try{return JSON.parse(f[1])}catch(e){}
+  const a=Math.min(...["{","["].map(c=>{const i=text.indexOf(c);return i<0?1e9:i})),b=Math.max(text.lastIndexOf("}"),text.lastIndexOf("]"));
+  if(a<b)try{return JSON.parse(text.slice(a,b+1))}catch(e){}
+  throw aiFail("invalid_json");
+}
+async function callProvider(p,key,model,turns,wantJson,signal){
+  let r,j;
+  try{
+    if(p==="gemini"){
+      r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",signal,headers:{"content-type":"application/json","x-goog-api-key":key},
+        body:JSON.stringify({contents:turns.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),generationConfig:wantJson?{responseMimeType:"application/json"}:{}})});
+    }else if(p==="openai"){
+      r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",signal,headers:{"content-type":"application/json",authorization:"Bearer "+key},
+        body:JSON.stringify(Object.assign({model,messages:turns},wantJson?{response_format:{type:"json_object"}}:{}))});
+    }else if(p==="anthropic"){
+      r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model,max_tokens:2000,messages:turns})});
+    }else if(p==="proxy"){
+      r=await fetch(OWNER.aiProxy,{method:"POST",signal,headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns,json:!!wantJson})});
+    }
+    j=await r.json().catch(()=>({}));
+  }catch(e){if(e&&e.name==="AbortError")throw aiFail("cancelled");throw aiFail("upstream_error",String(e))}
+  if(p==="proxy"&&(r.status===404||r.status===503))throw aiFail("not_declared");
+  if(r.status===401||r.status===403)throw aiFail("bad_key");
+  if(r.status===429)throw aiFail("rate_limited");
+  if(!r.ok)throw aiFail("upstream_error","HTTP "+r.status);
+  const text=p==="gemini"?((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(x=>x.text||"").join("")
+    :p==="openai"?(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||""
+    :p==="anthropic"?(j.content||[]).map(x=>x.text||"").join(""):(j.text||"");
+  if(!text.trim())throw aiFail("empty_completion");
+  return text;
+}
+// same shape as the sample capability: f(input, {onText, signal}) -> {text}, and f.json(...)
+function makeEngine(p,key,model){
+  const f=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),false,opts.signal);if(opts.onText)opts.onText({text,delta:text});return {text,truncated:false}};
+  f.json=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),true,opts.signal);return parseJSONLoose(text)};
+  f.label=p;return f;
+}
+function pickAI(){
+  const c=aiCfg();
+  if(IS_SITE&&c.provider&&PROVIDERS[c.provider]&&c.key)return makeEngine(c.provider,c.key,c.model||PROVIDERS[c.provider].model);
+  if(SAMPLE){const f=SAMPLE;return f}
+  if(IS_SITE&&OWNER.aiProxy)return makeEngine("proxy","","");
+  return null;
+}
+function aiLabel(){
+  const t=T(),c=aiCfg();
+  if(!AI)return t.aiNames.none;
+  if(AI===SAMPLE)return t.aiNames.claude;
+  if(AI.label==="proxy")return t.aiNames.gemini;
+  return t.aiNames[c.provider]||c.provider;
+}
+const aiReady=((window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").then(f=>(SAMPLE=f||null),()=>(SAMPLE=null)):Promise.resolve(null)).then(()=>(AI=pickAI()));
 const coach={turns:[],busy:false,ctl:null,plan:null,fq:-1,answers:[],offline:false};
 const SEND_ICON='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16V4M5 9l5-5 5 5"/></svg>';
 function coachRules(){
@@ -3099,6 +3182,26 @@ function chaosHTML(g,t){
 ${viewer?`<div class="hand">${hand.map((c,ci)=>`<button class="card jelly" type="button" data-gcard="${ci}" aria-pressed="${chaosSel===ci}"${canAct?"":" disabled"}><span class="e">${CARD_EMOJI[c]}</span><b>${t.chCard[c]}</b><small>${t.chCardDesc[c]}</small></button>`).join("")||`<span class="note">${t.chNoCard}</span>`}</div>`:""}
 ${chaosSel!=null&&canAct?`<div class="gstat">${t.chPick}</div>`:""}`;
 }
+
+function aiSettingsHTML(){
+  const t=T(),c=aiCfg(),prov=c.provider||"";
+  const opts=[["",t.aiAuto],...Object.keys(PROVIDERS).map(k=>[k,t.aiProv[k]])];
+  return `<p class="status">${esc(t.aiNow(aiLabel()))}</p>
+<div class="szrow" role="group">${opts.map(([k,l])=>`<button type="button" data-aiprov="${k}" aria-pressed="${prov===k}">${esc(l)}</button>`).join("")}</div>
+${prov?(IS_SITE?`<label class="fld">${t.aiKey}<input id="aiKey" type="password" autocomplete="off" value="${esc(c.key||"")}" placeholder="…"></label>
+<label class="fld">${t.aiModel}<input id="aiModel" type="text" value="${esc(c.model||PROVIDERS[prov].model)}"></label>
+<div class="row"><button class="pill pri jelly" type="button" data-aiact="save">${t.aiSave}</button><button class="pill jelly" type="button" data-aiact="test">${t.aiTest}</button><a class="linkbtn" href="${PROVIDERS[prov].keyUrl}" target="_blank" rel="noopener">${t.aiGetKey}</a></div>
+<p class="note">${t.aiKeyNote}</p>`:`<p class="note">${t.aiSiteOnly}</p>`):""}`;
+}
+async function aiTest(){
+  const t=T();aiSave();await aiReady;
+  if(!AI){toast(t.aiNames.none);return}
+  try{await AI("Reply with the single word OK.",{cache:false});toast(t.aiOk)}catch(e){toast(aiErrText(e))}
+}
+function aiSave(){
+  const c=aiCfg();if(c.provider&&$("aiKey")){c.key=$("aiKey").value.trim();c.model=($("aiModel").value||"").trim()||PROVIDERS[c.provider].model}
+  setAiCfg(c);AI=pickAI();
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -3134,6 +3237,8 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
+  const aip=el.closest("[data-aiprov]");if(aip){const c=aiCfg(),k=aip.dataset.aiprov;setAiCfg(k?Object.assign({},c,{provider:k,model:c.provider===k?c.model:""}):{});AI=pickAI();openSettings();return}
+  const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
   if(el.closest("[data-mcards]")){openCards("send");return}
   const mdk=el.closest("[data-mdeck]");if(mdk){const a=mdk.dataset.mdeck;if(a==="again")shuffleNow();else deckAct(a==="keep");return}
