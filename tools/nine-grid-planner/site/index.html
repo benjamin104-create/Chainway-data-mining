@@ -592,6 +592,64 @@ body.ranging .gbar{pointer-events:none}
 .szrow button{border-radius:999px;padding:6px 12px;font-family:var(--f-num);font-weight:800;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge)}
 .szrow button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 
+/* 3D pieces, critters, effects */
+.p3{width:84%;height:84%;overflow:visible;display:block}
+.pop .p3{animation:popin .5s cubic-bezier(.3,1.7,.5,1)}
+@keyframes popin{0%{transform:translateY(-60%) scale(.3) rotate(-25deg);opacity:0}60%{opacity:1}}
+.mini .p3{width:92%;height:92%}
+.mini .big .p3{width:78%;height:78%}
+.crit{width:92%;height:92%;overflow:visible}
+.crit .body,.crit .eyes{transform-box:fill-box;transform-origin:50% 100%}
+.crit{animation:critbob 2.6s ease-in-out infinite}
+.crit .eyes{animation:blink 4.2s infinite;transform-origin:50% 50%}
+.rise .crit{animation:critrise .7s cubic-bezier(.3,1.6,.5,1) .35s backwards,critbob 2.6s ease-in-out 1.1s infinite}
+@keyframes critbob{50%{transform:translateY(-4%) scaleY(1.03)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes critrise{from{transform:translateY(45%) scale(.4);opacity:0}}
+.chaos .hole{background:radial-gradient(ellipse at 50% 72%,rgba(60,40,40,.35) 0 38%,transparent 60%),var(--chip);box-shadow:inset 0 3px 8px rgba(0,0,0,.18)}
+.chaos .frz::after{content:"";position:absolute;inset:8%;border-radius:22%;
+  background:linear-gradient(135deg,rgba(255,255,255,.95) 0 12%,rgba(200,235,255,.55) 30%,rgba(120,190,240,.55) 70%,rgba(90,160,220,.7));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.8),inset -6px -8px 12px rgba(40,110,170,.35),0 8px 14px -6px rgba(40,110,170,.6);transform:rotate(-4deg)}
+.chaos .frz::before{content:"❄";position:absolute;z-index:1;color:#fff;font-size:clamp(11px,3.4vw,18px);text-shadow:0 1px 3px rgba(20,80,140,.6)}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5;display:grid;place-items:center}
+.fx i{position:absolute;display:block;border-radius:50%}
+.fx .ring{width:40%;height:40%;border:4px solid #FFD166;animation:ring2 .6s ease-out forwards}
+.fx .flash{width:70%;height:70%;background:radial-gradient(circle,#fff 0 20%,#FFD166 40%,rgba(255,120,60,.6) 60%,transparent 70%);animation:flash .45s ease-out forwards}
+.fx .spark{width:12%;height:12%;background:radial-gradient(circle at 35% 35%,#fff,#FF9F43 55%,#E5484D);animation:spark .7s cubic-bezier(.2,.8,.3,1) var(--d) forwards}
+.fx-flip .ring{border-color:#B48BD1}.fx-flip .flash{background:radial-gradient(circle,#fff 0 20%,#d6b8ff 45%,transparent 70%)}.fx-flip .spark{background:radial-gradient(circle,#fff,#B48BD1)}
+.fx-freeze .ring{border-color:#9fd8ff}.fx-freeze .flash{background:radial-gradient(circle,#fff 0 25%,#bfe6ff 50%,transparent 70%)}.fx-freeze .spark{background:radial-gradient(circle,#fff,#6FB3D9)}
+.fx-spin .ring{border-color:var(--accent);border-style:dashed}
+@keyframes ring2{to{width:170%;height:170%;opacity:0;border-width:1px}}
+@keyframes flash{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.3);opacity:0}}
+@keyframes spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+.gomo .piece,.c4 .piece{background:radial-gradient(circle at 32% 28%,#fff 0 6%,color-mix(in srgb,#fff 45%,var(--pc)) 14%,var(--pc) 55%,color-mix(in srgb,#000 30%,var(--pc)) 100%);box-shadow:0 5px 8px -3px color-mix(in srgb,#000 40%,var(--pc)),inset 0 -4px 6px color-mix(in srgb,#000 18%,var(--pc))}
+
+/* creator desk */
+.appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
+.appt .applink{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-decoration:none;color:var(--ink)}
+.appt b{font-weight:400;font-size:14px}
+.aic{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;color:#fff;font-family:var(--f-num);font-weight:800;font-size:24px;box-shadow:inset 0 2px 2px rgba(255,255,255,.45),inset 0 -6px 10px rgba(0,0,0,.18),0 10px 18px -10px var(--t)}
+.aic.sm{width:20px;height:20px;border-radius:7px;font-size:11px}
+.appt.over{transform:scale(1.06);box-shadow:0 0 0 3px var(--accent),0 16px 28px -12px var(--accent)}
+.appt.blank{color:var(--muted)}
+.appt.blank .plus{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:2px dashed currentColor;font-size:22px}
+.aicore{--t:var(--accent);text-align:center;padding:10px}
+.aicore .orb{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(circle at 35% 30%,#fff 0 8%,color-mix(in srgb,#fff 35%,var(--accent)) 25%,var(--accent) 65%,color-mix(in srgb,#000 25%,var(--accent)));box-shadow:0 12px 24px -10px var(--accent);animation:orb 3s ease-in-out infinite}
+.aicore .orb svg{width:28px;height:28px}
+.aicore small{font-size:11px;color:var(--muted);line-height:1.35}
+@keyframes orb{50%{transform:translateY(-4px) scale(1.04)}}
+.pshelf{padding:14px;--r:26px;display:flex;flex-direction:column;gap:10px}
+.pshelf h3{margin:0;font-size:15px;font-weight:400;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pshelf h3 svg{width:16px;height:16px;color:var(--accent)}
+.pshelf h3 small{font-size:11px;color:var(--muted);flex-basis:100%}
+.pchips{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{display:inline-flex;align-items:center;gap:6px;border-radius:14px;padding:8px 12px 8px 8px;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge);box-shadow:0 4px 10px -6px var(--shade);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.pchip .grip2{width:8px;height:16px;background:radial-gradient(circle,var(--muted) 1.1px,transparent 1.3px) 0 0/4px 4px;opacity:.7}
+.pchip.sel{box-shadow:0 0 0 2.5px var(--accent)}
+.pchip.add{color:var(--accent);cursor:pointer;touch-action:auto;padding-left:12px}
+@media (max-width:600px){.dial{gap:1px;padding:6px}.dial .fb{width:36px;height:36px}.dial .fb svg{width:18px;height:18px}.knob{width:44px;height:44px;margin-inline:2px;border-radius:15px}.knob svg{width:28px;height:28px}.aic{width:40px;height:40px;font-size:19px;border-radius:13px}.aicore .orb{width:44px;height:44px}.appt b{font-size:12px}}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -660,8 +718,19 @@ body.ranging .gbar{pointer-events:none}
   <button class="fb" type="button" data-face="3"></button>
   <button class="fb" type="button" data-face="4"></button>
   <button class="fb" type="button" data-face="5"></button>
+  <button class="fb" type="button" data-face="6"></button>
 </nav>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<linearGradient id="gt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,var(--c0))"/><stop offset=".55" style="stop-color:var(--c0)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 12%,var(--c0))"/></linearGradient>
+<linearGradient id="gs1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 30%,var(--c0))"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 50%,var(--c0))"/></linearGradient>
+<linearGradient id="gt2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,var(--c1))"/><stop offset=".55" style="stop-color:var(--c1)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 12%,var(--c1))"/></linearGradient>
+<linearGradient id="gs2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 30%,var(--c1))"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 50%,var(--c1))"/></linearGradient>
+<radialGradient id="crSlime" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#ffd1e6"/><stop offset=".5" stop-color="#ff8fc0"/><stop offset="1" stop-color="#d9468c"/></radialGradient>
+<radialGradient id="crMole" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#c89a78"/><stop offset=".6" stop-color="#8a5a3c"/><stop offset="1" stop-color="#5a3824"/></radialGradient>
+<radialGradient id="crPuff" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#d6f0ff"/><stop offset=".5" stop-color="#7cc4f2"/><stop offset="1" stop-color="#2f7fc0"/></radialGradient>
+<filter id="pshadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="#1b2735" flood-opacity=".3"/></filter>
+</defs></svg>
 <div id="layer"></div>
 <div class="tip" id="tip" hidden></div>
 <div class="float" id="toast" role="status" hidden></div>
@@ -693,8 +762,8 @@ const SPONSORS=[
 /* ---------- strings ---------- */
 const STR={
   zh:{
-    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰"],
+    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -769,6 +838,19 @@ const STR={
     aiTitle:"AI 助手",aiNow:n=>`目前使用：${n}`,aiNames:{claude:"Claude（你的 Claude 帳號）",gemini:"Gemini 免費版",openai:"你的 ChatGPT（OpenAI）金鑰",anthropic:"你的 Claude（Anthropic）金鑰",none:"沒有 AI，改用引導問答"},
     aiAuto:"自動（預設）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API 金鑰",aiModel:"模型",aiTest:"測試連線",aiOk:"連線成功",aiGetKey:"申請金鑰",aiSave:"儲存",aiClear:"改回自動",
     aiKeyNote:"金鑰只存在這台裝置，直接連到你選的 AI 公司，不會經過我們的伺服器。費用依各家方案計算，Gemini 有免費額度。",aiSiteOnly:"自備金鑰要在安裝版網址使用；在 Claude 裡打開時會用你的 Claude。",
+    crAI:"AI 幫你寫",crDrop:"把 prompt 拖到這裡",crPrompts:"Prompt 卡",crHint:"拖到中間讓 AI 寫；拖到 App 會帶著 prompt 打開它",crAdd:"新增 prompt",crTopic:"主題",crTopicPh:"例如：帶孩子第一次露營",crGen:"開始生成",
+    crOpenIn:n=>`用 ${n} 打開`,crNoAI:"現在沒有 AI 可用，prompt 已經複製好了，選一個 App 貼上就能用。",crThen:"複製後，點一個 App 發佈：",crCopied:n=>`已複製，到 ${n} 貼上就能用`,
+    crEditApp:"常用 App",crAppName:"名稱",crAppUrl:"網址（手機上會自動打開 App）",crPName:"名稱",crPText:"Prompt 內容",crPTextPh:"用 {topic} 代表主題，{week} 代表這週的九宮格",crPDel:"長按 prompt 卡可以刪除。",
+    defPrompts:[
+      {n:"IG 貼文文案",t:"幫我寫一篇 Instagram 貼文，主題是：{topic}。語氣溫暖、口語，第一句要抓住注意力，分 3–5 段，結尾加一個邀請大家留言的問題，最後附 10 個相關 hashtag。用繁體中文。"},
+      {n:"Threads 短文",t:"用 200 字以內寫一則 Threads 短文，主題是：{topic}。一個觀點、一個小故事、一句收尾，像朋友聊天。用繁體中文。"},
+      {n:"30 秒短影音腳本",t:"幫我寫一支 30 秒短影音腳本，主題是：{topic}。分 5 個鏡頭，每個鏡頭寫：畫面、旁白、字幕。開頭 3 秒要有鉤子。用繁體中文。"},
+      {n:"10 個吸睛標題",t:"針對「{topic}」想 10 個社群貼文標題，混合好奇、實用、情感三種類型，每個 20 字以內。用繁體中文。"},
+      {n:"30 個 Hashtag",t:"針對「{topic}」列出 30 個 Instagram hashtag，分成熱門、中型、小眾三組。"},
+      {n:"留言回覆",t:"幫我回覆這則留言，真誠、有溫度、不官腔，50 字以內：{topic}"},
+      {n:"這週九宮格→貼文",t:"這是我這週的九宮格計畫：\n{week}\n幫我寫一篇分享這週生活與收穫的貼文，語氣自然，最後邀請讀者分享他們這週最想完成的一件事。用繁體中文。"},
+      {n:"心流練習引導",t:"用阿德勒（目的論、鼓勵）、心流（挑戰與能力平衡）、馬斯洛（需求層次）的觀點，寫一段 3 分鐘的自我練習引導，主題是：{topic}。步驟清楚、淺顯易懂。用繁體中文。"}
+    ],
     wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
     wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
     wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
@@ -791,12 +873,13 @@ const STR={
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
       [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
-      [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]]
+      [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
+      [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]]
     ]
   },
   ja:{
-    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも"],
+    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -871,6 +954,19 @@ const STR={
     aiTitle:"AI アシスタント",aiNow:n=>`使用中：${n}`,aiNames:{claude:"Claude（あなたの Claude アカウント）",gemini:"Gemini 無料版",openai:"あなたの ChatGPT（OpenAI）キー",anthropic:"あなたの Claude（Anthropic）キー",none:"AI なし（質問形式で進めます）"},
     aiAuto:"自動（おすすめ）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API キー",aiModel:"モデル",aiTest:"接続テスト",aiOk:"接続できました",aiGetKey:"キーを取得",aiSave:"保存",aiClear:"自動に戻す",
     aiKeyNote:"キーはこの端末だけに保存され、選んだ AI 会社へ直接つながります。料金は各社のプラン次第で、Gemini には無料枠があります。",aiSiteOnly:"自分のキーはインストール版の URL で使えます。Claude の中では Claude を使います。",
+    crAI:"AI が書く",crDrop:"ここにプロンプトをドラッグ",crPrompts:"プロンプトカード",crHint:"真ん中へドラッグで AI が作成、アプリへドラッグでプロンプト付きで開きます",crAdd:"プロンプトを追加",crTopic:"テーマ",crTopicPh:"例：子どもと初めてのキャンプ",crGen:"生成する",
+    crOpenIn:n=>`${n} で開く`,crNoAI:"今は AI が使えません。プロンプトをコピーしたので、アプリに貼り付けてください。",crThen:"コピーしてから、アプリを選んで投稿：",crCopied:n=>`コピーしました。${n} に貼り付けてください`,
+    crEditApp:"よく使うアプリ",crAppName:"名前",crAppUrl:"URL（スマホではアプリが開きます）",crPName:"名前",crPText:"プロンプト",crPTextPh:"{topic} はテーマ、{week} は今週の九マス",crPDel:"カードを長押しで削除できます。",
+    defPrompts:[
+      {n:"IG 投稿文",t:"「{topic}」をテーマに Instagram の投稿文を書いてください。あたたかく話し言葉で、1 行目で引きつけ、3〜5 段落、最後にコメントを促す質問、ハッシュタグ 10 個。日本語で。"},
+      {n:"Threads 短文",t:"「{topic}」について 200 字以内の Threads 投稿を。ひとつの視点、小さなエピソード、締めの一言。日本語で。"},
+      {n:"30 秒動画の台本",t:"「{topic}」の 30 秒ショート動画の台本を 5 カットで。各カットに映像・ナレーション・テロップ。冒頭 3 秒にフックを。日本語で。"},
+      {n:"タイトル 10 案",t:"「{topic}」の SNS 投稿タイトルを 10 案。好奇心・実用・感情を混ぜて、各 20 字以内。日本語で。"},
+      {n:"ハッシュタグ 30",t:"「{topic}」向けの Instagram ハッシュタグを 30 個、人気・中規模・ニッチの 3 グループで。"},
+      {n:"コメント返信",t:"このコメントに、誠実であたたかい返信を 50 字以内で：{topic}"},
+      {n:"今週の九マス→投稿",t:"今週の九マス計画です：\n{week}\n今週の暮らしと気づきをシェアする投稿を書いて、最後に読者の今週いちばんの目標をたずねてください。日本語で。"},
+      {n:"フロー練習ガイド",t:"アドラー、フロー理論、マズローの観点で、「{topic}」についての 3 分間セルフワークを分かりやすく書いてください。日本語で。"}
+    ],
     wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
     wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
     wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
@@ -893,12 +989,13 @@ const STR={
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
        [".spons .center","気に入ったら、ここから応援できます。"]],
       [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
-      [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]]
+      [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
+      [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]]
     ]
   },
   en:{
-    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head"],
+    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -973,6 +1070,19 @@ const STR={
     aiTitle:"AI helper",aiNow:n=>`Using: ${n}`,aiNames:{claude:"Claude (your Claude account)",gemini:"Gemini free tier",openai:"Your ChatGPT (OpenAI) key",anthropic:"Your Claude (Anthropic) key",none:"No AI — guided questions instead"},
     aiAuto:"Automatic (default)",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API key",aiModel:"Model",aiTest:"Test",aiOk:"Connected",aiGetKey:"Get a key",aiSave:"Save",aiClear:"Back to automatic",
     aiKeyNote:"Your key stays on this device and goes straight to the AI company you pick, never through our server. Costs follow their plans; Gemini has a free tier.",aiSiteOnly:"Your own key works on the app link. Inside Claude, your Claude is used.",
+    crAI:"AI writes it",crDrop:"Drop a prompt here",crPrompts:"Prompt cards",crHint:"Drag to the middle for AI; drag onto an app to open it with the prompt",crAdd:"Add prompt",crTopic:"Topic",crTopicPh:"e.g. our first family camping trip",crGen:"Generate",
+    crOpenIn:n=>`Open in ${n}`,crNoAI:"No AI here right now. The prompt is copied; pick an app and paste it.",crThen:"Copy it, then pick an app to post:",crCopied:n=>`Copied. Paste it in ${n}`,
+    crEditApp:"Your app",crAppName:"Name",crAppUrl:"Link (opens the app on a phone)",crPName:"Name",crPText:"Prompt",crPTextPh:"Use {topic} for the topic and {week} for this week's grid",crPDel:"Press and hold a card to delete it.",
+    defPrompts:[
+      {n:"IG caption",t:"Write an Instagram caption about: {topic}. Warm and conversational, a hook in the first line, 3–5 short paragraphs, end with a question inviting comments, then 10 relevant hashtags."},
+      {n:"Threads post",t:"Write a Threads post under 60 words about: {topic}. One point of view, one small story, one closing line, like talking to a friend."},
+      {n:"30-second video script",t:"Write a 30-second short video script about: {topic}. Five shots, each with visuals, voice-over and captions. Hook in the first 3 seconds."},
+      {n:"10 headlines",t:"Give me 10 social post headlines for “{topic}”, mixing curiosity, practical and emotional angles, each under 10 words."},
+      {n:"30 hashtags",t:"List 30 Instagram hashtags for “{topic}” in three groups: popular, mid-size and niche."},
+      {n:"Reply to a comment",t:"Write a sincere, warm reply under 40 words to this comment: {topic}"},
+      {n:"This week's grid → post",t:"Here is my nine-grid plan for this week:\n{week}\nWrite a post sharing my week and what I learned, and end by asking readers the one thing they most want to finish this week."},
+      {n:"Flow practice guide",t:"Using Adler (purpose, encouragement), flow (challenge–skill balance) and Maslow (needs), write a simple 3-minute self-practice about: {topic}."}
+    ],
     wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
     wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
     wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
@@ -995,7 +1105,8 @@ const STR={
        [".spons [data-sp='0']","Partners that match light up."],
        [".spons .center","Like the tool? You can support it here."]],
       [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
-      [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]]
+      [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
+      [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]]
     ]
   }
 };
@@ -1195,12 +1306,13 @@ const I={
   list:sv('<path d="M7 5h10M7 10h10M7 15h10"/><circle cx="3.5" cy="5" r=".9" fill="currentColor"/><circle cx="3.5" cy="10" r=".9" fill="currentColor"/><circle cx="3.5" cy="15" r=".9" fill="currentColor"/>'),
   globe:sv('<circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/>'),
   user:sv('<circle cx="10" cy="7" r="3.3"/><path d="M3.5 17.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5"/>'),
+  spark2:sv('<path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6z"/><path d="M16 13.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'),
   game:sv('<rect x="2" y="6" width="16" height="9.5" rx="4.5"/><path d="M6 9v3.5M4.3 10.8h3.4"/><circle cx="13" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="12.2" r=".9" fill="currentColor"/>'),
   cards:sv('<rect x="2.5" y="5" width="11" height="12.5" rx="2.5"/><path d="M6.5 5V4a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17.5 4v10a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M5.5 10h5M5.5 13h3"/>'),
   lock:sv('<rect x="4" y="9" width="12" height="8.5" rx="2.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
-const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game];
+const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2];
 
 /* ---------- skins & background art ---------- */
 const SKINS={
@@ -1370,9 +1482,9 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%6]);
+  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%7]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -1678,7 +1790,7 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 
 /* ---------- face rotation ---------- */
 function goFace(n,dir){
-  n=(n+6)%6;if(n===S.face||rotating)return;
+  n=(n+7)%7;if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -1964,7 +2076,7 @@ async function makeCard(fmt){
   const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
   tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
   const B={X:60,Y:268,W:W0-120,H:H0-268-130};
-  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends][S.face](x,B,P,t);
+  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends,cardFriends][S.face](x,B,P,t);
   return c;
 }
 function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
@@ -2884,15 +2996,18 @@ function renderGameFace(){
   if(!g.wait)h+=`<div class="board">${boardHTML(g,t)}</div>`;
   if(NET&&(g.id==="sud"||g.id==="quiz"))h+=raceHTML(g,t);
   $("face").innerHTML=h;
+  popSeen=g.id+":"+g.seq;runFx();
   if(g.id==="chaos")chaosRunWheel();
 }
-const PIECE=(p,shape)=>p?`<span class="piece pc${p}${shape?" "+(p===1?"px":"po"):""}"></span>`:"";
+const PIECE=(p,shape)=>p?(shape?piece3d(p):`<span class="piece pc${p}"></span>`):"";
+let popSeen="",prevB=null;
+const popCls=(g,i)=>i===g.last&&popSeen!==g.id+":"+g.seq?" pop":"";
 function boardHTML(g,t){
   if(g.id==="chaos")return chaosHTML(g,t);
-  if(g.id==="ttt")return `<div class="t3" style="margin-inline:auto">${g.b.map((v,i)=>`<button class="jelly${g.line&&g.line.includes(i)?" win":""}" type="button" data-gm="${i}" aria-label="${i+1}">${PIECE(v,1)}</button>`).join("")}</div>`;
+  if(g.id==="ttt")return `<div class="t3" style="margin-inline:auto">${g.b.map((v,i)=>`<button class="jelly${g.line&&g.line.includes(i)?" win":""}${popCls(g,i)}" type="button" data-gm="${i}" aria-label="${i+1}">${PIECE(v,1)}</button>`).join("")}</div>`;
   if(g.id==="ult")return `<p class="note" style="text-align:center;margin-bottom:8px">${t.gUltHint}</p><div class="ug">${[...Array(9).keys()].map(k=>{
     const act=!g.win&&!g.mw[k]&&(g.nx===-1||g.nx===k);
-    return `<div class="mini jelly${act?" act":""}${g.line&&g.line.includes(k)?" win":""}">${[...Array(9).keys()].map(c=>{const i=k*9+c;return `<button type="button" data-gm="${i}" aria-label="${k+1}-${c+1}">${PIECE(g.b[i],1)}</button>`}).join("")}${g.mw[k]&&g.mw[k]!==3?`<div class="big">${PIECE(g.mw[k],1)}</div>`:""}</div>`}).join("")}</div>`;
+    return `<div class="mini jelly${act?" act":""}${g.line&&g.line.includes(k)?" win":""}">${[...Array(9).keys()].map(c=>{const i=k*9+c;return `<button type="button" data-gm="${i}" class="${popCls(g,i)}" aria-label="${k+1}-${c+1}">${PIECE(g.b[i],1)}</button>`}).join("")}${g.mw[k]&&g.mw[k]!==3?`<div class="big">${PIECE(g.mw[k],1)}</div>`:""}</div>`}).join("")}</div>`;
   if(g.id==="gomoku")return `<div class="gomo jelly">${g.b.map((v,i)=>`<button type="button" data-gm="${i}" class="${g.last===i&&v?"last":""}${g.line&&g.line.includes(i)?" win":""}" aria-label="${i%15+1},${Math.floor(i/15)+1}">${PIECE(v)}</button>`).join("")}</div>`;
   if(g.id==="c4")return `<div class="c4 jelly" style="margin-inline:auto">${g.b.map((v,i)=>`<button type="button" data-gm="${i}" class="${g.line&&g.line.includes(i)?"win":""}" aria-label="${i%7+1}">${v?`<span class="piece pc${v}${g.last===i?" drop":""}"></span>`:""}</button>`).join("")}</div>`;
   if(g.id==="sud"){
@@ -3143,7 +3258,7 @@ function chaosRunWheel(){
     const el=document.querySelector(`.chaos [data-gm="${steps[k]}"]`);if(el)el.classList.add("spin");
     if(k<steps.length-1){k++;setTimeout(tick,reduced()?20:60+k*k*1.6)}
     else setTimeout(()=>{
-      const t=document.querySelector(`.chaos [data-gm="${ev.target}"]`);if(t){t.classList.remove("spin");t.classList.add("boom")}
+      const t=document.querySelector(`.chaos [data-gm="${ev.target}"]`);if(t){t.classList.remove("spin");t.classList.add("boom")}if(ev.kind==="spin")burst(ev.target,"spin");
       if(S.chime){unlockAudio();chime()}
       setTimeout(()=>{if(!GM||!GM.ev||GM.ev.id!==ev.id)return;chaosApply(GM);renderGameFace();
         if(GM.mode==="ai"&&GM.turn===2&&!GM.win)setTimeout(chaosAI,500)},reduced()?50:520);
@@ -3186,9 +3301,16 @@ function chaosAI(){
 }
 function chaosHTML(g,t){
   const N=g.N,sel=chaosSel!=null?chaosTargets(g,(g.hands[g.turn]||[])[chaosSel]):[];
+  // compare with the last board we drew, so every client animates what changed (online too)
+  const before=prevB&&prevB.id===g.id+g.seed&&prevB.b.length===g.b.length?prevB:null,rise=new Set();
+  if(before)g.b.forEach((v,i)=>{const o=before.b[i];
+    if(v===-1&&o!==-1){rise.add(i);fxQueue.push([i,"bomb"])}
+    else if(v>0&&o>0&&v!==o)fxQueue.push([i,"flip"])
+    else if((g.fz[i]||0)>g.ply&&!((before.fz[i]||0)>before.ply))fxQueue.push([i,"freeze"])});
+  prevB={id:g.id+g.seed,b:g.b.slice(),fz:Object.assign({},g.fz),ply:g.ply};
   const cells=g.b.map((v,i)=>{
-    const cls=[v===-1?"hole":"",(g.fz[i]||0)>g.ply?"frz":"",g.sh[i]?"sh":"",sel.includes(i)?"tgt":"",g.line&&g.line.includes(i)?"win":"",g.last===i&&v>0?"lastm":""].filter(Boolean).join(" ");
-    return `<button type="button" data-gm="${i}" class="${cls}" aria-label="${i%N+1},${Math.floor(i/N)+1}">${v>0?PIECE(v,1):""}</button>`;
+    const cls=[v===-1?"hole":"",rise.has(i)?"rise":"",popCls(g,i).trim(),(g.fz[i]||0)>g.ply?"frz":"",g.sh[i]?"sh":"",sel.includes(i)?"tgt":"",g.line&&g.line.includes(i)?"win":"",g.last===i&&v>0?"lastm":""].filter(Boolean).join(" ");
+    return `<button type="button" data-gm="${i}" class="${cls}" aria-label="${i%N+1},${Math.floor(i/N)+1}">${v>0?PIECE(v,1):v===-1?critter(i):""}</button>`;
   }).join("");
   const wheelIn=3-(g.ply%3);
   const logTxt=g.log?(g.log.startsWith("ev-")?`${EV_EMOJI[g.log.slice(3)]} ${t.chEv[g.log.slice(3)]}`:`${CARD_EMOJI[g.log]} ${t.chCard[g.log]}`):"";
@@ -3218,6 +3340,153 @@ async function aiTest(){
 function aiSave(){
   const c=aiCfg();if(c.provider&&$("aiKey")){c.key=$("aiKey").value.trim();c.model=($("aiModel").value||"").trim()||PROVIDERS[c.provider].model}
   setAiCfg(c);AI=pickAI();
+}
+
+/* ---------- 3D pieces, blocker critters and explosion effects ---------- */
+// gradients are defined once in #fxdefs; pieces reference them by id
+function piece3d(p){
+  if(p===1)return `<svg class="p3" viewBox="0 0 100 100" aria-hidden="true"><g filter="url(#pshadow)">
+<g transform="translate(0 8)" fill="url(#gs1)"><rect x="40" y="12" width="20" height="76" rx="10" transform="rotate(45 50 50)"/><rect x="40" y="12" width="20" height="76" rx="10" transform="rotate(-45 50 50)"/></g>
+<g fill="url(#gt1)"><rect x="40" y="12" width="20" height="76" rx="10" transform="rotate(45 50 50)"/><rect x="40" y="12" width="20" height="76" rx="10" transform="rotate(-45 50 50)"/></g></g>
+<g fill="#fff" opacity=".55"><rect x="44" y="17" width="5" height="30" rx="2.5" transform="rotate(45 50 50)"/><rect x="44" y="17" width="5" height="26" rx="2.5" transform="rotate(-45 50 50)"/></g></svg>`;
+  return `<svg class="p3" viewBox="0 0 100 100" aria-hidden="true"><g filter="url(#pshadow)">
+<circle cx="50" cy="57" r="27" fill="none" stroke="url(#gs2)" stroke-width="19"/>
+<circle cx="50" cy="50" r="27" fill="none" stroke="url(#gt2)" stroke-width="19"/></g>
+<circle cx="50" cy="50" r="17.5" fill="none" stroke="rgba(0,0,0,.14)" stroke-width="2"/>
+<path d="M29 40a24 24 0 0 1 18-15" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".6"/></svg>`;
+}
+const CRITTERS=[
+  // pink slime
+  `<svg class="crit" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="86" rx="32" ry="7" fill="rgba(0,0,0,.2)"/>
+<path class="body" d="M16 80C16 42 31 22 50 22s34 20 34 58q-34 10-68 0z" fill="url(#crSlime)"/><ellipse cx="36" cy="38" rx="9" ry="6" fill="#fff" opacity=".6"/>
+<g class="eyes"><ellipse cx="39" cy="55" rx="6" ry="7.5" fill="#fff"/><ellipse cx="61" cy="55" rx="6" ry="7.5" fill="#fff"/><circle cx="40" cy="57" r="3.6" fill="#2b1c2b"/><circle cx="62" cy="57" r="3.6" fill="#2b1c2b"/></g>
+<ellipse cx="29" cy="65" rx="5" ry="3" fill="#ff6fa8" opacity=".6"/><ellipse cx="71" cy="65" rx="5" ry="3" fill="#ff6fa8" opacity=".6"/><path d="M45 68q5 4 10 0" fill="none" stroke="#2b1c2b" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  // mole in a hole
+  `<svg class="crit" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="80" rx="38" ry="12" fill="#4a3428"/><ellipse cx="50" cy="78" rx="30" ry="8" fill="#2a1d17"/>
+<path class="body" d="M24 80C24 46 35 28 50 28s26 18 26 52z" fill="url(#crMole)"/><ellipse cx="41" cy="40" rx="7" ry="4.5" fill="#fff" opacity=".35"/>
+<g class="eyes"><circle cx="41" cy="52" r="3.6" fill="#1e1411"/><circle cx="59" cy="52" r="3.6" fill="#1e1411"/></g>
+<ellipse cx="50" cy="62" rx="7" ry="5.5" fill="#ff8fa3"/><ellipse cx="48" cy="60.5" rx="2.2" ry="1.4" fill="#fff" opacity=".7"/>
+<path d="M28 76q4-8 10-3M72 76q-4-8-10-3" fill="none" stroke="#f3c9a6" stroke-width="5" stroke-linecap="round"/></svg>`,
+  // blue puffer
+  `<svg class="crit" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="88" rx="28" ry="6" fill="rgba(0,0,0,.2)"/>
+<g fill="#3d8fd1">${[...Array(12).keys()].map(k=>{const a=k*30*Math.PI/180,x=50+Math.cos(a)*34,y=54+Math.sin(a)*34,x2=50+Math.cos(a)*44,y2=54+Math.sin(a)*44,px=Math.cos(a+1.57)*5,py=Math.sin(a+1.57)*5;return `<path d="M${(x+px).toFixed(1)} ${(y+py).toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}L${(x-px).toFixed(1)} ${(y-py).toFixed(1)}z"/>`}).join("")}</g>
+<circle class="body" cx="50" cy="54" r="34" fill="url(#crPuff)"/><ellipse cx="38" cy="38" rx="10" ry="6" fill="#fff" opacity=".55"/>
+<g class="eyes"><circle cx="39" cy="52" r="7" fill="#fff"/><circle cx="61" cy="52" r="7" fill="#fff"/><circle cx="40" cy="53" r="3.8" fill="#10263a"/><circle cx="62" cy="53" r="3.8" fill="#10263a"/></g>
+<ellipse cx="50" cy="68" rx="5" ry="3.5" fill="#10263a"/></svg>`
+];
+const critter=i=>CRITTERS[(i*7+3)%CRITTERS.length];
+let fxQueue=[];
+// a burst at a cell: shockwave, sparks and a flash; kind picks the colours
+function burst(i,kind){
+  const cell=document.querySelector(`[data-gm="${i}"]`);if(!cell||reduced())return;
+  const fx=document.createElement("span");fx.className="fx fx-"+(kind||"bomb");
+  fx.innerHTML=`<i class="ring"></i><i class="flash"></i>`+[...Array(10).keys()].map(k=>{const a=k/10*Math.PI*2;return `<i class="spark" style="--dx:${(Math.cos(a)*120).toFixed(0)}%;--dy:${(Math.sin(a)*120).toFixed(0)}%;--d:${(Math.random()*.15).toFixed(2)}s"></i>`}).join("");
+  cell.appendChild(fx);setTimeout(()=>fx.remove(),900);
+}
+function runFx(){const q=fxQueue;fxQueue=[];q.forEach(([i,k])=>burst(i,k))}
+
+/* =========================================================
+   創作工作台: favourite apps one tap away, prompt cards dragged onto AI
+   ========================================================= */
+const DEF_APPS=[
+  {n:"Instagram",u:"https://www.instagram.com/",c:"#E1306C"},{n:"Threads",u:"https://www.threads.net/",c:"#1B2735"},{n:"Facebook",u:"https://www.facebook.com/",c:"#1877F2"},
+  {n:"YouTube",u:"https://www.youtube.com/",c:"#FF3B30"},{n:"TikTok",u:"https://www.tiktok.com/",c:"#25F4EE"},{n:"Canva",u:"https://www.canva.com/",c:"#7D2AE8"},
+  {n:"CapCut",u:"https://www.capcut.com/",c:"#111111"},{n:"ChatGPT",u:"https://chatgpt.com/",c:"#10A37F"}
+];
+// external assistants that accept a prompt in the address
+const PREFILL=[[/(^|\.)chatgpt\.com$/,u=>"https://chatgpt.com/?q="+u],[/(^|\.)claude\.ai$/,u=>"https://claude.ai/new?q="+u],[/(^|\.)perplexity\.ai$/,u=>"https://www.perplexity.ai/search?q="+u]];
+S.apps=S.apps||DEF_APPS.map(a=>Object.assign({},a));
+S.prompts=S.prompts||null;   // null: use the built-in set for the current language
+let psel=null,pdrag=null;
+const promptList=()=>S.prompts||T().defPrompts;
+function weekText(){
+  const t=T(),w=S.weeks[key(mondayOf(new Date()))];if(!w)return "";
+  return w.days.map((d,i)=>d.length?`${t.days[i]}：${d.map(x=>x.text+(x.done?"（完成）":"")).join("、")}`:"").filter(Boolean).join("\n")||w.inbox.map(x=>x.text).join("、");
+}
+const initial=n=>String(n||"?").trim().slice(0,1).toUpperCase();
+function renderCreatorFace(){
+  const t=T(),cells=Array(9);
+  S.apps.slice(0,8).forEach((a,k)=>{
+    cells[RING[k]]=a&&a.u?`<div class="appt jelly" data-app="${k}" style="--t:${esc(a.c||"#888")}"><a class="applink" href="${esc(a.u)}" target="_blank" rel="noopener"><span class="aic" style="background:${esc(a.c||"#888")}">${esc(initial(a.n))}</span><b>${esc(a.n)}</b></a><button class="pen" type="button" data-appedit="${k}" aria-label="${esc(a.n)}">${I.pen}</button></div>`
+      :`<button class="appt jelly blank" type="button" data-appedit="${k}" data-app="${k}"><span class="plus">+</span></button>`;
+  });
+  cells[4]=`<div class="appt jelly aicore" data-aidrop="1"><span class="orb">${I.sparkle}</span><b>${t.crAI}</b><small>${esc(t.crDrop)}</small></div>`;
+  $("face").innerHTML=`<div class="appgrid" id="appgrid">${cells.join("")}</div>
+<section class="pshelf jelly" id="pshelf"><h3>${I.list}${t.crPrompts}<small>${t.crHint}</small></h3>
+<div class="pchips">${promptList().map((p,i)=>`<button class="pchip${psel===i?" sel":""}" type="button" data-pi="${i}"><span class="grip2"></span>${esc(p.n)}</button>`).join("")}<button class="pchip add" type="button" data-padd="1">＋ ${t.crAdd}</button></div></section>`;
+}
+function fillPrompt(p,topic){return p.t.replace(/\{topic\}/g,topic||"").replace(/\{week\}/g,weekText()||"（這週還沒有排事情）")}
+// dropped on the AI in the middle, or on an app
+function promptTo(i,target){
+  const t=T(),p=promptList()[i];if(!p)return;psel=null;
+  const needs=/\{topic\}/.test(p.t);
+  const app=target==="ai"?null:S.apps[+target];
+  layer(`<div class="shead"><h2>${esc(p.n)}</h2>${closeBtn(t)}</div>
+${needs?`<label class="fld">${t.crTopic}<input id="crTopic" type="text" maxlength="120" placeholder="${esc(t.crTopicPh)}"></label>`:""}
+<label class="fld">Prompt<textarea id="crPrompt" class="impta" style="min-height:110px">${esc(fillPrompt(p,""))}</textarea></label>
+<div class="row end">${app?`<button class="pill pri jelly" type="button" data-crgo="app" data-app="${+target}">${t.crOpenIn(app.n)}</button>`:`<button class="pill pri jelly" type="button" data-crgo="ai">${I.sparkle}${t.crGen}</button>`}</div><div id="crOut"></div>`,true);
+  const inp=$("crTopic");if(inp)inp.addEventListener("input",()=>{$("crPrompt").value=fillPrompt(p,inp.value.trim())});
+}
+async function crGenerate(){
+  const t=T(),prompt=$("crPrompt").value.trim(),out=$("crOut");if(!prompt)return;
+  out.innerHTML=`<p class="note">${t.mThinking.replace(/歌|曲|songs/,"")}</p>`;
+  await aiReady;
+  if(!AI){try{await navigator.clipboard.writeText(prompt)}catch(e){}out.innerHTML=`<p class="note">${t.crNoAI}</p>${crAppRow(prompt)}`;return}
+  try{
+    const r=await AI(prompt,{cache:false,onText:({text})=>{const el=$("crText");if(el)el.value=text;else out.innerHTML=`<textarea id="crText" class="impta" style="min-height:160px">${esc(text)}</textarea>`}});
+    out.innerHTML=`<textarea id="crText" class="impta" style="min-height:180px">${esc(r.text)}</textarea><div class="row end"><button class="pill pri jelly" type="button" data-crcopy="1">${t.copyCap}</button></div><p class="note">${t.crThen}</p>${crAppRow(null)}`;
+  }catch(e){out.innerHTML=`<p class="note">${esc(aiErrText(e))}</p>${crAppRow(prompt)}`}
+}
+function crAppRow(prompt){return `<div class="row">${S.apps.filter(a=>a&&a.u).map((a,k)=>`<button class="pill jelly" type="button" data-crgo="app" data-app="${S.apps.indexOf(a)}"${prompt?` data-raw="1"`:""}><span class="aic sm" style="background:${esc(a.c)}">${esc(initial(a.n))}</span>${esc(a.n)}</button>`).join("")}</div>`}
+// open an app with the text: prefilled where the app supports it, otherwise copied first
+async function openApp(k,text){
+  const t=T(),a=S.apps[k];if(!a)return;
+  let url=a.u;try{const h=new URL(a.u).hostname;const pf=PREFILL.find(([re])=>re.test(h));if(pf&&text)url=pf[1](encodeURIComponent(text))}catch(e){}
+  if(text&&url===a.u){try{await navigator.clipboard.writeText(text);toast(t.crCopied(a.n))}catch(e){}}
+  const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener";document.body.appendChild(link);link.click();link.remove();
+}
+function editApp(k){
+  const t=T(),a=S.apps[k]||{n:"",u:"",c:"#F2994A"};
+  layer(`<div class="shead"><h2>${t.crEditApp}</h2>${closeBtn(t)}</div>
+<label class="fld">${t.crAppName}<input id="apName" type="text" maxlength="20" value="${esc(a.n)}"></label>
+<label class="fld">${t.crAppUrl}<input id="apUrl" type="url" inputmode="url" value="${esc(a.u)}" placeholder="https://"></label>
+<div class="gsw">${["#E1306C","#1877F2","#FF3B30","#10A37F","#7D2AE8","#F2994A","#2A9DA8","#1B2735"].map(c=>`<button type="button" data-apcol="${c}" style="--c:${c}" aria-pressed="${a.c===c}" aria-label="${c}"></button>`).join("")}</div>
+<p class="note" id="apErr" hidden>${t.badUrl}</p>
+<div class="row end">${a.u?`<button class="pill jelly" type="button" data-apsave="del" data-k="${k}">${t.remove}</button>`:""}<button class="pill pri jelly" type="button" data-apsave="ok" data-k="${k}">${t.save}</button></div>`,true);
+  editApp.color=a.c;
+}
+function addPrompt(){
+  const t=T();
+  layer(`<div class="shead"><h2>${t.crAdd}</h2>${closeBtn(t)}</div>
+<label class="fld">${t.crPName}<input id="pnName" type="text" maxlength="20"></label>
+<label class="fld">${t.crPText}<textarea id="pnText" class="impta" style="min-height:120px" placeholder="${esc(t.crPTextPh)}"></textarea></label>
+${S.prompts?`<p class="note">${t.crPDel}</p>`:""}
+<div class="row end"><button class="pill pri jelly" type="button" data-pnsave="1">${t.save}</button></div>`,true);
+}
+// drag a prompt card with the pointer; drop on the AI or an app
+function pdragStart(e,chip){
+  pdrag={chip,i:+chip.dataset.pi,x:e.clientX,y:e.clientY,on:false};
+}
+function pdragMove(e){
+  if(!pdrag)return false;
+  if(!pdrag.on){if(Math.hypot(e.clientX-pdrag.x,e.clientY-pdrag.y)<8)return true;pdrag.on=true;
+    const r=pdrag.chip.getBoundingClientRect();pdrag.dx=pdrag.x-r.left;pdrag.dy=pdrag.y-r.top;
+    pdrag.g=pdrag.chip.cloneNode(true);pdrag.g.classList.add("ghost","pchip");pdrag.g.style.width=r.width+"px";document.body.appendChild(pdrag.g);document.body.classList.add("is-dragging")}
+  e.preventDefault();
+  pdrag.g.style.transform=`translate(${e.clientX-pdrag.dx}px,${e.clientY-pdrag.dy}px) rotate(-3deg) scale(1.06)`;
+  const el=document.elementFromPoint(e.clientX,e.clientY),tg=el&&el.closest("[data-aidrop],[data-app]");
+  document.querySelectorAll(".appt.over").forEach(x=>{if(x!==tg)x.classList.remove("over")});if(tg)tg.classList.add("over");
+  return true;
+}
+function pdragEnd(e,commit){
+  if(!pdrag)return false;const d=pdrag;pdrag=null;
+  if(!d.on)return false;   // a plain tap: the click handler selects it
+  d.g.remove();document.body.classList.remove("is-dragging");document.querySelectorAll(".appt.over").forEach(x=>x.classList.remove("over"));
+  suppressUntil=Date.now()+350;
+  if(!commit)return true;
+  const el=document.elementFromPoint(e.clientX,e.clientY),tg=el&&el.closest("[data-aidrop],[data-app]");
+  if(tg)promptTo(d.i,tg.dataset.aidrop?"ai":tg.dataset.app);
+  return true;
 }
 /* ---------- events ---------- */
 let suppressUntil=0;
@@ -3254,6 +3523,20 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
+  const pi=el.closest("[data-pi]");if(pi){const i=+pi.dataset.pi;if(psel===i)psel=null;else psel=i;renderCreatorFace();if(psel!=null)toast(T().crDrop);return}
+  if(el.closest("[data-padd]")){addPrompt();return}
+  if(el.closest("[data-pnsave]")){const n=$("pnName").value.trim(),tx=$("pnText").value.trim();if(n&&tx){S.prompts=(S.prompts||T().defPrompts.slice()).concat([{n,t:tx}]);save()}closeLayer();render();return}
+  const apsv=el.closest("[data-apsave]");if(apsv){const k=+apsv.dataset.k;
+    if(apsv.dataset.apsave==="del"){S.apps[k]=null;save();closeLayer();render();return}
+    const u=$("apUrl").value.trim();if(!/^https:\/\/\S+$/i.test(u)){$("apErr").hidden=false;return}
+    S.apps[k]={n:$("apName").value.trim()||new URL(u).hostname.replace(/^www\./,""),u,c:editApp.color||"#F2994A"};save();closeLayer();render();return}
+  const apc=el.closest("[data-apcol]");if(apc){editApp.color=apc.dataset.apcol;document.querySelectorAll("[data-apcol]").forEach(b=>b.setAttribute("aria-pressed",b===apc));return}
+  const ape=el.closest("[data-appedit]");if(ape&&!(psel!=null&&S.apps[+ape.dataset.appedit])){editApp(+ape.dataset.appedit);return}
+  const crg=el.closest("[data-crgo]");if(crg){
+    if(crg.dataset.crgo==="ai"){crGenerate();return}
+    const txt=crg.dataset.raw?$("crPrompt").value:($("crText")?$("crText").value:$("crPrompt").value);openApp(+crg.dataset.app,txt);return}
+  if(el.closest("[data-crcopy]")){const tx=$("crText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("crText").select())}catch(x){$("crText").select()}return}
+  if(psel!=null&&S.face===6){const tg=el.closest("[data-aidrop],[data-app]");if(tg){e.preventDefault();promptTo(psel,tg.dataset.aidrop?"ai":tg.dataset.app);return}}
   const aip=el.closest("[data-aiprov]");if(aip){const c=aiCfg(),k=aip.dataset.aiprov;setAiCfg(k?Object.assign({},c,{provider:k,model:c.provider===k?c.model:""}):{});AI=pickAI();openSettings();return}
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
@@ -3484,6 +3767,7 @@ document.addEventListener("submit",e=>{
 /* ---------- drag (tasks) and swipe (faces) with pointer events ---------- */
 let drag=null,swipe=null;
 document.addEventListener("pointerdown",e=>{
+  const pc=e.target.closest(".pchip[data-pi]");if(pc&&e.button===0){pdragStart(e,pc);pc.dataset.lp=setTimeout(()=>{if(pdrag&&!pdrag.on&&S.prompts){const i=+pc.dataset.pi;pdrag=null;S.prompts.splice(i,1);save();render();suppressUntil=Date.now()+500}},900);return}
   if(S.face===0&&S.mode==="month"&&e.button===0&&!rp){
     const bar=e.target.closest("#mgrid .gbar"),day=e.target.closest("#mgrid .mday");
     if(bar||day){
@@ -3497,6 +3781,7 @@ document.addEventListener("pointerdown",e=>{
   if(e.target.closest("#stage")&&!e.target.closest(".chip,input,.grip,textarea")&&(e.pointerType!=="mouse"||e.target.closest("#wgrid")))swipe={x:e.clientX,y:e.clientY,t:Date.now(),card:!!e.target.closest("#wgrid")&&S.w.mode!=="game"};
 });
 addEventListener("pointermove",e=>{
+  if(pdragMove(e))return;
   if(rangeMove(e))return;
   if(!drag)return;
   if(!drag.on){
@@ -3514,6 +3799,7 @@ addEventListener("pointermove",e=>{
   if(cell&&cell.dataset.slot!=="prev")cell.classList.add("over");
 },{passive:false});
 function endDrag(e,commit){
+  if(pdragEnd(e,commit))return;
   if(rangeEnd(e,commit))return;
   if(swipe&&commit){
     const dx=e.clientX-swipe.x,dy=e.clientY-swipe.y;
