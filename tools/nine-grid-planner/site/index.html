@@ -624,6 +624,45 @@ body.ranging .gbar{pointer-events:none}
 @keyframes spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
 .gomo .piece,.c4 .piece{background:radial-gradient(circle at 32% 28%,#fff 0 6%,color-mix(in srgb,#fff 45%,var(--pc)) 14%,var(--pc) 55%,color-mix(in srgb,#000 30%,var(--pc)) 100%);box-shadow:0 5px 8px -3px color-mix(in srgb,#000 40%,var(--pc)),inset 0 -4px 6px color-mix(in srgb,#000 18%,var(--pc))}
 
+/* mascot */
+.mascot{display:block;overflow:visible}
+.mascot .jbody,.mascot .face{transform-box:fill-box;transform-origin:50% 100%;animation:mbob 2.4s ease-in-out infinite}
+.mascot .face{animation-name:mbobf}
+.mascot .eyes{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4.6s infinite}
+.mascot .arm{transform-box:fill-box}
+.mascot .armR.waving{transform-origin:0% 100%;animation:mwave 1.1s ease-in-out infinite}
+.mascot.cheer .armL,.mascot.cheer .armR{transform-origin:50% 100%;animation:mcheer .7s ease-in-out infinite alternate}
+@keyframes mbob{50%{transform:scale(1.03,.96)}}
+@keyframes mbobf{50%{transform:translateY(2px)}}
+@keyframes mwave{0%,100%{transform:rotate(0)}50%{transform:rotate(-22deg)}}
+@keyframes mcheer{to{transform:translateY(-4px)}}
+.wmascot{width:132px;height:132px;margin:0 auto -4px}
+.wmascot .mascot{width:100%;height:100%}
+.tip .tmas{float:left;width:38px;height:38px;margin:-4px 8px 2px -4px}
+.coachme{display:flex;align-items:flex-end;gap:6px}
+.coachme .mascot{width:42px;height:42px;flex:none}
+.gstat .mascot{display:inline-block;width:34px;height:34px;vertical-align:middle;margin-right:4px}
+/* fitness face */
+.fitgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fitt{position:relative;aspect-ratio:1;max-width:100%;padding:12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:4px;text-align:left;min-width:0;--r:26px;transition:transform .25s var(--ease),box-shadow .25s}
+.fitt b{font-weight:400;font-size:17px}
+.fitt small{font-size:11px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fitt.on{box-shadow:0 0 0 3px var(--accent),0 14px 26px -12px var(--accent)}
+.fitt .fpro{position:absolute;top:10px;right:10px;font-size:10px;padding:2px 7px;border-radius:999px;background:var(--accent);color:var(--on-accent)}
+.fitt.center{align-items:center;justify-content:center;padding:6px}
+.bodyfig{width:100%;height:100%}
+.exlist{display:flex;flex-direction:column;gap:10px}
+.ex{padding:12px 14px;--r:20px;display:flex;flex-direction:column;gap:6px}
+.ex>div{display:flex;align-items:center;gap:8px}
+.ex b{font-weight:400;font-size:16px;flex:1}
+.ex .sets{font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--accent)}
+.ex p{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+.ex .pill{align-self:flex-start}
+.ex .pill svg{width:12px;height:12px}
+.firsthint svg{width:16px;height:16px;display:inline-block;vertical-align:-3px}
+@media (max-width:600px){.fitt b{font-size:14px}.fitt small{display:none}}
+@media (max-width:430px){html .dial .fb{width:32px;height:32px}html .dial .fb svg{width:17px;height:17px}html .knob{width:42px;height:42px}}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -719,6 +758,7 @@ body.ranging .gbar{pointer-events:none}
   <button class="fb" type="button" data-face="4"></button>
   <button class="fb" type="button" data-face="5"></button>
   <button class="fb" type="button" data-face="6"></button>
+  <button class="fb" type="button" data-face="7"></button>
 </nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -729,6 +769,16 @@ body.ranging .gbar{pointer-events:none}
 <radialGradient id="crSlime" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#ffd1e6"/><stop offset=".5" stop-color="#ff8fc0"/><stop offset="1" stop-color="#d9468c"/></radialGradient>
 <radialGradient id="crMole" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#c89a78"/><stop offset=".6" stop-color="#8a5a3c"/><stop offset="1" stop-color="#5a3824"/></radialGradient>
 <radialGradient id="crPuff" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#d6f0ff"/><stop offset=".5" stop-color="#7cc4f2"/><stop offset="1" stop-color="#2f7fc0"/></radialGradient>
+<radialGradient id="m_tide" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#3FB8C8)"/><stop offset=".55" stop-color="#3FB8C8"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#3FB8C8)"/></radialGradient><linearGradient id="m_tide_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#3FB8C8)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#3FB8C8)"/></linearGradient>
+<radialGradient id="m_mino" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#D8543C)"/><stop offset=".55" stop-color="#D8543C"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#D8543C)"/></radialGradient><linearGradient id="m_mino_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#D8543C)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#D8543C)"/></linearGradient>
+<radialGradient id="m_horse" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#C87A3C)"/><stop offset=".55" stop-color="#C87A3C"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#C87A3C)"/></radialGradient><linearGradient id="m_horse_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#C87A3C)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#C87A3C)"/></linearGradient>
+<radialGradient id="m_cyc" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#8ABF5A)"/><stop offset=".55" stop-color="#8ABF5A"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#8ABF5A)"/></radialGradient><linearGradient id="m_cyc_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#8ABF5A)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#8ABF5A)"/></linearGradient>
+<radialGradient id="m_queen" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#A8C0D8)"/><stop offset=".55" stop-color="#A8C0D8"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#A8C0D8)"/></radialGradient><linearGradient id="m_queen_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#A8C0D8)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#A8C0D8)"/></linearGradient>
+<radialGradient id="m_sun" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#E0A03C)"/><stop offset=".55" stop-color="#E0A03C"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#E0A03C)"/></radialGradient><linearGradient id="m_sun_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#E0A03C)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#E0A03C)"/></linearGradient>
+<radialGradient id="m_flame" cx=".38" cy=".3" r=".85"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,#FFB43C)"/><stop offset=".55" stop-color="#FFB43C"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 30%,#FFB43C)"/></radialGradient><linearGradient id="m_flame_d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#000 20%,#FFB43C)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 45%,#FFB43C)"/></linearGradient>
+<linearGradient id="mFire" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff7a2a"/><stop offset=".6" stop-color="#ffc23c"/><stop offset="1" stop-color="#fff3b0"/></linearGradient>
+<radialGradient id="jellyBody" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#FFE3EA" stop-opacity=".95"/><stop offset=".55" stop-color="#F7A6BA" stop-opacity=".92"/><stop offset="1" stop-color="#E0708F" stop-opacity=".95"/></radialGradient>
+<radialGradient id="jellyCore" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#FFD0DA"/><stop offset="1" stop-color="#F59AB0" stop-opacity="0"/></radialGradient>
 <filter id="pshadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="#1b2735" flood-opacity=".3"/></filter>
 </defs></svg>
 <div id="layer"></div>
@@ -751,6 +801,10 @@ const OWNER={
   proDecks:["grow"],                       // 需要加購的字卡（示範：成長心態）；清空就全部免費
   trialCards:3,                            // 加購字卡可以免費試玩的張數
   wordStore:"",                            // 加購頁網址；空白時顯示「即將推出」
+  proFit:true,                             // AI 健身教練是否為加購；false 就全部免費
+  fitFree:["chest","core"],                // 免費開放的部位
+  fitStore:"",                             // 健身加購頁網址；空白時顯示「即將推出」
+  mascotImg:"",                            // 小潔米果凍官方圖（https 網址或 data:），空白時用內建插畫
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -762,8 +816,8 @@ const SPONSORS=[
 /* ---------- strings ---------- */
 const STR={
   zh:{
-    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫"],
+    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫","選一個部位，看動作重點和 YouTube 教學"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -851,6 +905,8 @@ const STR={
       {n:"這週九宮格→貼文",t:"這是我這週的九宮格計畫：\n{week}\n幫我寫一篇分享這週生活與收穫的貼文，語氣自然，最後邀請讀者分享他們這週最想完成的一件事。用繁體中文。"},
       {n:"心流練習引導",t:"用阿德勒（目的論、鼓勵）、心流（挑戰與能力平衡）、馬斯洛（需求層次）的觀點，寫一段 3 分鐘的自我練習引導，主題是：{topic}。步驟清楚、淺顯易懂。用繁體中文。"}
     ],
+    fitHint:"選一個想練的部位",fitSafe:"動作以不痛為原則；有傷病、懷孕或慢性病，先問醫師或物理治療師。",fitLv:["新手","進階"],fitEq:{bw:"徒手",db:"啞鈴",gym:"健身房"},
+    fitWatch:"看 YouTube 教學",fitAI:"AI 幫我排今天的課表",fitCal:"排進今天",fitLocked:"這個部位是加購內容，先試看第一個動作。",fitTask:n=>`💪 ${n} 訓練 20 分鐘`,
     wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
     wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
     wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
@@ -874,12 +930,13 @@ const STR={
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
       [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
-      [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]]
+      [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]],
+      [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]]
     ]
   },
   ja:{
-    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ"],
+    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ","部位を選んで、フォームのコツと YouTube 解説"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -967,6 +1024,8 @@ const STR={
       {n:"今週の九マス→投稿",t:"今週の九マス計画です：\n{week}\n今週の暮らしと気づきをシェアする投稿を書いて、最後に読者の今週いちばんの目標をたずねてください。日本語で。"},
       {n:"フロー練習ガイド",t:"アドラー、フロー理論、マズローの観点で、「{topic}」についての 3 分間セルフワークを分かりやすく書いてください。日本語で。"}
     ],
+    fitHint:"鍛えたい部位を選んでください",fitSafe:"痛みのない範囲で。けが・妊娠中・持病がある場合は医師か理学療法士に相談を。",fitLv:["初心者","中級"],fitEq:{bw:"自重",db:"ダンベル",gym:"ジム"},
+    fitWatch:"YouTube で見る",fitAI:"AI に今日のメニューを作ってもらう",fitCal:"今日に入れる",fitLocked:"この部位は追加購入です。最初の種目をお試しください。",fitTask:n=>`💪 ${n}トレーニング 20 分`,
     wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
     wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
     wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
@@ -990,12 +1049,13 @@ const STR={
        [".spons .center","気に入ったら、ここから応援できます。"]],
       [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
-      [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]]
+      [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]],
+      [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]]
     ]
   },
   en:{
-    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI"],
+    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI","Pick a muscle group for moves, form cues and YouTube tutorials"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -1083,6 +1143,8 @@ const STR={
       {n:"This week's grid → post",t:"Here is my nine-grid plan for this week:\n{week}\nWrite a post sharing my week and what I learned, and end by asking readers the one thing they most want to finish this week."},
       {n:"Flow practice guide",t:"Using Adler (purpose, encouragement), flow (challenge–skill balance) and Maslow (needs), write a simple 3-minute self-practice about: {topic}."}
     ],
+    fitHint:"Pick a muscle group to train",fitSafe:"Stay pain-free. If you have an injury, are pregnant or have a health condition, check with a doctor or physio first.",fitLv:["Beginner","Intermediate"],fitEq:{bw:"Bodyweight",db:"Dumbbells",gym:"Gym"},
+    fitWatch:"Watch on YouTube",fitAI:"Let AI plan today's workout",fitCal:"Add to today",fitLocked:"This group is an add-on. Try the first move for free.",fitTask:n=>`💪 ${n} workout, 20 min`,
     wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
     wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
     wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
@@ -1106,7 +1168,8 @@ const STR={
        [".spons .center","Like the tool? You can support it here."]],
       [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
-      [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]]
+      [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]],
+      [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]]
     ]
   }
 };
@@ -1309,10 +1372,11 @@ const I={
   spark2:sv('<path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6z"/><path d="M16 13.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'),
   game:sv('<rect x="2" y="6" width="16" height="9.5" rx="4.5"/><path d="M6 9v3.5M4.3 10.8h3.4"/><circle cx="13" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="12.2" r=".9" fill="currentColor"/>'),
   cards:sv('<rect x="2.5" y="5" width="11" height="12.5" rx="2.5"/><path d="M6.5 5V4a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17.5 4v10a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M5.5 10h5M5.5 13h3"/>'),
+  dumbbell:sv('<path d="M6.5 10h7"/><rect x="3.5" y="5.5" width="3" height="9" rx="1.3"/><rect x="13.5" y="5.5" width="3" height="9" rx="1.3"/><path d="M2 8v4M18 8v4"/>'),
   lock:sv('<rect x="4" y="9" width="12" height="8.5" rx="2.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
-const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2];
+const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2,I.dumbbell];
 
 /* ---------- skins & background art ---------- */
 const SKINS={
@@ -1482,9 +1546,9 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%7]);
+  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%8]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -1790,7 +1854,7 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 
 /* ---------- face rotation ---------- */
 function goFace(n,dir){
-  n=(n+7)%7;if(n===S.face||rotating)return;
+  n=(n+8)%8;if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -1884,7 +1948,7 @@ function showGuide(){
   setTimeout(()=>{
     if(!guide)return;
     const last=guide.i===steps.length-1,t=T();
-    $("tip").innerHTML=`<p>${esc(text)}</p><div class="tfoot"><span class="tdots">${steps.map((_,j)=>`<i class="${j===guide.i?"on":""}"></i>`).join("")}</span>${last?"":`<button class="skip" type="button" data-g="skip">${t.skip}</button>`}<button class="nx" type="button" data-g="next">${last?t.gotIt:t.next}</button></div><i class="tail"></i>`;
+    $("tip").innerHTML=`<p>${mascot(guide.i?"idle":"wave","tmas")}${esc(text)}</p><div class="tfoot"><span class="tdots">${steps.map((_,j)=>`<i class="${j===guide.i?"on":""}"></i>`).join("")}</span>${last?"":`<button class="skip" type="button" data-g="skip">${t.skip}</button>`}<button class="nx" type="button" data-g="next">${last?t.gotIt:t.next}</button></div><i class="tail"></i>`;
     $("tip").hidden=false;guide.target=target;placeTip();setTimeout(placeTip,350);
     if(anim==="drag")startDemo();
     if(anim==="range")startRangeDemo(target);
@@ -1981,7 +2045,7 @@ function accountHTML(){
 }
 function showWelcome(){
   const t=T(),k=skin();
-  layer(`<div class="welcome"><div class="wlogo">${[...k.tints.slice(0,4),k.accent,...k.tints.slice(4),"#9AA6B2"].map((c,i)=>`<i style="--c:${c};animation-delay:${i*60}ms"></i>`).join("")}</div>
+  layer(`<div class="welcome"><div class="wmascot">${mascot("wave")}</div>
 <h2>${t.faces[0]}</h2><p>${t.wLead}</p>
 <button class="gbtn" type="button" data-wel="google">${GLOGO}${t.wGoogle}</button>
 <p class="note">${canGoogle()?t.wGoogleNote:t.wNoLogin}</p>
@@ -2076,7 +2140,7 @@ async function makeCard(fmt){
   const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
   tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
   const B={X:60,Y:268,W:W0-120,H:H0-268-130};
-  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends,cardFriends][S.face](x,B,P,t);
+  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends,cardFriends,cardFriends][S.face](x,B,P,t);
   return c;
 }
 function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
@@ -2347,7 +2411,7 @@ Today is ${key(d)}.`;
 }
 function coachHTML(){
   const t=T(),n=coach.turns.filter(x=>x.role==="user").length;
-  const msgs=[`<div class="msg ai">${esc(t.coachHello)}</div>`];
+  const msgs=[`<div class="coachme">${mascot("wave")}<div class="msg ai">${esc(t.coachHello)}</div></div>`];
   if(coach.offline)msgs.push(`<div class="msg ai">${esc(t.aiOff)}</div>`);
   coach.turns.forEach((m,i)=>msgs.push(`<div class="msg ${m.role==="user"?"me":"ai"}${m.wait?" wait":""}" data-mi="${i}">${esc(m.content)}</div>`));
   let plan="";
@@ -2984,7 +3048,7 @@ function renderGameFace(){
   let status="";
   if(g.wait)status=t.gWait;
   else if(turnGame){
-    if(g.win===3)status=t.gDraw;else if(g.win)status=`<b>${esc(t.gWin(seatName(g.win)))}</b>`;
+    if(g.win===3)status=t.gDraw;else if(g.win)status=`${mascot("cheer","cheer")}<b>${esc(t.gWin(seatName(g.win)))}</b>`;
     else if(g.mode==="online")status=NET&&NET.seat===g.turn?`<b>${t.gYour}</b>`:NET&&!NET.seat?t.gSpect:esc(t.gTheir(seatName(g.turn)));
     else status=g.mode==="ai"&&g.turn===2?esc(t.gTheir(t.gCPU)):`<b>${esc(t.gTheir(seatName(g.turn)))}</b>`;
     if(g.mode==="online"&&!g.win&&NET&&NET.seat===1&&!NET.room.peers().some(p=>p.presence&&p.presence.seat===2))status=t.gWait;
@@ -3310,7 +3374,7 @@ function chaosHTML(g,t){
   prevB={id:g.id+g.seed,b:g.b.slice(),fz:Object.assign({},g.fz),ply:g.ply};
   const cells=g.b.map((v,i)=>{
     const cls=[v===-1?"hole":"",rise.has(i)?"rise":"",popCls(g,i).trim(),(g.fz[i]||0)>g.ply?"frz":"",g.sh[i]?"sh":"",sel.includes(i)?"tgt":"",g.line&&g.line.includes(i)?"win":"",g.last===i&&v>0?"lastm":""].filter(Boolean).join(" ");
-    return `<button type="button" data-gm="${i}" class="${cls}" aria-label="${i%N+1},${Math.floor(i/N)+1}">${v>0?PIECE(v,1):v===-1?critter(i):""}</button>`;
+    return `<button type="button" data-gm="${i}" class="${cls}" aria-label="${i%N+1},${Math.floor(i/N)+1}">${v>0?PIECE(v,1):v===-1?`<span class="mon" title="${esc(monsterName(monsterFor(i)))}">${towerMonster(monsterFor(i))}</span>`:""}</button>`;
   }).join("");
   const wheelIn=3-(g.ply%3);
   const logTxt=g.log?(g.log.startsWith("ev-")?`${EV_EMOJI[g.log.slice(3)]} ${t.chEv[g.log.slice(3)]}`:`${CARD_EMOJI[g.log]} ${t.chCard[g.log]}`):"";
@@ -3488,6 +3552,130 @@ function pdragEnd(e,commit){
   if(tg)promptTo(d.i,tg.dataset.aidrop?"ai":tg.dataset.app);
   return true;
 }
+
+/* ---------- the tower's monsters (from 通天鬥塔) as chibi blockers ---------- */
+const MONSTERS=[
+  {k:"tide",n:{zh:"潮位官",ja:"潮位官",en:"Tide Warden"}},
+  {k:"mino",n:{zh:"米諾陶",ja:"ミノタウロス",en:"Minotaur"}},
+  {k:"horse",n:{zh:"木馬之腹",ja:"木馬",en:"Wooden Horse"}},
+  {k:"cyc",n:{zh:"波呂斐摩斯",ja:"ポリュペモス",en:"Polyphemus"}},
+  {k:"queen",n:{zh:"希波呂忒",ja:"ヒッポリュテ",en:"Hippolyta"}},
+  {k:"sun",n:{zh:"折膝的太陽",ja:"膝折れの太陽",en:"Fallen Sun"}},
+  {k:"flame",n:{zh:"最後一盞火",ja:"最後の灯",en:"Last Flame"}}
+];
+function towerMonster(m){
+  const k=m.k,eyes=k==="cyc"?`<g class="eyes"><circle cx="50" cy="52" r="11" fill="#fff"/><circle cx="50" cy="53" r="6.5" fill="#1a1410"/><circle cx="47.5" cy="50" r="2.2" fill="#fff"/></g>`
+    :`<g class="eyes"><ellipse cx="40" cy="54" rx="6" ry="7" fill="#fff"/><ellipse cx="60" cy="54" rx="6" ry="7" fill="#fff"/><circle cx="41" cy="56" r="3.6" fill="#1a1410"/><circle cx="61" cy="56" r="3.6" fill="#1a1410"/><circle cx="39.6" cy="54.2" r="1.3" fill="#fff"/><circle cx="59.6" cy="54.2" r="1.3" fill="#fff"/></g>`;
+  const extra={
+    tide:`<g fill="#bdeef5">${[-2,-1,0,1,2].map(i=>`<path d="M${50+i*10-5} 30L${50+i*10} ${14+Math.abs(i)*5}L${50+i*10+5} 30z"/>`).join("")}</g><path d="M22 74q7-5 14 0t14 0 14 0 14 0" fill="none" stroke="#bdeef5" stroke-width="3" stroke-linecap="round"/>`,
+    mino:`<g fill="#f0e6cc" stroke="#b9a883" stroke-width="1.5"><path d="M28 36Q8 30 10 14q8 10 22 14z"/><path d="M72 36Q92 30 90 14q-8 10-22 14z"/></g><ellipse cx="50" cy="68" rx="12" ry="8" fill="#9a3a2a" opacity=".55"/><circle cx="46" cy="68" r="1.8" fill="#3a1410"/><circle cx="54" cy="68" r="1.8" fill="#3a1410"/>`,
+    horse:`<g fill="#7a4c26">${[0,1,2,3,4].map(i=>`<rect x="${31+i*8}" y="${18+Math.abs(2-i)*2}" width="5" height="14" rx="2.5"/>`).join("")}</g><rect x="36" y="64" width="28" height="12" rx="6" fill="#e7b98a"/><circle cx="44" cy="70" r="1.8" fill="#4a2a10"/><circle cx="56" cy="70" r="1.8" fill="#4a2a10"/>`,
+    cyc:`<path d="M34 30q16-10 32 0" fill="none" stroke="#3c5a28" stroke-width="4" stroke-linecap="round"/><path d="M44 70q6 4 12 0" fill="none" stroke="#1a1410" stroke-width="2.4" stroke-linecap="round"/>`,
+    queen:`<g fill="#E8C35A" stroke="#b8902a" stroke-width="1.2"><path d="M30 34L34 18L42 28L50 14L58 28L66 18L70 34z"/></g><circle cx="50" cy="22" r="3" fill="#e0535a"/>`,
+    sun:`<g fill="#ffd66a">${[...Array(9).keys()].map(i=>{const a=(-160+i*17.5)*Math.PI/180,x=50+Math.cos(a)*34,y=56+Math.sin(a)*34,x2=50+Math.cos(a)*46,y2=56+Math.sin(a)*46,px=Math.cos(a+1.57)*3.5,py=Math.sin(a+1.57)*3.5;return `<path d="M${(x+px).toFixed(1)} ${(y+py).toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}L${(x-px).toFixed(1)} ${(y-py).toFixed(1)}z"/>`}).join("")}</g>`,
+    flame:`<path class="fire" d="M34 36Q36 12 46 22Q50 6 56 22Q66 12 66 36z" fill="url(#mFire)"/>`
+  }[k];
+  const mouth=k==="mino"||k==="horse"||k==="cyc"?"":`<path d="M45 69q5 4 10 0" fill="none" stroke="#1a1410" stroke-width="2.2" stroke-linecap="round"/>`;
+  return `<svg class="crit" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="88" rx="30" ry="6.5" fill="rgba(0,0,0,.22)"/>
+<g fill="url(#m_${k}_d)"><rect x="33" y="74" width="12" height="14" rx="6"/><rect x="55" y="74" width="12" height="14" rx="6"/></g>
+<g class="body"><ellipse cx="50" cy="56" rx="30" ry="28" fill="url(#m_${k})"/>${extra}</g>
+<ellipse cx="38" cy="40" rx="9" ry="5.5" fill="#fff" opacity=".45"/>${eyes}${mouth}
+<ellipse cx="30" cy="64" rx="4.5" ry="2.6" fill="#ff7a8a" opacity=".45"/><ellipse cx="70" cy="64" rx="4.5" ry="2.6" fill="#ff7a8a" opacity=".45"/></svg>`;
+}
+const monsterFor=i=>MONSTERS[(i*5+2)%MONSTERS.length];
+const monsterName=m=>m.n[LANG[S.region]]||m.n.zh;
+
+/* ---------- the site's main character: 小潔米's jelly buddy (two arms, four feet) ---------- */
+// pose: "wave" | "cheer" | "idle". OWNER.mascotImg swaps in official art when provided.
+function mascot(pose,cls){
+  if(OWNER.mascotImg)return `<img class="mascot ${cls||""}" src="${esc(OWNER.mascotImg)}" alt="">`;
+  pose=pose||"idle";
+  const armL=pose==="cheer"?`<path class="arm armL" d="M30 66Q16 52 18 40" />`:`<path class="arm armL" d="M30 70Q18 76 16 86" />`;
+  const armR=pose==="idle"?`<path class="arm armR" d="M90 70Q102 76 104 86" />`:`<path class="arm armR${pose==="wave"?" waving":""}" d="M90 66Q104 52 102 40" />`;
+  return `<svg class="mascot ${cls||""}" viewBox="0 0 120 120" aria-hidden="true">
+<ellipse cx="60" cy="112" rx="34" ry="5.5" fill="rgba(27,39,53,.18)"/>
+<g class="feet"><g fill="#d9667f"><rect x="38" y="96" width="11" height="14" rx="5.5"/><rect x="71" y="96" width="11" height="14" rx="5.5"/></g><g fill="#f08aa2"><rect x="30" y="98" width="12" height="13" rx="6"/><rect x="50" y="99" width="12" height="12" rx="6"/><rect x="58" y="99" width="12" height="12" rx="6"/><rect x="78" y="98" width="12" height="13" rx="6"/></g></g>
+<g fill="none" stroke="#f28ba5" stroke-width="9" stroke-linecap="round">${armL}${armR}</g>
+<g class="jbody"><path d="M60 12C83 34 98 52 98 74c0 21-17 31-38 31S22 95 22 74c0-22 15-40 38-62z" fill="url(#jellyBody)"/>
+<path d="M60 22C78 40 88 56 88 74c0 15-12 24-28 24S32 89 32 74c0-18 10-34 28-52z" fill="url(#jellyCore)" opacity=".7"/>
+<ellipse cx="45" cy="44" rx="10" ry="6" transform="rotate(-30 45 44)" fill="#fff" opacity=".75"/><circle cx="37" cy="58" r="3" fill="#fff" opacity=".6"/></g>
+<g class="face"><g class="eyes"><ellipse cx="49" cy="70" rx="6" ry="7.5" fill="#3b2230"/><ellipse cx="71" cy="70" rx="6" ry="7.5" fill="#3b2230"/><circle cx="47" cy="67" r="2.3" fill="#fff"/><circle cx="69" cy="67" r="2.3" fill="#fff"/><circle cx="51" cy="73" r="1" fill="#fff"/><circle cx="73" cy="73" r="1" fill="#fff"/></g>
+<ellipse cx="40" cy="80" rx="5" ry="3" fill="#ff7c9c" opacity=".55"/><ellipse cx="80" cy="80" rx="5" ry="3" fill="#ff7c9c" opacity=".55"/><path d="M55 80q5 5 10 0" fill="none" stroke="#3b2230" stroke-width="2.4" stroke-linecap="round"/></g></svg>`;
+}
+
+/* =========================================================
+   AI 健身教練: pick a muscle group, get moves, form cues and YouTube tutorials
+   ========================================================= */
+const X=(zh,ja,en,eq,lv,sets,cue)=>({n:{zh,ja,en},eq,lv,sets,cue});
+const FIT=[
+  {k:"chest",n:{zh:"胸",ja:"胸",en:"Chest"},ex:[X("上斜伏地挺身","インクライン腕立て","Incline push-up","bw",1,"3×10–12",{zh:"手撐椅子或桌緣，身體一直線",ja:"椅子に手をつき、体を一直線に",en:"Hands on a bench, body in one line"}),X("伏地挺身","腕立て伏せ","Push-up","bw",2,"3×8–15",{zh:"手肘約 45 度，胸口貼近地面",ja:"肘は約 45 度、胸を床へ",en:"Elbows about 45°, chest toward the floor"}),X("啞鈴臥推","ダンベルベンチプレス","Dumbbell bench press","db",2,"3×8–12",{zh:"肩胛收緊，慢放快推",ja:"肩甲骨を寄せ、ゆっくり下ろす",en:"Squeeze shoulder blades; lower slowly"})]},
+  {k:"back",n:{zh:"背",ja:"背中",en:"Back"},ex:[X("超人式","スーパーマン","Superman","bw",1,"3×12",{zh:"手腳同時抬起停 2 秒",ja:"手足を同時に上げ 2 秒キープ",en:"Lift arms and legs together, hold 2 s"}),X("反向划船","インバーテッドロウ","Inverted row","bw",2,"3×8–12",{zh:"桌下或低槓，胸口拉向桿子",ja:"低い鉄棒で胸をバーへ",en:"Under a sturdy table or low bar; pull chest up"}),X("單臂啞鈴划船","ワンハンドダンベルロウ","One-arm dumbbell row","db",1,"3×10/側",{zh:"背打平，手肘往後腰拉",ja:"背中はまっすぐ、肘を腰へ",en:"Flat back; pull elbow to hip"})]},
+  {k:"shoulders",n:{zh:"肩",ja:"肩",en:"Shoulders"},ex:[X("啞鈴側平舉","サイドレイズ","Lateral raise","db",1,"3×12–15",{zh:"小重量，舉到與肩同高",ja:"軽めの重さで肩の高さまで",en:"Light weight, raise to shoulder height"}),X("屈體伏地挺身","パイクプッシュアップ","Pike push-up","bw",2,"3×6–10",{zh:"臀部抬高，頭往手前方下",ja:"お尻を高く、頭を手の前へ",en:"Hips high; lower head in front of hands"}),X("啞鈴肩推","ダンベルショルダープレス","Dumbbell shoulder press","db",2,"3×8–12",{zh:"核心收緊，不要後仰",ja:"体幹を締め、反らない",en:"Brace your core; don't lean back"})]},
+  {k:"arms",n:{zh:"手臂",ja:"腕",en:"Arms"},ex:[X("啞鈴彎舉","ダンベルカール","Biceps curl","db",1,"3×10–12",{zh:"手肘固定在身側",ja:"肘を体の横に固定",en:"Keep elbows pinned to your sides"}),X("椅子撐體","ベンチディップ","Bench dip","bw",1,"3×8–12",{zh:"肩膀下壓，不要聳肩",ja:"肩をすくめない",en:"Shoulders down, don't shrug"}),X("窄距伏地挺身","ダイヤモンド腕立て","Diamond push-up","bw",2,"3×6–10",{zh:"雙手靠近，手肘貼身",ja:"手を近づけ、肘は体に沿わせる",en:"Hands close, elbows tucked"})]},
+  {k:"core",n:{zh:"核心",ja:"体幹",en:"Core"},ex:[X("棧板式","プランク","Plank","bw",1,"3×30–45 秒",{zh:"肚臍內收，臀部不塌",ja:"お腹を締め、腰を落とさない",en:"Brace; don't let hips sag"}),X("死蟲式","デッドバグ","Dead bug","bw",1,"3×10/側",{zh:"下背貼地，慢慢伸展對側手腳",ja:"腰を床につけ、対角の手足を伸ばす",en:"Low back flat; extend opposite arm and leg"}),X("登山者","マウンテンクライマー","Mountain climber","bw",2,"3×30 秒",{zh:"肩在手腕正上方，膝蓋往胸口帶",ja:"肩は手首の真上、膝を胸へ",en:"Shoulders over wrists; drive knees in"})]},
+  {k:"glutes",n:{zh:"臀",ja:"お尻",en:"Glutes"},ex:[X("臀橋","ヒップリフト","Glute bridge","bw",1,"3×12–15",{zh:"腳跟出力，頂端夾緊 2 秒",ja:"かかとで押し、上で 2 秒締める",en:"Drive through heels; squeeze 2 s at top"}),X("蚌殼式","クラムシェル","Clamshell","bw",1,"3×15/側",{zh:"骨盆不動，膝蓋打開",ja:"骨盤は動かさず膝を開く",en:"Keep pelvis still; open the knee"}),X("保加利亞分腿蹲","ブルガリアンスクワット","Bulgarian split squat","db",2,"3×8/側",{zh:"前腳膝蓋對齊腳尖",ja:"前膝はつま先と同じ向き",en:"Front knee tracks over toes"})]},
+  {k:"legs",n:{zh:"腿",ja:"脚",en:"Legs"},ex:[X("徒手深蹲","自重スクワット","Bodyweight squat","bw",1,"3×12–15",{zh:"臀部往後坐，膝蓋對齊腳尖",ja:"お尻を後ろへ、膝はつま先方向",en:"Sit back; knees follow toes"}),X("弓箭步","ランジ","Lunge","bw",1,"3×10/側",{zh:"上身直立，後膝接近地面",ja:"上体はまっすぐ、後ろ膝を床近くへ",en:"Tall torso; back knee toward floor"}),X("啞鈴羅馬尼亞硬舉","ダンベルルーマニアンデッドリフト","Dumbbell Romanian deadlift","db",2,"3×8–12",{zh:"背打直，臀部往後推",ja:"背中はまっすぐ、お尻を引く",en:"Flat back; push hips back"})]},
+  {k:"calves",n:{zh:"小腿",ja:"ふくらはぎ",en:"Calves"},ex:[X("提踵","カーフレイズ","Calf raise","bw",1,"3×15–20",{zh:"慢慢踮起，頂端停 1 秒",ja:"ゆっくり上げ、上で 1 秒",en:"Rise slowly, pause 1 s at top"}),X("單腳提踵","片脚カーフレイズ","Single-leg calf raise","bw",2,"3×10/側",{zh:"扶牆保持平衡",ja:"壁に手を添えてバランス",en:"Hold a wall for balance"}),X("跳繩","縄跳び","Jump rope","gym",2,"5×1 分鐘",{zh:"用前腳掌輕跳",ja:"つま先で軽く跳ぶ",en:"Light hops on the balls of your feet"})]}
+];
+const FIT_TIER={bw:0,db:1,gym:2};
+S.fit=S.fit||{lv:1,eq:"bw"};
+const fitOpen=g=>!OWNER.proFit||OWNER.fitFree.includes(g.k);
+function fitYT(ex){const l=LANG[S.region],name=ex.n[l]||ex.n.zh;return yt(name+(l==="zh"?" 教學 正確姿勢":l==="ja"?" やり方 正しいフォーム":" proper form tutorial"))}
+function bodyFigure(sel){
+  const hl=k=>k===sel?"var(--accent)":"color-mix(in srgb,var(--ink) 14%,transparent)";
+  return `<svg class="bodyfig" viewBox="0 0 100 140" aria-hidden="true">
+<circle cx="50" cy="14" r="10" fill="color-mix(in srgb,var(--ink) 14%,transparent)"/>
+<rect x="44" y="23" width="12" height="6" rx="3" fill="color-mix(in srgb,var(--ink) 10%,transparent)"/>
+<circle cx="31" cy="34" r="7" fill="${hl("shoulders")}"/><circle cx="69" cy="34" r="7" fill="${hl("shoulders")}"/>
+<rect x="36" y="29" width="28" height="16" rx="7" fill="${hl("chest")}"/>
+<rect x="23" y="40" width="9" height="30" rx="4.5" fill="${hl("arms")}"/><rect x="68" y="40" width="9" height="30" rx="4.5" fill="${hl("arms")}"/>
+<rect x="39" y="47" width="22" height="22" rx="6" fill="${hl("core")}"/>
+<rect x="37" y="68" width="26" height="12" rx="6" fill="${hl("glutes")}"/>
+<rect x="37" y="82" width="11" height="28" rx="5.5" fill="${hl("legs")}"/><rect x="52" y="82" width="11" height="28" rx="5.5" fill="${hl("legs")}"/>
+<rect x="38" y="112" width="9" height="20" rx="4.5" fill="${hl("calves")}"/><rect x="53" y="112" width="9" height="20" rx="4.5" fill="${hl("calves")}"/>
+${sel==="back"?`<text x="50" y="62" text-anchor="middle" font-size="9" fill="var(--accent)" font-weight="800">BACK</text>`:""}</svg>`;
+}
+let fitSel=null;
+function renderFitFace(){
+  const t=T(),cells=Array(9);
+  FIT.forEach((g,k)=>{
+    const open=fitOpen(g);
+    cells[RING[k]]=`<button class="fitt jelly${fitSel===g.k?" on":""}" type="button" data-fit="${g.k}" style="--t:var(--c${k%7})">${open?"":`<span class="fpro">${t.wPro}</span>`}<b>${esc(g.n[LANG[S.region]])}</b><small>${esc(g.ex.map(x=>x.n[LANG[S.region]]).slice(0,2).join("・"))}</small></button>`;
+  });
+  cells[4]=`<div class="fitt jelly center">${bodyFigure(fitSel)}</div>`;
+  $("face").innerHTML=`<div class="coachbar"><span class="note">${t.fitHint}</span></div><div class="fitgrid">${cells.join("")}</div><p class="note">${t.fitSafe}</p>`;
+}
+function openFit(key){
+  const t=T(),g=FIT.find(x=>x.k===key);if(!g)return;fitSel=key;renderFitFace();
+  const l=LANG[S.region],open=fitOpen(g);
+  let list=g.ex.filter(x=>FIT_TIER[x.eq]<=FIT_TIER[S.fit.eq]&&(S.fit.lv>=2||x.lv===1||g.ex.filter(y=>y.lv===1&&FIT_TIER[y.eq]<=FIT_TIER[S.fit.eq]).length<2));
+  if(!list.length)list=g.ex.slice(0,2);
+  const shown=open?list:list.slice(0,1);
+  layer(`<div class="shead"><h2>${esc(g.n[l])}</h2>${closeBtn(t)}</div>
+<div class="row"><div class="seg jelly small" role="group">${[1,2].map(v=>`<button type="button" data-fitlv="${v}" aria-pressed="${S.fit.lv===v}">${t.fitLv[v-1]}</button>`).join("")}</div>
+<div class="seg jelly small" role="group">${["bw","db","gym"].map(v=>`<button type="button" data-fiteq="${v}" aria-pressed="${S.fit.eq===v}">${t.fitEq[v]}</button>`).join("")}</div></div>
+<div class="exlist">${shown.map(x=>`<div class="ex jelly"><div><b>${esc(x.n[l])}</b><span class="sets">${esc(x.sets)}</span></div><p>${esc(x.cue[l])}</p><a class="pill jelly" href="${esc(fitYT(x))}" target="_blank" rel="noopener">${I.play}${t.fitWatch}</a></div>`).join("")}</div>
+${open?`<div class="row"><button class="pill pri jelly" type="button" data-fitai="${g.k}">${I.sparkle}${t.fitAI}</button><button class="pill jelly" type="button" data-fitcal="${g.k}">${I.cal}${t.fitCal}</button></div><div id="fitOut"></div>`
+:`<div class="firsthint">${I.lock} ${t.fitLocked}</div><div class="row end">${OWNER.fitStore?`<a class="pill pri jelly" href="${esc(OWNER.fitStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<span class="note">${t.wSoon}</span>`}</div>`}
+<p class="note">${t.fitSafe}</p>`,true);
+}
+async function fitPlan(key){
+  const t=T(),g=FIT.find(x=>x.k===key),out=$("fitOut"),l=LANG[S.region];if(!g||!out)return;
+  out.innerHTML=`<p class="note">${t.mThinking.replace(/歌|曲|songs/,"")}</p>`;
+  await aiReady;
+  if(!AI){out.innerHTML=`<p class="note">${t.aiNames.none}</p>`;return}
+  try{
+    const r=await AI(`You are a careful fitness coach. Write a ${t.fitLv[S.fit.lv-1]} workout of about 20 minutes for the ${g.n.en} using ${t.fitEq[S.fit.eq]}, in ${t.replyLang}.
+Use these moves where suitable: ${g.ex.map(x=>x.n.en).join(", ")}.
+Format: warm-up (3 min), 3 moves with sets × reps and rest, cool-down stretch, and one line on how to progress next week. Keep it short, plain text, no medical claims. Remind to stop if there is pain.`,{cache:false,onText:({text})=>{out.innerHTML=`<div class="plan"><p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.6">${esc(text)}</p></div>`}});
+    out.innerHTML=`<div class="plan"><p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.6">${esc(r.text)}</p></div>`;
+  }catch(e){out.innerHTML=`<p class="note">${esc(aiErrText(e))}</p>`}
+}
+function fitToCal(key){
+  const t=T(),g=FIT.find(x=>x.k===key),d=new Date(),w=W(key2(mondayOf(d))),i=(d.getDay()+6)%7;
+  w.days[i].push({id:uid(),text:t.fitTask(g.n[LANG[S.region]]),pri:"mid",done:false});save();toast(t.scheduled(`${t.days[i]} ${t.md(d)}`));
+}
+const key2=d=>key(d);
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -3537,6 +3725,11 @@ document.addEventListener("click",e=>{
     const txt=crg.dataset.raw?$("crPrompt").value:($("crText")?$("crText").value:$("crPrompt").value);openApp(+crg.dataset.app,txt);return}
   if(el.closest("[data-crcopy]")){const tx=$("crText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("crText").select())}catch(x){$("crText").select()}return}
   if(psel!=null&&S.face===6){const tg=el.closest("[data-aidrop],[data-app]");if(tg){e.preventDefault();promptTo(psel,tg.dataset.aidrop?"ai":tg.dataset.app);return}}
+  const ft=el.closest("[data-fit]");if(ft){openFit(ft.dataset.fit);return}
+  const flv=el.closest("[data-fitlv]");if(flv){S.fit.lv=+flv.dataset.fitlv;save();openFit(fitSel);return}
+  const feq=el.closest("[data-fiteq]");if(feq){S.fit.eq=feq.dataset.fiteq;save();openFit(fitSel);return}
+  const fai=el.closest("[data-fitai]");if(fai){fitPlan(fai.dataset.fitai);return}
+  const fcl=el.closest("[data-fitcal]");if(fcl){fitToCal(fcl.dataset.fitcal);return}
   const aip=el.closest("[data-aiprov]");if(aip){const c=aiCfg(),k=aip.dataset.aiprov;setAiCfg(k?Object.assign({},c,{provider:k,model:c.provider===k?c.model:""}):{});AI=pickAI();openSettings();return}
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
