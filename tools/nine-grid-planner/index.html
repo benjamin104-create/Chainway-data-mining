@@ -555,6 +555,28 @@ body.ranging .gbar{pointer-events:none}
 .slotpick{display:grid;grid-template-columns:repeat(3,48px);gap:6px}
 .slotpick button{height:48px;border-radius:14px;font-family:var(--f-num);font-weight:800;--r:14px}
 
+/* chaos grid */
+.chaos{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;padding:10px;--r:24px;max-width:520px;margin-inline:auto}
+.chaos button{position:relative;aspect-ratio:1;border-radius:calc(20px - var(--n) * 1.6px);background:var(--chip);border:1px solid var(--chip-edge);display:grid;place-items:center;transition:transform .15s,background .15s}
+.chaos .hole{background:radial-gradient(circle,#2a2230 0 34%,#56434a 35% 52%,color-mix(in srgb,var(--ink) 22%,var(--chip)) 54%);box-shadow:inset 0 4px 10px rgba(0,0,0,.45)}
+.chaos .frz::after{content:"❄";position:absolute;inset:0;display:grid;place-items:center;border-radius:inherit;background:color-mix(in srgb,#9fd8ff 50%,transparent);color:#fff;font-size:clamp(12px,4vw,20px);text-shadow:0 1px 2px rgba(0,60,120,.5)}
+.chaos .sh::before{content:"🛡️";position:absolute;top:1px;right:2px;font-size:clamp(9px,2.6vw,13px);z-index:1}
+.chaos .tgt{box-shadow:0 0 0 3px var(--accent);animation:glow 1.2s ease-in-out infinite}
+.chaos .spin{background:color-mix(in srgb,var(--accent) 60%,var(--chip));transform:scale(1.1);z-index:2}
+.chaos .boom{animation:boom .6s ease-out;z-index:2}
+.chaos .lastm{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 50%,transparent)}
+@keyframes boom{0%{transform:scale(1)}30%{transform:scale(1.4);background:#FFD166}100%{transform:scale(1)}}
+.hand{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.card{width:96px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;--r:18px;transition:transform .2s var(--ease)}
+.card .e{font-size:26px;line-height:1.1}
+.card b{font-weight:400;font-size:13px}
+.card small{font-size:10.5px;color:var(--muted);line-height:1.35}
+.card[aria-pressed="true"]{box-shadow:0 0 0 3px var(--accent);transform:translateY(-5px)}
+.card:disabled{opacity:.5}
+.szrow{display:flex;gap:6px;flex-wrap:wrap}
+.szrow button{border-radius:999px;padding:6px 12px;font-family:var(--f-num);font-weight:800;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge)}
+.szrow button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -711,13 +733,15 @@ const STR={
     impTk:"用 Google Takeout 匯入聽歌習慣",impTkHow:"到 Google Takeout 只勾選「YouTube 和 YouTube Music」裡的「記錄」和「訂閱內容」，記錄格式選 JSON。下載後把 .zip 直接上傳，會照你播放最多次的歌排序。",impTkOpen:"打開 Google Takeout",impUp:"上傳檔案",
     impPaste:"貼上 YouTube 連結",impPastePh:"一行一個連結，前面可以寫歌名",impRead:"讀取",impFound:n=>`找到 ${n} 個，勾選要放進九格的：`,impApply:n=>`放進心流歌單（${n}）`,impNone:"沒有找到 YouTube 影片或播放清單。",impReading:"讀取中…",impDone:"歌單換好了",
     kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",
-    gNames:{ttt:"井字棋",ult:"超級九宮格",gomoku:"五子棋",c4:"四子棋",sud:"數獨",quiz:"語寶猜謎"},
-    gDesc:{ttt:"三個連成一線就贏",ult:"九個井字盤一起下",gomoku:"先連成五顆就贏",c4:"棋子會往下掉，連成四顆",sud:"每行、每列、每宮 1–9 不重複",quiz:"看圖猜字，答對會念給你聽"},
+    gNames:{chaos:"爆炸井字",ttt:"井字棋",ult:"超級九宮格",gomoku:"五子棋",c4:"四子棋",sud:"數獨",quiz:"語寶猜謎"},
+    gDesc:{chaos:"會旋轉、會爆炸，還有陷害卡",ttt:"三個連成一線就贏",ult:"九個井字盤一起下",gomoku:"先連成五顆就贏",c4:"棋子會往下掉，連成四顆",sud:"每行、每列、每宮 1–9 不重複",quiz:"看圖猜字，答對會念給你聽"},
     mAI:"對電腦",mLocal:"同一支手機",mOnline:"線上對戰",mSolo:"自己玩",nick:"你的名字",gCreate:"建立房間",gJoin:"加入",gCodePh:"輸入房間代碼",gStart:"開始",
     gCode:c=>`房間代碼 ${c}`,gShare:"把代碼傳給朋友，他在「線上對戰」輸入就能加入。",gCopy:"複製代碼",gWait:"等對手加入…",gYour:"輪到你了",gTheir:n=>`輪到 ${n}`,
     gWin:n=>`${n} 贏了！`,gDraw:"平手",gRestart:"再來一局",gLeave:"離開",gSpect:"觀戰中",gNotYou:"還沒輪到你",
     gOnlineOff:"線上對戰要在 Claude 裡打開，並把這個網頁分享給朋友才能連線。",gBadCode:"這個代碼不對，請再確認一次",gCPU:"電腦",gP:n=>`玩家 ${n}`,
-    gDone:"完成了！",gMist:n=>`錯 ${n} 次`,gErase:"清除",gQuiz:"這是什麼？",gQScore:(a,b)=>`答對 ${a}/${b}`,gUltHint:"你下在小盤的哪一格，對手就得去大盤的那一格。",gPlayers:"玩家",
+    gDone:"完成了！",gMist:n=>`錯 ${n} 次`,gErase:"清除",gQuiz:"這是什麼？",gQScore:(a,b)=>`答對 ${a}/${b}`,gUltHint:"你下在小盤的哪一格，對手就得去大盤的那一格。",gPlayers:"玩家",gSize:"棋盤大小",chInfo:k=>`連成 ${k} 顆就贏`,chSpin:"命運輪盤轉動中…",chWheel:n=>`輪盤還有 ${n} 手`,
+    chEv:{bomb:"炸掉了！",flip:"被策反了！",freeze:"冰凍兩回合",spin:"周圍轉了一圈"},chCard:{bomb:"炸彈",swap:"策反",freeze:"冰凍",double:"連下兩步",shield:"護盾"},
+    chCardDesc:{bomb:"炸掉一格",swap:"對方一顆變你的",freeze:"封住一個空格",double:"這回合下兩顆",shield:"保護自己一顆"},chNoCard:"手上沒有卡，每下 3 手補 1 張",chPick:"選一格使用這張卡（再點一次卡片取消）",
     mShuffle:"AI 隨機推薦",mCards:"音樂卡",mBox:"我的收藏",mThinking:"正在幫你挑歌…",mDeckDone:"這一輪看完了",mAgain:"再 shuffle 一次",mListen:"試聽",mSkip:"略過",mKeep:"收藏",mKept:"收藏好了",
     moods:{focus:"專注",relax:"放鬆",move:"運動",sleep:"睡前",happy:"開心",explore:"探索新類型"},
     genres:{jazz:"爵士",classical:"古典",citypop:"City Pop",mandopop:"華語流行",bossa:"巴薩諾瓦",ambient:"氛圍",indie:"獨立民謠",soundtrack:"電影配樂"},
@@ -808,13 +832,15 @@ const STR={
     impTk:"Google Takeout で再生履歴を取り込む",impTkHow:"Google Takeout で「YouTube と YouTube Music」の「履歴」と「登録チャンネル」だけを選び、履歴の形式は JSON に。ダウンロードした .zip をそのままアップロードすると、よく再生した順に並べます。",impTkOpen:"Google Takeout を開く",impUp:"ファイルを選ぶ",
     impPaste:"YouTube のリンクを貼る",impPastePh:"1 行に 1 リンク。前に曲名を書いても OK",impRead:"読み込む",impFound:n=>`${n} 件見つかりました。九マスに入れるものを選んでください：`,impApply:n=>`プレイリストに入れる（${n}）`,impNone:"YouTube の動画や再生リストが見つかりません。",impReading:"読み込み中…",impDone:"プレイリストを更新しました",
     kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",
-    gNames:{ttt:"三目並べ",ult:"スーパー九マス",gomoku:"五目並べ",c4:"四目並べ",sud:"数独",quiz:"語宝クイズ"},
-    gDesc:{ttt:"3 つ並べたら勝ち",ult:"9 つの盤で同時に",gomoku:"先に 5 つ並べたら勝ち",c4:"駒が下に落ちる。4 つ並べよう",sud:"行・列・ブロックに 1–9 を 1 回ずつ",quiz:"絵を見て言葉を当てる。正解すると読み上げ"},
+    gNames:{chaos:"ハチャメチャ三目",ttt:"三目並べ",ult:"スーパー九マス",gomoku:"五目並べ",c4:"四目並べ",sud:"数独",quiz:"語宝クイズ"},
+    gDesc:{chaos:"回る・爆発する・妨害カード付き",ttt:"3 つ並べたら勝ち",ult:"9 つの盤で同時に",gomoku:"先に 5 つ並べたら勝ち",c4:"駒が下に落ちる。4 つ並べよう",sud:"行・列・ブロックに 1–9 を 1 回ずつ",quiz:"絵を見て言葉を当てる。正解すると読み上げ"},
     mAI:"コンピューター",mLocal:"1 台で 2 人",mOnline:"オンライン対戦",mSolo:"ひとりで",nick:"あなたの名前",gCreate:"ルームを作る",gJoin:"参加",gCodePh:"ルームコードを入力",gStart:"スタート",
     gCode:c=>`ルームコード ${c}`,gShare:"コードを友だちに送ると、「オンライン対戦」で入力して参加できます。",gCopy:"コードをコピー",gWait:"相手を待っています…",gYour:"あなたの番",gTheir:n=>`${n} の番`,
     gWin:n=>`${n} の勝ち！`,gDraw:"引き分け",gRestart:"もう一局",gLeave:"退出",gSpect:"観戦中",gNotYou:"まだ相手の番です",
     gOnlineOff:"オンライン対戦は Claude の中で開き、このページを友だちと共有すると使えます。",gBadCode:"コードが正しくありません",gCPU:"コンピューター",gP:n=>`プレイヤー ${n}`,
-    gDone:"完成！",gMist:n=>`ミス ${n} 回`,gErase:"消す",gQuiz:"これは何？",gQScore:(a,b)=>`${b} 問中 ${a} 問正解`,gUltHint:"小さな盤で置いたマスの位置が、相手が次に打つ大きな盤になります。",gPlayers:"プレイヤー",
+    gDone:"完成！",gMist:n=>`ミス ${n} 回`,gErase:"消す",gQuiz:"これは何？",gQScore:(a,b)=>`${b} 問中 ${a} 問正解`,gUltHint:"小さな盤で置いたマスの位置が、相手が次に打つ大きな盤になります。",gPlayers:"プレイヤー",gSize:"盤の大きさ",chInfo:k=>`${k} つ並べたら勝ち`,chSpin:"運命のルーレット回転中…",chWheel:n=>`ルーレットまであと ${n} 手`,
+    chEv:{bomb:"爆発！",flip:"寝返った！",freeze:"2 ターン凍結",spin:"まわりが回転"},chCard:{bomb:"爆弾",swap:"寝返り",freeze:"凍結",double:"2 連続",shield:"シールド"},
+    chCardDesc:{bomb:"1 マス爆破",swap:"相手の駒を自分のに",freeze:"空きマスを封鎖",double:"このターン 2 つ置く",shield:"自分の駒を守る"},chNoCard:"カードなし。3 手ごとに 1 枚",chPick:"マスを選んでカードを使う（もう一度タップで取消）",
     mShuffle:"AI シャッフル",mCards:"ミュージックカード",mBox:"お気に入り",mThinking:"曲を選んでいます…",mDeckDone:"今回はここまで",mAgain:"もう一度シャッフル",mListen:"試聴",mSkip:"スキップ",mKeep:"保存",mKept:"保存しました",
     moods:{focus:"集中",relax:"リラックス",move:"運動",sleep:"寝る前",happy:"ハッピー",explore:"新しいジャンル"},
     genres:{jazz:"ジャズ",classical:"クラシック",citypop:"シティポップ",mandopop:"華語ポップ",bossa:"ボサノバ",ambient:"アンビエント",indie:"インディーフォーク",soundtrack:"サウンドトラック"},
@@ -905,13 +931,15 @@ const STR={
     impTk:"Import your listening habits with Google Takeout",impTkHow:"In Google Takeout, select only “history” and “subscriptions” under “YouTube and YouTube Music”, and choose JSON for history. Upload the .zip as it is; songs are ranked by how often you played them.",impTkOpen:"Open Google Takeout",impUp:"Upload file",
     impPaste:"Paste YouTube links",impPastePh:"One link per line; you can put the song name first",impRead:"Read",impFound:n=>`Found ${n}. Tick the ones for your grid:`,impApply:n=>`Add to Flow Playlist (${n})`,impNone:"No YouTube videos or playlists found.",impReading:"Reading…",impDone:"Playlist updated",
     kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",
-    gNames:{ttt:"Tic-tac-toe",ult:"Ultimate grid",gomoku:"Gomoku",c4:"Connect four",sud:"Sudoku",quiz:"Picture quiz"},
-    gDesc:{ttt:"Three in a row wins",ult:"Nine boards at once",gomoku:"First to five in a row",c4:"Pieces drop; line up four",sud:"1–9 once in every row, column and box",quiz:"Guess the word from the picture; it's read aloud"},
+    gNames:{chaos:"Chaos grid",ttt:"Tic-tac-toe",ult:"Ultimate grid",gomoku:"Gomoku",c4:"Connect four",sud:"Sudoku",quiz:"Picture quiz"},
+    gDesc:{chaos:"Spins, explosions and trap cards",ttt:"Three in a row wins",ult:"Nine boards at once",gomoku:"First to five in a row",c4:"Pieces drop; line up four",sud:"1–9 once in every row, column and box",quiz:"Guess the word from the picture; it's read aloud"},
     mAI:"vs computer",mLocal:"Pass the phone",mOnline:"Play online",mSolo:"Solo",nick:"Your name",gCreate:"Create room",gJoin:"Join",gCodePh:"Room code",gStart:"Start",
     gCode:c=>`Room code ${c}`,gShare:"Send the code to a friend; they enter it under “Play online” to join.",gCopy:"Copy code",gWait:"Waiting for an opponent…",gYour:"Your turn",gTheir:n=>`${n}'s turn`,
     gWin:n=>`${n} wins!`,gDraw:"Draw",gRestart:"Play again",gLeave:"Leave",gSpect:"Watching",gNotYou:"Not your turn yet",
     gOnlineOff:"Online play works when this page is opened inside Claude and shared with your friend.",gBadCode:"That code doesn't look right",gCPU:"Computer",gP:n=>`Player ${n}`,
-    gDone:"Solved!",gMist:n=>`${n} mistake${n===1?"":"s"}`,gErase:"Erase",gQuiz:"What is this?",gQScore:(a,b)=>`${a} of ${b} right`,gUltHint:"The square you play in sends your opponent to that board.",gPlayers:"Players",
+    gDone:"Solved!",gMist:n=>`${n} mistake${n===1?"":"s"}`,gErase:"Erase",gQuiz:"What is this?",gQScore:(a,b)=>`${a} of ${b} right`,gUltHint:"The square you play in sends your opponent to that board.",gPlayers:"Players",gSize:"Board size",chInfo:k=>`${k} in a row wins`,chSpin:"The wheel is spinning…",chWheel:n=>`Wheel in ${n} move${n>1?"s":""}`,
+    chEv:{bomb:"Boom!",flip:"Switched sides!",freeze:"Frozen for 2 turns",spin:"Spun around"},chCard:{bomb:"Bomb",swap:"Turncoat",freeze:"Freeze",double:"Double move",shield:"Shield"},
+    chCardDesc:{bomb:"Blow up a square",swap:"Make their piece yours",freeze:"Block an empty square",double:"Place two this turn",shield:"Protect one of yours"},chNoCard:"No cards. You get one every 3 moves",chPick:"Pick a square for this card (tap the card again to cancel)",
     mShuffle:"AI shuffle",mCards:"Music cards",mBox:"Saved",mThinking:"Picking songs for you…",mDeckDone:"That's this round",mAgain:"Shuffle again",mListen:"Listen",mSkip:"Skip",mKeep:"Save",mKept:"Saved",
     moods:{focus:"Focus",relax:"Relax",move:"Workout",sleep:"Bedtime",happy:"Happy",explore:"Something new"},
     genres:{jazz:"Jazz",classical:"Classical",citypop:"City pop",mandopop:"Mandopop",bossa:"Bossa nova",ambient:"Ambient",indie:"Indie folk",soundtrack:"Soundtrack"},
@@ -2553,9 +2581,9 @@ function cardWords(x,B,P,t){
    ========================================================= */
 let RM;   // room namespace: undefined while connecting, null where it can't run
 const roomReady=(window.claude&&typeof window.claude.use==="function")?window.claude.use("room").then(r=>(RM=r||null),()=>(RM=null)):Promise.resolve(RM=null);
-const GAMES=["ttt","ult","gomoku","c4","sud","quiz"];
-const TURN_GAMES=["ttt","ult","gomoku","c4"];
-const CODE_LETTER={ttt:"T",ult:"U",gomoku:"G",c4:"C",sud:"S",quiz:"Q"};
+const GAMES=["chaos","ttt","ult","gomoku","c4","sud","quiz"];
+const TURN_GAMES=["chaos","ttt","ult","gomoku","c4"];
+const CODE_LETTER={chaos:"X",ttt:"T",ult:"U",gomoku:"G",c4:"C",sud:"S",quiz:"Q"};
 let GM=null,NET=null,gsel=null;   // GM: the game in play; NET: the online room
 function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const shuffle=(arr,r)=>{const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -2574,6 +2602,7 @@ function lineAt(b,W,H,i,n){
 function newGame2(id,seed){
   seed=seed||Math.floor(Math.random()*1e9);
   const base={id,seed,seq:1,turn:1,win:0,line:null,last:-1};
+  if(id==="chaos")return Object.assign(base,chaosNew(S.gsize||5));
   if(id==="ttt")return Object.assign(base,{b:Array(9).fill(0)});
   if(id==="ult")return Object.assign(base,{b:Array(81).fill(0),mw:Array(9).fill(0),nx:-1});
   if(id==="gomoku")return Object.assign(base,{b:Array(225).fill(0)});
@@ -2602,6 +2631,7 @@ function legal(g){
 }
 /* ---- computer opponent ---- */
 function aiMove(){
+  if(GM&&GM.id==="chaos")return chaosAI();
   const g=GM,me=g.turn,op=3-me;let pick;
   if(g.id==="ttt"){
     const mm=(b,t)=>{const r=win3(b);if(r)return r.w===me?10:r.w===op?-10:0;let best=t===me?-99:99;
@@ -2729,6 +2759,7 @@ const GICON={
   gomoku:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--c2)" opacity=".5"/><path d="M9 14h28M9 23h28M9 32h28M14 9v28M23 9v28M32 9v28" stroke="var(--ink)" stroke-opacity=".35"/><circle cx="14" cy="14" r="4" fill="var(--c0)"/><circle cx="23" cy="23" r="4" fill="var(--c0)"/><circle cx="32" cy="32" r="4" fill="var(--c0)"/><circle cx="32" cy="14" r="4" fill="var(--c1)"/></svg>',
   c4:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--c3)" opacity=".55"/>'+[0,1,2].map(r=>[0,1,2,3].map(c=>`<circle cx="${10.5+c*8.3}" cy="${14+r*9}" r="3.3" fill="${r===2&&c<3?(c%2?"var(--c1)":"var(--c0)"):r===1&&c===1?"var(--c0)":"var(--bg)"}"/>`).join("")).join("")+'</svg>',
   sud:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/><path d="M16 6v34M30 6v34M6 16h34M6 30h34" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.6"/><text x="11" y="14" font-size="8" fill="var(--accent)" font-family="Nunito" font-weight="800" text-anchor="middle">5</text><text x="23" y="27" font-size="8" fill="var(--ink)" font-family="Nunito" font-weight="800" text-anchor="middle">9</text><text x="35" y="40" font-size="8" fill="var(--accent)" font-family="Nunito" font-weight="800" text-anchor="middle">1</text></svg>',
+  chaos:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/>'+[0,1,2,3].map(r=>[0,1,2,3].map(c=>`<rect x="${6+c*8.8}" y="${6+r*8.8}" width="7.4" height="7.4" rx="2.4" fill="${r===1&&c===2?"#3a2c33":(r+c)%3===0?"var(--c0)":(r*c)%4===1?"var(--c1)":"var(--line)"}"/>`).join("")).join("")+'<text x="33" y="22" font-size="11" text-anchor="middle">💥</text></svg>',
   quiz:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/><text x="23" y="30" font-size="20" text-anchor="middle">🐘</text><circle cx="37" cy="9" r="6" fill="var(--accent)"/><text x="37" y="12.5" font-size="9" fill="#fff" text-anchor="middle" font-weight="800">?</text></svg>'
 };
 function renderGameFace(){
@@ -2753,9 +2784,11 @@ function renderGameFace(){
   if(!g.wait)h+=`<div class="board">${boardHTML(g,t)}</div>`;
   if(NET&&(g.id==="sud"||g.id==="quiz"))h+=raceHTML(g,t);
   $("face").innerHTML=h;
+  if(g.id==="chaos")chaosRunWheel();
 }
 const PIECE=(p,shape)=>p?`<span class="piece pc${p}${shape?" "+(p===1?"px":"po"):""}"></span>`:"";
 function boardHTML(g,t){
+  if(g.id==="chaos")return chaosHTML(g,t);
   if(g.id==="ttt")return `<div class="t3" style="margin-inline:auto">${g.b.map((v,i)=>`<button class="jelly${g.line&&g.line.includes(i)?" win":""}" type="button" data-gm="${i}" aria-label="${i+1}">${PIECE(v,1)}</button>`).join("")}</div>`;
   if(g.id==="ult")return `<p class="note" style="text-align:center;margin-bottom:8px">${t.gUltHint}</p><div class="ug">${[...Array(9).keys()].map(k=>{
     const act=!g.win&&!g.mw[k]&&(g.nx===-1||g.nx===k);
@@ -2790,6 +2823,7 @@ function openGameSetup(id){
   const modes=turn?[["ai",t.mAI],["local",t.mLocal],["online",t.mOnline]]:[["solo",t.mSolo],["online",t.mOnline]];
   layer(`<div class="shead"><h2>${t.gNames[id]}</h2>${closeBtn(t)}</div><p class="note">${t.gDesc[id]}</p>
 <label class="fld">${t.nick}<input id="gNick" type="text" maxlength="16" value="${esc(S.nick||S.account&&S.account.name||"")}" placeholder="${esc(t.gP(1))}"></label>
+${id==="chaos"?`<div class="fld">${t.gSize}<div class="szrow">${[3,4,5,6,7].map(n=>`<button type="button" data-gsize="${n}" aria-pressed="${(S.gsize||5)===n}">${n}×${n}</button>`).join("")}</div></div>`:""}
 <div class="row">${modes.map(([m,l],i)=>`<button class="pill jelly${i===0?" pri":""}" type="button" data-gmode="${m}">${l}</button>`).join("")}</div>
 <div id="gOnline" hidden class="sgroup"><p class="note">${t.gShare}</p><div class="row"><button class="pill pri jelly" type="button" data-gnet="create">${t.gCreate}</button></div>
 <div class="row"><input id="gCode" class="region jelly" style="max-width:none;flex:1;min-width:0;text-transform:uppercase;font-size:16px" maxlength="4" placeholder="${esc(t.gCodePh)}" aria-label="${esc(t.gCodePh)}"><button class="pill jelly" type="button" data-gnet="join">${t.gJoin}</button></div></div>`,true);
@@ -2913,6 +2947,158 @@ function openBoxItem(i){
 <div class="row"><a class="pill pri jelly" href="${esc(s.url)}" target="_blank" rel="noopener">${I.play}${t.mListen}</a><button class="pill jelly" type="button" data-mbox="del" data-i="${i}">${t.remove}</button></div>
 <p class="note">${t.mToGrid}</p><div class="slotpick">${S.songs.map((x,k)=>`<button class="jelly" type="button" data-mslot="${k}" data-i="${i}">${k===4?"♫":k+1}</button>`).join("")}</div>`,true);
 }
+
+/* =========================================================
+   爆炸井字: any board size, a fate wheel every 3 moves, and trap cards
+   b[i]: 0 empty, 1/2 pieces, -1 crater. fz[i]: frozen until ply. sh[i]: shielded by player.
+   ========================================================= */
+const CARDS=["bomb","swap","freeze","double","shield"];
+const CARD_EMOJI={bomb:"💣",swap:"🔁",freeze:"🧊",double:"⏭️",shield:"🛡️"};
+const EV_EMOJI={bomb:"💥",flip:"🔄",freeze:"🧊",spin:"🌀"};
+let chaosSel=null,chaosAnim=null;
+const drawCard=()=>CARDS[Math.floor(Math.random()*CARDS.length)];
+function chaosNew(N){
+  N=Math.max(3,Math.min(7,+N||5));
+  return {N,K:N<=4?3:4,b:Array(N*N).fill(0),fz:{},sh:{},hands:{1:[drawCard(),drawCard()],2:[drawCard(),drawCard()]},mv:{1:0,2:0},ply:0,extra:0,ev:null,evDone:true,log:""};
+}
+const chaosFree=(g,i)=>g.b[i]===0&&!((g.fz[i]||0)>g.ply);
+function chaosTargets(g,card){
+  const out=[],me=g.turn;
+  g.b.forEach((v,i)=>{
+    if(card==="bomb"&&v!==-1&&!g.sh[i])out.push(i);
+    if(card==="swap"&&v===3-me&&!g.sh[i])out.push(i);
+    if(card==="freeze"&&chaosFree(g,i))out.push(i);
+    if(card==="shield"&&v===me&&!g.sh[i])out.push(i);
+  });
+  return out;
+}
+function chaosLines(g){
+  const res={};
+  for(let i=0;i<g.b.length;i++){const p=g.b[i];if(p!==1&&p!==2||res[p])continue;const l=lineAt(g.b,g.N,g.N,i,g.K);if(l)res[p]=l}
+  return res;
+}
+// actor wins ties; with no actor (the wheel) a tie is a draw
+function chaosCheck(g,actor){
+  const L=chaosLines(g);
+  if(L[1]&&L[2]){if(actor){g.win=actor;g.line=L[actor]}else g.win=3}
+  else if(L[1]||L[2]){g.win=L[1]?1:2;g.line=L[g.win]}
+  else if(!g.b.some((v,i)=>v===0))g.win=3;
+}
+function chaosEndTurn(g){
+  const p=g.turn;g.ply++;g.mv[p]++;
+  if(g.mv[p]%3===0&&g.hands[p].length<3)g.hands[p].push(drawCard());
+  if(g.extra>0)g.extra--;else g.turn=3-p;
+  if(!g.win&&g.ply%3===0)chaosMakeEvent(g);
+}
+function chaosPlace(i){
+  const g=GM;if(g.win||(g.ev&&!g.evDone)||!chaosFree(g,i))return false;
+  g.b[i]=g.turn;g.last=i;chaosCheck(g,g.turn);if(!g.win)chaosEndTurn(g);g.seq++;return true;
+}
+function chaosCard(ci,i){
+  const g=GM,me=g.turn,card=g.hands[me][ci];if(!card||g.win||(g.ev&&!g.evDone))return false;
+  if(card==="double"){g.hands[me].splice(ci,1);g.extra=1;g.log="double";g.seq++;return true}
+  if(!chaosTargets(g,card).includes(i))return false;
+  if(card==="bomb"){g.b[i]=-1;delete g.sh[i];delete g.fz[i]}
+  if(card==="swap"){g.b[i]=me}
+  if(card==="freeze"){g.fz[i]=g.ply+4}
+  if(card==="shield"){g.sh[i]=me}
+  g.hands[me].splice(ci,1);g.log=card;g.last=i;
+  chaosCheck(g,me);if(!g.win)chaosEndTurn(g);g.seq++;return true;
+}
+function chaosMakeEvent(g){
+  const occ=[],any=[],empty=[];
+  g.b.forEach((v,i)=>{if(v===1||v===2){if(!g.sh[i])occ.push(i)}if(v!==-1)any.push(i);if(chaosFree(g,i))empty.push(i)});
+  const roll=Math.random();let kind=roll<.35?"bomb":roll<.6?"flip":roll<.8?"freeze":"spin";
+  if((kind==="bomb"||kind==="flip")&&!occ.length)kind=empty.length?"freeze":"spin";
+  if(kind==="freeze"&&!empty.length)kind="spin";
+  const pool=kind==="freeze"?empty:kind==="spin"?any:occ;
+  const target=pool[Math.floor(Math.random()*pool.length)];
+  const path=[];for(let k=0;k<13;k++)path.push(any[Math.floor(Math.random()*any.length)]);path.push(target);
+  g.ev={id:g.seq+"-"+g.ply,kind,target,path};g.evDone=false;
+}
+function chaosApply(g){
+  if(!g.ev||g.evDone)return;const {kind,target:i}=g.ev,N=g.N;
+  if(kind==="bomb"){g.b[i]=-1;delete g.sh[i];delete g.fz[i]}
+  if(kind==="flip"&&(g.b[i]===1||g.b[i]===2))g.b[i]=3-g.b[i];
+  if(kind==="freeze")g.fz[i]=g.ply+4;
+  if(kind==="spin"){
+    // turn the 3×3 block around the target a quarter clockwise
+    const cx=Math.max(1,Math.min(N-2,i%N)),cy=Math.max(1,Math.min(N-2,Math.floor(i/N)));
+    const at=(x,y)=>y*N+x,ob=g.b.slice(),of=Object.assign({},g.fz),os=Object.assign({},g.sh);
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const from=at(cx+dx,cy+dy),to=at(cx-dy,cy+dx);
+      g.b[to]=ob[from];delete g.fz[to];delete g.sh[to];
+      if(of[from])g.fz[to]=of[from];if(os[from])g.sh[to]=os[from];
+    }
+  }
+  g.log="ev-"+kind;g.evDone=true;chaosCheck(g,0);
+}
+function chaosRunWheel(){
+  const g=GM;if(!g||g.id!=="chaos"||!g.ev||g.evDone||chaosAnim===g.ev.id)return;
+  const ev=g.ev;chaosAnim=ev.id;
+  const steps=ev.path;let k=0;
+  const tick=()=>{
+    if(!GM||GM.ev!==ev&&(!GM.ev||GM.ev.id!==ev.id))return;
+    document.querySelectorAll(".chaos .spin").forEach(x=>x.classList.remove("spin"));
+    const el=document.querySelector(`.chaos [data-gm="${steps[k]}"]`);if(el)el.classList.add("spin");
+    if(k<steps.length-1){k++;setTimeout(tick,reduced()?20:60+k*k*1.6)}
+    else setTimeout(()=>{
+      const t=document.querySelector(`.chaos [data-gm="${ev.target}"]`);if(t){t.classList.remove("spin");t.classList.add("boom")}
+      if(S.chime){unlockAudio();chime()}
+      setTimeout(()=>{if(!GM||!GM.ev||GM.ev.id!==ev.id)return;chaosApply(GM);renderGameFace();
+        if(GM.mode==="ai"&&GM.turn===2&&!GM.win)setTimeout(chaosAI,500)},reduced()?50:520);
+    },250);
+  };
+  tick();
+}
+/* computer: win, then block, then use a card that helps, then the best open cell */
+function chaosAI(){
+  const g=GM;if(!g||g.id!=="chaos"||g.win||g.turn!==2)return;
+  if(g.ev&&!g.evDone){setTimeout(chaosAI,400);return}
+  const me=2,op=1,hand=g.hands[me];
+  const winsIf=(p,i)=>{const v=g.b[i];g.b[i]=p;const L=chaosLines(g);g.b[i]=v;return !!L[p]};
+  const empties=g.b.map((v,i)=>chaosFree(g,i)?i:-1).filter(i=>i>=0);
+  const act=(fn)=>{if(fn()){afterMove(true);if(GM&&GM.mode==="ai"&&GM.turn===2&&!GM.win)setTimeout(chaosAI,480)}};
+  let i=empties.find(x=>winsIf(me,x));if(i!=null)return act(()=>chaosPlace(i));
+  const si=hand.indexOf("swap");
+  if(si>=0){const t=chaosTargets(g,"swap").find(x=>winsIf(me,x));if(t!=null)return act(()=>chaosCard(si,t))}
+  const threats=g.b.map((v,x)=>v===0&&winsIf(op,x)?x:-1).filter(x=>x>=0);
+  if(threats.length){
+    const free=threats.find(x=>chaosFree(g,x));
+    if(free!=null&&threats.length===1)return act(()=>chaosPlace(free));
+    const fi=hand.indexOf("freeze");if(fi>=0&&free!=null)return act(()=>chaosCard(fi,free));
+    const bi=hand.indexOf("bomb");
+    if(bi>=0){const L=threats[0],x0=L%g.N,y0=Math.floor(L/g.N);const near=chaosTargets(g,"bomb").filter(x=>g.b[x]===op&&Math.abs(x%g.N-x0)<=1&&Math.abs(Math.floor(x/g.N)-y0)<=1);if(near.length)return act(()=>chaosCard(bi,near[0]))}
+    if(free!=null)return act(()=>chaosPlace(free));
+  }
+  if(Math.random()<.18&&hand.length){
+    const ci=Math.floor(Math.random()*hand.length),c=hand[ci];
+    if(c==="double")return act(()=>chaosCard(ci,-1));
+    if(c==="shield"){const t=chaosTargets(g,"shield");if(t.length)return act(()=>chaosCard(ci,t[Math.floor(Math.random()*t.length)]))}
+  }
+  const N=g.N,score=(x,p)=>{let s=0;const x0=x%N,y0=Math.floor(x/N);
+    for(const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]){let n=1,open=0;
+      for(const d of [1,-1]){let X=x0+dx*d,Y=y0+dy*d;while(X>=0&&Y>=0&&X<N&&Y<N&&g.b[Y*N+X]===p){n++;X+=dx*d;Y+=dy*d}if(X>=0&&Y>=0&&X<N&&Y<N&&g.b[Y*N+X]===0)open++}
+      s+=Math.pow(8,Math.min(n,g.K))*(open+1)}
+    return s};
+  let bv=-1;for(const x of empties){const v=score(x,me)*1.1+score(x,op)+Math.random()*3-Math.abs(x%N-(N-1)/2)-Math.abs(Math.floor(x/N)-(N-1)/2);if(v>bv){bv=v;i=x}}
+  if(i!=null)act(()=>chaosPlace(i));
+}
+function chaosHTML(g,t){
+  const N=g.N,sel=chaosSel!=null?chaosTargets(g,(g.hands[g.turn]||[])[chaosSel]):[];
+  const cells=g.b.map((v,i)=>{
+    const cls=[v===-1?"hole":"",(g.fz[i]||0)>g.ply?"frz":"",g.sh[i]?"sh":"",sel.includes(i)?"tgt":"",g.line&&g.line.includes(i)?"win":"",g.last===i&&v>0?"lastm":""].filter(Boolean).join(" ");
+    return `<button type="button" data-gm="${i}" class="${cls}" aria-label="${i%N+1},${Math.floor(i/N)+1}">${v>0?PIECE(v,1):""}</button>`;
+  }).join("");
+  const wheelIn=3-(g.ply%3);
+  const logTxt=g.log?(g.log.startsWith("ev-")?`${EV_EMOJI[g.log.slice(3)]} ${t.chEv[g.log.slice(3)]}`:`${CARD_EMOJI[g.log]} ${t.chCard[g.log]}`):"";
+  const viewer=g.mode==="online"?(NET&&NET.seat):g.mode==="ai"?1:g.turn;
+  const hand=viewer?g.hands[viewer]||[]:[],canAct=!g.win&&viewer===g.turn&&(!g.ev||g.evDone);
+  return `<div class="gstat">${t.chInfo(g.K)} · ${g.ev&&!g.evDone?`<b>${t.chSpin}</b>`:t.chWheel(wheelIn)}${logTxt?` · ${logTxt}`:""}${g.extra?` · ${CARD_EMOJI.double} ${t.chCard.double}`:""}</div>
+<div class="chaos jelly" style="--n:${N}">${cells}</div>
+${viewer?`<div class="hand">${hand.map((c,ci)=>`<button class="card jelly" type="button" data-gcard="${ci}" aria-pressed="${chaosSel===ci}"${canAct?"":" disabled"}><span class="e">${CARD_EMOJI[c]}</span><b>${t.chCard[c]}</b><small>${t.chCardDesc[c]}</small></button>`).join("")||`<span class="note">${t.chNoCard}</span>`}</div>`:""}
+${chaosSel!=null&&canAct?`<div class="gstat">${t.chPick}</div>`:""}`;
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -2972,12 +3158,20 @@ document.addEventListener("click",e=>{
   if(el.closest("[data-glv]")){netLeave();GM=null;renderGameFace();return}
   if(el.closest("[data-gcopy]")){const c=NET&&NET.code;if(c){try{navigator.clipboard.writeText(c).then(()=>toast(T().copied),()=>toast(c))}catch(x){toast(c)}}return}
   if(el.closest("[data-grs]")&&GM){
-    const id=GM.id,mode=GM.mode,seq=GM.seq||0;GM=newGame2(id);GM.mode=mode;GM.seq=seq+1;
+    const id=GM.id,mode=GM.mode,seq=GM.seq||0,sz=GM.N;if(sz)S.gsize=sz;GM=newGame2(id);GM.mode=mode;GM.seq=seq+1;chaosSel=null;chaosAnim=null;
     if(mode==="online"){netPush();netProgress({v:0,done:false})}renderGameFace();return}
   const gmv=el.closest("[data-gm]");if(gmv&&GM){
     if(GM.mode==="online"&&(!NET||NET.seat!==GM.turn)){toast(T().gNotYou);return}
     if(GM.mode==="ai"&&GM.turn===2)return;
-    if(play(+gmv.dataset.gm))afterMove(false);return}
+    const gi=+gmv.dataset.gm;
+    if(GM.id==="chaos"){const ok=chaosSel!=null?chaosCard(chaosSel,gi):chaosPlace(gi);if(ok){chaosSel=null;afterMove(false)}return}
+    if(play(gi))afterMove(false);return}
+  const gcd=el.closest("[data-gcard]");if(gcd&&GM&&GM.id==="chaos"){
+    if(GM.mode==="online"&&(!NET||NET.seat!==GM.turn)){toast(T().gNotYou);return}
+    const ci=+gcd.dataset.gcard,card=GM.hands[GM.turn][ci];
+    if(card==="double"){if(chaosCard(ci,-1)){chaosSel=null;afterMove(false)}return}
+    chaosSel=chaosSel===ci?null:ci;renderGameFace();return}
+  const gsz=el.closest("[data-gsize]");if(gsz){S.gsize=+gsz.dataset.gsize;save();document.querySelectorAll("[data-gsize]").forEach(b=>b.setAttribute("aria-pressed",b===gsz));return}
   const gs=el.closest("[data-gs]");if(gs&&GM){GM.sel=+gs.dataset.gs;renderGameFace();return}
   const gn=el.closest("[data-gn]");if(gn&&GM&&GM.sel>=0&&GM.p[GM.sel]==="0"&&GM.c.join("")!==GM.sol){
     const n=+gn.dataset.gn;GM.c[GM.sel]=n;if(n&&String(n)!==GM.sol[GM.sel])GM.mist++;
