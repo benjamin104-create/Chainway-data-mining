@@ -760,6 +760,37 @@ body.ranging .gbar{pointer-events:none}
 .pcell .wt{position:absolute;top:7px;left:8px;font-size:10px}
 @media (max-width:600px){.proots button{font-size:11px}.proots button span{font-size:20px}.pcell .wt{top:5px;left:6px;font-size:9px;padding:0 5px}}
 
+/* creator desk, tap-only */
+.crsteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.crsteps li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);line-height:1.3}
+.crsteps i{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-family:var(--f-num);font-weight:800;font-size:12px;background:var(--accent);color:var(--on-accent)}
+.crgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.crtile{aspect-ratio:1;max-width:100%;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;min-width:0;--r:24px;transition:transform .2s var(--ease)}
+.crtile:active{transform:scale(.96)}
+.crtile .crem{font-size:30px;line-height:1}
+.crtile b{font-weight:400;font-size:14px;line-height:1.25}
+.crtile small{font-size:11px;color:var(--muted);line-height:1.3}
+.crtile.blank{opacity:.6}
+.crcore{--t:var(--accent)}
+.crcore .orb{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(circle at 35% 30%,#fff 0 8%,color-mix(in srgb,#fff 35%,var(--accent)) 25%,var(--accent) 65%,color-mix(in srgb,#000 25%,var(--accent)));box-shadow:0 10px 20px -10px var(--accent)}
+.crcore .orb svg{width:24px;height:24px}
+.crapps{padding:12px 14px;--r:22px;display:flex;flex-direction:column;gap:8px}
+.crapps h3{margin:0;font-size:13px;font-weight:400;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+.crrow{display:flex;gap:10px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+.crrow::-webkit-scrollbar{display:none}
+.crapp{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;width:56px;text-decoration:none;color:var(--ink)}
+.crapp .aic{width:46px;height:46px;border-radius:15px;font-size:20px}
+.crapp .aic svg{width:18px;height:18px}
+.crapp .aic.add{background:var(--chip);color:var(--muted);border:1.5px dashed var(--muted);box-shadow:none}
+.crapp small{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.crideas{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.crideas small{font-size:12px;color:var(--muted);flex-basis:100%}
+.crgo{align-self:stretch;justify-content:center;padding:12px;font-size:15px}
+.crres{min-height:200px;font-size:14px;line-height:1.6}
+.crwait{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}.crmas{width:48px;height:48px}
+.crdet summary{font-size:12px;color:var(--muted);cursor:pointer}
+input.need{box-shadow:0 0 0 2px var(--accent);animation:shake .4s}
+@media (max-width:600px){.crtile .crem{font-size:26px}.crtile b{font-size:12.5px}.crtile small{font-size:10px}.crsteps li{font-size:11px}}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -911,7 +942,7 @@ const SPONSORS=[
 const STR={
   zh:{
     faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練","技能樹"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫","選一個部位，看動作重點和 YouTube 教學","從你做過的事長出能力，AI 幫你排職涯下一步"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","選一張，打主題，AI 幫你寫好貼文","選一個部位，看動作重點和 YouTube 教學","從你做過的事長出能力，AI 幫你排職涯下一步"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -1024,14 +1055,14 @@ const STR={
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
       [[".plang","先選要學的語言：English、日本語、中文或台語。"],["#pgrid .pcenter","點圖卡聽發音，左右滑換下一張；外圈是同一類的其他圖。"],["#pgrid .plink","外圈標著「同類、相關、在哪裡」的是關聯字，例如貓→老虎、貓砂。點下去可以一直延伸。"],["[data-pgrow]","想要更多？按這裡請 AI 幫你擴充關聯字。"],[".plangs","下面可以聽同一個字的四種語言。"],["#wmode","切到「聽音找圖」玩一局，看記住了沒。"],["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
-      [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]],
+      [["#crgrid [data-crpick='0']","點一張，例如「IG 貼文文案」。"],["#crgrid .crcore","想要自己的寫法？中間可以新增一張。"],["#crapps","寫好之後，點這裡的 App 就會打開，文字已經幫你複製好。"]],
       [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]],
       [["#skgrid","八個分枝是八種能力。行事曆上完成的事，會自動變成經驗值長在這裡。"],["[data-skflow]","先做一次心流回想：想一段做到忘了時間的經驗，AI 會找出你真正用到的能力。"],["[data-skcoach]","選一個想走的職涯方向，看差距，一鍵排成 4 週行事曆。"]]
     ]
   },
   ja:{
     faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ","スキルツリー"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ","部位を選んで、フォームのコツと YouTube 解説","やったことから力が育ち、AI がキャリアの次の一歩を予定に"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","カードを選んでテーマを入れると、AI が投稿を書きます","部位を選んで、フォームのコツと YouTube 解説","やったことから力が育ち、AI がキャリアの次の一歩を予定に"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -1144,14 +1175,14 @@ const STR={
        [".spons .center","気に入ったら、ここから応援できます。"]],
       [[".plang","まず学ぶ言語を選びます：English・日本語・中文・台語。"],["#pgrid .pcenter","絵をタップで発音、左右スワイプで次へ。まわりは同じ仲間の絵です。"],["#pgrid .plink","「なかま・かんけい・どこ」は関連語。ねこ→とら、猫砂のようにどんどん広がります。"],["[data-pgrow]","もっと増やしたいときは AI に頼めます。"],[".plangs","同じ言葉を 4 つの言語で聞けます。"],["#wmode","「聞いてさがす」で遊んでみましょう。"],["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
-      [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]],
+      [["#crgrid [data-crpick='0']","カードを 1 枚タップ。例えば「IG 投稿文」。"],["#crgrid .crcore","自分用のカードは真ん中から追加できます。"],["#crapps","書けたらアプリをタップ。文章はコピー済みです。"]],
       [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]],
       [["#skgrid","8 つの枝は 8 種類の力。予定を完了すると、ここに経験値として育ちます。"],["[data-skflow]","まずフローを思い出してみましょう。AI が本当に使った力を見つけます。"],["[data-skcoach]","進みたい方向を選ぶと、差を見て 4 週間の予定にできます。"]]
     ]
   },
   en:{
     faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach","Skill tree"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI","Pick a muscle group for moves, form cues and YouTube tutorials","Skills grown from what you actually did; AI plans your next career step"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Pick a card, type a topic, AI writes the post","Pick a muscle group for moves, form cues and YouTube tutorials","Skills grown from what you actually did; AI plans your next career step"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -1264,7 +1295,7 @@ const STR={
        [".spons .center","Like the tool? You can support it here."]],
       [[".plang","First pick a language: English, Japanese, Chinese or Taiwanese."],["#pgrid .pcenter","Tap the picture to hear it; swipe for the next. Around it: the rest of the category."],["#pgrid .plink","Words tagged Same kind, Goes with or Where are links: cat → tiger, cat litter. Keep tapping to branch out."],["[data-pgrow]","Want more? Let AI add linked words."],[".plangs","Hear the same word in all four languages here."],["#wmode","Try Listen & find to see what stuck."],["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
-      [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]],
+      [["#crgrid [data-crpick='0']","Tap a card, like IG caption."],["#crgrid .crcore","Want your own? Add a card in the middle."],["#crapps","When it's written, tap an app; the text is already copied."]],
       [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]],
       [["#skgrid","Eight branches, eight kinds of ability. Finished calendar tasks grow here as XP."],["[data-skflow]","Start with a flow moment: recall a time you lost track of time and AI finds the abilities you used."],["[data-skcoach]","Pick a career direction, see the gap, and turn it into a 4-week calendar in one tap."]]
     ]
@@ -3568,40 +3599,71 @@ function weekText(){
   return w.days.map((d,i)=>d.length?`${t.days[i]}：${d.map(x=>x.text+(x.done?"（完成）":"")).join("、")}`:"").filter(Boolean).join("\n")||w.inbox.map(x=>x.text).join("、");
 }
 const initial=n=>String(n||"?").trim().slice(0,1).toUpperCase();
-function renderCreatorFace(){
-  const t=T(),cells=Array(9);
-  S.apps.slice(0,8).forEach((a,k)=>{
-    cells[RING[k]]=a&&a.u?`<div class="appt jelly" data-app="${k}" style="--t:${esc(a.c||"#888")}"><a class="applink" href="${esc(a.u)}" target="_blank" rel="noopener"><span class="aic" style="background:${esc(a.c||"#888")}">${esc(initial(a.n))}</span><b>${esc(a.n)}</b></a><button class="pen" type="button" data-appedit="${k}" aria-label="${esc(a.n)}">${I.pen}</button></div>`
-      :`<button class="appt jelly blank" type="button" data-appedit="${k}" data-app="${k}"><span class="plus">+</span></button>`;
-  });
-  cells[4]=`<div class="appt jelly aicore" data-aidrop="1"><span class="orb">${I.sparkle}</span><b>${t.crAI}</b><small>${esc(t.crDrop)}</small></div>`;
-  $("face").innerHTML=`<div class="appgrid" id="appgrid">${cells.join("")}</div>
-<section class="pshelf jelly" id="pshelf"><h3>${I.list}${t.crPrompts}<small>${t.crHint}</small></h3>
-<div class="pchips">${promptList().map((p,i)=>`<button class="pchip${psel===i?" sel":""}" type="button" data-pi="${i}"><span class="grip2"></span>${esc(p.n)}</button>`).join("")}<button class="pchip add" type="button" data-padd="1">＋ ${t.crAdd}</button></div></section>`;
-}
 function fillPrompt(p,topic){return p.t.replace(/\{topic\}/g,topic||"").replace(/\{week\}/g,weekText()||"（這週還沒有排事情）")}
-// dropped on the AI in the middle, or on an app
-function promptTo(i,target){
-  const t=T(),p=promptList()[i];if(!p)return;psel=null;
-  const needs=/\{topic\}/.test(p.t);
-  const app=target==="ai"?null:S.apps[+target];
-  layer(`<div class="shead"><h2>${esc(p.n)}</h2>${closeBtn(t)}</div>
-${needs?`<label class="fld">${t.crTopic}<input id="crTopic" type="text" maxlength="120" placeholder="${esc(t.crTopicPh)}"></label>`:""}
-<label class="fld">Prompt<textarea id="crPrompt" class="impta" style="min-height:110px">${esc(fillPrompt(p,""))}</textarea></label>
-<div class="row end">${app?`<button class="pill pri jelly" type="button" data-crgo="app" data-app="${+target}">${t.crOpenIn(app.n)}</button>`:`<button class="pill pri jelly" type="button" data-crgo="ai">${I.sparkle}${t.crGen}</button>`}</div><div id="crOut"></div>`,true);
+function renderCreatorFace(){
+  const t=T(),c=CRT(),cells=Array(9),list=promptList();
+  list.slice(0,8).forEach((p,i)=>{cells[RING[i]]=`<button class="crtile jelly" type="button" data-crpick="${i}" style="--t:var(--c${i%7})"><span class="crem">${p.e||CR_EMO[i]||"✨"}</span><b>${esc(p.n)}</b><small>${esc(p.d||(c.desc[i]||""))}</small></button>`});
+  for(let i=list.length;i<8;i++)cells[RING[i]]=`<button class="crtile jelly blank" type="button" data-padd="1"><span class="crem">＋</span><small>${t.crAdd}</small></button>`;
+  cells[4]=`<button class="crtile jelly crcore" type="button" data-padd="1"><span class="orb">${I.sparkle}</span><b>${t.crAI}</b><small>${c.custom}</small></button>`;
+  $("face").innerHTML=`<ol class="crsteps"><li><i>1</i>${c.s1}</li><li><i>2</i>${c.s2}</li><li><i>3</i>${c.s3}</li></ol>
+<div class="crgrid" id="crgrid">${cells.join("")}</div>
+<section class="crapps jelly" id="crapps"><h3>${c.apps}<button class="linkbtn" type="button" data-crappedit="1">${crEditMode?c.done:c.edit}</button></h3>
+<div class="crrow">${S.apps.map((a,k)=>a&&a.u?(crEditMode?`<button type="button" class="crapp" data-appedit="${k}"><span class="aic" style="background:${esc(a.c||"#888")}">${I.pen}</span><small>${esc(a.n)}</small></button>`
+  :`<a class="crapp" href="${esc(a.u)}" target="_blank" rel="noopener"><span class="aic" style="background:${esc(a.c||"#888")}">${esc(initial(a.n))}</span><small>${esc(a.n)}</small></a>`):(crEditMode?`<button type="button" class="crapp" data-appedit="${k}"><span class="aic add">＋</span><small>${t.crAdd.replace(/prompt|プロンプト/,"")}</small></button>`:"")).join("")}</div></section>`;
+}
+let crEditMode=false,crCur=null;
+const CR_EMO=["📸","🧵","🎬","💡","#️⃣","💬","🗓️","🌊"];
+// one sheet: topic in, text out, then copy it or take it to an app
+function openCompose(i){
+  const t=T(),c=CRT(),p=promptList()[i];if(!p)return;crCur=i;
+  const needs=/\{topic\}/.test(p.t),w=S.weeks[key(mondayOf(new Date()))],ideas=w?[...w.inbox,...w.days.flat()].map(x=>x.text).filter((x,j,a)=>x&&a.indexOf(x)===j).slice(0,6):[];
+  layer(`<div class="shead"><h2>${p.e||CR_EMO[i]||"✨"} ${esc(p.n)}</h2>${closeBtn(t)}</div>
+${needs?`<label class="fld">${c.topicQ}<input id="crTopic" type="text" maxlength="120" placeholder="${esc(t.crTopicPh)}"></label>
+${ideas.length?`<div class="crideas"><small>${c.fromWeek}</small>${ideas.map(x=>`<button type="button" class="skchip" data-crtopic="${esc(x)}">${esc(x)}</button>`).join("")}</div>`:""}`:`<p class="note">${c.noTopic}</p>`}
+<button class="pill pri jelly crgo" type="button" data-crgo="ai">${I.sparkle}${c.write}</button>
+<div id="crOut"></div>
+<details class="crdet"><summary>${c.seePrompt}</summary><textarea id="crPrompt" class="impta" style="min-height:100px">${esc(fillPrompt(p,""))}</textarea>${S.prompts&&i>=0?`<div class="row end"><button class="linkbtn" type="button" data-crdel="${i}">${c.del}</button></div>`:""}</details>`,true);
   const inp=$("crTopic");if(inp)inp.addEventListener("input",()=>{$("crPrompt").value=fillPrompt(p,inp.value.trim())});
 }
 async function crGenerate(){
-  const t=T(),prompt=$("crPrompt").value.trim(),out=$("crOut");if(!prompt)return;
-  out.innerHTML=`<p class="note">${t.mThinking.replace(/歌|曲|songs/,"")}</p>`;
+  const t=T(),c=CRT(),inp=$("crTopic"),out=$("crOut");
+  if(inp&&!inp.value.trim()){inp.focus();inp.classList.add("need");setTimeout(()=>inp.classList.remove("need"),900);return}
+  const prompt=$("crPrompt").value.trim();if(!prompt)return;
+  out.innerHTML=`<div class="crwait">${mascot("wave","crmas")}<span>${c.writing}</span></div>`;
   await aiReady;
-  if(!AI){try{await navigator.clipboard.writeText(prompt)}catch(e){}out.innerHTML=`<p class="note">${t.crNoAI}</p>${crAppRow(prompt)}`;return}
+  if(!AI){out.innerHTML=`<p class="note">${c.noAI}</p>${crAppRow(prompt,true)}`;return}
   try{
-    const r=await AI(prompt,{cache:false,onText:({text})=>{const el=$("crText");if(el)el.value=text;else out.innerHTML=`<textarea id="crText" class="impta" style="min-height:160px">${esc(text)}</textarea>`}});
-    out.innerHTML=`<textarea id="crText" class="impta" style="min-height:180px">${esc(r.text)}</textarea><div class="row end"><button class="pill pri jelly" type="button" data-crcopy="1">${t.copyCap}</button></div><p class="note">${t.crThen}</p>${crAppRow(null)}`;
-  }catch(e){out.innerHTML=`<p class="note">${esc(aiErrText(e))}</p>${crAppRow(prompt)}`}
+    const r=await AI(prompt,{cache:false,onText:({text})=>{const el=$("crText");if(el)el.value=text;else out.innerHTML=`<textarea id="crText" class="impta crres">${esc(text)}</textarea>`}});
+    out.innerHTML=`<textarea id="crText" class="impta crres">${esc(r.text)}</textarea>
+<div class="row"><button class="pill pri jelly" type="button" data-crcopy="1">📋 ${c.copy}</button><button class="pill jelly" type="button" data-crgo="ai">🔄 ${c.again}</button></div>${crAppRow(null,false)}`;
+  }catch(e){out.innerHTML=`<p class="note">${esc(aiErrText(e))}</p>${crAppRow(prompt,true)}`}
 }
-function crAppRow(prompt){return `<div class="row">${S.apps.filter(a=>a&&a.u).map((a,k)=>`<button class="pill jelly" type="button" data-crgo="app" data-app="${S.apps.indexOf(a)}"${prompt?` data-raw="1"`:""}><span class="aic sm" style="background:${esc(a.c)}">${esc(initial(a.n))}</span>${esc(a.n)}</button>`).join("")}</div>`}
+// real links, so the phone opens the app; the text is copied on the same tap
+function crAppRow(prompt,raw){const c=CRT();const apps=S.apps.filter(a=>a&&a.u);if(!apps.length)return "";
+  return `<p class="note">${raw?c.pasteAI:c.pasteTo}</p><div class="crrow">${apps.map(a=>`<a class="crapp" href="${esc(a.u)}" target="_blank" rel="noopener" data-copyapp="${S.apps.indexOf(a)}"${raw?` data-raw="1"`:""}><span class="aic" style="background:${esc(a.c||"#888")}">${esc(initial(a.n))}</span><small>${esc(a.n)}</small></a>`).join("")}</div>`}
+function crCopyFor(a){   // called in the tap itself: copy, and point ChatGPT/Claude links at the text
+  const k=+a.dataset.copyapp,app=S.apps[k],txt=a.dataset.raw?$("crPrompt").value:($("crText")?$("crText").value:$("crPrompt").value);if(!app)return;
+  try{const h=new URL(app.u).hostname,pf=PREFILL.find(([re])=>re.test(h));if(pf&&txt)a.href=pf[1](encodeURIComponent(txt))}catch(e){}
+  try{navigator.clipboard.writeText(txt).then(()=>toast(T().crCopied(app.n)),()=>{})}catch(e){}
+}
+const CR_STR={
+  zh:{s1:"選要寫什麼",s2:"打一個主題",s3:"AI 寫好，複製去發",custom:"自訂一張",apps:"常用 App（點了直接打開）",edit:"編輯",done:"完成",
+    desc:["吸睛開頭＋hashtag","200 字短文","5 個鏡頭的腳本","10 個標題挑一個","熱門到小眾","真誠回覆留言","把這週變成一篇","3 分鐘自我練習"],
+    topicQ:"這次要寫什麼主題？",fromWeek:"或從這週的九宮格挑：",noTopic:"這張會直接用你這週的九宮格內容。",write:"AI 幫我寫",writing:"正在寫…",
+    copy:"複製",again:"再寫一版",pasteTo:"複製好之後，點一個 App 打開貼上：",pasteAI:"點下面的 App，prompt 會一起複製，打開後直接貼上：",
+    noAI:"這裡現在沒有 AI。沒關係，prompt 已經準備好，點 ChatGPT 會直接帶著 prompt 打開。",seePrompt:"看／改 prompt",del:"刪除這張"},
+  ja:{s1:"何を書くか選ぶ",s2:"テーマを入力",s3:"AI が書いたらコピーして投稿",custom:"自分で作る",apps:"よく使うアプリ（タップで開く）",edit:"編集",done:"完了",
+    desc:["つかみ＋ハッシュタグ","200 字の短文","5 カットの台本","タイトル 10 案","人気からニッチまで","心のこもった返信","今週を 1 本の投稿に","3 分間セルフワーク"],
+    topicQ:"今回のテーマは？",fromWeek:"今週の九マスから選ぶ：",noTopic:"このカードは今週の九マスをそのまま使います。",write:"AI に書いてもらう",writing:"書いています…",
+    copy:"コピー",again:"もう一案",pasteTo:"コピーしたら、アプリを開いて貼り付け：",pasteAI:"アプリをタップするとプロンプトもコピーされます：",
+    noAI:"ここでは今 AI が使えません。ChatGPT をタップすると、プロンプト付きで開きます。",seePrompt:"プロンプトを見る・直す",del:"このカードを削除"},
+  en:{s1:"Pick what to write",s2:"Type a topic",s3:"AI writes it; copy and post",custom:"Make your own",apps:"Your apps (tap to open)",edit:"Edit",done:"Done",
+    desc:["Hook + hashtags","A 60-word post","5-shot script","10 headlines","Popular to niche","A warm reply","Turn this week into a post","3-minute self-practice"],
+    topicQ:"What's the topic this time?",fromWeek:"Or pick from this week's grid:",noTopic:"This card uses this week's grid as it is.",write:"Write it for me",writing:"Writing…",
+    copy:"Copy",again:"Another version",pasteTo:"Copied. Tap an app to open it and paste:",pasteAI:"Tap an app; the prompt is copied too, so just paste:",
+    noAI:"No AI here right now. Tap ChatGPT and it opens with the prompt filled in.",seePrompt:"See / edit the prompt",del:"Delete this card"}
+};
+const CRT=()=>CR_STR[LANG[S.region]];
 // open an app with the text: prefilled where the app supports it, otherwise copied first
 async function openApp(k,text){
   const t=T(),a=S.apps[k];if(!a)return;
@@ -3649,7 +3711,7 @@ function pdragEnd(e,commit){
   suppressUntil=Date.now()+350;
   if(!commit)return true;
   const el=document.elementFromPoint(e.clientX,e.clientY),tg=el&&el.closest("[data-aidrop],[data-app]");
-  if(tg)promptTo(d.i,tg.dataset.aidrop?"ai":tg.dataset.app);
+  if(tg)openCompose(d.i);
   return true;
 }
 
@@ -4505,7 +4567,11 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
-  const pi=el.closest("[data-pi]");if(pi){const i=+pi.dataset.pi;if(psel===i)psel=null;else psel=i;renderCreatorFace();if(psel!=null)toast(T().crDrop);return}
+  const crp=el.closest("[data-crpick]");if(crp){openCompose(+crp.dataset.crpick);return}
+  const crt=el.closest("[data-crtopic]");if(crt){const inp=$("crTopic");inp.value=crt.dataset.crtopic;inp.dispatchEvent(new Event("input"));return}
+  if(el.closest("[data-crappedit]")){crEditMode=!crEditMode;renderCreatorFace();return}
+  const cra=el.closest("[data-copyapp]");if(cra){crCopyFor(cra);return}
+  const crd=el.closest("[data-crdel]");if(crd&&S.prompts){S.prompts.splice(+crd.dataset.crdel,1);save();closeLayer();render();return}
   if(el.closest("[data-padd]")){addPrompt();return}
   if(el.closest("[data-pnsave]")){const n=$("pnName").value.trim(),tx=$("pnText").value.trim();if(n&&tx){S.prompts=(S.prompts||T().defPrompts.slice()).concat([{n,t:tx}]);save()}closeLayer();render();return}
   const apsv=el.closest("[data-apsave]");if(apsv){const k=+apsv.dataset.k;
@@ -4513,12 +4579,10 @@ document.addEventListener("click",e=>{
     const u=$("apUrl").value.trim();if(!/^https:\/\/\S+$/i.test(u)){$("apErr").hidden=false;return}
     S.apps[k]={n:$("apName").value.trim()||new URL(u).hostname.replace(/^www\./,""),u,c:editApp.color||"#F2994A"};save();closeLayer();render();return}
   const apc=el.closest("[data-apcol]");if(apc){editApp.color=apc.dataset.apcol;document.querySelectorAll("[data-apcol]").forEach(b=>b.setAttribute("aria-pressed",b===apc));return}
-  const ape=el.closest("[data-appedit]");if(ape&&!(psel!=null&&S.apps[+ape.dataset.appedit])){editApp(+ape.dataset.appedit);return}
+  const ape=el.closest("[data-appedit]");if(ape){editApp(+ape.dataset.appedit);return}
   const crg=el.closest("[data-crgo]");if(crg){
-    if(crg.dataset.crgo==="ai"){crGenerate();return}
-    const txt=crg.dataset.raw?$("crPrompt").value:($("crText")?$("crText").value:$("crPrompt").value);openApp(+crg.dataset.app,txt);return}
+    if(crg.dataset.crgo==="ai"){crGenerate();return}return}
   if(el.closest("[data-crcopy]")){const tx=$("crText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("crText").select())}catch(x){$("crText").select()}return}
-  if(psel!=null&&S.face===6){const tg=el.closest("[data-aidrop],[data-app]");if(tg){e.preventDefault();promptTo(psel,tg.dataset.aidrop?"ai":tg.dataset.app);return}}
   const ft=el.closest("[data-fit]");if(ft){openFit(ft.dataset.fit);return}
   const flv=el.closest("[data-fitlv]");if(flv){S.fit.lv=+flv.dataset.fitlv;save();openFit(fitSel);return}
   const feq=el.closest("[data-fiteq]");if(feq){S.fit.eq=feq.dataset.fiteq;save();openFit(fitSel);return}
