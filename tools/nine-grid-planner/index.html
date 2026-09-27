@@ -645,6 +645,64 @@ body.ranging .gbar{pointer-events:none}
 @media (max-width:600px){.fitt b{font-size:14px}.fitt small{display:none}}
 @media (max-width:430px){html .dial .fb{width:32px;height:32px}html .dial .fb svg{width:17px;height:17px}html .knob{width:42px;height:42px}}
 
+/* skill tree */
+.skgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.sktile{position:relative;aspect-ratio:1;max-width:100%;padding:10px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;min-width:0;--r:26px;transition:transform .25s var(--ease)}
+.sktile.dim{opacity:.72}
+.skhead{display:flex;align-items:center;gap:4px;width:100%}
+.ske{font-size:20px;line-height:1}
+.skhead .skring{margin-left:auto}
+.skhead i{font-style:normal;font-family:var(--f-num);font-weight:800;font-size:11px;color:var(--muted);min-width:24px;text-align:right}
+.sktile b{font-weight:400;font-size:15px;margin-top:auto}
+.sktile small{font-size:11px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.skdots{display:flex;gap:4px}
+.skdots i{width:9px;height:9px;border-radius:50%;background:var(--chip);border:1px solid var(--chip-edge)}
+.skdots i.on{background:var(--t);border-color:transparent;box-shadow:0 0 6px var(--t)}
+.sktile.center{align-items:center;justify-content:center;text-align:center;--t:var(--accent)}
+.sktile.center b{margin-top:0;font-size:14px}
+.skme{width:58px;height:58px}
+.skmatch{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--on-accent);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skweek{padding:14px;--r:24px;display:flex;flex-direction:column;gap:10px}
+.skweek h3,.skres h3{margin:0;font-size:15px;font-weight:400;display:flex;align-items:center;gap:6px}
+.skgain{display:flex;flex-wrap:wrap;gap:6px}
+.skchip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge)}
+.skchip b{font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--accent)}
+.skpct{margin-left:auto;font-family:var(--f-num);font-weight:800;color:var(--accent)}
+.skbars{display:flex;flex-direction:column;gap:6px}
+.skbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;font-size:13px}
+.skmeter{display:flex;gap:3px}
+.skmeter i{width:18px;height:8px;border-radius:4px;background:var(--chip);border:1px solid var(--chip-edge)}
+.skmeter i.need{background:transparent;border:1.5px dashed var(--accent)}
+.skmeter i.have{background:var(--accent);border-color:transparent}
+.skbar small{font-family:var(--f-num);font-weight:800;font-size:11px;color:var(--muted);min-width:26px;text-align:right}
+.sklist{display:flex;flex-direction:column;gap:10px}
+.skcard{padding:12px 14px;--r:20px;display:flex;flex-direction:column;gap:8px}
+.skct{display:grid;grid-template-columns:auto auto minmax(40px,1fr) auto;align-items:center;gap:8px}
+.skct b{font-weight:400;font-size:16px}
+.sklv{font-family:var(--f-num);font-weight:800;font-size:12px;color:var(--accent)}
+.skxp{height:8px;border-radius:4px;background:var(--chip);overflow:hidden}
+.skxp i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.skct small{font-size:11px;color:var(--muted);font-family:var(--f-num)}
+.skev{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.45}
+.skev li{display:flex;gap:6px;align-items:baseline}
+.skev li small{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap;padding-left:6px}
+.skev li.more{color:var(--muted);font-size:12px;padding-left:22px}
+.skself{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.skself small{font-size:12px;color:var(--muted)}
+.skres{padding:14px;--r:22px;display:flex;flex-direction:column;gap:10px}
+.skres p{margin:0;font-size:14px;line-height:1.6}
+.skroles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.skrole{display:flex;align-items:center;gap:6px;padding:10px 12px;--r:16px;text-align:left;font-size:13px}
+.skrole b{font-weight:400;flex:1;min-width:0}
+.skrole.on{box-shadow:0 0 0 2.5px var(--accent)}
+.skplan{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.skplan li{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.skplan li b{font-weight:400;color:var(--accent);font-size:12px}
+.skplan li span{display:flex;gap:6px;align-items:baseline;padding:6px 10px;border-radius:12px;background:var(--chip)}
+.skplan li span small{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+@media (max-width:600px){.sktile b{font-size:13px}.sktile small{display:none}.sktile.center small{display:-webkit-box;font-size:10.5px}.ske{font-size:17px}.skhead .skring{width:24px;height:24px}.skme{width:46px;height:46px}}
+@media (max-width:430px){html .dial .fb{width:30px;height:30px}html .dial .fb svg{width:16px;height:16px}html .knob{width:40px;height:40px}}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -735,6 +793,7 @@ body.ranging .gbar{pointer-events:none}
   <button class="fb" type="button" data-face="5"></button>
   <button class="fb" type="button" data-face="6"></button>
   <button class="fb" type="button" data-face="7"></button>
+  <button class="fb" type="button" data-face="8"></button>
 </nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -790,8 +849,8 @@ const SPONSORS=[
 /* ---------- strings ---------- */
 const STR={
   zh:{
-    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫","選一個部位，看動作重點和 YouTube 教學"],
+    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練","技能樹"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰","常用 App 一點就開，拖 prompt 給 AI 寫","選一個部位，看動作重點和 YouTube 教學","從你做過的事長出能力，AI 幫你排職涯下一步"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -905,12 +964,13 @@ const STR={
       [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
       [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]],
-      [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]]
+      [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]],
+      [["#skgrid","八個分枝是八種能力。行事曆上完成的事，會自動變成經驗值長在這裡。"],["[data-skflow]","先做一次心流回想：想一段做到忘了時間的經驗，AI 會找出你真正用到的能力。"],["[data-skcoach]","選一個想走的職涯方向，看差距，一鍵排成 4 週行事曆。"]]
     ]
   },
   ja:{
-    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ","部位を選んで、フォームのコツと YouTube 解説"],
+    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ","スキルツリー"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも","よく使うアプリをすぐ開き、プロンプトを AI へドラッグ","部位を選んで、フォームのコツと YouTube 解説","やったことから力が育ち、AI がキャリアの次の一歩を予定に"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -1024,12 +1084,13 @@ const STR={
       [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
       [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]],
-      [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]]
+      [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]],
+      [["#skgrid","8 つの枝は 8 種類の力。予定を完了すると、ここに経験値として育ちます。"],["[data-skflow]","まずフローを思い出してみましょう。AI が本当に使った力を見つけます。"],["[data-skcoach]","進みたい方向を選ぶと、差を見て 4 週間の予定にできます。"]]
     ]
   },
   en:{
-    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI","Pick a muscle group for moves, form cues and YouTube tutorials"],
+    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach","Skill tree"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head","Your apps one tap away; drag prompts onto AI","Pick a muscle group for moves, form cues and YouTube tutorials","Skills grown from what you actually did; AI plans your next career step"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -1143,7 +1204,8 @@ const STR={
       [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
       [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]],
-      [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]]
+      [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]],
+      [["#skgrid","Eight branches, eight kinds of ability. Finished calendar tasks grow here as XP."],["[data-skflow]","Start with a flow moment: recall a time you lost track of time and AI finds the abilities you used."],["[data-skcoach]","Pick a career direction, see the gap, and turn it into a 4-week calendar in one tap."]]
     ]
   }
 };
@@ -1346,11 +1408,12 @@ const I={
   spark2:sv('<path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6z"/><path d="M16 13.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'),
   game:sv('<rect x="2" y="6" width="16" height="9.5" rx="4.5"/><path d="M6 9v3.5M4.3 10.8h3.4"/><circle cx="13" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="12.2" r=".9" fill="currentColor"/>'),
   cards:sv('<rect x="2.5" y="5" width="11" height="12.5" rx="2.5"/><path d="M6.5 5V4a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17.5 4v10a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M5.5 10h5M5.5 13h3"/>'),
+  tree:sv('<circle cx="10" cy="4" r="2.2"/><circle cx="4.5" cy="11" r="2.2"/><circle cx="15.5" cy="11" r="2.2"/><circle cx="10" cy="16.5" r="2.2"/><path d="M10 6.2v8.1M8.3 5.4L5.9 9.2M11.7 5.4l2.4 3.8"/>'),
   dumbbell:sv('<path d="M6.5 10h7"/><rect x="3.5" y="5.5" width="3" height="9" rx="1.3"/><rect x="13.5" y="5.5" width="3" height="9" rx="1.3"/><path d="M2 8v4M18 8v4"/>'),
   lock:sv('<rect x="4" y="9" width="12" height="8.5" rx="2.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
-const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2,I.dumbbell];
+const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2,I.dumbbell,I.tree];
 
 /* ---------- skins & background art ---------- */
 const SKINS={
@@ -1521,9 +1584,9 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%8]);
+  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%9]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFace,renderSkillFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -1829,7 +1892,7 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 
 /* ---------- face rotation ---------- */
 function goFace(n,dir){
-  n=(n+8)%8;if(n===S.face||rotating)return;
+  n=(n+9)%9;if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -2115,7 +2178,7 @@ async function makeCard(fmt){
   const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
   tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
   const B={X:60,Y:268,W:W0-120,H:H0-268-130};
-  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends,cardFriends,cardFriends][S.face](x,B,P,t);
+  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends,cardFriends,cardFriends,cardFriends][S.face](x,B,P,t);
   return c;
 }
 function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
@@ -3641,6 +3704,366 @@ function fitToCal(key){
   w.days[i].push({id:uid(),text:t.fitTask(g.n[LANG[S.region]]),pri:"mid",done:false});save();toast(t.scheduled(`${t.days[i]} ${t.md(d)}`));
 }
 const key2=d=>key(d);
+
+/* =========================================================
+   技能樹: every point comes from something the person actually did
+   (finished calendar tasks, finished goal steps, recalled flow moments),
+   and the career coach turns gaps back into dated tasks on the calendar.
+   ========================================================= */
+const SKB=[   // eight branches around the centre
+  {k:"comm",e:"💬",n:{zh:"溝通表達",ja:"伝える力",en:"Communication"}},
+  {k:"people",e:"🤝",n:{zh:"人際協作",ja:"人と関わる力",en:"People"}},
+  {k:"create",e:"🎨",n:{zh:"創意設計",ja:"創る力",en:"Creative"}},
+  {k:"think",e:"🧠",n:{zh:"分析思考",ja:"考える力",en:"Thinking"}},
+  {k:"exec",e:"📋",n:{zh:"組織執行",ja:"やり切る力",en:"Getting it done"}},
+  {k:"digital",e:"🤖",n:{zh:"數位與 AI",ja:"デジタルと AI",en:"Digital & AI"}},
+  {k:"self",e:"🌱",n:{zh:"自我管理",ja:"セルフケア",en:"Self-care"}},
+  {k:"career",e:"🧭",n:{zh:"職涯行動",ja:"キャリア行動",en:"Career moves"}}
+];
+// skill: branch, names, keywords that recognise it in a task, two small practice tasks
+const SK=(id,b,zh,ja,en,kw,p1,p2)=>({id,b,n:{zh,ja,en},kw:new RegExp(kw,"i"),p:[p1,p2]});
+const SKILLS=[
+  SK("write","comm","寫作文案","文章・コピー","Writing","寫|文案|貼文|文章|稿|部落格|投稿|書く|記事|write|post|caption|blog|article",
+    {zh:"寫一篇 300 字心得並發佈",ja:"300 字の感想を書いて投稿",en:"Write and publish a 300-word note"},{zh:"改寫一段舊文案，讓第一句更抓人",ja:"昔の文を書き直し、1 行目を強く",en:"Rewrite an old post with a stronger first line"}),
+  SK("speak","comm","簡報口說","プレゼン","Speaking","簡報|演講|分享會|口頭報告|直播|發表|主持|プレゼン|発表|present|talk|speech|podcast|live",
+    {zh:"錄一段 1 分鐘自我介紹影片",ja:"1 分間の自己紹介を録画",en:"Record a 1-minute self-intro"},{zh:"把一件事講給朋友聽並請他回饋",ja:"友だちに説明してフィードバックをもらう",en:"Explain something to a friend and ask for feedback"}),
+  SK("listen","comm","傾聽同理","傾聴・共感","Listening","聊|傾聽|陪|談心|諮詢|關心|聞く|相談|listen|chat|check in|call",
+    {zh:"和一位朋友聊 20 分鐘，只問不給建議",ja:"友だちと 20 分、助言せず質問だけ",en:"Talk with a friend 20 min: only questions, no advice"},{zh:"寫下對方說的三個重點再回給他確認",ja:"相手の要点を 3 つ書いて確認",en:"Note three points they said and check with them"}),
+  SK("negotiate","comm","協商說服","交渉・提案","Persuasion","談判|協商|提案|說服|合作|邀約|議價|交渉|提案|pitch|negotiat|proposal|collab",
+    {zh:"寫一封合作邀約信（不用寄）",ja:"コラボ依頼メールを書いてみる",en:"Draft a collaboration pitch email"},{zh:"列出對方的三個需求再提你的方案",ja:"相手のニーズを 3 つ挙げてから提案",en:"List their 3 needs, then write your offer"}),
+  SK("teach","people","教學引導","教える・導く","Teaching","教|課|帶|引導|輔導|家教|示範|教える|授業|teach|class|lesson|tutor|coach|mentor",
+    {zh:"設計一個 10 分鐘的小教學",ja:"10 分のミニ授業を設計",en:"Design a 10-minute mini lesson"},{zh:"教家人或朋友一個你會的小技巧",ja:"家族や友だちに小技を教える",en:"Teach someone a small skill you have"}),
+  SK("care","people","照顧陪伴","ケア・寄り添い","Caregiving","照顧|孩子|小孩|寶寶|長輩|接送|陪伴|育兒|子ども|介護|care|kid|child|baby|parent|elder",
+    {zh:"陪孩子或長輩做一件他選的事 30 分鐘",ja:"子どもや家族が選んだことを 30 分一緒に",en:"Spend 30 min on an activity they choose"},{zh:"記錄一次照顧時的觀察與感受",ja:"ケア中の気づきと気持ちを記録",en:"Journal one caregiving observation"}),
+  SK("team","people","團隊合作","チームワーク","Teamwork","團隊|會議|同事|協作|分工|小組|チーム|会議|meeting|team|group",
+    {zh:"主動在會議後整理三點待辦給大家",ja:"会議後に ToDo 3 つをまとめて共有",en:"Send a 3-point follow-up after a meeting"},{zh:"請一位同事分享他的工作方法",ja:"同僚に仕事のやり方を聞く",en:"Ask a colleague how they work"}),
+  SK("network","people","人脈經營","人脈づくり","Networking","回覆|私訊|聯絡|網聚|認識|拜訪|連絡|返信|reply|network|contact|dm|meetup",
+    {zh:"聯絡一位久沒聊的前同事或同學",ja:"しばらく話していない人に連絡",en:"Reach out to someone you haven't talked to in a while"},{zh:"參加一場線上或實體活動並認識一人",ja:"イベントに参加して 1 人と知り合う",en:"Attend an event and meet one person"}),
+  SK("visual","create","視覺設計","ビジュアル","Visual design","設計|海報|封面|排版|canva|插畫|畫|配色|デザイン|イラスト|design|poster|cover|layout|illustrat|draw",
+    {zh:"用 Canva 做一張 IG 圖卡",ja:"Canva で IG 画像を 1 枚",en:"Make one Instagram graphic in Canva"},{zh:"臨摹一張喜歡的版面並寫下它好在哪",ja:"好きなレイアウトを模写して良さを書く",en:"Copy a layout you like and note why it works"}),
+  SK("video","create","影音製作","動画制作","Video","影片|剪輯|拍|短影音|reels|影音|動画|編集|撮影|video|edit|film|youtube|reel|shorts",
+    {zh:"拍一支 15 秒短影音並加字幕",ja:"15 秒動画を撮って字幕を付ける",en:"Shoot a 15-second clip with captions"},{zh:"剪一支 3 個鏡頭的小故事",ja:"3 カットのショートストーリーを編集",en:"Edit a 3-shot mini story"}),
+  SK("idea","create","創意發想","アイデア発想","Ideation","企劃|發想|點子|腦力激盪|構想|主題|企画|アイデア|idea|brainstorm|concept|plan a theme",
+    {zh:"10 分鐘寫下 20 個點子，不評價",ja:"10 分でアイデア 20 個、評価しない",en:"20 ideas in 10 minutes, no judging"},{zh:"把一個點子畫成一頁草圖",ja:"アイデアを 1 枚のラフに",en:"Sketch one idea on a single page"}),
+  SK("craft","create","手作料理","手仕事・料理","Making","手作|烘焙|料理|縫|木工|煮|做菜|手芸|料理|diy|bake|cook|craft|sew",
+    {zh:"完成一個 1 小時內的小手作或料理",ja:"1 時間以内の手作りか料理を完成",en:"Finish a one-hour make or recipe"},{zh:"拍下過程，寫三句步驟分享",ja:"工程を撮って 3 行で共有",en:"Photograph the steps and share them in 3 lines"}),
+  SK("data","think","數據分析","データ分析","Data","數據|分析|報表|excel|試算|統計|季度|データ|分析|集計|data|analy|report|sheet|metric",
+    {zh:"把一週花費整理成一張圖表",ja:"1 週間の支出をグラフに",en:"Chart one week of your spending"},{zh:"看自己貼文的觀看數，找出最好的一篇與原因",ja:"投稿の数字を見て一番良い理由を探す",en:"Find your best post by the numbers and why"}),
+  SK("research","think","研究查證","調べる力","Research","研究|查|調查|資料|閱讀|讀|書|論文|調べ|読|research|study|read|book",
+    {zh:"讀完一篇長文並寫 3 句重點",ja:"長文を読み要点を 3 行で",en:"Read a long article; summarise in 3 lines"},{zh:"查證一則網路說法的來源",ja:"ネットの情報の出典を確認",en:"Fact-check one claim you saw online"}),
+  SK("problem","think","問題解決","問題解決","Problem solving","解決|修|debug|排除|處理|改善|解決|改善|fix|solve|troubleshoot|improve",
+    {zh:"寫下一個卡住的問題和三個可能解法",ja:"困っていることと解決案 3 つを書く",en:"Write one stuck problem and three possible fixes"},{zh:"試一個解法並記錄結果",ja:"1 つ試して結果を記録",en:"Try one fix and note what happened"}),
+  SK("learn","think","學習力","学ぶ力","Learning","學|課程|考試|證照|練習|上課|学習|勉強|資格|learn|course|exam|certif|practice",
+    {zh:"上一堂 30 分鐘線上課並寫筆記",ja:"30 分のオンライン講座とノート",en:"Take a 30-min online lesson with notes"},{zh:"用自己的話教回一次今天學的東西",ja:"学んだことを自分の言葉で説明",en:"Explain today's lesson in your own words"}),
+  SK("plan","exec","規劃排程","計画を立てる","Planning","規劃|計畫|排程|安排|行程|九宮格|計画|予定|plan|schedule|organi",
+    {zh:"把下週的事排進九宮格",ja:"来週の予定を九マスに入れる",en:"Plan next week in the nine-grid"},{zh:"把一個大目標拆成 8 步",ja:"大きな目標を 8 ステップに",en:"Break a big goal into 8 steps"}),
+  SK("project","exec","專案管理","プロジェクト管理","Projects","專案|進度|里程碑|截止|交付|上線|完成初稿|プロジェクト|締切|project|deadline|milestone|launch|deliver",
+    {zh:"替一件事設截止日和三個里程碑",ja:"締切とマイルストーン 3 つを決める",en:"Set a deadline and three milestones for one thing"},{zh:"週末回顧：完成什麼、卡在哪",ja:"週末の振り返り：できた・詰まった",en:"Weekend review: done and stuck"}),
+  SK("finance","exec","理財預算","お金の管理","Money","繳|帳|預算|記帳|報稅|費|存錢|支払|家計|予算|budget|pay|bill|tax|invoice|saving",
+    {zh:"記帳 3 天並分類",ja:"3 日間家計簿をつけて分類",en:"Track spending for 3 days by category"},{zh:"訂一個月的存錢小目標",ja:"今月の貯金目標を決める",en:"Set this month's saving target"}),
+  SK("ops","exec","行政庶務","段取り・事務","Admin","整理|歸檔|申請|預約|買|訂|收納|手続|予約|整理|file|book|order|admin|tidy",
+    {zh:"清理一個資料夾或抽屜 15 分鐘",ja:"フォルダか引き出しを 15 分整理",en:"Tidy one folder or drawer for 15 min"},{zh:"把常用的申請流程寫成清單",ja:"よく使う手続きをリスト化",en:"Write a checklist for a routine errand"}),
+  SK("ai","digital","AI 應用","AI 活用","Using AI","ai|gpt|chatgpt|claude|gemini|prompt|提示詞|生成|プロンプト",
+    {zh:"用 AI 完成一件你本來要花 1 小時的事",ja:"AI で 1 時間かかる作業を片付ける",en:"Use AI to finish an hour-long task"},{zh:"寫一個可重複用的 prompt 存到工作台",ja:"使い回せるプロンプトを作って保存",en:"Write a reusable prompt and save it"}),
+  SK("tools","digital","數位工具","デジタルツール","Digital tools","notion|excel|試算表|雲端|app|軟體|表單|自動化|ツール|アプリ|tool|software|drive|form|automat",
+    {zh:"學會一個新工具的一個功能",ja:"新しいツールの機能を 1 つ覚える",en:"Learn one feature of a new tool"},{zh:"把一件重複的事做成範本或自動化",ja:"繰り返し作業をテンプレ化",en:"Turn a repeated chore into a template"}),
+  SK("code","digital","程式網站","プログラミング","Coding","程式|coding|python|javascript|網站|網頁|html|プログラム|code|web|develop|script",
+    {zh:"跟著教學做一個小網頁",ja:"チュートリアルで小さな Web ページ",en:"Build a tiny web page from a tutorial"},{zh:"用 AI 幫你寫一段小程式並看懂它",ja:"AI に小さなコードを書かせて理解する",en:"Have AI write a small script and understand it"}),
+  SK("social","digital","社群經營","SNS 運用","Social media","ig|instagram|threads|fb|facebook|tiktok|社群|粉專|hashtag|追蹤|限動|SNS|インスタ|social|follower",
+    {zh:"連續 3 天在同一平台發文",ja:"同じ SNS に 3 日連続投稿",en:"Post 3 days in a row on one platform"},{zh:"回覆 5 則留言並記下大家關心什麼",ja:"コメント 5 件に返信し関心をメモ",en:"Reply to 5 comments; note what people care about"}),
+  SK("health","self","身心健康","心と体","Health","運動|健身|跑|瑜伽|睡|冥想|散步|牙醫|看醫生|訓練|運動|ジム|ヨガ|睡眠|workout|run|yoga|sleep|meditat|gym|walk|dentist|training",
+    {zh:"這週運動 3 次，每次 20 分鐘",ja:"今週 20 分の運動を 3 回",en:"Exercise 3 times this week, 20 min each"},{zh:"連續 5 天在 12 點前睡",ja:"5 日連続 0 時前に寝る",en:"Sleep before midnight 5 nights in a row"}),
+  SK("focus","self","專注心流","集中・フロー","Focus & flow","心流|專注|番茄|深度工作|フロー|集中|flow|focus|deep work|pomodoro",
+    {zh:"關掉通知，專注做一件事 45 分鐘",ja:"通知を切って 45 分集中",en:"Notifications off, one task for 45 min"},{zh:"記下今天最投入的 10 分鐘在做什麼",ja:"今日いちばん没頭した 10 分を記録",en:"Note the 10 minutes you were most absorbed today"}),
+  SK("reflect","self","自我覺察","自己理解","Self-awareness","日記|反思|回顧|覺察|感恩|心得|日記|振り返|感謝|journal|reflect|review|gratitude",
+    {zh:"寫 3 件今天做得好的小事",ja:"今日うまくできたことを 3 つ",en:"Write 3 small things you did well today"},{zh:"回想一次心流經驗，寫下它的條件",ja:"フロー体験を思い出し条件を書く",en:"Recall a flow moment and note what made it work"}),
+  SK("resilience","self","挫折復原","立ち直る力","Resilience","挑戰|重來|克服|堅持|失敗|再試|挑戦|やり直|challenge|retry|persist|again",
+    {zh:"重新做一件之前放棄的小事",ja:"前にやめた小さなことに再挑戦",en:"Retry one small thing you gave up on"},{zh:"寫下一次失敗學到的一件事",ja:"失敗から学んだことを 1 つ書く",en:"Write one lesson from a setback"}),
+  SK("resume","career","履歷作品集","履歴書・作品集","Résumé & portfolio","履歷|作品集|portfolio|resume|cv|職務経歴|ポートフォリオ",
+    {zh:"把這個月做過的一件事寫成作品集一頁",ja:"今月の成果をポートフォリオ 1 ページに",en:"Turn one thing from this month into a portfolio page"},{zh:"用技能樹的前三強項更新履歷摘要",ja:"スキルツリーの強み 3 つで要約を更新",en:"Update your résumé summary with your top 3 skills"}),
+  SK("interview","career","面試表達","面接","Interviewing","面試|面接|interview",
+    {zh:"用 STAR 寫一個你解決問題的故事",ja:"STAR で課題解決のエピソードを書く",en:"Write one problem-solving story with STAR"},{zh:"請朋友模擬面試 15 分鐘",ja:"友だちと 15 分の模擬面接",en:"Do a 15-minute mock interview with a friend"}),
+  SK("brand","career","個人品牌","パーソナルブランド","Personal brand","個人品牌|自介|自我介紹|個人檔案|linkedin|自己紹介|プロフィール|personal brand|profile|bio",
+    {zh:"改寫你的社群自介成一句話定位",ja:"SNS プロフィールを一文で言い切る",en:"Rewrite your bio as a one-line positioning"},{zh:"分享一次你的專業小技巧",ja:"専門の小ワザを 1 つ発信",en:"Share one professional tip publicly"}),
+  SK("sales","career","銷售服務","営業・接客","Sales & service","銷售|客戶|客服|顧客|賣|接單|報價|営業|顧客|接客|sales|client|customer|quote|sell",
+    {zh:"訪談一位潛在客戶的需求",ja:"見込み客 1 人のニーズを聞く",en:"Interview one potential customer about their needs"},{zh:"把你的服務寫成一段價格方案",ja:"サービスを料金プランにまとめる",en:"Write your service as a simple price plan"})
+];
+const SKMAP=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
+const SK_TH=[0,20,50,100,180,300];   // xp for level 0..5
+const skLv=xp=>{let l=0;SK_TH.forEach((v,i)=>{if(xp>=v)l=i});return l};
+const skNext=xp=>{const l=skLv(xp);return l>=5?1:(xp-SK_TH[l])/(SK_TH[l+1]-SK_TH[l])};
+// ready-made roles so the coach works with no AI; the AI can read any role the person types
+const ROLES=[
+  {k:"creator",n:{zh:"自媒體創作者",ja:"SNS クリエイター",en:"Content creator"},req:[["write",3],["video",3],["social",3],["idea",2],["visual",2],["ai",2]]},
+  {k:"teacher",n:{zh:"兒童課程講師",ja:"子ども向け講師",en:"Children's educator"},req:[["teach",4],["care",3],["speak",3],["plan",2],["idea",2],["listen",2]]},
+  {k:"social",n:{zh:"社工／助人工作者",ja:"ソーシャルワーカー",en:"Social worker"},req:[["listen",4],["care",3],["reflect",3],["negotiate",2],["research",2],["ops",2]]},
+  {k:"marketer",n:{zh:"行銷企劃",ja:"マーケター",en:"Marketer"},req:[["write",3],["social",3],["idea",3],["data",2],["negotiate",2],["project",2]]},
+  {k:"designer",n:{zh:"視覺設計師",ja:"デザイナー",en:"Visual designer"},req:[["visual",4],["idea",3],["tools",2],["listen",2],["project",2],["brand",2]]},
+  {k:"analyst",n:{zh:"資料分析師",ja:"データアナリスト",en:"Data analyst"},req:[["data",4],["research",3],["tools",3],["problem",3],["speak",2],["code",2]]},
+  {k:"pm",n:{zh:"專案經理",ja:"プロジェクトマネージャー",en:"Project manager"},req:[["project",4],["plan",3],["team",3],["negotiate",3],["problem",2],["speak",2]]},
+  {k:"aiops",n:{zh:"AI 應用專員",ja:"AI 活用担当",en:"AI specialist"},req:[["ai",4],["tools",3],["problem",3],["learn",3],["write",2],["code",2]]}
+];
+S.sk=S.sk||{own:{},stories:[],tags:{},target:null};
+const skL=()=>LANG[S.region];
+const skName=id=>SKMAP[id]?SKMAP[id].n[skL()]:id;
+// tags for a task: set by the plan itself, by the AI, or by keywords
+function skTags(text,tagged){
+  if(tagged&&tagged.length)return tagged.filter(x=>SKMAP[x]);
+  if(S.sk.tags[text])return S.sk.tags[text];
+  return SKILLS.filter(s=>s.kw.test(text)).slice(0,2).map(s=>s.id);
+}
+// all the evidence, computed fresh from the calendar, goal and stories
+function skCompute(){
+  const R={};SKILLS.forEach(s=>R[s.id]={xp:0,ev:[]});
+  const add=(id,xp,ev)=>{if(!R[id])return;R[id].xp+=xp;R[id].ev.push(ev)};
+  const unknown=[];
+  Object.keys(S.weeks).forEach(k=>{const mon=parse(k);S.weeks[k].days.forEach((d,i)=>d.forEach(x=>{
+    if(!x.done)return;const tags=skTags(x.text,x.sk),dt=key(addDays(mon,i));
+    if(!tags.length){unknown.push(x.text);return}
+    tags.forEach(id=>add(id,x.pri==="high"?15:10,{t:x.text,d:dt,src:"cal"}));
+  }))});
+  (S.goal&&S.goal.steps||[]).forEach(st=>{if(st.done&&st.text)skTags(st.text,st.sk).forEach(id=>add(id,20,{t:st.text,d:st.date||"",src:"goal"}))});
+  S.sk.stories.forEach(s=>s.skills.forEach(x=>add(x.id,30,{t:x.why||s.title,d:s.d,src:"flow"})));
+  Object.entries(S.sk.own).forEach(([id,o])=>{if(o.base)add(id,o.base,{t:"",d:"",src:"self"})});
+  Object.values(R).forEach(r=>r.ev.sort((a,b)=>(b.d||"").localeCompare(a.d||"")));
+  return {R,unknown:[...new Set(unknown)]};
+}
+function skBranch(R,b){const ss=SKILLS.filter(s=>s.b===b),xp=ss.reduce((a,s)=>a+R[s.id].xp,0);return {ss,xp,lv:Math.max(...ss.map(s=>skLv(R[s.id].xp)))}}
+function skTop(R,n){return SKILLS.map(s=>({s,xp:R[s.id].xp})).filter(x=>x.xp>0).sort((a,b)=>b.xp-a.xp).slice(0,n)}
+function skMatch(R,req){if(!req||!req.length)return 0;return Math.round(100*req.reduce((a,[id,lv])=>a+Math.min(skLv(R[id]?R[id].xp:0)/lv,1),0)/req.length)}
+function skGaps(R,req){return req.map(([id,lv])=>({id,lv,have:skLv(R[id]?R[id].xp:0)})).filter(g=>g.have<g.lv).sort((a,b)=>(b.lv-b.have)-(a.lv-a.have))}
+function skWeekGain(R){const mon=key(mondayOf(new Date())),end=key(addDays(mondayOf(new Date()),6)),g={};
+  Object.entries(R).forEach(([id,r])=>r.ev.forEach(e=>{if(e.d>=mon&&e.d<=end&&e.src!=="self"){g[id]=(g[id]||0)+(e.src==="goal"?20:e.src==="flow"?30:10)}}));
+  return Object.entries(g).sort((a,b)=>b[1]-a[1])}
+const skRing=(p,sz)=>{const C=2*Math.PI*16;return `<svg class="skring" viewBox="0 0 40 40" width="${sz}" height="${sz}"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--chip)" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--t,var(--accent))" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*Math.max(p,0.001)).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`};
+
+function renderSkillFace(){
+  const t=T(),k=SKT(),{R,unknown}=skCompute(),l=skL(),cells=Array(9);
+  SKB.forEach((b,i)=>{
+    const br=skBranch(R,b.k),lit=br.ss.filter(s=>R[s.id].xp>0);
+    cells[RING[i]]=`<button class="sktile jelly${br.xp?"":" dim"}" type="button" data-skb="${b.k}" style="--t:var(--c${i%7})">
+<span class="skhead"><span class="ske">${b.e}</span>${skRing(Math.min(br.lv/5,1)||0,30)}<i>Lv${br.lv}</i></span>
+<b>${esc(b.n[l])}</b><span class="skdots">${br.ss.map(s=>`<i class="${R[s.id].xp?"on":""}" title="${esc(s.n[l])}"></i>`).join("")}</span>
+<small>${lit.length?esc(lit.sort((a,c)=>R[c.id].xp-R[a.id].xp).slice(0,2).map(s=>s.n[l]).join("・")):k.empty}</small></button>`;
+  });
+  const top=skTop(R,3),tg=S.sk.target,m=tg?skMatch(R,tg.req):null;
+  cells[4]=`<div class="sktile jelly center">${mascot(top.length?"wave":"idle","skme")}<b>${top.length?k.strong:k.start}</b><small>${top.length?esc(top.map(x=>x.s.n[l]).join("・")):k.startSub}</small>${tg?`<span class="skmatch">${esc(tg.role)} ${m}%</span>`:""}</div>`;
+  const gain=skWeekGain(R);
+  let h=`<div class="coachbar"><button class="pill pri jelly" type="button" data-skflow="1">${I.sparkle}${k.flowBtn}</button><button class="pill jelly" type="button" data-skcoach="1">🧭 ${k.coachBtn}</button></div>
+<div class="skgrid" id="skgrid">${cells.join("")}</div>
+<section class="skweek jelly" id="skweek"><h3>${k.weekTitle}</h3>${gain.length?`<div class="skgain">${gain.slice(0,6).map(([id,xp])=>`<button type="button" class="skchip" data-sks="${id}">${esc(skName(id))}<b>+${xp}</b></button>`).join("")}</div>`:`<p class="note">${k.weekNone}</p>`}
+${unknown.length?`<p class="note">${k.unknown(unknown.length)} <button class="linkbtn" type="button" data-sktag="1">${k.tagBtn}</button></p>`:""}</section>`;
+  if(tg){const gaps=skGaps(R,tg.req).slice(0,3);
+    h+=`<section class="skweek jelly" id="sktarget"><h3>🧭 ${esc(tg.role)} <span class="skpct">${m}%</span></h3>
+<div class="skbars">${tg.req.map(([id,lv])=>{const have=skLv(R[id]?R[id].xp:0);return `<div class="skbar" data-sks="${id}"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3,4,5].map(n=>`<i class="${n<=have?"have":n<=lv?"need":""}"></i>`).join("")}</span></div>`}).join("")}</div>
+${gaps.length?`<p class="note">${k.nextUp}</p><div class="row">${gaps.map(g=>`<button class="pill jelly" type="button" data-skdo="${g.id}" data-p="${(R[g.id].xp>0)?1:0}">＋ ${esc(SKMAP[g.id].p[R[g.id].xp>0?1:0][l])}</button>`).join("")}</div>`:`<p class="note">${k.ready}</p>`}
+<div class="row end"><button class="pill jelly" type="button" data-skcoach="1">${k.openPlan}</button></div></section>`}
+  $("face").innerHTML=h;
+}
+// one branch: its skills, their evidence and small practice tasks
+function openSkillBranch(bk){
+  const k=SKT(),t=T(),l=skL(),b=SKB.find(x=>x.k===bk),{R}=skCompute();if(!b)return;
+  layer(`<div class="shead"><h2>${b.e} ${esc(b.n[l])}</h2>${closeBtn(t)}</div>
+<div class="sklist">${SKILLS.filter(s=>s.b===bk).map(s=>skCard(s,R[s.id],k,l)).join("")}</div>`,true);
+}
+function openSkill(id){const k=SKT(),t=T(),l=skL(),s=SKMAP[id],{R}=skCompute();if(!s)return;
+  layer(`<div class="shead"><h2>${esc(s.n[l])}</h2>${closeBtn(t)}</div><div class="sklist">${skCard(s,R[id],k,l,true)}</div>`,true)}
+function skCard(s,r,k,l,full){
+  const lv=skLv(r.xp),ev=r.ev.filter(e=>e.src!=="self"),base=(S.sk.own[s.id]||{}).base||0;
+  return `<div class="skcard jelly"><div class="skct"><b>${esc(s.n[l])}</b><span class="sklv">Lv${lv}</span><span class="skxp"><i style="width:${Math.round(skNext(r.xp)*100)}%"></i></span><small>${r.xp} XP</small></div>
+${ev.length?`<ul class="skev">${ev.slice(0,full?8:3).map(e=>`<li><span>${{cal:"📅",goal:"🎯",flow:"✨"}[e.src]}</span>${esc(e.t)}${e.d?`<small>${esc(t2md(e.d))}</small>`:""}</li>`).join("")}${ev.length>(full?8:3)?`<li class="more">${k.more(ev.length-(full?8:3))}</li>`:""}</ul>`:`<p class="note">${k.noEv}</p>`}
+<div class="skself"><small>${k.already}</small><div class="mini-seg">${[0,1,2,3].map(n=>`<button type="button" data-skself="${s.id}" data-lv="${n}" aria-pressed="${base===SK_TH[n]}">${n?"Lv"+n:k.none}</button>`).join("")}</div></div>
+<div class="row">${s.p.map((p,i)=>`<button class="pill jelly" type="button" data-skdo="${s.id}" data-p="${i}">＋ ${esc(p[l])}</button>`).join("")}</div></div>`;
+}
+const t2md=d=>{try{return T().md(parse(d))}catch(e){return d}};
+// put a practice task on the calendar: tomorrow, or today if it's Sunday
+function skDo(id,pi){
+  const t=T(),s=SKMAP[id];if(!s)return;const d=addDays(new Date(),(new Date().getDay()===0)?0:1),i=(d.getDay()+6)%7,w=W(key(mondayOf(d)));
+  const text=s.p[pi||0][skL()];if(!w.days[i].some(x=>x.text===text))w.days[i].push({id:uid(),text,pri:"mid",done:false,sk:[id]});
+  save();toast(SKT().added(`${t.days[i]} ${t.md(d)}`));
+}
+
+/* ----- 心流回想: three questions, the answers become the first branches ----- */
+function openFlowRecall(){
+  const k=SKT(),t=T();
+  layer(`<div class="shead"><h2>✨ ${k.flowBtn}</h2>${closeBtn(t)}</div>
+<div class="coachme">${mascot("wave")}<div class="msg ai">${esc(k.flowIntro)}</div></div>
+${k.flowQ.map((q,i)=>`<label class="fld">${esc(q)}<textarea id="skq${i}" class="impta" style="min-height:${i?64:88}px" placeholder="${esc(k.flowPh[i])}"></textarea></label>`).join("")}
+<div class="row end"><button class="pill pri jelly" type="button" data-skflowgo="1">${I.sparkle}${k.flowGo}</button></div><div id="skOut"></div>`,true);
+}
+async function flowAnalyse(){
+  const k=SKT(),t=T(),out=$("skOut"),ans=[0,1,2].map(i=>$("skq"+i).value.trim());
+  if(!ans[0]){$("skq0").focus();return}
+  const story=ans.filter(Boolean).join("\n");out.innerHTML=`<p class="note">${k.thinking}</p>`;
+  await aiReady;let res=null;
+  if(AI){try{
+    const r=await AI.json(`Someone recalls a moment of flow (fully absorbed, lost track of time, proud afterwards). Read it and find the real abilities they used.
+Skill list (id: name): ${SKILLS.map(s=>s.id+": "+s.n.en).join("; ")}
+Story:
+"""${story.slice(0,1500)}"""
+Reply with ONLY JSON: {"title":"a 4-8 word title for this moment in ${t.replyLang}","skills":[{"id":"skill id from the list","why":"one short sentence in ${t.replyLang} naming what they actually did that shows it"}],"need":"one sentence in ${t.replyLang}: which need it met for them (belonging, contribution, being recognised, growth), in the spirit of Adler and Maslow","flow":"one sentence in ${t.replyLang}: the condition that made it flow (a stretch that matched their skill, a clear goal, quick feedback)","next":"one small action in ${t.replyLang} to bring that condition into this week"}
+Pick 3-5 skills that the story clearly shows. Never invent details.`,{modelTier:"default",cache:false});
+    const sk=(Array.isArray(r.skills)?r.skills:[]).filter(x=>x&&SKMAP[x.id]).slice(0,5).map(x=>({id:x.id,why:String(x.why||"").slice(0,80)}));
+    if(sk.length)res={title:String(r.title||"").slice(0,40),skills:sk,need:String(r.need||"").slice(0,120),flow:String(r.flow||"").slice(0,120),next:String(r.next||"").slice(0,60)};
+  }catch(e){}}
+  if(!res){   // no AI: read the story for skill keywords
+    const sk=SKILLS.filter(s=>s.kw.test(story)).slice(0,5).map(s=>({id:s.id,why:""}));
+    res={title:ans[0].slice(0,24),skills:sk,need:"",flow:"",next:"",offline:true};
+  }
+  S.sk.stories.push({title:res.title,d:key(new Date()),skills:res.skills,need:res.need,flow:res.flow});save();
+  out.innerHTML=`<div class="skres jelly"><h3>${k.recipe}</h3>
+${res.skills.length?`<ul class="skev">${res.skills.map(x=>`<li><span>✨</span><b>${esc(skName(x.id))}</b>${x.why?` — ${esc(x.why)}`:""}</li>`).join("")}</ul>`:`<p class="note">${k.noneFound}</p>`}
+${res.need?`<p><b>${k.need}</b>${esc(res.need)}</p>`:""}${res.flow?`<p><b>${k.cond}</b>${esc(res.flow)}</p>`:""}
+${res.offline?`<p class="note">${k.offline}</p>`:""}
+<div class="row end">${res.next?`<button class="pill jelly" type="button" data-sknext="${esc(res.next)}" data-sk="${esc(res.skills[0]?res.skills[0].id:"focus")}">＋ ${esc(res.next)}</button>`:""}<button class="pill pri jelly" type="button" data-close="1">${k.seeTree}</button></div></div>`;
+  render();
+}
+
+/* ----- AI 職涯教練: pick or type a role, see the gap, schedule four weeks ----- */
+let skPlan=null;
+function openCareer(){
+  const k=SKT(),t=T(),l=skL(),{R}=skCompute(),tg=S.sk.target;
+  const top=skTop(R,5);
+  layer(`<div class="shead"><h2>🧭 ${k.coachBtn}</h2>${closeBtn(t)}</div>
+<div class="coachme">${mascot("wave")}<div class="msg ai">${esc(top.length?k.coachHi(top.map(x=>x.s.n[l]).join("、")):k.coachHi0)}</div></div>
+<div class="skroles">${ROLES.map(r=>{const m=skMatch(R,r.req);return `<button class="skrole jelly${tg&&tg.k===r.k?" on":""}" type="button" data-skrole="${r.k}"><b>${esc(r.n[l])}</b><span class="skpct">${m}%</span></button>`}).join("")}</div>
+<label class="fld">${k.ownRole}<div class="row" style="flex-wrap:nowrap"><input id="skRole" type="text" maxlength="40" placeholder="${esc(k.ownRolePh)}"><button class="pill pri jelly" type="button" data-skroleai="1">${I.sparkle}${k.analyse}</button></div></label>
+<div id="skCareer">${tg?careerHTML(tg,R):""}</div>`,true);
+}
+function careerHTML(tg,R){
+  const k=SKT(),l=skL(),m=skMatch(R,tg.req),gaps=skGaps(R,tg.req),have=tg.req.filter(([id,lv])=>skLv(R[id].xp)>=lv);
+  skPlan=skPlan&&skPlan.role===tg.role?skPlan:buildPlan(tg,R);
+  return `<div class="skres jelly"><h3>${esc(tg.role)} <span class="skpct">${m}%</span></h3>
+${tg.note?`<p>${esc(tg.note)}</p>`:""}
+<div class="skbars">${tg.req.map(([id,lv])=>{const hv=skLv(R[id].xp);return `<div class="skbar"><span>${esc(skName(id))}</span><span class="skmeter">${[1,2,3,4,5].map(n=>`<i class="${n<=hv?"have":n<=lv?"need":""}"></i>`).join("")}</span><small>${hv>=lv?"✓":`${hv}/${lv}`}</small></div>`}).join("")}</div>
+${have.length?`<p><b>${k.transfer}</b>${esc(have.map(([id])=>skName(id)).join("、"))}${R[have[0][0]].ev[0]&&R[have[0][0]].ev[0].t?` — ${k.proof}「${esc(R[have[0][0]].ev[0].t)}」`:""}</p>`:""}
+${gaps.length?`<h3>${k.plan4}</h3><ol class="skplan">${[0,1,2,3].map(w=>`<li><b>${k.weekN(w+1)}</b>${skPlan.items.filter(x=>x.w===w).map(x=>`<span>${esc(x.text)}<small>${esc(skName(x.sk))}</small></span>`).join("")}</li>`).join("")}</ol>
+<div class="row"><button class="pill pri jelly" type="button" data-skcal="1">${I.cal}${k.toCal}</button><button class="pill jelly" type="button" data-skgoal="1">🎯 ${k.toGoal}</button><button class="pill jelly" type="button" data-skplanai="1">${I.sparkle}${k.aiTune}</button></div>
+<p class="note" id="skPlanNote">${skPlan.ai?k.aiMade:k.libMade}</p>`:`<p class="note">${k.ready}</p>`}</div>`;
+}
+// four weeks, three tasks a week, biggest gaps first; weekday slots Tue / Thu / Sat
+function buildPlan(tg,R){
+  const l=skL(),gaps=skGaps(R,tg.req),items=[];if(!gaps.length)return {role:tg.role,items};
+  for(let w=0;w<4;w++)for(let j=0;j<3;j++){const n=w*3+j,g=gaps[n%gaps.length],s=SKMAP[g.id],p=s.p[Math.floor(n/gaps.length)%2];items.push({w,d:[1,3,5][j],text:p[l],sk:g.id})}
+  // drop exact duplicates in the same week
+  const seen=new Set();return {role:tg.role,items:items.filter(x=>{const q=x.w+x.text;if(seen.has(q))return false;seen.add(q);return true})};
+}
+function pickRole(rk){const r=ROLES.find(x=>x.k===rk);if(!r)return;S.sk.target={k:r.k,role:r.n[skL()],req:r.req.slice(),note:""};skPlan=null;save();
+  const {R}=skCompute();$("skCareer").innerHTML=careerHTML(S.sk.target,R);document.querySelectorAll("[data-skrole]").forEach(b=>b.classList.toggle("on",b.dataset.skrole===rk));$("skCareer").scrollIntoView({behavior:"smooth",block:"start"})}
+async function roleAI(){
+  const k=SKT(),t=T(),q=$("skRole").value.trim(),out=$("skCareer");if(!q){$("skRole").focus();return}
+  const {R}=skCompute(),top=skTop(R,6);
+  out.innerHTML=`<p class="note">${k.thinking}</p>`;await aiReady;
+  if(!AI){   // no AI: the closest ready-made role by name
+    const hit=ROLES.find(r=>Object.values(r.n).some(n=>n.includes(q)||q.includes(n)));
+    if(hit){pickRole(hit.k);return}
+    out.innerHTML=`<p class="note">${k.noAIrole}</p>`;return}
+  try{
+    const r=await AI.json(`Target job or role: "${q}". Using ONLY ids from this skill list, choose the 5-6 skills an entry-level person in this role needs most, with the level needed (1-5).
+Skill list (id: name): ${SKILLS.map(s=>s.id+": "+s.n.en).join("; ")}
+The person's current strongest skills, with evidence: ${top.map(x=>`${x.s.n.en} (Lv${skLv(x.xp)}, e.g. "${(R[x.s.id].ev.find(e=>e.t)||{}).t||""}")`).join("; ")||"none yet"}
+Reply with ONLY JSON: {"role":"the role name in ${t.replyLang}","req":[{"id":"skill id","lv":3}],"note":"one or two sentences in ${t.replyLang}: which of their existing skills transfer to this role and why, referring to their evidence; be concrete, no empty praise"}`,{modelTier:"default",cache:false});
+    const req=(Array.isArray(r.req)?r.req:[]).filter(x=>x&&SKMAP[x.id]).slice(0,6).map(x=>[x.id,Math.max(1,Math.min(5,parseInt(x.lv,10)||2))]);
+    if(!req.length)throw new Error("empty");
+    S.sk.target={k:"",role:String(r.role||q).slice(0,30),req,note:String(r.note||"").slice(0,200)};skPlan=null;save();
+    out.innerHTML=careerHTML(S.sk.target,R);document.querySelectorAll("[data-skrole]").forEach(b=>b.classList.remove("on"));
+  }catch(e){out.innerHTML=`<p class="note">${esc(e&&e.code?aiErrText(e):k.noAIrole)}</p>`}
+}
+// let the AI rewrite the four weeks around the person's own situation
+async function planAI(){
+  const k=SKT(),t=T(),tg=S.sk.target,note=$("skPlanNote");if(!tg)return;
+  const {R}=skCompute(),gaps=skGaps(R,tg.req);note.textContent=k.thinking;await aiReady;
+  if(!AI){note.textContent=k.noAIplan;return}
+  const recent=[];Object.keys(S.weeks).sort().slice(-2).forEach(kk=>S.weeks[kk].days.forEach(d=>d.forEach(x=>recent.push(x.text))));
+  try{
+    const r=await AI.json(`Make a 4-week practice plan so this person grows toward "${tg.role}". Each week has exactly 3 small, concrete tasks (15-45 minutes each) that fit a busy life; each task trains one gap skill and should produce something visible (a post, a page, a recording, a conversation).
+Gap skills (id, have level → needed level): ${gaps.map(g=>`${g.id} ${g.have}→${g.lv}`).join(", ")}
+Their recent calendar, to fit around: ${recent.slice(0,20).join(" / ")||"empty"}
+Reply with ONLY JSON: {"items":[{"w":0,"d":1,"text":"task in ${t.replyLang}, max 24 characters/6 words","sk":"gap skill id"}]} where w is week 0-3 and d is day 0-6 (0 = Monday).`,{modelTier:"default",cache:false});
+    const items=(Array.isArray(r.items)?r.items:[]).filter(x=>x&&x.text&&SKMAP[x.sk]).slice(0,14).map(x=>({w:Math.max(0,Math.min(3,parseInt(x.w,10)||0)),d:Math.max(0,Math.min(6,parseInt(x.d,10)||0)),text:String(x.text).slice(0,40),sk:x.sk}));
+    if(items.length<4)throw new Error("short");
+    skPlan={role:tg.role,items,ai:true};$("skCareer").innerHTML=careerHTML(tg,R);
+  }catch(e){note.textContent=e&&e.code?aiErrText(e):k.noAIplan}
+}
+// the plan lands in the real calendar, week by week, tagged with its skill
+function planToCal(){
+  const k=SKT(),mon=mondayOf(new Date()),today=key(new Date());if(!skPlan)return;let n=0;
+  if(S.example){S.example=false;S.weeks={}}
+  skPlan.items.forEach(x=>{let d=addDays(mon,7*x.w+x.d);if(key(d)<today)d=addDays(d,7);const w=W(key(mondayOf(d))),i=(d.getDay()+6)%7;
+    if(!w.days[i].some(y=>y.text===x.text)){w.days[i].push({id:uid(),text:x.text,pri:x.w===0?"high":"mid",done:false,sk:[x.sk]});n++}});
+  save();toast(k.calDone(n));
+}
+// …or becomes the eight steps of the Future Grid, one milestone every few days
+function planToGoal(btn){
+  const k=SKT(),tg=S.sk.target;if(!skPlan||!tg)return;
+  if(S.goal&&S.goal.title&&S.goal.title!==k.goalTitle(tg.role)&&!btn.dataset.sure){btn.dataset.sure="1";btn.textContent=k.replaceQ(S.goal.title);return}
+  const it=skPlan.items.slice(0,8),mon=mondayOf(new Date());
+  S.goal={title:k.goalTitle(tg.role),why:tg.note||"",steps:Array.from({length:8},(_,i)=>{const x=it[i];return x?{text:x.text,date:key(addDays(mon,7*x.w+x.d)),done:false,sk:[x.sk]}:{text:"",date:"",done:false}})};
+  walkerP=0;S.example=false;save();goFace(1);toast(k.goalDone);
+}
+// the AI sorts finished tasks the keywords couldn't place
+async function tagWithAI(){
+  const k=SKT(),{unknown}=skCompute();if(!unknown.length)return;await aiReady;
+  if(!AI){toast(k.noAItag);return}
+  toast(k.thinking);
+  try{
+    const r=await AI.json(`Match each finished task to 0-2 skills it trained. Skill list (id: name): ${SKILLS.map(s=>s.id+": "+s.n.en).join("; ")}
+Tasks: ${JSON.stringify(unknown.slice(0,40))}
+Reply with ONLY a JSON object that maps each exact task text to an array of skill ids ([] if none fit).`,{modelTier:"quick",cache:false});
+    let n=0;Object.entries(r||{}).forEach(([tx,ids])=>{if(unknown.includes(tx)&&Array.isArray(ids)){S.sk.tags[tx]=ids.filter(x=>SKMAP[x]).slice(0,2);n++}});
+    save();render();toast(k.tagged(n));
+  }catch(e){toast(aiErrText(e))}
+}
+
+const SK_STR={
+  zh:{empty:"還沒點亮",strong:"你的強項",start:"從這裡長出來",startSub:"完成行事曆的事，或做一次心流回想",flowBtn:"心流回想",coachBtn:"AI 職涯教練",
+    weekTitle:"這週你練到的能力",weekNone:"完成行事曆上的事，這裡就會長出經驗值。",unknown:n=>`有 ${n} 件完成的事還沒歸類。`,tagBtn:"請 AI 幫忙歸類",
+    nextUp:"下一步，補最缺的能力：",ready:"這個角色需要的能力你都到位了，可以開始投履歷或接案了！",openPlan:"看 4 週計畫",
+    more:n=>`還有 ${n} 筆`,noEv:"還沒有紀錄。做一個下面的小練習，完成後就會記在這裡。",already:"我原本就有：",none:"無",added:d=>`已排進 ${d}`,
+    flowIntro:"想一段你做到忘了時間、做完很有成就感的經驗。小時候的、工作上的、當志工的都可以。我會從故事裡找出你真正用到的能力。",
+    flowQ:["那是什麼時候、在做什麼？","你實際做了哪些事？","最讓你有感覺的是什麼？（做出了什麼、幫到誰、被誰看見）"],
+    flowPh:["例如：大學辦迎新，連續三天熬夜也不覺得累","例如：規劃流程、找場地、帶學弟妹玩團康","例如：看到大家玩得很開心，學長說我很會帶氣氛"],
+    flowGo:"找出我的能力",thinking:"正在整理…",recipe:"你的心流配方",need:"它滿足了你：",cond:"讓你進入心流的條件：",noneFound:"這段故事我還找不到明確的能力，多寫一點實際做了什麼試試。",
+    offline:"現在沒有 AI，這是用關鍵字找到的結果；接上 AI 會更準。",seeTree:"看我的技能樹",
+    coachHi:s=>`根據你的紀錄，你目前最強的是：${s}。選一個想走的方向，我幫你算差距，排成 4 週的行事曆。`,coachHi0:"先選一個想走的方向，我幫你看需要哪些能力、排成 4 週的行事曆。完成的事越多，比對越準。",
+    ownRole:"或輸入你想做的工作",ownRolePh:"例如：親子攝影師、Podcast 主持人",analyse:"分析",noAIrole:"現在沒有 AI，先從上面的角色選一個最接近的。",
+    transfer:"你帶得走的能力：",proof:"證據",plan4:"4 週練習計畫",weekN:n=>`第 ${n} 週`,toCal:"排進行事曆",toGoal:"設成未來九宮格",aiTune:"AI 依我的狀況調整",
+    aiMade:"這是 AI 依照你的行事曆調整過的計畫。",libMade:"這是依你的差距從練習庫排的；按「AI 依我的狀況調整」可以更貼近你的生活。",noAIplan:"現在沒有 AI，先用練習庫的計畫就很好。",
+    calDone:n=>`已排進 ${n} 件，完成後會自動長在技能樹上`,goalTitle:r=>`往「${r}」前進`,replaceQ:g=>`再按一次，取代「${g}」`,goalDone:"已設成未來九宮格",
+    noAItag:"現在沒有 AI；可以在技能卡上用「我原本就有」手動補。",tagged:n=>`已歸類 ${n} 件`,
+    faceHint:""},
+  ja:{empty:"まだ未解放",strong:"あなたの強み",start:"ここから育てよう",startSub:"予定を完了するか、フローを思い出してみて",flowBtn:"フローを思い出す",coachBtn:"AI キャリアコーチ",
+    weekTitle:"今週伸びた力",weekNone:"予定を完了すると、ここに経験値がたまります。",unknown:n=>`未分類の完了タスクが ${n} 件あります。`,tagBtn:"AI に分類してもらう",
+    nextUp:"次は、いちばん足りない力を：",ready:"この職種に必要な力はそろっています。応募や受注を始めましょう！",openPlan:"4 週間プランを見る",
+    more:n=>`ほか ${n} 件`,noEv:"まだ記録がありません。下の小さな練習を完了すると、ここに残ります。",already:"もともとある：",none:"なし",added:d=>`${d} に追加しました`,
+    flowIntro:"時間を忘れるほど夢中になり、終わって誇らしかった経験を思い出してください。子どもの頃、仕事、ボランティア、なんでも。物語から本当に使った力を見つけます。",
+    flowQ:["いつ、何をしていましたか？","実際に何をしましたか？","いちばん心に残ったのは？（作ったもの・助けた人・認めてくれた人）"],
+    flowPh:["例：学園祭の実行委員で三日間夢中だった","例：段取りを組み、会場を探し、後輩をまとめた","例：みんなが楽しそうで、先輩にほめられた"],
+    flowGo:"力を見つける",thinking:"整理しています…",recipe:"あなたのフローのレシピ",need:"満たされたもの：",cond:"フローに入った条件：",noneFound:"まだはっきりした力が見つかりません。実際にしたことをもう少し書いてみてください。",
+    offline:"今は AI が使えないので、キーワードで見つけた結果です。AI につなぐともっと正確になります。",seeTree:"スキルツリーを見る",
+    coachHi:s=>`記録から見ると、今の強みは：${s}。進みたい方向を選べば、差を計算して 4 週間の予定にします。`,coachHi0:"進みたい方向を選んでください。必要な力を洗い出し、4 週間の予定にします。完了が増えるほど正確になります。",
+    ownRole:"またはやりたい仕事を入力",ownRolePh:"例：親子フォトグラファー、ポッドキャスター",analyse:"分析",noAIrole:"今は AI が使えません。上から近い職種を選んでください。",
+    transfer:"持っていける力：",proof:"根拠",plan4:"4 週間の練習プラン",weekN:n=>`第 ${n} 週`,toCal:"予定に入れる",toGoal:"未来の九マスにする",aiTune:"AI で自分向けに調整",
+    aiMade:"AI があなたの予定に合わせて調整したプランです。",libMade:"差に合わせて練習集から組みました。「AI で自分向けに調整」でより生活に合わせられます。",noAIplan:"今は AI が使えません。練習集のプランで十分です。",
+    calDone:n=>`${n} 件追加しました。完了するとスキルツリーに反映されます`,goalTitle:r=>`「${r}」へ`,replaceQ:g=>`もう一度押すと「${g}」を置き換えます`,goalDone:"未来の九マスに設定しました",
+    noAItag:"今は AI が使えません。スキルカードの「もともとある」で補えます。",tagged:n=>`${n} 件を分類しました`,faceHint:""},
+  en:{empty:"Not yet",strong:"Your strengths",start:"Grow from here",startSub:"Finish calendar tasks or recall a flow moment",flowBtn:"Recall a flow moment",coachBtn:"AI career coach",
+    weekTitle:"Skills you trained this week",weekNone:"Finish things on your calendar and XP shows up here.",unknown:n=>`${n} finished tasks aren't sorted yet.`,tagBtn:"Let AI sort them",
+    nextUp:"Next, close the biggest gap:",ready:"You have what this role needs. Time to apply or take on work!",openPlan:"See the 4-week plan",
+    more:n=>`${n} more`,noEv:"No record yet. Do a small practice below and it lands here once it's done.",already:"I already have it:",none:"No",added:d=>`Added to ${d}`,
+    flowIntro:"Think of a time you were so absorbed you lost track of time, and felt proud afterwards. Childhood, work, volunteering, anything. I'll find the abilities you really used.",
+    flowQ:["When was it, and what were you doing?","What did you actually do?","What stayed with you most? (what you made, who you helped, who noticed)"],
+    flowPh:["e.g. running the school fair, three late nights and I wasn't tired","e.g. planned the schedule, found a venue, led the games","e.g. everyone had fun and a senior said I was great at it"],
+    flowGo:"Find my abilities",thinking:"Working on it…",recipe:"Your flow recipe",need:"It met your need for: ",cond:"What made it flow: ",noneFound:"I can't see clear abilities yet. Add more about what you actually did.",
+    offline:"No AI right now, so this is from keywords. Connect AI for a sharper read.",seeTree:"See my skill tree",
+    coachHi:s=>`From your record, your strongest skills are ${s}. Pick a direction and I'll measure the gap and turn it into a 4-week calendar.`,coachHi0:"Pick a direction and I'll show the skills it needs and turn them into a 4-week calendar. The more you finish, the sharper the match.",
+    ownRole:"Or type the job you want",ownRolePh:"e.g. family photographer, podcast host",analyse:"Analyse",noAIrole:"No AI right now. Pick the closest role above.",
+    transfer:"Skills you can carry over: ",proof:"proof",plan4:"4-week practice plan",weekN:n=>`Week ${n}`,toCal:"Add to calendar",toGoal:"Make it my Future Grid",aiTune:"Tailor with AI",
+    aiMade:"AI tailored this plan around your calendar.",libMade:"Built from the practice library for your gaps. Tap “Tailor with AI” to fit it to your life.",noAIplan:"No AI right now. The library plan works fine.",
+    calDone:n=>`Added ${n}. Finish them and they grow your tree`,goalTitle:r=>`Toward ${r}`,replaceQ:g=>`Tap again to replace “${g}”`,goalDone:"Set as your Future Grid",
+    noAItag:"No AI right now. Use “I already have it” on a skill card instead.",tagged:n=>`Sorted ${n}`,faceHint:""}
+};
+const SKT=()=>SK_STR[skL()];
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -3695,6 +4118,21 @@ document.addEventListener("click",e=>{
   const feq=el.closest("[data-fiteq]");if(feq){S.fit.eq=feq.dataset.fiteq;save();openFit(fitSel);return}
   const fai=el.closest("[data-fitai]");if(fai){fitPlan(fai.dataset.fitai);return}
   const fcl=el.closest("[data-fitcal]");if(fcl){fitToCal(fcl.dataset.fitcal);return}
+  const skb=el.closest("[data-skb]");if(skb){openSkillBranch(skb.dataset.skb);return}
+  const sks=el.closest("[data-sks]");if(sks){openSkill(sks.dataset.sks);return}
+  const skd=el.closest("[data-skdo]");if(skd){skDo(skd.dataset.skdo,+skd.dataset.p||0);render();return}
+  const sksf=el.closest("[data-skself]");if(sksf){const id=sksf.dataset.skself,lv=+sksf.dataset.lv;S.sk.own[id]=Object.assign(S.sk.own[id]||{},{base:SK_TH[lv]});save();render();
+    const inB=document.querySelectorAll(".sklist .skcard").length>1;if(inB)openSkillBranch(SKMAP[id].b);else openSkill(id);return}
+  if(el.closest("[data-skflow]")){openFlowRecall();return}
+  if(el.closest("[data-skflowgo]")){flowAnalyse();return}
+  const skn=el.closest("[data-sknext]");if(skn){const d=new Date(),i=(d.getDay()+6)%7,w=W(key(mondayOf(d)));w.days[i].push({id:uid(),text:skn.dataset.sknext,pri:"mid",done:false,sk:[skn.dataset.sk]});save();toast(SKT().added(`${T().days[i]} ${T().md(d)}`));skn.disabled=true;return}
+  if(el.closest("[data-skcoach]")){openCareer();return}
+  const skr=el.closest("[data-skrole]");if(skr){pickRole(skr.dataset.skrole);return}
+  if(el.closest("[data-skroleai]")){roleAI();return}
+  if(el.closest("[data-skplanai]")){planAI();return}
+  if(el.closest("[data-skcal]")){planToCal();render();return}
+  const skg=el.closest("[data-skgoal]");if(skg){planToGoal(skg);return}
+  if(el.closest("[data-sktag]")){tagWithAI();return}
   const aip=el.closest("[data-aiprov]");if(aip){const c=aiCfg(),k=aip.dataset.aiprov;setAiCfg(k?Object.assign({},c,{provider:k,model:c.provider===k?c.model:""}):{});AI=pickAI();openSettings();return}
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
