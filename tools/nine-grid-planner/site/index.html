@@ -446,6 +446,42 @@ body.ranging .gbar{pointer-events:none}
 .slot em{font-style:normal;font-size:11px;border-radius:999px;padding:1px 8px;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);white-space:nowrap}
 .slot.taken em{background:var(--chip);color:var(--muted)}
 
+/* word cards */
+.dchips{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;margin-inline:-2px}
+.dchips::-webkit-scrollbar{display:none}
+.dchips button{flex:none;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:6px 13px;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge);white-space:nowrap}
+.dchips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:transparent}
+.dchips button i{font-style:normal;font-size:10px;border-radius:999px;padding:0 6px;background:var(--accent);color:var(--on-accent)}
+.dchips button svg{width:14px;height:14px}
+.wgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;touch-action:pan-y}
+.wcell{aspect-ratio:1;max-width:100%;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;min-width:0;--r:26px;transition:transform .25s var(--ease)}
+.wcell:hover{transform:translateY(-2px)}
+.wcell .wt{position:absolute;top:9px;left:10px;font-size:11px;border-radius:999px;padding:0 8px;background:var(--chip);color:var(--muted)}
+.wcell .ww{font-size:22px;line-height:1.25;overflow-wrap:anywhere}
+.wcell .wx{font-size:13px;line-height:1.5;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.wcell.syn{--t:var(--c5)}.wcell.ant{--t:var(--c4)}.wcell.rel{--t:var(--c3)}.wcell.ex{--t:var(--c2)}
+.wcell.blank{opacity:.35;pointer-events:none}
+.wc{--t:var(--accent)}
+.wc .emo{font-size:40px;line-height:1}
+.wc .big{font-size:34px;letter-spacing:.06em;line-height:1.15}
+.wc.q{gap:6px}.wc.q small{line-height:1.35}
+.wc .say{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--chip)}
+.wc .say svg{width:16px;height:16px}
+.wc small{font-size:11px;color:var(--muted)}
+.wc .lk{width:34px;height:34px;color:var(--accent)}
+.wc .lk svg{width:34px;height:34px}
+.wcell.ok{--t:var(--c5);animation:okpop .45s var(--ease)}
+.wcell.ok::after{content:"✓";position:absolute;top:8px;right:10px;color:#fff;background:#4CAF7A;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px}
+.wcell.bad{animation:shake .4s}
+@keyframes okpop{40%{transform:scale(1.08)}}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.wnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wnav .cnt2{font-family:var(--f-num);font-weight:800;font-size:13px;color:var(--muted);min-width:52px;text-align:center}
+.wnav .grow{flex:1}
+.trail{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.stars{font-size:26px;letter-spacing:4px;color:var(--mid)}
+@media (max-width:600px){.wcell{padding:7px;--r:20px}.wcell .ww{font-size:18px}.wc .big{font-size:26px}.wc .emo{font-size:32px}.wcell .wx{font-size:11.5px}}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -512,6 +548,7 @@ body.ranging .gbar{pointer-events:none}
   <button class="knob" id="knob" type="button"><svg viewBox="0 0 34 34" aria-hidden="true"><g fill="currentColor"><rect x="1" y="1" width="9" height="9" rx="3"/><rect x="12.5" y="1" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="1" width="9" height="9" rx="3" opacity=".55"/><rect x="1" y="12.5" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="12.5" width="9" height="9" rx="3" opacity=".55"/><rect x="1" y="24" width="9" height="9" rx="3" opacity=".55"/><rect x="12.5" y="24" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="24" width="9" height="9" rx="3" opacity=".55"/></g><circle cx="17" cy="17" r="4.6" fill="var(--accent)"/></svg></button>
   <button class="fb" type="button" data-face="2"></button>
   <button class="fb" type="button" data-face="3"></button>
+  <button class="fb" type="button" data-face="4"></button>
 </nav>
 
 <div id="layer"></div>
@@ -530,7 +567,10 @@ const OWNER={
   donate:{week:"",month:""},               // 捐款頁網址（週／月），空白時顯示「即將開放」
   sponsorContact:"",                       // 想成為贊助夥伴的聯絡網址（表單或社群私訊連結）
   sponsorPrice:{week:"",month:"NT$ 5,000"}, // 贊助方案價格，空白就不顯示
-  googleClientId:""                        // Google 登入用的 OAuth 用戶端 ID（只在安裝版網址有效）
+  googleClientId:"",                       // Google 登入用的 OAuth 用戶端 ID（只在安裝版網址有效）
+  proDecks:["grow"],                       // 需要加購的字卡（示範：成長心態）；清空就全部免費
+  trialCards:3,                            // 加購字卡可以免費試玩的張數
+  wordStore:""                             // 加購頁網址；空白時顯示「即將推出」
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
 const SPONSORS=[
@@ -541,8 +581,8 @@ const SPONSORS=[
 /* ---------- strings ---------- */
 const STR={
   zh:{
-    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴"],
+    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -599,6 +639,9 @@ const STR={
     impTk:"用 Google Takeout 匯入聽歌習慣",impTkHow:"到 Google Takeout 只勾選「YouTube 和 YouTube Music」裡的「記錄」和「訂閱內容」，記錄格式選 JSON。下載後把 .zip 直接上傳，會照你播放最多次的歌排序。",impTkOpen:"打開 Google Takeout",impUp:"上傳檔案",
     impPaste:"貼上 YouTube 連結",impPastePh:"一行一個連結，前面可以寫歌名",impRead:"讀取",impFound:n=>`找到 ${n} 個，勾選要放進九格的：`,impApply:n=>`放進心流歌單（${n}）`,impNone:"沒有找到 YouTube 影片或播放清單。",impReading:"讀取中…",impDone:"歌單換好了",
     kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",
+    wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
+    wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
+    wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
     sideUser:"為你推薦",sidePartner:"成為合作夥伴",soonSlot:"即將加入",pickTags:"選幾個有興趣的主題，合拍的夥伴會排在前面。",noPartners:"夥伴陸續加入中。先選好你有興趣的主題，之後會優先推薦給你。",
     pTitle:"讓對的人，在規劃一週的時候看見你",pPoints:["依使用者自己選的興趣主題配對，只出現在合拍的人面前","出現在每天打開的九宮格裡，不是一閃而過的廣告","配對在使用者自己的手機上完成，我們不收集個人資料"],
     pPlans:"合作方案",pSlots:"合作版位",slotOpen:"開放中",slotTaken:"已有夥伴",pContact:"洽詢合作",replyLang:"Traditional Chinese as used in Taiwan",
@@ -616,12 +659,13 @@ const STR={
        [".music [data-song='0'] .pen","點筆，換成你自己的歌。"]],
       [["#sideSeg","這裡分成兩個入口：「為你推薦」給你用，「成為合作夥伴」給品牌看。"],["#tagRow","選幾個你有興趣的主題。"],
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
-       [".spons .center","喜歡這個工具，可以從這裡支持我們。"]]
+       [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
+      [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]]
     ]
   },
   ja:{
-    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう"],
+    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -678,6 +722,9 @@ const STR={
     impTk:"Google Takeout で再生履歴を取り込む",impTkHow:"Google Takeout で「YouTube と YouTube Music」の「履歴」と「登録チャンネル」だけを選び、履歴の形式は JSON に。ダウンロードした .zip をそのままアップロードすると、よく再生した順に並べます。",impTkOpen:"Google Takeout を開く",impUp:"ファイルを選ぶ",
     impPaste:"YouTube のリンクを貼る",impPastePh:"1 行に 1 リンク。前に曲名を書いても OK",impRead:"読み込む",impFound:n=>`${n} 件見つかりました。九マスに入れるものを選んでください：`,impApply:n=>`プレイリストに入れる（${n}）`,impNone:"YouTube の動画や再生リストが見つかりません。",impReading:"読み込み中…",impDone:"プレイリストを更新しました",
     kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",
+    wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
+    wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
+    wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
     sideUser:"あなたへのおすすめ",sidePartner:"パートナーになる",soonSlot:"近日参加",pickTags:"興味のあるテーマを選ぶと、合うパートナーが先に並びます。",noPartners:"パートナーは順次参加予定です。テーマを選んでおくと、優先しておすすめします。",
     pTitle:"一週間を計画するその時に、ぴったりの人へ届く",pPoints:["ユーザーが自分で選んだ興味テーマでマッチング","毎日開く九マスの中に表示。流れていく広告ではありません","マッチングはユーザーの端末内で完結。個人データは収集しません"],
     pPlans:"プラン",pSlots:"掲載枠",slotOpen:"募集中",slotTaken:"掲載中",pContact:"お問い合わせ",replyLang:"Japanese",
@@ -695,12 +742,13 @@ const STR={
        [".music [data-song='0'] .pen","ペンで自分の曲に変更。"]],
       [["#sideSeg","入口は二つ。「あなたへのおすすめ」はあなた用、「パートナーになる」はブランド向けです。"],["#tagRow","興味のあるテーマを選んでください。"],
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
-       [".spons .center","気に入ったら、ここから応援できます。"]]
+       [".spons .center","気に入ったら、ここから応援できます。"]],
+      [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]]
     ]
   },
   en:{
-    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests"],
+    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -757,6 +805,9 @@ const STR={
     impTk:"Import your listening habits with Google Takeout",impTkHow:"In Google Takeout, select only “history” and “subscriptions” under “YouTube and YouTube Music”, and choose JSON for history. Upload the .zip as it is; songs are ranked by how often you played them.",impTkOpen:"Open Google Takeout",impUp:"Upload file",
     impPaste:"Paste YouTube links",impPastePh:"One link per line; you can put the song name first",impRead:"Read",impFound:n=>`Found ${n}. Tick the ones for your grid:`,impApply:n=>`Add to Flow Playlist (${n})`,impNone:"No YouTube videos or playlists found.",impReading:"Reading…",impDone:"Playlist updated",
     kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",
+    wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
+    wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
+    wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
     sideUser:"For you",sidePartner:"Partner with us",soonSlot:"Coming soon",pickTags:"Pick a few topics you like; matching partners come first.",noPartners:"Partners are joining soon. Pick your topics now and we'll suggest the right ones first.",
     pTitle:"Be seen by the right people while they plan their week",pPoints:["Matched on the interest topics people choose themselves","Shown inside the grid they open every day, not a passing ad","Matching happens on the person's own phone; we collect no personal data"],
     pPlans:"Plans",pSlots:"Partner slots",slotOpen:"Open",slotTaken:"Taken",pContact:"Talk to us",replyLang:"English",
@@ -774,7 +825,8 @@ const STR={
        [".music [data-song='0'] .pen","Tap the pen to swap in your own song."]],
       [["#sideSeg","Two doors: “For you” is yours; “Partner with us” is for brands."],["#tagRow","Pick a few topics you care about."],
        [".spons [data-sp='0']","Partners that match light up."],
-       [".spons .center","Like the tool? You can support it here."]]
+       [".spons .center","Like the tool? You can support it here."]],
+      [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]]
     ]
   }
 };
@@ -974,9 +1026,11 @@ const I={
   list:sv('<path d="M7 5h10M7 10h10M7 15h10"/><circle cx="3.5" cy="5" r=".9" fill="currentColor"/><circle cx="3.5" cy="10" r=".9" fill="currentColor"/><circle cx="3.5" cy="15" r=".9" fill="currentColor"/>'),
   globe:sv('<circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/>'),
   user:sv('<circle cx="10" cy="7" r="3.3"/><path d="M3.5 17.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5"/>'),
+  cards:sv('<rect x="2.5" y="5" width="11" height="12.5" rx="2.5"/><path d="M6.5 5V4a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17.5 4v10a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M5.5 10h5M5.5 13h3"/>'),
+  lock:sv('<rect x="4" y="9" width="12" height="8.5" rx="2.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
-const FACE_ICONS=[I.grid,I.target,I.music,I.heart];
+const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards];
 
 /* ---------- skins & background art ---------- */
 const SKINS={
@@ -1146,9 +1200,9 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%4]);
+  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%5]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -1453,7 +1507,7 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 
 /* ---------- face rotation ---------- */
 function goFace(n,dir){
-  n=(n+4)%4;if(n===S.face||rotating)return;
+  n=(n+5)%5;if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -1738,7 +1792,7 @@ async function makeCard(fmt){
   const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
   tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
   const B={X:60,Y:268,W:W0-120,H:H0-268-130};
-  [cardWeek,cardGoal,cardMusic,cardFriends][S.face](x,B,P,t);
+  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords][S.face](x,B,P,t);
   return c;
 }
 function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
@@ -2157,6 +2211,226 @@ function openImport(){
 <div id="impRes"></div>`,true);
 }
 
+
+/* =========================================================
+   語寶字卡: learn, branch out, play and review
+   ========================================================= */
+const WC=(w,e,syn,ant,rel,ex)=>({w,e,syn,ant,rel,ex});
+const DECKS=[
+  {id:"emo",name:"情緒",cards:[
+    WC("開心","😄",["快樂","高興"],["難過","傷心"],["微笑","分享"],"收到禮物，我好開心！"),
+    WC("難過","😢",["傷心","悲傷"],["開心","快樂"],["哭","安慰"],"小狗走丟了，妹妹很難過。"),
+    WC("生氣","😠",["憤怒","惱火"],["平靜","冷靜"],["吵架","深呼吸"],"積木被推倒，弟弟好生氣。"),
+    WC("害怕","😨",["恐懼","膽怯"],["勇敢","安心"],["黑暗","抱抱"],"打雷的時候，我有點害怕。"),
+    WC("緊張","😬",["焦慮","不安"],["放鬆","輕鬆"],["比賽","心跳"],"上台表演前，我好緊張。"),
+    WC("平靜","😌",["冷靜","安定"],["激動","慌張"],["深呼吸","安靜"],"聽著雨聲，心裡很平靜。"),
+    WC("驚訝","😲",["吃驚","意外"],["平靜"],["驚喜","彩虹"],"看到雙彩虹，大家都很驚訝。"),
+    WC("孤單","🥺",["寂寞","孤獨"],["熱鬧","陪伴"],["朋友","想念"],"一個人等公車，覺得有點孤單。"),
+    WC("期待","🤩",["盼望","希望"],["失望"],["生日","旅行"],"我好期待週末去動物園。"),
+    WC("失望","😞",["沮喪","灰心"],["期待","滿意"],["再試一次","安慰"],"比賽輸了，他很失望，但決定再練習。")]},
+  {id:"char",name:"品格",cards:[
+    WC("勇敢","🦁",["大膽","英勇"],["膽小","懦弱"],["挑戰","嘗試"],"她勇敢地舉手回答問題。"),
+    WC("誠實","🤝",["老實","坦白"],["說謊","欺騙"],["信任","承認"],"打破杯子後，他誠實地告訴媽媽。"),
+    WC("耐心","🐢",["耐性","沉著"],["急躁","不耐煩"],["等待","慢慢來"],"拼圖要有耐心，一片一片來。"),
+    WC("善良","💗",["仁慈","好心"],["殘忍","惡毒"],["幫助","分享"],"他很善良，常常照顧流浪貓。"),
+    WC("負責","📋",["盡責","可靠"],["推卸","敷衍"],["任務","承諾"],"輪到我值日，我會負責把教室掃乾淨。"),
+    WC("感恩","🌷",["感激","知足"],["抱怨"],["謝謝","回饋"],"我們要感恩身邊幫助我們的人。"),
+    WC("堅持","🧗",["堅定","不放棄"],["放棄","半途而廢"],["練習","目標"],"他堅持每天練琴，終於彈好這首曲子。"),
+    WC("禮貌","🙇",["有禮","客氣"],["無禮","粗魯"],["請","謝謝"],"見到長輩要有禮貌地打招呼。"),
+    WC("合作","🧩",["協力","配合"],["對立"],["團隊","分工"],"大家合作，很快就把帳篷搭好了。"),
+    WC("尊重","🫶",["敬重","重視"],["輕視","不屑"],["傾聽","界線"],"我們要尊重別人的想法。")]},
+  {id:"opp",name:"相反詞",cards:[
+    WC("大","🐘",["巨大","龐大"],["小","微小"],["大象","大樹"],"大象的耳朵好大。"),
+    WC("小","🐭",["微小","迷你"],["大","巨大"],["老鼠","螞蟻"],"小螞蟻搬著一粒米。"),
+    WC("快","🐆",["迅速","快速"],["慢","緩慢"],["跑步","火車"],"獵豹跑得好快。"),
+    WC("慢","🐌",["緩慢","慢吞吞"],["快","迅速"],["蝸牛","烏龜"],"蝸牛慢慢地爬上葉子。"),
+    WC("熱","☀️",["炎熱","燙"],["冷","寒冷"],["夏天","太陽"],"夏天好熱，我們去游泳吧。"),
+    WC("冷","❄️",["寒冷","冰涼"],["熱","炎熱"],["冬天","雪"],"冬天很冷，要穿外套。"),
+    WC("高","🦒",["高大","高聳"],["矮","低"],["長頸鹿","大樓"],"長頸鹿長得好高。"),
+    WC("矮","🐧",["矮小"],["高","高大"],["企鵝","小草"],"企鵝矮矮的，走路搖搖擺擺。"),
+    WC("多","🍇",["許多","很多"],["少","稀少"],["葡萄","星星"],"天上有好多星星。"),
+    WC("少","🍪",["稀少","一點點"],["多","許多"],["剩下","分享"],"盤子裡的餅乾只剩少少幾片。"),
+    WC("乾淨","🧼",["整潔","清潔"],["髒","骯髒"],["洗手","打掃"],"吃飯前要把手洗乾淨。"),
+    WC("髒","🐷",["骯髒","汙濁"],["乾淨","整潔"],["泥巴","洗澡"],"在泥巴裡玩，衣服變得好髒。")]},
+  {id:"grow",name:"成長心態",cards:[
+    WC("專注","🎯",["專心","投入"],["分心","散漫"],["心流","番茄鐘"],"關掉通知，才能專注寫完報告。"),
+    WC("挑戰","⛰️",["考驗","難關"],["安逸"],["成長","心流"],"好的挑戰，剛好比現在的能力難一點。"),
+    WC("好奇","🔍",["好問","探索"],["冷漠"],["提問","學習"],"保持好奇，每天都能學到新東西。"),
+    WC("鼓勵","📣",["激勵","打氣"],["打擊","潑冷水"],["支持","肯定"],"比起稱讚結果，鼓勵他付出的努力更有力量。"),
+    WC("成長","🌱",["進步","茁壯"],["停滯","退步"],["學習","改變"],"每一次失敗，都是成長的機會。"),
+    WC("自律","⏰",["自制","克己"],["放縱","懶散"],["習慣","計畫"],"靠自律養成每天運動的習慣。"),
+    WC("韌性","🎋",["堅韌","彈性"],["脆弱"],["復原","逆境"],"有韌性的人跌倒了會再站起來。"),
+    WC("目標","🏁",["目的","方向"],["迷惘"],["計畫","步驟"],"把大目標拆成八個小步驟。"),
+    WC("自信","✨",["篤定","有把握"],["自卑","沒把握"],["肯定","勇氣"],"準備充足，上台時就更有自信。"),
+    WC("歸屬","🏡",["認同","連結"],["疏離","孤立"],["家人","社群"],"在團隊裡找到歸屬感，做事更有動力。")]}
+];
+S.w=S.w||{deck:"emo",idx:0,mode:"learn",known:{},review:{},custom:[]};
+S.wordx=S.wordx||{};
+let wtrail=[],wview=null,game=null;   // wview: a word opened from the outer ring
+const allDecks=()=>[...DECKS,...(S.w.custom||[])];
+const deckOf=id=>allDecks().find(d=>d.id===id)||DECKS[0];
+const isPro=d=>OWNER.proDecks.includes(d.id);
+const openCount=d=>isPro(d)?Math.min(d.cards.length,OWNER.trialCards):d.cards.length;
+// a paid deck lets you step one card past the preview, where the unlock card shows
+const lastIdx=d=>isPro(d)&&openCount(d)<d.cards.length?openCount(d):d.cards.length-1;
+function findCard(w){for(const d of allDecks()){const k=d.cards.find(x=>x.w===w);if(k)return {deck:d,card:k}}const x=S.wordx[w];return x?{deck:null,card:Object.assign({w},x)}:null}
+function reviewList(){return Object.keys(S.w.review).map(k=>{const [id,w]=k.split("\u0001");const d=allDecks().find(z=>z.id===id);return d&&d.cards.find(z=>z.w===w)?{deck:d,card:d.cards.find(z=>z.w===w)}:null}).filter(Boolean)}
+function curCard(){
+  if(wview)return wview;
+  if(S.w.mode==="review"){const r=reviewList();if(!r.length)return null;S.w.idx=Math.min(S.w.idx,r.length-1);return r[S.w.idx]}
+  const d=deckOf(S.w.deck);S.w.idx=Math.max(0,Math.min(S.w.idx,lastIdx(d)));return d.cards.length?{deck:d,card:d.cards[S.w.idx]}:null;
+}
+function ringFor(card){
+  const cells=Array(9).fill(null),put=(slots,items)=>{for(const it of items){const i=slots.find(x=>!cells[x]);if(i==null)return items.slice(items.indexOf(it));cells[i]=it}return []};
+  let rest=[];
+  rest=rest.concat(put([0,1],(card.syn||[]).map(w=>({k:"syn",w}))));
+  rest=rest.concat(put([5,8],(card.ant||[]).map(w=>({k:"ant",w}))));
+  rest=rest.concat(put([2,3,7],(card.rel||[]).map(w=>({k:"rel",w}))));
+  if(card.ex)rest=rest.concat(put([6],[{k:"ex",w:card.ex}]));
+  put([0,1,2,3,5,6,7,8],rest);
+  return cells;
+}
+function renderWordFace(){
+  const t=T(),d=deckOf(S.w.deck),rv=reviewList().length;
+  let h=`<div class="dchips" role="group">${allDecks().map(x=>`<button type="button" data-deck="${x.id}" aria-pressed="${x.id===S.w.deck&&S.w.mode!=="review"}">${esc(x.name)}${isPro(x)?`<i>${t.wPro}</i>`:""}</button>`).join("")}<button type="button" data-wimp="open">${I.upload}${t.wImport}</button></div>
+<div class="bar"><div class="seg jelly small" id="wmode" role="group"><button type="button" data-wmode="learn" aria-pressed="${S.w.mode==="learn"}">${t.wLearn}</button><button type="button" data-wmode="game" aria-pressed="${S.w.mode==="game"}">${t.wGame}</button><button type="button" data-wmode="review" aria-pressed="${S.w.mode==="review"}">${t.wReview}${rv?` ${rv}`:""}</button></div></div>`;
+  if(wtrail.length)h+=`<div class="trail">${wtrail.map((x,i)=>`<button class="expill" type="button" data-trail="${i}" style="padding-right:12px">‹ ${esc(x.card.w)}</button>`).join("")}</div>`;
+  h+=S.w.mode==="game"?gameHTML(t):learnHTML(t);
+  $("face").innerHTML=h;
+  if(S.w.mode==="game"&&!game)newGame();
+}
+function learnHTML(t){
+  const cc=curCard();
+  if(!cc){return `<div class="wgrid" id="wgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="emo">🌟</span><span class="note">${t.wReviewEmpty}</span></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`}
+  const {deck,card}=cc,d=deck||deckOf(S.w.deck);
+  const locked=!wview&&S.w.mode==="learn"&&isPro(d)&&S.w.idx>=openCount(d);
+  if(locked){
+    const url=OWNER.wordStore;
+    return `<div class="wgrid" id="wgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="lk">${I.lock}</span><b style="font-weight:400">${t.wTrialEnd}</b><small>${t.wUnlock(d.cards.length)}</small>${url?`<a class="pill pri jelly" href="${esc(url)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<small>${t.wSoon}</small>`}</div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>${navHTML(t,d)}`;
+  }
+  const ring=ringFor(card);
+  const cells=ring.map((it,i)=>{
+    if(i===4)return `<div class="wcell jelly wc" data-say="${esc(card.w)}"><span class="emo">${esc(card.e||"✦")}</span><span class="big">${esc(card.w)}</span><small>${esc(deck?deck.name:"")}</small><button class="say" type="button" data-say="${esc(card.w)}" aria-label="${t.readToday}">${I.speak}</button></div>`;
+    if(!it)return `<div class="wcell jelly blank"></div>`;
+    const lbl={syn:t.wSyn,ant:t.wAnt,rel:t.wRel,ex:t.wEx}[it.k];
+    return it.k==="ex"?`<button class="wcell jelly ex" type="button" data-say="${esc(it.w)}"><span class="wt">${lbl}</span><span class="wx">${esc(it.w)}</span></button>`
+      :`<button class="wcell jelly ${it.k}" type="button" data-wi="${i}" data-word="${esc(it.w)}"><span class="wt">${lbl}</span><span class="ww">${esc(it.w)}</span></button>`;
+  });
+  const extra=wview&&!(card.syn||[]).length&&!(card.ant||[]).length&&!(card.rel||[]).length;
+  return `<div class="wgrid" id="wgrid">${cells.join("")}</div>
+${extra?`<div class="row" style="justify-content:center"><span class="note">${t.wNoMore}</span>${AI?`<button class="pill pri jelly" type="button" data-wx="ai">${I.sparkle}${t.wAI}</button>`:""}</div>`:""}
+${wview?`<div class="row" style="justify-content:center">${deck?"":`<button class="pill jelly" type="button" data-wx="mine">＋ ${t.wAddMine}</button>`}</div>`:navHTML(t,deck||d)}`;
+}
+function navHTML(t,d){
+  const n=S.w.mode==="review"?reviewList().length:d.cards.length,cc=curCard(),k=cc&&cc.card&&cc.deck?cc.deck.id+"\u0001"+cc.card.w:null;
+  return `<div class="wnav"><button class="round jelly" type="button" data-wnav="-1" aria-label="‹">${sv('<path d="M12.5 4.5 7 10l5.5 5.5"/>',2)}</button><span class="cnt2">${Math.min(S.w.idx+1,n)} / ${n}</span><button class="round jelly" type="button" data-wnav="1" aria-label="›">${sv('<path d="M7.5 4.5 13 10l-5.5 5.5"/>',2)}</button><span class="grow"></span>
+${k?`<button class="pill jelly" type="button" data-wmark="again"${S.w.review[k]?` style="box-shadow:0 0 0 2px var(--mid)"`:""}>↺ ${t.wAgain}</button><button class="pill ${S.w.known[k]?"pri ":""}jelly" type="button" data-wmark="known">✓ ${t.wKnown}</button>`:""}</div>`;
+}
+function wordNav(dir){
+  const t=T();wview=null;wtrail=[];
+  const n=S.w.mode==="review"?reviewList().length:deckOf(S.w.deck).cards.length;
+  const d=deckOf(S.w.deck),max=S.w.mode==="review"?n-1:lastIdx(d);
+  const next=Math.max(0,Math.min(max,S.w.idx+dir));if(next===S.w.idx)return;
+  S.w.idx=next;save();
+  const g=$("wgrid");
+  if(g&&g.animate&&!reduced()){g.animate([{transform:"translateX(0)",opacity:1},{transform:`translateX(${-dir*40}px)`,opacity:0}],{duration:140,easing:"ease-in"}).finished.then(()=>{render();const g2=$("wgrid");if(g2)g2.animate([{transform:`translateX(${dir*40}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:220,easing:"cubic-bezier(.2,.9,.25,1.1)"})})}
+  else render();
+}
+function openWord(w){
+  const cc=curCard();if(cc)wtrail.push(cc);
+  const f=findCard(w);wview=f||{deck:null,card:{w,e:"",syn:[],ant:[],rel:[],ex:""}};
+  render();if(S.voice)speak(w);
+}
+async function expandWord(){
+  const t=T(),w=wview&&wview.card.w;if(!w)return;await aiReady;if(!AI)return;
+  toast(t.wAIing);
+  try{
+    const r=await AI.json(`For the ${t.replyLang} word "${w}", reply with ONLY JSON {"e":"one emoji","syn":["up to 2 synonyms"],"ant":["up to 2 antonyms, [] if none"],"rel":["2-3 related words"],"ex":"one short example sentence a child could read, max 20 characters/words"}. Words must be in ${t.replyLang}.`,{modelTier:"quick"});
+    const clean=a=>(Array.isArray(a)?a:[]).map(x=>String(x).slice(0,12)).filter(Boolean).slice(0,3);
+    S.wordx[w]={e:String(r.e||"").slice(0,4),syn:clean(r.syn),ant:clean(r.ant),rel:clean(r.rel),ex:String(r.ex||"").slice(0,60)};save();
+    wview={deck:null,card:Object.assign({w},S.wordx[w])};render();
+  }catch(e){toast(aiErrText(e))}
+}
+
+/* ---- game: find the synonyms or opposites among eight words ---- */
+function newGame(){
+  const d=deckOf(S.w.deck),cards=d.cards.slice(0,openCount(d)).filter(k=>(k.syn||[]).length||(k.ant||[]).length);
+  const pool=[...new Set(d.cards.flatMap(k=>[k.w,...(k.syn||[]),...(k.ant||[]),...(k.rel||[])]))];
+  const qs=cards.slice().sort(()=>Math.random()-.5).slice(0,8).map(k=>{
+    const type=(k.ant||[]).length&&(Math.random()<.5||!(k.syn||[]).length)?"ant":"syn";
+    const ans=(k[type]||[]).slice(0,3),skip=new Set([k.w,...(k.syn||[]),...(k.ant||[])]);
+    const dis=pool.filter(w=>!skip.has(w)).sort(()=>Math.random()-.5).slice(0,8-ans.length);
+    return {card:k,deck:d,type,ans,opts:[...ans,...dis].sort(()=>Math.random()-.5),found:[],miss:false};
+  });
+  game={qs,i:0,score:0,done:false};
+}
+function gameHTML(t){
+  if(!game)newGame();
+  if(game.done||!game.qs.length){
+    const n=game.qs.length,st=n?Math.round(game.score/n*3):0;
+    return `<div class="wgrid" id="wgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="stars">${"★".repeat(st)}${"☆".repeat(3-st)}</span><b style="font-weight:400">${t.wScore(game.score,n)}</b><button class="pill pri jelly" type="button" data-wgame="again">${t.wAgainPlay}</button></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
+  }
+  const q=game.qs[game.i],slots=[0,1,2,3,5,6,7,8];
+  const cells=Array(9);
+  q.opts.forEach((w,j)=>{const ok=q.found.includes(w);cells[slots[j]]=`<button class="wcell jelly rel${ok?" ok":""}" type="button" data-gopt="${esc(w)}"><span class="ww">${esc(w)}</span></button>`});
+  for(let j=q.opts.length;j<8;j++)cells[slots[j]]=`<div class="wcell jelly blank"></div>`;
+  cells[4]=`<div class="wcell jelly wc q"><small>${t.wQ(game.i+1,game.qs.length)} · ★ ${game.score}</small><span class="big">${esc(q.card.w)}</span><small style="color:var(--ink)">${esc(t.wFind(q.card.w,q.ans.length,q.type==="ant"?t.wAnt:t.wSyn))}</small></div>`;
+  return `<div class="wgrid" id="wgrid">${cells.join("")}</div>`;
+}
+function gamePick(btn){
+  const q=game.qs[game.i],w=btn.dataset.gopt;if(q.found.includes(w))return;
+  if(q.ans.includes(w)){
+    q.found.push(w);btn.classList.add("ok");if(S.chime){unlockAudio();chime()}
+    if(q.found.length===q.ans.length){if(!q.miss)game.score++;setTimeout(()=>{game.i++;if(game.i>=game.qs.length)game.done=true;render()},750)}
+  }else{
+    q.miss=true;S.w.review[q.deck.id+"\u0001"+q.card.w]=1;save();
+    btn.classList.remove("bad");void btn.offsetWidth;btn.classList.add("bad");
+  }
+}
+
+/* ---- import my own cards (the old 語寶字卡 come back here) ---- */
+function openWordImport(){
+  const t=T();
+  layer(`<div class="shead"><h2>${t.wImpTitle}</h2>${closeBtn(t)}</div>
+<label class="fld">${t.wImpName}<input id="wdName" type="text" maxlength="20" value="${esc(t.wMine)}"></label>
+<p class="note">${t.wImpHow}</p>
+<textarea id="wdText" class="impta" style="min-height:140px" placeholder="開心, 快樂/高興, 難過/傷心, 微笑/分享, 收到禮物，我好開心！"></textarea>
+<div class="row end">${AI?`<button class="pill jelly" type="button" data-wimp="ai">${I.sparkle}${t.wImpAI}</button>`:""}<button class="pill pri jelly" type="button" data-wimp="go">${t.wImpGo}</button></div>`,true);
+}
+function parseWordLines(text){
+  const sp=x=>(x||"").split(/[\/、|｜]/).map(y=>y.trim()).filter(Boolean);
+  return text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const f=l.includes("\t")?l.split("\t"):l.split(/[,，]/);
+    return {w:(f[0]||"").trim(),e:"",syn:sp(f[1]),ant:sp(f[2]),rel:sp(f[3]),ex:(f.slice(4).join("，")||"").trim()}}).filter(k=>k.w);
+}
+async function wordImport(withAI){
+  const t=T();let cards=parseWordLines($("wdText").value);
+  if(!cards.length){toast(t.wImpNone);return}
+  if(withAI){
+    await aiReady;if(!AI)return;toast(t.wAIing);
+    const need=cards.filter(k=>!k.syn.length&&!k.ant.length&&!k.rel.length).slice(0,20).map(k=>k.w);
+    if(need.length)try{
+      const r=await AI.json(`For each ${t.replyLang} word below, give learning links. Reply with ONLY a JSON object mapping each word to {"e":"one emoji","syn":["up to 2 synonyms"],"ant":["up to 2 antonyms or []"],"rel":["2-3 related words"],"ex":"short example sentence for a child"}. All text in ${t.replyLang}.\nWords: ${need.join(", ")}`,{modelTier:"default"});
+      cards=cards.map(k=>{const x=r&&r[k.w];if(!x)return k;const cl=a=>(Array.isArray(a)?a:[]).map(String).filter(Boolean).slice(0,3);return {w:k.w,e:String(x.e||"").slice(0,4),syn:cl(x.syn),ant:cl(x.ant),rel:cl(x.rel),ex:k.ex||String(x.ex||"").slice(0,60)}});
+    }catch(e){toast(aiErrText(e));return}
+  }
+  const id="my"+uid();S.w.custom=(S.w.custom||[]).concat([{id,name:($("wdName").value||t.wMine).trim().slice(0,20),cards}]);
+  S.w.deck=id;S.w.idx=0;S.w.mode="learn";wview=null;wtrail=[];save();closeLayer();render();toast(t.wImpDone(cards.length));
+}
+
+/* ---- share card for this face ---- */
+function cardWords(x,B,P,t){
+  const cc=curCard(),G=gridBox(B,20);if(!cc||!cc.card)return cardFriends(x,B,P,t);
+  const card=cc.card,ring=ringFor(card),tint={syn:P.tints[5],ant:P.tints[4],rel:P.tints[3],ex:P.tints[2]};
+  ring.forEach((it,n)=>{
+    const X=G.gx+(n%3)*(G.ts+G.gap),Y=G.gy+Math.floor(n/3)*(G.ts+G.gap),ts=G.ts;
+    if(n===4){jellyRect(x,X,Y,ts,ts,40,P.accent,P,.22);tx(x,card.e||"",X+ts/2,Y+ts*.42,70,P.ink,{align:"center"});tx(x,card.w,X+ts/2,Y+ts*.74,58,P.ink,{align:"center",max:ts-30});return}
+    if(!it){jellyRect(x,X,Y,ts,ts,40,null,P);return}
+    jellyRect(x,X,Y,ts,ts,40,tint[it.k],P,.3);
+    tx(x,{syn:t.wSyn,ant:t.wAnt,rel:t.wRel,ex:t.wEx}[it.k],X+24,Y+44,24,P.muted);
+    if(it.k==="ex")wrapTx(x,it.w,X+ts/2,Y+ts*.45,ts-40,26,34,4,P.ink,"center");else tx(x,it.w,X+ts/2,Y+ts*.6,44,P.ink,{align:"center",max:ts-30});
+  });
+}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -2192,6 +2466,19 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
+  const dk=el.closest("[data-deck]");if(dk){S.w.deck=dk.dataset.deck;S.w.idx=0;if(S.w.mode==="review")S.w.mode="learn";wview=null;wtrail=[];game=null;save();render();return}
+  const wm=el.closest("[data-wmode]");if(wm){S.w.mode=wm.dataset.wmode;S.w.idx=0;wview=null;wtrail=[];game=null;save();render();return}
+  const wn=el.closest("[data-wnav]");if(wn){wordNav(+wn.dataset.wnav);return}
+  const wk=el.closest("[data-wmark]");if(wk){const cc=curCard();if(cc&&cc.deck){const k=cc.deck.id+"\u0001"+cc.card.w;
+    if(wk.dataset.wmark==="known"){S.w.known[k]=1;delete S.w.review[k]}else{S.w.review[k]=1;delete S.w.known[k]}save();
+    if(S.w.mode==="review"&&wk.dataset.wmark==="known")render();else wordNav(1)}return}
+  const tr=el.closest("[data-trail]");if(tr){const i=+tr.dataset.trail,back=wtrail[i];wtrail=wtrail.slice(0,i);wview=null;const base=curCard();wview=base&&base.card===back.card?null:back;render();return}
+  const wi=el.closest("[data-wi]");if(wi){openWord(wi.dataset.word);return}
+  const gp=el.closest("[data-gopt]");if(gp&&game){gamePick(gp);return}
+  const gg=el.closest("[data-wgame]");if(gg){game=null;render();return}
+  const wx=el.closest("[data-wx]");if(wx){if(wx.dataset.wx==="ai")expandWord();else{const cd=wview.card;let d=(S.w.custom||[]).find(z=>z.id==="mine");if(!d){d={id:"mine",name:T().wMine,cards:[]};S.w.custom=(S.w.custom||[]).concat([d])}if(!d.cards.some(z=>z.w===cd.w))d.cards.push(Object.assign({e:"",syn:[],ant:[],rel:[],ex:""},cd));save();toast(T().wImpDone(1));render()}return}
+  const wim=el.closest("[data-wimp]");if(wim){const a=wim.dataset.wimp;if(a==="open")openWordImport();if(a==="go")wordImport(false);if(a==="ai")wordImport(true);return}
+  const say=el.closest("[data-say]");if(say){speak(say.dataset.say);return}
   const im=el.closest("[data-imp]");
   if(im){const a=im.dataset.imp;
     if(a==="open")openImport();
@@ -2367,7 +2654,7 @@ document.addEventListener("pointerdown",e=>{
   }
   const c=e.target.closest(".chip");
   if(c&&e.button===0&&!e.target.closest(".x,.dot,.bell,.tin")&&(e.pointerType==="mouse"||e.target.closest(".grip"))){drag={c,x:e.clientX,y:e.clientY,on:false};return}
-  if(e.pointerType!=="mouse"&&e.target.closest("#stage")&&!e.target.closest(".chip,input,.grip"))swipe={x:e.clientX,y:e.clientY,t:Date.now()};
+  if(e.target.closest("#stage")&&!e.target.closest(".chip,input,.grip,textarea")&&(e.pointerType!=="mouse"||e.target.closest("#wgrid")))swipe={x:e.clientX,y:e.clientY,t:Date.now(),card:!!e.target.closest("#wgrid")&&S.w.mode!=="game"};
 });
 addEventListener("pointermove",e=>{
   if(rangeMove(e))return;
@@ -2390,7 +2677,7 @@ function endDrag(e,commit){
   if(rangeEnd(e,commit))return;
   if(swipe&&commit){
     const dx=e.clientX-swipe.x,dy=e.clientY-swipe.y;
-    if(Math.abs(dx)>70&&Math.abs(dy)<60&&Date.now()-swipe.t<700){suppressUntil=Date.now()+350;goFace(S.face+(dx<0?1:-1),dx<0?1:-1)}
+    if(Math.abs(dx)>(swipe.card?45:70)&&Math.abs(dy)<60&&Date.now()-swipe.t<700){suppressUntil=Date.now()+350;if(swipe.card)wordNav(dx<0?1:-1);else goFace(S.face+(dx<0?1:-1),dx<0?1:-1)}
   }
   swipe=null;
   if(!drag)return;const d=drag;drag=null;if(!d.on)return;
