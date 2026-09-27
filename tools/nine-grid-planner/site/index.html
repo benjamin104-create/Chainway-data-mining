@@ -858,6 +858,33 @@ html .knob svg{width:22px;height:22px}
 .afpin{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;font-size:12px;opacity:.3;filter:grayscale(1)}
 .afpin.on{opacity:1;filter:none}
 
+/* goal coach wizard */
+.gcprog{display:flex;align-items:center;gap:5px}
+.gcprog i{width:22px;height:6px;border-radius:3px;background:var(--chip)}
+.gcprog i.done{background:color-mix(in srgb,var(--accent) 45%,transparent)}
+.gcprog i.on{background:var(--accent);width:34px}
+.gcprog small{margin-left:6px;font-size:12px;color:var(--muted)}
+.gcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gcarea{aspect-ratio:1.1;--r:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;text-align:center}
+.gcarea span{font-size:28px;line-height:1}.gcarea b{font-weight:400;font-size:13px}
+.gcarea.center{--t:var(--accent)}
+.gccards{display:flex;flex-direction:column;gap:8px}
+.gccard{--r:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;text-align:left}
+.gccard b{font-weight:400;font-size:15px;line-height:1.4}
+.gccard span,.gccard em{font-size:13px;color:var(--muted);line-height:1.5;font-style:normal}
+.gccard small{font-size:12px;color:var(--accent)}
+.gclv{align-self:flex-start;font-size:11px;border-radius:999px;padding:1px 9px;background:var(--chip);color:var(--ink)!important}
+.gccard.lv-easy{--t:var(--c5)}.gccard.lv-fit{--t:var(--c1)}.gccard.lv-stretch{--t:var(--c0)}
+.gcgoal{--r:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;--t:var(--accent)}.gcgoal b{font-weight:400;font-size:16px}.gcgoal em{font-style:normal;font-size:13px;color:var(--muted)}
+.gcscale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.gcscale button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;border-radius:14px;background:var(--chip);border:1px solid var(--chip-edge);font-size:22px}
+.gcscale button small{font-size:10px;color:var(--muted)}
+.gcscale button[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--chip))}
+.gcwarn{padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--accent) 12%,transparent);font-size:13px;line-height:1.55;display:flex;flex-direction:column;gap:8px}
+.gcwait{display:flex;gap:6px;justify-content:center;padding:8px}.gcwait i{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:eqb 1s ease-in-out infinite}.gcwait i:nth-child(2){animation-delay:.15s}.gcwait i:nth-child(3){animation-delay:.3s}
+.sheet h3{margin:4px 0 0}
+.qchips button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -2623,7 +2650,7 @@ function drawCoach(focus){
   if($("coachIn")){$("coachIn").value=v;if(focus)$("coachIn").focus()}
   const ch=$("chat");if(ch)ch.scrollTop=ch.scrollHeight;
 }
-function openCoach(){
+function openCoachChat(){
   const t=T();endGuide(true);
   layer(`<div class="shead"><h2>${t.coachTitle}</h2>${closeBtn(t)}</div><div id="coachBody" style="display:flex;flex-direction:column;gap:12px"></div>`,true);
   drawCoach(true);
@@ -2700,6 +2727,183 @@ function coachImport(){
   const w=W(key(mondayOf(new Date())));
   P.week.forEach(x=>{if(!w.days[x.day].some(y=>y.text===x.text))w.days[x.day].push({id:uid(),text:x.text,pri:x.pri,done:false,goal:true})});
   coach.plan=null;coach.turns=[];save();closeLayer();S.face=1;render();toast(T().imported);
+}
+
+/* =========================================================
+   目標教練, step by step: area → the real problem → three goal options
+   with a short story each → a check that it's wanted and doable → plan.
+   Choosing beats typing; the AI proposes, the person decides.
+   ========================================================= */
+const GC_AREAS=[
+  {k:"work",e:"💼",n:{zh:"工作職涯",ja:"仕事・キャリア",en:"Work & career"}},
+  {k:"study",e:"📚",n:{zh:"學習考試",ja:"学び・試験",en:"Study & exams"}},
+  {k:"health",e:"💪",n:{zh:"健康身體",ja:"健康・からだ",en:"Health & body"}},
+  {k:"money",e:"💰",n:{zh:"金錢理財",ja:"お金",en:"Money"}},
+  {k:"family",e:"👨‍👩‍👧",n:{zh:"家庭親子",ja:"家族・子育て",en:"Family & parenting"}},
+  {k:"people",e:"🤝",n:{zh:"人際關係",ja:"人間関係",en:"Relationships"}},
+  {k:"create",e:"🎨",n:{zh:"興趣創作",ja:"趣味・創作",en:"Hobbies & creating"}},
+  {k:"mind",e:"🌱",n:{zh:"心情自我",ja:"こころ・自分",en:"Mind & self"}}
+];
+// when there's no AI: real-life situations to recognise yourself in (zh), and goal templates for every language
+const GC_PROB={
+  work:[["每天忙到下班，卻不知道自己在累積什麼","工作三年了，每天都在救火，想轉職卻說不出自己會什麼。"],["想轉職，但不知道從哪裡開始","看了很多職缺，覺得每個都需要我沒有的經驗。"],["想加薪升遷，但表現沒被看見","我做了很多事，主管好像都不知道。"],["想開始接案或副業","有一點技能，但不知道第一個客人從哪裡來。"]],
+  study:[["書買了、課報了，卻一直沒開始","每次打開書就想滑手機，一週過去只讀了兩頁。"],["要考證照，但時間不夠","白天上班、晚上帶小孩，只剩零碎時間。"],["想學英文／日文，學了又忘","背了很多單字，要開口還是說不出來。"],["孩子不愛讀書，我也不知道怎麼幫","一叫他寫功課就吵架，兩個人都很累。"]],
+  health:[["運動三天就放棄","每次都下定決心，第四天加班就斷了。"],["睡不好、白天沒精神","滑手機滑到一點，早上爬不起來。"],["想瘦下來，但一直復胖","節食瘦了又胖回來，越來越沒信心。"],["久坐腰痠背痛","一整天坐在電腦前，下班全身僵硬。"]],
+  money:[["薪水一到手就不見","月底總是不知道錢花去哪裡。"],["想存第一桶金，但存不下來","每次存一點，就有意外支出。"],["有卡債或分期，壓力很大","每個月一半的錢拿去還款。"],["想開始投資，但怕虧錢","看了很多資訊，越看越不敢動。"]],
+  family:[["陪孩子的時間很少，覺得愧疚","下班回家只剩一小時，常常在滑手機。"],["和孩子常常吵架","一講話就大聲，事後又後悔。"],["和另一半越來越少聊天","除了孩子的事，好像沒話說了。"],["家事分配不公平，很累","什麼都我在做，說了又吵架。"]],
+  people:[["想交朋友，但不知道怎麼開始","搬到新城市，下班都一個人。"],["不敢拒絕別人，把自己弄得很累","同事拜託什麼都說好。"],["和某個人的關係卡住了","有話想說，卻一直說不出口。"],["在團體裡不太敢表達","開會時有想法，但總是等別人先說。"]],
+  create:[["想經營 IG／自媒體，但一直沒開始","想了很多主題，一篇都沒發。"],["想完成一個作品，但總是半途而廢","畫到一半、寫到一半，就沒有下文了。"],["想學一個新興趣，但沒時間","一直說想學烏克麗麗，已經說了兩年。"],["發了文，但沒什麼人看","很努力做內容，按讚的只有朋友。"]],
+  mind:[["常常焦慮，腦袋停不下來","睡前一直想明天的事，越想越煩。"],["覺得自己不夠好","看別人都很厲害，覺得自己很普通。"],["不知道自己想要什麼","每天都在過，但說不出想往哪裡走。"],["容易拖延，然後自責","事情拖到最後一刻，做完又很累。"]]
+};
+const GC_TPL={   // three sizes of goal, built from the area when there's no AI
+  zh:(a)=>[{level:"easy",goal:`一個月內，每週做 2 次小行動，改善「${a}」`,perWeek:"每週 2 次，每次 15 分鐘",story:"一個月後，你會發現自己真的有在前進，不再只是想想而已。"},
+    {level:"fit",goal:`三個月內，讓「${a}」有一個看得見的進步`,perWeek:"每週 3 次，每次 30 分鐘",story:"三個月後，你手上會有一個可以拿給別人看的成果。"},
+    {level:"stretch",goal:`半年內，徹底改善「${a}」`,perWeek:"每週 4–5 次，每次 45 分鐘",story:"半年後，身邊的人會注意到你的改變。"}],
+  ja:(a)=>[{level:"easy",goal:`1 か月、週 2 回の小さな行動で「${a}」を改善`,perWeek:"週 2 回・15 分",story:"1 か月後、考えるだけでなく本当に進んでいる自分に気づきます。"},
+    {level:"fit",goal:`3 か月で「${a}」に目に見える前進を`,perWeek:"週 3 回・30 分",story:"3 か月後、人に見せられる成果が手元にあります。"},
+    {level:"stretch",goal:`半年で「${a}」をしっかり解決`,perWeek:"週 4〜5 回・45 分",story:"半年後、まわりの人があなたの変化に気づきます。"}],
+  en:(a)=>[{level:"easy",goal:`For a month, 2 small actions a week to ease “${a}”`,perWeek:"2× a week, 15 min",story:"A month from now you'll see you're actually moving, not just thinking about it."},
+    {level:"fit",goal:`Within 3 months, visible progress on “${a}”`,perWeek:"3× a week, 30 min",story:"In three months you'll hold something you can show people."},
+    {level:"stretch",goal:`Within 6 months, really solve “${a}”`,perWeek:"4–5× a week, 45 min",story:"In six months the people around you will notice the change."}]
+};
+let gc=null;
+function openCoach(){endGuide(true);gc={step:1,area:null,probs:null,prob:null,goals:null,goal:null,want:0,sure:0,obs:null,ifthen:"",hours:"",busy:false,plan:null};drawGC()}
+function gcSheet(body){const t=T(),g=GCT();
+  const dots=[1,2,3,4,5].map(i=>`<i class="${i<gc.step?"done":i===gc.step?"on":""}"></i>`).join("");
+  layer(`<div class="shead">${gc.step>1&&!gc.busy?`<button class="round jelly" type="button" data-gcback="1" aria-label="${g.back}">‹</button>`:""}<h2>${t.coachTitle}</h2>${closeBtn(t)}</div>
+<div class="gcprog">${dots}<small>${g.stepName[gc.step-1]}</small></div>${body}`,true)}
+function gcSay(text,pose){return `<div class="coachme">${mascot(pose||"idle")}<div class="msg ai">${esc(text)}</div></div>`}
+function drawGC(){
+  const g=GCT(),l=LANG[S.region];
+  if(gc.busy){gcSheet(`${gcSay(gc.busy,"wave")}<div class="gcwait"><i></i><i></i><i></i></div>`);return}
+  if(gc.step===1){
+    const cells=Array(9);GC_AREAS.forEach((a,i)=>cells[RING[i]]=`<button type="button" class="gcarea jelly" data-gcarea="${a.k}" style="--t:var(--c${i%7})"><span>${a.e}</span><b>${esc(a.n[l])}</b></button>`);
+    cells[4]=`<button type="button" class="gcarea jelly center" data-gcown="1"><span>✍️</span><b>${g.own}</b></button>`;
+    gcSheet(`${gcSay(g.q1,"wave")}<div class="gcgrid">${cells.join("")}</div><p class="note">${g.q1hint}</p>`);return}
+  if(gc.step===2){
+    const a=gcArea();
+    gcSheet(`${gcSay(g.q2(a.n[l]))}<div class="gccards">${(gc.probs||[]).map((p,i)=>`<button type="button" class="gccard jelly" data-gcprob="${i}"><b>${esc(p.title)}</b><span>${esc(p.story)}</span></button>`).join("")}</div>
+<label class="fld">${g.notLike}<div class="row" style="flex-wrap:nowrap"><input id="gcOwn" type="text" maxlength="120" placeholder="${esc(g.ownPh)}"><button class="pill pri jelly" type="button" data-gcownprob="1">${g.next}</button></div></label>`);return}
+  if(gc.step===3){
+    gcSheet(`${gcSay(g.q3(gc.prob.title),"wave")}<div class="gccards">${(gc.goals||[]).map((o,i)=>`<button type="button" class="gccard goal jelly lv-${o.level}" data-gcgoal="${i}"><span class="gclv">${g.levels[o.level]||""}</span><b>${esc(o.goal)}</b><em>⏱ ${esc(o.perWeek)}</em><span>📖 ${esc(o.story)}</span>${o.why?`<small>💡 ${esc(o.why)}</small>`:""}</button>`).join("")}</div>
+<label class="fld">${g.noneFit}<div class="row" style="flex-wrap:nowrap"><input id="gcFix" type="text" maxlength="120" placeholder="${esc(g.fixPh)}"><button class="pill jelly" type="button" data-gcredo="1">${g.redo}</button></div></label>`);return}
+  if(gc.step===4){
+    const o=gc.goal,obs=o.obstacles&&o.obstacles.length?o.obstacles:g.obsDefault;
+    const scale=(k,v)=>`<div class="gcscale" data-gcscale="${k}">${[1,2,3,4,5].map(n=>`<button type="button" data-gcv="${n}" aria-pressed="${v===n}">${["😶","🙂","😊","😄","🤩"][n-1]}<small>${n}</small></button>`).join("")}</div>`;
+    let warn="";
+    if(gc.want&&gc.want<=2)warn=`<div class="gcwarn">${g.lowWant}<div class="row"><button class="pill jelly" type="button" data-gcto="3">${g.pickOther}</button><button class="pill jelly" type="button" data-gcto="2">${g.backProb}</button></div></div>`;
+    else if(gc.sure&&gc.sure<=2)warn=`<div class="gcwarn">${g.lowSure}<div class="row"><button class="pill pri jelly" type="button" data-gcsmaller="1">${g.smaller}</button><button class="pill jelly" type="button" data-gcanyway="1">${g.anyway}</button></div></div>`;
+    const ok=gc.want>=3&&(gc.sure>=3||gc.anyway)&&gc.obs!=null;
+    gcSheet(`${gcSay(g.q4,"idle")}<div class="gcgoal jelly"><span class="gclv">${g.levels[o.level]||""}</span><b>${esc(o.goal)}</b><em>⏱ ${esc(o.perWeek)}</em></div>
+<h3>${g.want}</h3>${scale("want",gc.want)}<h3>${g.sure}</h3>${scale("sure",gc.sure)}${warn}
+<h3>${g.obsQ}</h3><div class="qchips">${obs.map((x,i)=>`<button type="button" data-gcobs="${i}" aria-pressed="${gc.obs===i}">${esc(typeof x==="string"?x:x.o)}</button>`).join("")}</div>
+${gc.obs!=null?`<label class="fld">${g.ifThen}<input id="gcIf" type="text" maxlength="100" value="${esc(gc.ifthen)}"></label>`:""}
+<div class="row end"><button class="pill pri jelly" type="button" data-gcok="1"${ok?"":" disabled"}>✅ ${g.confirm}</button></div>`);return}
+  if(gc.step===5){
+    const P=gc.plan,t=T();
+    gcSheet(`${gcSay(g.q5,"cheer")}<div class="plan"><h4>${esc(P.goal)}</h4>${P.why?`<p class="why">${esc(P.why)}</p>`:""}
+<ol>${P.steps.map((st,i)=>`<li><b>${i+1}</b><span>${esc(st.text)}</span><em>${st.date?esc(t.md(parse(st.date))):""}</em>${st.first?`<small>${esc(t.firstLbl)}：${esc(st.first)}</small>`:""}</li>`).join("")}</ol>
+${P.week.length?`<div><div class="note" style="margin-bottom:6px">${t.planWeek}</div><div class="wk">${P.week.map(w=>`<span>${t.short[w.day]}・${esc(w.text)}</span>`).join("")}</div></div>`:""}
+${P.note?`<p class="why">${esc(P.note)}</p>`:""}</div>
+<div class="row end"><button class="pill jelly" type="button" data-gcto="4">${g.adjust}</button><button class="pill pri jelly" type="button" data-gcimport="1">${t.importPlan}</button></div>`);return}
+}
+const gcArea=()=>GC_AREAS.find(a=>a.k===gc.area)||{k:"own",e:"✍️",n:{zh:"我的狀況",ja:"わたしの状況",en:"my situation"}};
+async function gcAI(prompt){await aiReady;if(!AI)return null;try{return await AI.json(prompt,{modelTier:"default",cache:false})}catch(e){return null}}
+// step 1 → 2: situations in that area
+async function gcPickArea(k){
+  const g=GCT(),t=T(),l=LANG[S.region];gc.area=k;const a=gcArea();gc.busy=g.thinking;drawGC();
+  const r=await gcAI(`List 4 common, specific situations where people feel stuck in the life area "${a.n.en}". Each: a short title (max 18 characters/6 words) and a one-sentence first-person mini story (max 40 characters/16 words) that makes someone say "that's me". Mix ages (young adults, parents, working adults). Write in ${t.replyLang}.
+Reply ONLY JSON {"items":[{"title":"...","story":"..."}]}`);
+  let items=r&&Array.isArray(r.items)?r.items.filter(x=>x&&x.title).slice(0,4).map(x=>({title:String(x.title).slice(0,30),story:String(x.story||"").slice(0,80)})):null;
+  if(!items||!items.length)items=l==="zh"&&GC_PROB[k]?GC_PROB[k].map(([title,story])=>({title,story})):[];
+  gc.probs=items;gc.busy=false;gc.step=2;drawGC();
+}
+// step 2 → 3: three goals of different sizes, each with a short story
+async function gcGoals(fix){
+  const g=GCT(),t=T(),a=gcArea(),d=new Date();gc.busy=g.thinking2;drawGC();
+  const r=await gcAI(`You are a warm goal coach. Life area: ${a.n.en}. The person's situation: "${gc.prob.title}${gc.prob.story?" — "+gc.prob.story:""}".${fix?` They rejected earlier options because: "${fix}".`:""}
+Offer exactly 3 goal options sized by flow theory: "easy" (a gentle start, about 1 month), "fit" (a real stretch but reachable, about 3 months), "stretch" (ambitious, about 6 months).
+Each option: "goal" = specific and measurable with a deadline (max 28 characters/12 words); "perWeek" = time needed per week; "story" = a 2-sentence scene of their life when it's done, in second person (max 60 characters/28 words); "why" = which need it serves in Adler/Maslow terms, one short line; "obstacles" = 3 likely obstacles, each {"o":"the obstacle","plan":"an if-then plan: If ..., then I ..."}.
+Today is ${key(d)}. Write in ${t.replyLang}. Reply ONLY JSON {"options":[{"level":"easy","goal":"","perWeek":"","story":"","why":"","obstacles":[{"o":"","plan":""}]}]}`);
+  let opts=r&&Array.isArray(r.options)?r.options.filter(x=>x&&x.goal).slice(0,3).map(x=>({level:["easy","fit","stretch"].includes(x.level)?x.level:"fit",goal:String(x.goal).slice(0,60),perWeek:String(x.perWeek||"").slice(0,40),story:String(x.story||"").slice(0,120),why:String(x.why||"").slice(0,80),obstacles:(Array.isArray(x.obstacles)?x.obstacles:[]).slice(0,3).map(o=>({o:String(o&&o.o||"").slice(0,30),plan:String(o&&o.plan||"").slice(0,80)})).filter(o=>o.o)})):null;
+  if(!opts||!opts.length)opts=GC_TPL[LANG[S.region]](gc.prob.title||a.n[LANG[S.region]]);
+  gc.goals=opts;gc.busy=false;gc.step=3;drawGC();
+}
+// step 4 → 5: the plan, built from everything agreed
+async function gcPlan(){
+  const g=GCT(),t=T(),d=new Date(),dow=(d.getDay()+6)%7,o=gc.goal;gc.busy=g.thinking3;drawGC();
+  const obs=gc.obs!=null?(o.obstacles&&o.obstacles[gc.obs]?o.obstacles[gc.obs].o:g.obsDefault[gc.obs]):"";
+  const r=await gcAI(`Build a nine-grid goal plan. Write every text value in ${t.replyLang}.
+Agreed goal: "${o.goal}". Time per week: ${o.perWeek}. Situation: "${gc.prob.title}". Wants it: ${gc.want}/5. Confidence: ${gc.sure}/5. Main obstacle: "${obs}". Their if-then plan: "${gc.ifthen}".
+Reply ONLY JSON {"goal":"the goal, max 24 characters/words","why":"one sentence on why it matters to them","steps":[{"text":"milestone starting with a verb, max 16 characters/words","date":"YYYY-MM-DD","first":"first action of 15 minutes or less"}],"week":[{"text":"small task","day":0,"pri":"high"}],"note":"one encouraging line that mentions their if-then plan"}
+Rules: exactly 8 steps in time order dated from today (${key(d)}) to the deadline; the first step is very easy (confidence ${gc.sure}/5). "week": 3 tasks for this week, day ${dow} to 6 (0 = Monday), sized to ${o.perWeek}.`);
+  let P=r?cleanPlan(r):null;
+  if(!P){   // no AI: eight honest, generic milestones spread to the deadline
+    const months=o.level==="easy"?1:o.level==="stretch"?6:3,end=addDays(d,months*30),st=g.stepsTpl;
+    P={goal:o.goal,why:gc.prob.title,note:gc.ifthen,steps:st.map((x,i)=>({text:x,date:key(addDays(d,Math.round((i+1)*(end-d)/86400000/8))),first:i===0?g.firstTpl:""})),week:[{text:st[0],day:Math.min(6,dow),pri:"high"},{text:g.firstTpl,day:Math.min(6,dow+1),pri:"mid"}]};
+  }
+  if(gc.ifthen&&!P.note)P.note=gc.ifthen;
+  gc.plan=P;gc.busy=false;gc.step=5;drawGC();
+}
+const GC_STR={
+  zh:{stepName:["選一個方向","找到卡住的地方","挑一個目標","確認真的想做","變成步驟"],back:"上一步",
+    q1:"我們用選的就好，不用想很久。你最近最想改變的是哪一塊？",q1hint:"選不出來？挑最常讓你嘆氣的那一個。",own:"我自己說",
+    q2:a=>`在「${a}」裡，哪一個最像你現在的狀況？`,notLike:"都不像？用一句話說你的狀況：",ownPh:"例如：想轉職當設計師，但沒作品",next:"下一步",
+    q3:p=>`針對「${p}」，我幫你想了三個大小不同的目標。每個都附上完成後的樣子，挑一個最讓你心動的。`,
+    levels:{easy:"🌱 輕鬆起步",fit:"🎯 剛剛好",stretch:"🔥 有點挑戰"},noneFit:"都不太對？告訴我哪裡不對：",fixPh:"例如：時間太多、我想要更具體",redo:"換一組",
+    q4:"在排進行事曆之前，我們先確認一下，避免訂了一個自己不想做的目標。",want:"你有多想做到？",sure:"你有多少把握做到？",
+    lowWant:"聽起來這不是你真正想要的。我們換一個方向，沒關係。",pickOther:"換一個目標",backProb:"重新選狀況",
+    lowSure:"把握不高很正常。心流的關鍵是「挑戰剛好比能力高一點點」，要不要先縮小一點？",smaller:"幫我縮小",anyway:"我還是想試試",
+    obsQ:"最可能讓你放棄的是什麼？",obsDefault:["太累、沒時間","忘記要做","看不到進步","被別人打斷"],ifThen:"先想好對策：如果＿＿，我就＿＿",
+    ifDefault:["如果下班很累，我就只做 5 分鐘版本","如果忘記了，我就設手機提醒在固定時間","如果看不到進步，我就每週回頭看一次紀錄","如果被打斷，我就改到早上先做"],
+    confirm:"確定，就是這個目標",q5:"這是你的八步計畫，第一步刻意排得很簡單，先讓自己贏一次。",adjust:"再調整",
+    thinking:"我在想這一塊常見的狀況…",thinking2:"我在幫你想三個不同大小的目標…",thinking3:"正在把目標拆成八個步驟…",
+    stepsTpl:["寫下成功長什麼樣子","準備需要的工具和時間","第一次小小試做","固定時間做滿兩週","找一個夥伴或見證人","回頭檢查、調整難度","挑戰一次加強版","慶祝，設定下一步"],firstTpl:"花 10 分鐘寫下為什麼想做"},
+  ja:{stepName:["方向を選ぶ","つまずきを見つける","目標を選ぶ","本当にやりたいか確認","ステップにする"],back:"戻る",
+    q1:"選ぶだけで大丈夫。いちばん変えたいのはどれ？",q1hint:"迷ったら、いちばんため息が出るものを。",own:"自分で書く",
+    q2:a=>`「${a}」の中で、今のあなたにいちばん近いのは？`,notLike:"どれも違う？ひとことで：",ownPh:"例：デザイナーに転職したいけど作品がない",next:"次へ",
+    q3:p=>`「${p}」について、大きさの違う目標を 3 つ考えました。いちばんワクワクするものを。`,
+    levels:{easy:"🌱 ゆるく始める",fit:"🎯 ちょうどいい",stretch:"🔥 チャレンジ"},noneFit:"しっくりこない？どこが違う：",fixPh:"例：時間がかかりすぎる",redo:"入れ替える",
+    q4:"予定に入れる前に確認しましょう。やりたくない目標にしないために。",want:"どのくらいやりたい？",sure:"どのくらい自信がある？",
+    lowWant:"本当に望んでいることではなさそうです。方向を変えても大丈夫。",pickOther:"別の目標",backProb:"状況を選び直す",
+    lowSure:"自信が低いのは普通のこと。少し小さくしてみる？",smaller:"小さくする",anyway:"それでもやってみる",
+    obsQ:"いちばんあきらめそうな理由は？",obsDefault:["疲れて時間がない","忘れる","進歩が見えない","じゃまが入る"],ifThen:"対策：もし＿＿なら、＿＿する",
+    ifDefault:["疲れた日は 5 分だけやる","決まった時間にスマホで通知","週に 1 回記録を見返す","じゃまが入る日は朝にやる"],
+    confirm:"これでいく",q5:"8 ステップの計画です。最初の一歩はわざと簡単にしてあります。",adjust:"調整する",
+    thinking:"よくある状況を考えています…",thinking2:"大きさの違う目標を考えています…",thinking3:"8 ステップに分けています…",
+    stepsTpl:["成功の姿を書く","道具と時間を用意","小さく試す","決まった時間で 2 週間","仲間か見届け人を探す","振り返って難しさを調整","強化版に挑戦","お祝いして次へ"],firstTpl:"10 分でやりたい理由を書く"},
+  en:{stepName:["Pick a direction","Find where you're stuck","Choose a goal","Check you really want it","Turn it into steps"],back:"Back",
+    q1:"Just pick, no need to think hard. Which part of life do you most want to change?",q1hint:"Can't decide? Pick the one that makes you sigh most.",own:"In my words",
+    q2:a=>`In ${a}, which sounds most like you right now?`,notLike:"None of these? Say it in one line:",ownPh:"e.g. I want to become a designer but have no portfolio",next:"Next",
+    q3:p=>`For “${p}”, here are three goals of different sizes, each with what life looks like after. Pick the one that excites you.`,
+    levels:{easy:"🌱 Easy start",fit:"🎯 Just right",stretch:"🔥 Stretch"},noneFit:"None quite right? Tell me why:",fixPh:"e.g. too much time, I want something more concrete",redo:"New options",
+    q4:"Before it goes on your calendar, let's check it's something you actually want to do.",want:"How much do you want this?",sure:"How sure are you that you can do it?",
+    lowWant:"Sounds like this isn't really what you want. Changing direction is fine.",pickOther:"Pick another goal",backProb:"Choose the situation again",
+    lowSure:"Low confidence is normal. Flow needs a challenge just a bit above your skill. Make it smaller?",smaller:"Make it smaller",anyway:"I'll try anyway",
+    obsQ:"What's most likely to make you quit?",obsDefault:["Too tired, no time","Forgetting","Not seeing progress","Getting interrupted"],ifThen:"Plan ahead: If ___, then I ___",
+    ifDefault:["If I'm tired, I'll do a 5-minute version","If I forget, I'll set a phone reminder at a fixed time","If I can't see progress, I'll review my log weekly","If I get interrupted, I'll do it first thing in the morning"],
+    confirm:"Yes, this is my goal",q5:"Here's your eight-step plan. The first step is easy on purpose, so you win early.",adjust:"Adjust",
+    thinking:"Thinking of common situations…",thinking2:"Sizing three goals for you…",thinking3:"Breaking it into eight steps…",
+    stepsTpl:["Write what success looks like","Get the tools and time ready","Try a tiny first version","Keep a fixed slot for two weeks","Find a buddy or witness","Review and adjust the difficulty","Try a stronger version","Celebrate and set the next step"],firstTpl:"Spend 10 minutes writing why you want it"}
+};
+const GCT=()=>GC_STR[LANG[S.region]];
+function gcClick(el){
+  const g=GCT();
+  const ar=el.closest("[data-gcarea]");if(ar){gcPickArea(ar.dataset.gcarea);return true}
+  if(el.closest("[data-gcown]")){gc.area="own";gc.probs=[];gc.step=2;drawGC();setTimeout(()=>{const i=$("gcOwn");if(i)i.focus()},80);return true}
+  const pr=el.closest("[data-gcprob]");if(pr){gc.prob=gc.probs[+pr.dataset.gcprob];gcGoals();return true}
+  if(el.closest("[data-gcownprob]")){const v=$("gcOwn").value.trim();if(!v){$("gcOwn").focus();return true}gc.prob={title:v,story:""};gcGoals();return true}
+  const go=el.closest("[data-gcgoal]");if(go){gc.goal=gc.goals[+go.dataset.gcgoal];gc.want=0;gc.sure=0;gc.obs=null;gc.ifthen="";gc.anyway=false;gc.step=4;drawGC();return true}
+  if(el.closest("[data-gcredo]")){gcGoals($("gcFix").value.trim());return true}
+  const sv=el.closest("[data-gcv]");if(sv){const k=sv.closest("[data-gcscale]").dataset.gcscale;gc[k]=+sv.dataset.gcv;if($("gcIf"))gc.ifthen=$("gcIf").value;drawGC();return true}
+  const ob=el.closest("[data-gcobs]");if(ob){gc.obs=+ob.dataset.gcobs;const o=gc.goal.obstacles&&gc.goal.obstacles[gc.obs];gc.ifthen=o&&o.plan?o.plan:(g.ifDefault[gc.obs]||"");drawGC();return true}
+  if(el.closest("[data-gcsmaller]")){const i=gc.goals.indexOf(gc.goal),easy=gc.goals.find(x=>x.level==="easy");if(easy&&easy!==gc.goal){gc.goal=easy;gc.sure=0;drawGC()}else gcGoals(g.smaller);return true}
+  if(el.closest("[data-gcanyway]")){gc.anyway=true;drawGC();return true}
+  if(el.closest("[data-gcok]")){if($("gcIf"))gc.ifthen=$("gcIf").value.trim();gcPlan();return true}
+  const to=el.closest("[data-gcto]");if(to){gc.step=+to.dataset.gcto;drawGC();return true}
+  if(el.closest("[data-gcback]")){gc.step=Math.max(1,gc.step-1);drawGC();return true}
+  if(el.closest("[data-gcimport]")){coach.plan=gc.plan;gc=null;coachImport();return true}
+  return false;
 }
 
 
@@ -4838,6 +5042,7 @@ document.addEventListener("click",e=>{
   const t=T(),el=e.target;
   const g=el.closest("[data-g]");
   if(g){if(g.dataset.g==="next"){guide.i++;showGuide()}else endGuide();return}
+  if(gc&&el.closest(".sheet")&&gcClick(el))return;
   if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList"),cb=$("coachBody");if(cb&&coach.ctl)coach.ctl.abort();closeLayer();if(todo||cb)maybeGuide();return}
   const fb=el.closest(".dial .fb");if(fb){goFace(+fb.dataset.face);return}
   if(el.closest("#knob")){openAllFaces();return}
@@ -5039,8 +5244,8 @@ document.addEventListener("click",e=>{
   if(el.closest("#shareBtn")){openShare();return}
   const fm=el.closest("[data-fmt]");if(fm){shareFmt=fm.dataset.fmt;openShare();return}
   const sh=el.closest("[data-share]");if(sh){doShare(sh.dataset.share);return}
-  const gc=el.closest("[data-gcol]");
-  if(gc&&redit){redit.color=gc.dataset.gcol;document.querySelectorAll("[data-gcol]").forEach(b=>b.setAttribute("aria-pressed",b===gc));$("rWheels").style.setProperty("--g",redit.color);$("rPrev").style.setProperty("--g",redit.color);return}
+  const gcol=el.closest("[data-gcol]");
+  if(gcol&&redit){redit.color=gcol.dataset.gcol;document.querySelectorAll("[data-gcol]").forEach(b=>b.setAttribute("aria-pressed",b===gcol));$("rWheels").style.setProperty("--g",redit.color);$("rPrev").style.setProperty("--g",redit.color);return}
   const rg=el.closest("[data-rng]");
   if(rg&&redit){
     if(rg.dataset.rng==="del")S.ranges=S.ranges.filter(x=>x.id!==redit.id);
