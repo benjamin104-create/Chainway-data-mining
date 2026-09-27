@@ -870,6 +870,67 @@ html .knob svg{width:22px;height:22px}
 .sheet h3{margin:4px 0 0}
 .qchips button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
 
+/* daily workout */
+.wkgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wkdir{aspect-ratio:1;--r:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center;position:relative}
+.wkdir span{font-size:30px;line-height:1}.wkdir b{font-weight:400;font-size:14px}.wkdir small{font-size:11px;color:var(--muted);line-height:1.3}
+.wkdir.on{box-shadow:0 0 0 3px var(--accent)}
+.wkdir.mins{aspect-ratio:auto;padding:12px 6px}.wkdir.mins span{font-size:18px}
+.fpro2{position:absolute;top:6px;right:6px;font-size:9px!important;padding:1px 6px;border-radius:999px;background:var(--accent);color:var(--on-accent)!important}
+.wkme{width:74px;height:74px}
+.wksay .coachme{margin-bottom:2px}
+.wktoday{padding:14px;--r:24px;display:flex;flex-direction:column;gap:10px}
+.wkhead{display:flex;align-items:center;gap:10px}.wkhead>div{display:flex;flex-direction:column;gap:2px}.wkhead b{font-weight:400;font-size:18px}.wkhead small{font-size:12px;color:var(--muted)}
+.wkmoves{display:flex;flex-wrap:wrap;gap:6px}.wkmoves span{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--chip)}
+.wkgo{justify-content:center;padding:14px;font-size:16px}
+.wkplay{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:min(78vh,640px)}
+.wktop{display:flex;align-items:center;gap:10px;width:100%}
+.wkbar{flex:1;display:flex;gap:2px;height:8px}.wkbar i{border-radius:3px;background:var(--chip)}.wkbar i.r{opacity:.5}.wkbar i.d{background:color-mix(in srgb,var(--accent) 55%,transparent)}.wkbar i.on{background:var(--accent)}
+.wkstage{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:6px}
+.wkbubble{max-width:260px;padding:8px 14px;border-radius:18px;background:var(--ink);color:var(--bg);font-size:14px;text-align:center;position:relative}
+.wkbubble::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:var(--ink)}
+.wkmas{width:170px;height:170px}
+.wkname{font-size:26px;letter-spacing:.04em}
+.wkplay.rest .wkname{color:var(--muted)}
+.wkring{position:relative;width:132px;height:132px}.wkring svg{width:100%;height:100%}.wkring #wkArc{transition:stroke-dashoffset 1s linear}
+.wkring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:44px}
+.wknext{font-size:13px;color:var(--muted)}
+.wkpause{min-width:120px;justify-content:center}
+/* the jelly does the move */
+.wkmas img{animation-duration:.9s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.a-jump img{animation-name:mvJump;animation-duration:.55s}
+.a-run img{animation-name:mvRun;animation-duration:.35s}
+.a-march img{animation-name:mvRun;animation-duration:.6s}
+.a-squat img{animation-name:mvSquat;animation-duration:1.6s}
+.a-push img{animation-name:mvPush;animation-duration:1.6s}
+.a-hold img{animation-name:mvHold;animation-duration:1.2s}
+.a-bridge img{animation-name:mvBridge;animation-duration:1.6s}
+.a-bounce img{animation-name:mvBounce;animation-duration:.53s}
+.a-sway img{animation-name:mvSway;animation-duration:1.07s}
+.a-twist img{animation-name:mvTwist;animation-duration:1.4s}
+.a-circle img{animation-name:mvCircle;animation-duration:1.4s;animation-timing-function:linear}
+.a-lean img{animation-name:mvLean;animation-duration:3s}
+.a-fold img{animation-name:mvFold;animation-duration:3.2s}
+.a-breathe img{animation-name:mvBreathe;animation-duration:4s}
+.a-wave img{animation-name:mvWave;animation-duration:1.07s}
+.a-punch img{animation-name:mvPunch;animation-duration:.53s}
+@keyframes mvJump{0%,100%{transform:translateY(0) scale(1.1,.9)}45%{transform:translateY(-26%) scale(.94,1.08)}}
+@keyframes mvRun{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-10%) rotate(4deg)}}
+@keyframes mvSquat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(16%) scale(1.14,.8)}}
+@keyframes mvPush{0%,100%{transform:rotate(-70deg) translateX(0) scale(1)}50%{transform:rotate(-70deg) translateX(10%) scale(.92,1.05)}}
+@keyframes mvHold{0%,100%{transform:scale(1.02,.98)}50%{transform:scale(1.05,.95) translateY(2%)}}
+@keyframes mvBridge{0%,100%{transform:scale(1.1,.85) translateY(10%)}50%{transform:scale(.95,1.08) translateY(-6%)}}
+@keyframes mvBounce{0%,100%{transform:translateY(0) scale(1.06,.94)}50%{transform:translateY(-8%) scale(.97,1.03)}}
+@keyframes mvSway{0%,100%{transform:translateX(-14%) rotate(-6deg)}50%{transform:translateX(14%) rotate(6deg)}}
+@keyframes mvTwist{0%,100%{transform:rotateY(0) rotate(-8deg)}50%{transform:rotateY(180deg) rotate(8deg)}}
+@keyframes mvCircle{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes mvLean{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
+@keyframes mvFold{0%,100%{transform:scale(1)}50%{transform:scale(1.06,.82) translateY(10%)}}
+@keyframes mvBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes mvWave{0%,100%{transform:skewX(10deg) translateX(-6%)}50%{transform:skewX(-10deg) translateX(6%)}}
+@keyframes mvPunch{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-12%) rotate(-8deg)}75%{transform:translateX(12%) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.wkmas img{animation-duration:3s!important}}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1010,7 +1071,7 @@ const SPONSORS=[
 const STR={
   zh:{
     faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌","創作工作台","AI 健身教練","技能樹"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","選一張，打主題，AI 幫你寫好貼文","選一個部位，看動作重點和 YouTube 教學","每天 3 個小任務，升級拿獎勵，看見自己的能力"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","選語言，看圖點一下就聽發音","井字、五子棋、數獨……一個人玩或連線對戰","選一張，打主題，AI 幫你寫好貼文","選方向，每天一份功課，小潔米陪你練","每天 3 個小任務，升級拿獎勵，看見自己的能力"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -1124,13 +1185,13 @@ const STR={
       [[".plang","先選要學的語言：English、日本語、中文或台語。"],["#pgrid .pcenter","點圖卡聽發音，左右滑換下一張；外圈是同一類的其他圖。"],["#pgrid .plink","外圈標著「同類、相關、在哪裡」的是關聯字，例如貓→老虎、貓砂。點下去可以一直延伸。"],["[data-pgrow]","想要更多？按這裡請 AI 幫你擴充關聯字。"],[".plangs","下面可以聽同一個字的四種語言。"],["#wmode","切到「聽音找圖」玩一局，看記住了沒。"],["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
       [["#crgrid [data-crpick='0']","點一張，例如「IG 貼文文案」。"],["#crgrid .crcore","想要自己的寫法？中間可以新增一張。"],["#crapps","寫好之後，點這裡的 App 就會打開，文字已經幫你複製好。"]],
-      [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]],
+      [[".wkgrid","先選想練的方向：燃脂、肌耐力、力氣、跳舞或伸展，再選每天幾分鐘。"],["[data-wkstart]","按開始，小潔米會陪你一起做，還會倒數和提醒。"],[".fitgrid [data-fit='chest']","想看單一部位的動作和 YouTube 教學，在「部位教學」。"]],
       [["#quests","每天有 3 個小任務，做完就得 EXP。三個都完成還有加碼。"],["#player","EXP 累積到一定就升級，升級會解鎖獎勵，例如加購字卡免費用 7 天。"],["#skgrid","八個分枝是八種能力，星星代表證據：做過、有作品、有人認可。"],["[data-skflow]","先做一次心流回想：想一段做到忘了時間的經驗，AI 會找出你真正用到的能力。"],["[data-skcoach]","選一個想走的職涯方向，看差距，一鍵排成 4 週行事曆。"]]
     ]
   },
   ja:{
     faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル","クリエイターデスク","AI 筋トレコーチ","スキルツリー"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","カードを選んでテーマを入れると、AI が投稿を書きます","部位を選んで、フォームのコツと YouTube 解説","毎日 3 つのクエストでレベルアップ、自分の力が見える"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","言語を選び、絵をタップして発音を聞こう","三目並べ、五目並べ、数独…ひとりでも対戦でも","カードを選んでテーマを入れると、AI が投稿を書きます","方向を選んで毎日のメニュー、ゼリーと一緒に","毎日 3 つのクエストでレベルアップ、自分の力が見える"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -1244,13 +1305,13 @@ const STR={
       [[".plang","まず学ぶ言語を選びます：English・日本語・中文・台語。"],["#pgrid .pcenter","絵をタップで発音、左右スワイプで次へ。まわりは同じ仲間の絵です。"],["#pgrid .plink","「なかま・かんけい・どこ」は関連語。ねこ→とら、猫砂のようにどんどん広がります。"],["[data-pgrow]","もっと増やしたいときは AI に頼めます。"],[".plangs","同じ言葉を 4 つの言語で聞けます。"],["#wmode","「聞いてさがす」で遊んでみましょう。"],["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
       [["#crgrid [data-crpick='0']","カードを 1 枚タップ。例えば「IG 投稿文」。"],["#crgrid .crcore","自分用のカードは真ん中から追加できます。"],["#crapps","書けたらアプリをタップ。文章はコピー済みです。"]],
-      [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]],
+      [[".wkgrid","まず方向を選びます：燃焼・持久力・筋力・ダンス・ストレッチ。1 日の時間も。"],["[data-wkstart]","スタートを押すと、ゼリーが一緒に動いてカウントダウンします。"]],
       [["#quests","毎日 3 つのクエスト。達成で EXP、全部でボーナス。"],["#player","EXP がたまるとレベルアップ、ごほうびが解放されます。"],["#skgrid","8 つの枝は 8 種類の力。星は証拠：やった・作品・認められた。"],["[data-skflow]","まずフローを思い出してみましょう。AI が本当に使った力を見つけます。"],["[data-skcoach]","進みたい方向を選ぶと、差を見て 4 週間の予定にできます。"]]
     ]
   },
   en:{
     faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table","Creator desk","AI fitness coach","Skill tree"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Pick a card, type a topic, AI writes the post","Pick a muscle group for moves, form cues and YouTube tutorials","Three small quests a day: level up, earn rewards, see your skills grow"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Pick a language, tap a picture to hear it","Tic-tac-toe, gomoku, sudoku… solo or head to head","Pick a card, type a topic, AI writes the post","Pick a direction; a daily workout with your jelly buddy","Three small quests a day: level up, earn rewards, see your skills grow"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -1364,7 +1425,7 @@ const STR={
       [[".plang","First pick a language: English, Japanese, Chinese or Taiwanese."],["#pgrid .pcenter","Tap the picture to hear it; swipe for the next. Around it: the rest of the category."],["#pgrid .plink","Words tagged Same kind, Goes with or Where are links: cat → tiger, cat litter. Keep tapping to branch out."],["[data-pgrow]","Want more? Let AI add linked words."],[".plangs","Hear the same word in all four languages here."],["#wmode","Try Listen & find to see what stuck."],["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
       [["#crgrid [data-crpick='0']","Tap a card, like IG caption."],["#crgrid .crcore","Want your own? Add a card in the middle."],["#crapps","When it's written, tap an app; the text is already copied."]],
-      [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]],
+      [[".wkgrid","First pick a direction: fat-burn, endurance, strength, dance or stretch, and minutes a day."],["[data-wkstart]","Press start and your jelly buddy trains with you, counting down and cheering."]],
       [["#quests","Three small quests a day. Each gives EXP; all three give a bonus."],["#player","Enough EXP levels you up and unlocks rewards, like 7 days of an add-on."],["#skgrid","Eight branches of ability. Stars are proof: done it, has work, vouched for."],["[data-skflow]","Start with a flow moment: recall a time you lost track of time and AI finds the abilities you used."],["[data-skcoach]","Pick a career direction, see the gap, and turn it into a 4-week calendar in one tap."]]
     ]
   }
@@ -1744,7 +1805,7 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   renderDial();mpRender();
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFace,renderSkillFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFaceNew,renderSkillFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -4042,7 +4103,7 @@ function renderFitFace(){
   $("face").innerHTML=`<div class="coachbar"><span class="note">${t.fitHint}</span></div><div class="fitgrid">${cells.join("")}</div><p class="note">${t.fitSafe}</p>`;
 }
 function openFit(key){
-  const t=T(),g=FIT.find(x=>x.k===key);if(!g)return;fitSel=key;renderFitFace();
+  const t=T(),g=FIT.find(x=>x.k===key);if(!g)return;fitSel=key;render();
   const l=LANG[S.region],open=fitOpen(g);
   let list=g.ex.filter(x=>FIT_TIER[x.eq]<=FIT_TIER[S.fit.eq]&&(S.fit.lv>=2||x.lv===1||g.ex.filter(y=>y.lv===1&&FIT_TIER[y.eq]<=FIT_TIER[S.fit.eq]).length<2));
   if(!list.length)list=g.ex.slice(0,2);
@@ -4209,8 +4270,8 @@ function skWeekGain(R){const mon=key(mondayOf(new Date())),end=key(addDays(monda
 
 /* ---------- EXP, levels and rewards ---------- */
 S.xp=S.xp||{total:0,day:"",cnt:{},days:[],bonus:""};S.q=S.q||null;S.unl=S.unl||{};S.sk.log=S.sk.log||[];S.sk.endo=S.sk.endo||{};
-const XP_CAP={task:5,game:3,pic:3};          // how many a day earn EXP, so it can't be farmed
-const XP_VAL={quest:30,work:10,auto:20,task:10,game:10,pic:10,flow:20,bonus:30};
+const XP_CAP={task:5,game:3,pic:3,fit:1};          // how many a day earn EXP, so it can't be farmed
+const XP_VAL={quest:30,work:10,auto:20,task:10,game:10,pic:10,flow:20,bonus:30,fit:20};
 function lvInfo(total){let L=1,acc=0,need=100;while(total>=acc+need){acc+=need;L++;need=100+50*(L-1)}return {L,into:total-acc,need,left:acc+need-total}}
 const todayKey=()=>key(new Date());
 const unlocked=k=>{const d=todayKey();return (S.unl[k]&&S.unl[k]>=d)||(S.unl.all&&S.unl.all>=d)};
@@ -4258,7 +4319,7 @@ function makeQuests(){
   const pick=(arr,i,not)=>{const a=arr.filter(x=>!not.includes(x));return a.length?a[rnd(i)%a.length]:SKILLS[rnd(i)%SKILLS.length].id};
   const s1=pick(gaps.length?gaps:weak,1,[]),s2=pick(weak.length?weak:SKILLS.map(s=>s.id),2,[s1]);
   const prac=(id,i)=>{const s=SKMAP[id];return {kind:"prac",sk:id,text:s.p[rnd(i+10)%2][skL()],done:false}};
-  const autos=["task","pic","game"];if(!S.sk.stories.length)autos.unshift("flow");
+  const autos=["task","pic","game","fit"];if(!S.sk.stories.length)autos.unshift("flow");
   const auto=S.sk.stories.length?autos[rnd(3)%autos.length]:"flow";
   return {d,re:rr,items:[prac(s1,1),prac(s2,2),{kind:auto,done:false}]};
 }
@@ -4273,7 +4334,7 @@ function xpEvent(kind){
 function questBonus(){const Q=quests();if(Q.items.every(x=>x.done)&&S.xp.bonus!==Q.d){S.xp.bonus=Q.d;setTimeout(()=>{xpAdd("bonus");toast(QT().allDone)},900)}}
 function openQuest(i){
   const q=QT(),t=T(),x=quests().items[i];if(!x)return;
-  if(x.kind!=="prac"){const go={task:0,pic:4,game:5,flow:8}[x.kind];closeLayer();if(x.kind==="pic"){S.pd.on=true;S.pd.mode="game"}if(go!==S.face)goFace(go);if(x.kind==="flow")setTimeout(openFlowRecall,900);return}
+  if(x.kind!=="prac"){const go={task:0,pic:4,game:5,flow:8,fit:7}[x.kind];if(x.kind==="fit")fitTab="today";closeLayer();if(x.kind==="pic"){S.pd.on=true;S.pd.mode="game"}if(go!==S.face)goFace(go);if(x.kind==="flow")setTimeout(openFlowRecall,900);return}
   layer(`<div class="shead"><h2>${esc(x.text)}</h2>${closeBtn(t)}</div>
 <p class="note">${esc(q.trains(skName(x.sk)))}</p>
 ${x.done?`<p>${q.already}</p>`:`<label class="fld">${q.how}<textarea id="qNote" class="impta" style="min-height:70px" placeholder="${esc(q.howPh)}"></textarea></label>
@@ -4358,7 +4419,7 @@ const QT_STR={
     titleIs:s=>`新稱號「${s}」`,unlockName:{travel:"語寶「旅行」字卡免費",people:"語寶「稱謂」字卡免費",fit:"健身教練全部部位免費",all:"所有加購內容免費"},days:n=>`${n} 天`,
     coupon:"合作夥伴優惠券",couponSoon:"合作夥伴優惠券（招募中）",code:"序號",claim:"領取",gotIt:"收下",
     praise:(s,n)=>`你最近練了 ${n} 次「${s}」，是真的在長大。`,praise0:"每一個小行動都算數，繼續保持！",
-    auto:{task:"完成行事曆上的一件事",pic:"玩一局語寶「聽音找圖」",game:"在九宮遊戲桌下完一局",flow:"做一次心流回想"},
+    auto:{fit:"完成今天的運動功課",task:"完成行事曆上的一件事",pic:"玩一局語寶「聽音找圖」",game:"在九宮遊戲桌下完一局",flow:"做一次心流回想"},
     questDone:s=>`任務完成：${s}`,allDone:"今日任務全部完成！",
     trains:s=>`這個任務練的是「${s}」。`,already:"這個任務已經完成了 ✓",how:"做得怎麼樣？寫一句（選填）",howPh:"例如：錄了 1 分鐘，第二次比較順",
     link:"作品連結（選填：貼文、影片、雲端檔案）",starHint:"有寫心得或附作品，這個能力會點亮第二顆星 ⭐⭐，也多 10 EXP。",toCal:"排進行事曆",did:"我完成了",
@@ -4375,7 +4436,7 @@ const QT_STR={
     titleIs:s=>`新しい称号「${s}」`,unlockName:{travel:"語宝「旅行」カード無料",people:"語宝「呼び方」カード無料",fit:"筋トレコーチ全部位無料",all:"追加コンテンツすべて無料"},days:n=>`${n} 日間`,
     coupon:"パートナークーポン",couponSoon:"パートナークーポン（募集中）",code:"コード",claim:"受け取る",gotIt:"受け取る",
     praise:(s,n)=>`最近「${s}」を ${n} 回練習しました。ちゃんと育っています。`,praise0:"小さな一歩がちゃんと積み重なっています！",
-    auto:{task:"予定を 1 つ完了する",pic:"語宝「聞いてさがす」を 1 回",game:"ゲームテーブルで 1 局遊ぶ",flow:"フロー体験を思い出す"},
+    auto:{fit:"今日の運動メニューを終える",task:"予定を 1 つ完了する",pic:"語宝「聞いてさがす」を 1 回",game:"ゲームテーブルで 1 局遊ぶ",flow:"フロー体験を思い出す"},
     questDone:s=>`クエスト達成：${s}`,allDone:"今日のクエストをすべて達成！",
     trains:s=>`このクエストで伸びるのは「${s}」。`,already:"達成済み ✓",how:"どうだった？ひとこと（任意）",howPh:"例：1 分録画、2 回目はスムーズ",
     link:"作品リンク（任意：投稿・動画・ファイル）",starHint:"感想か作品があれば、この力に 2 つ目の星 ⭐⭐、さらに +10 EXP。",toCal:"予定に入れる",did:"できた",
@@ -4392,7 +4453,7 @@ const QT_STR={
     titleIs:s=>`New title: ${s}`,unlockName:{travel:"Travel word cards free",people:"People word cards free",fit:"All fitness groups free",all:"Every add-on free"},days:n=>`${n} days`,
     coupon:"Partner coupon",couponSoon:"Partner coupon (coming soon)",code:"Code",claim:"Claim",gotIt:"Nice!",
     praise:(s,n)=>`You practised ${s} ${n} times lately. That's real growth.`,praise0:"Every small step counts. Keep going!",
-    auto:{task:"Finish one thing on your calendar",pic:"Play one round of Listen & find",game:"Finish a game at the Game Table",flow:"Recall a flow moment"},
+    auto:{fit:"Finish today's workout",task:"Finish one thing on your calendar",pic:"Play one round of Listen & find",game:"Finish a game at the Game Table",flow:"Recall a flow moment"},
     questDone:s=>`Quest done: ${s}`,allDone:"All of today's quests done!",
     trains:s=>`This quest trains ${s}.`,already:"Done ✓",how:"How did it go? (optional)",howPh:"e.g. recorded 1 minute; second take was smoother",
     link:"Link to your work (optional: post, video, file)",starHint:"A note or a link lights this skill's second star ⭐⭐ and adds 10 EXP.",toCal:"Add to calendar",did:"I did it",
@@ -5018,6 +5079,184 @@ ${songs.length?`<h3>${m.mine}</h3><div class="mpsongs">${songs.map(s=>`<a class=
 }
 // browsers only allow sound after a tap: the first tap anywhere starts it
 document.addEventListener("pointerdown",()=>{if(S.music.on&&!AMB.playing&&!AMB.userPaused)ambStart(S.music.track)},{once:true,capture:true});
+
+/* =========================================================
+   每日功課: pick a direction once, get a routine every day, and train
+   with 小潔米 on screen: countdown ring, spoken cues, beeps and a beat.
+   ========================================================= */
+// move: animation, names, one cue, which directions use it, level (1 easy, 2 harder)
+const MV=(k,a,zh,ja,en,cz,cj,ce,tags,lv)=>({k,a,n:{zh,ja,en},c:{zh:cz,ja:cj,en:ce},tags,lv});
+const MOVES=[
+  MV("march","march","原地踏步","その場足踏み","March in place","抬膝、擺手，保持呼吸","膝を上げて腕を振る","Lift knees, swing arms","warm cardio dance",1),
+  MV("armcircle","circle","手臂畫圈","腕回し","Arm circles","肩膀放鬆，慢慢畫大圈","肩の力を抜いて大きく","Relax shoulders, big circles","warm flex",1),
+  MV("twist","twist","站姿轉體","立ってひねる","Standing twist","骨盆朝前，上身左右轉","骨盤は前、上半身をひねる","Hips forward, turn your upper body","warm flex dance",1),
+  MV("jacks","jump","開合跳","ジャンピングジャック","Jumping jacks","腳尖輕落地，手舉過頭","つま先で軽く、手は頭上へ","Land softly, hands overhead","cardio",1),
+  MV("highknees","run","高抬腿","もも上げ","High knees","膝蓋抬到腰的高度","膝を腰の高さまで","Knees to hip height","cardio",2),
+  MV("climber","run","登山者","マウンテンクライマー","Mountain climbers","肩在手腕正上方，膝往胸帶","肩は手首の上、膝を胸へ","Shoulders over wrists, knees in","cardio endure",2),
+  MV("burpee","jump","波比跳","バーピー","Burpees","蹲下、後跳、回來、跳起","しゃがむ→足を後ろ→戻る→ジャンプ","Squat, jump back, return, jump","cardio",2),
+  MV("skater","sway","滑冰跳","スケータージャンプ","Skater hops","左右跳，後腳輕點地","左右に跳び、後ろ足は軽く","Hop side to side, back foot taps","cardio dance",1),
+  MV("squat","squat","深蹲","スクワット","Squats","臀部往後坐，膝蓋對腳尖","お尻を後ろへ、膝はつま先方向","Sit back, knees over toes","endure strength cardio",1),
+  MV("lunge","squat","弓箭步","ランジ","Lunges","上身直立，後膝接近地面","上体まっすぐ、後ろ膝を床へ","Tall torso, back knee down","strength endure",1),
+  MV("pushup","push","伏地挺身","腕立て伏せ","Push-ups","身體一直線，胸口貼近地面","体はまっすぐ、胸を床へ","Straight line, chest down","strength",2),
+  MV("kneepush","push","跪姿伏地挺身","膝つき腕立て","Knee push-ups","膝蓋著地，臀部不翹","膝をつき、お尻を上げない","Knees down, hips in line","strength endure",1),
+  MV("plank","hold","棧板撐","プランク","Plank","肚臍內收，臀部不塌","お腹を締め、腰を落とさない","Brace, hips level","endure strength",1),
+  MV("bridge","bridge","臀橋","ヒップリフト","Glute bridge","腳跟出力，頂端夾緊","かかとで押し、上で締める","Drive through heels, squeeze","endure strength",1),
+  MV("wallsit","hold","靠牆蹲","壁スクワット","Wall sit","大腿與地面平行","太ももを床と平行に","Thighs parallel to the floor","endure",1),
+  MV("superman","hold","超人式","スーパーマン","Superman","手腳一起抬，停住呼吸","手足を同時に上げてキープ","Lift arms and legs, hold, breathe","endure",1),
+  MV("calf","bounce","提踵","カーフレイズ","Calf raises","慢慢踮起，慢慢放下","ゆっくり上げて下ろす","Rise slowly, lower slowly","endure",1),
+  MV("reach","lean","側彎伸展","体側ストレッチ","Side reach","手往上延伸，身體側彎","手を伸ばして横に倒す","Reach up and lean to the side","flex warm",1),
+  MV("fold","fold","前彎伸展","前屈","Forward fold","膝蓋微彎，頭放鬆垂下","膝を少し曲げ、頭の力を抜く","Soft knees, let your head hang","flex",1),
+  MV("catcow","breathe","貓牛式","キャット＆カウ","Cat–cow","吸氣抬頭，吐氣拱背","吸って反り、吐いて丸める","Inhale lift, exhale round","flex",1),
+  MV("child","breathe","嬰兒式","チャイルドポーズ","Child's pose","臀部坐向腳跟，深呼吸","お尻をかかとへ、深呼吸","Hips to heels, breathe deep","flex",1),
+  MV("stepclap","sway","左右踏步拍手","ステップ＆クラップ","Step & clap","跟著節拍，左一步、右一步、拍手","ビートに合わせて左右に、手拍子","Step side to side on the beat, clap","dance",1),
+  MV("grapevine","sway","交叉步","グレープバイン","Grapevine","側走三步，第四步點地","横に 3 歩、4 歩目でタッチ","Three steps sideways, tap on four","dance",1),
+  MV("wave","wave","波浪手","ウェーブ","Arm waves","手像波浪一樣從左傳到右","腕を波のように左右へ","Ripple your arms side to side","dance flex",1),
+  MV("bounce","bounce","彈跳律動","バウンス","Bounce groove","膝蓋放鬆，跟著節拍上下彈","膝をゆるめてビートで弾む","Soft knees, bounce on the beat","dance cardio",1),
+  MV("spin","twist","轉圈擺手","ターン","Turn & swing","慢慢轉一圈，雙手擺動","ゆっくり回って腕を振る","Turn slowly, swing your arms","dance",1),
+  MV("punch","punch","出拳律動","パンチ","Beat punches","左右出拳，核心收緊","左右にパンチ、体幹を締める","Punch left and right, brace your core","dance cardio",1)
+];
+const MVMAP=Object.fromEntries(MOVES.map(m=>[m.k,m]));
+const WK_DIRS=[
+  {k:"burn",e:"🔥",n:{zh:"燃脂 Tabata",ja:"脂肪燃焼タバタ",en:"Fat-burn Tabata"},d:{zh:"20 秒全力、10 秒休息",ja:"20 秒全力・10 秒休憩",en:"20 s all-out, 10 s rest"},tag:"cardio",work:20,rest:10},
+  {k:"endure",e:"💪",n:{zh:"肌耐力",ja:"筋持久力",en:"Endurance"},d:{zh:"40 秒做、20 秒休",ja:"40 秒動いて 20 秒休む",en:"40 s on, 20 s off"},tag:"endure",work:40,rest:20},
+  {k:"strength",e:"🏋️",n:{zh:"力氣肌力",ja:"筋力",en:"Strength"},d:{zh:"慢慢做、多休息",ja:"ゆっくり丁寧に",en:"Slow reps, longer rest"},tag:"strength",work:45,rest:30},
+  {k:"dance",e:"💃",n:{zh:"跳舞律動",ja:"ダンス",en:"Dance cardio"},d:{zh:"跟著節拍動一動",ja:"ビートに合わせて",en:"Move to the beat"},tag:"dance",work:40,rest:5,beat:true},
+  {k:"flex",e:"🧘",n:{zh:"伸展放鬆",ja:"ストレッチ",en:"Stretch & relax"},d:{zh:"慢慢伸展、深呼吸",ja:"ゆっくり伸ばして深呼吸",en:"Slow stretches, deep breaths"},tag:"flex",work:40,rest:5}
+];
+S.fit=S.fit||{lv:1,eq:"bw"};if(!S.fit.min)S.fit.min=10;
+const wkFree=(dir,min)=>!OWNER.proFit||unlocked("fit")||(dir!=="dance"&&min<=10);
+// today's routine: warm-up, the main block for the direction, cool-down
+function wkBuild(dir,min,lv,seed){
+  const D=WK_DIRS.find(x=>x.k===dir)||WK_DIRS[0],r=n=>hashStr(seed+":"+n);
+  const pool=MOVES.filter(m=>m.tags.split(" ").includes(D.tag)&&(lv>=2||m.lv===1));
+  const pick=(n,i)=>pool.length?pool[(r(i)+n*7)%pool.length].k:"march";
+  const seg=[];const warm=["march","armcircle","twist"];
+  seg.push({k:warm[r(1)%3],s:30,warm:1},{k:warm[(r(1)+1)%3],s:30,warm:1});
+  let main=min*60-60-40;
+  if(dir==="burn"){const blocks=Math.max(1,Math.round(main/240));for(let b=0;b<blocks;b++){const a=pick(b*2,b),c=pick(b*2+1,b+5);for(let i=0;i<8;i++){seg.push({k:i%2?c:a,s:D.work});if(i<7)seg.push({k:"rest",s:D.rest})}if(b<blocks-1)seg.push({k:"rest",s:40})}}
+  else{let i=0;while(main>0){const k=pick(i,i+3);seg.push({k,s:D.work});main-=D.work;if(D.rest&&main>0){seg.push({k:"rest",s:D.rest});main-=D.rest}i++;if(i>40)break}}
+  seg.push({k:"reach",s:20,cool:1},{k:"child",s:20,cool:1});
+  return {dir,min,beat:!!D.beat,seg};
+}
+function wkToday(){const d=todayKey(),f=S.fit;if(!f.dir)return null;
+  if(!S.wkRun||S.wkRun.d!==d||S.wkRun.dir!==f.dir||S.wkRun.min!==f.min||S.wkRun.lv!==f.lv){S.wkRun=Object.assign(wkBuild(f.dir,f.min,f.lv,d+(S.wkRun&&S.wkRun.d===d?S.wkRun.re||0:0)),{d,dir:f.dir,min:f.min,lv:f.lv,re:S.wkRun&&S.wkRun.d===d?S.wkRun.re||0:0,done:S.wkRun&&S.wkRun.d===d?S.wkRun.done:false});save()}
+  return S.wkRun}
+const wkSecs=w=>w.seg.reduce((a,x)=>a+x.s,0);
+const wkName=k=>k==="rest"?WKT().rest:(MVMAP[k]?MVMAP[k].n[LANG[S.region]]:k);
+function wkStreak(){let n=0,d=new Date();const set=new Set(S.fit.log||[]);if(!set.has(key(d)))d=addDays(d,-1);while(set.has(key(d))){n++;d=addDays(d,-1)}return n}
+let fitTab="today";
+function renderFitFaceNew(){
+  const t=T(),w=WKT(),l=LANG[S.region],f=S.fit;
+  const tabs=`<div class="seg jelly small" role="group"><button type="button" data-fittab="today" aria-pressed="${fitTab==="today"}">${w.tabToday}</button><button type="button" data-fittab="parts" aria-pressed="${fitTab==="parts"}">${w.tabParts}</button></div>`;
+  if(fitTab==="parts"){renderFitFace();$("face").insertAdjacentHTML("afterbegin",`<div class="bar">${tabs}</div>`);return}
+  if(!f.dir||wkSetup){   // first time: choose a direction, minutes and level
+    const cells=Array(9);WK_DIRS.forEach((d,i)=>cells[[0,1,2,3,5][i]]=`<button type="button" class="wkdir jelly${f.dir===d.k?" on":""}" data-wkdir="${d.k}" style="--t:var(--c${i%7})"><span>${d.e}</span><b>${esc(d.n[l])}</b><small>${esc(d.d[l])}</small></button>`);
+    cells[4]=`<div class="wkdir jelly center">${mascot("wave","wkme")}</div>`;
+    [6,7,8].forEach((c,i)=>cells[c]=`<button type="button" class="wkdir jelly mins${f.min===[5,10,20][i]?" on":""}" data-wkmin="${[5,10,20][i]}"><span>⏱</span><b>${[5,10,20][i]} ${w.min}</b>${[5,10,20][i]===20&&OWNER.proFit&&!unlocked("fit")?`<small class="fpro2">${t.wPro}</small>`:""}</button>`);
+    $("face").innerHTML=`<div class="bar">${tabs}</div><div class="wksay">${gcSay(w.setupQ,"wave")}</div><div class="wkgrid">${cells.join("")}</div>
+<div class="row"><span class="note">${w.levelQ}</span><div class="mini-seg">${[1,2].map(v=>`<button type="button" data-wklv="${v}" aria-pressed="${f.lv===v}">${w.lvName[v-1]}</button>`).join("")}</div></div>
+<div class="row end"><button class="pill pri jelly" type="button" data-wkset="1"${f.dir&&f.min?"":" disabled"}>${w.setOk}</button></div><p class="note">${t.fitSafe}</p>`;return}
+  const W=wkToday(),D=WK_DIRS.find(x=>x.k===W.dir),free=wkFree(W.dir,W.min),moves=[...new Set(W.seg.filter(x=>x.k!=="rest").map(x=>x.k))],st=wkStreak();
+  $("face").innerHTML=`<div class="bar">${tabs}<span class="grow"></span><button class="linkbtn" type="button" data-wkchange="1">${w.change}</button></div>
+<section class="wktoday jelly${W.done?" done":""}" id="wktoday"><div class="wkhead">${mascot(W.done?"cheer":"wave","wkme")}<div><small>${w.todayIs}</small><b>${D.e} ${esc(D.n[l])} · ${W.min} ${w.min}</b><small>${esc(D.d[l])}${st?` · 🔥 ${w.streak(st)}`:""}</small></div></div>
+<div class="wkmoves">${moves.map(k=>`<span>${esc(wkName(k))}</span>`).join("")}</div>
+${free?`<button class="pill pri jelly wkgo" type="button" data-wkstart="1">▶ ${W.done?w.again:w.start}</button>`:`<div class="firsthint">${I.lock} ${w.locked}</div>${OWNER.fitStore?`<a class="pill pri jelly" href="${esc(OWNER.fitStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<small class="note">${t.wSoon}</small>`}`}
+<div class="row"><button class="pill jelly" type="button" data-wkre="1">🔀 ${w.reroll}</button><button class="pill jelly" type="button" data-wkai="1">${I.sparkle}${w.aiTune}</button></div><div id="wkAiBox"></div></section>
+<p class="note">${t.fitSafe}</p>`;
+}
+let wkSetup=false;
+async function wkAiTune(){
+  const w=WKT(),t=T(),box=$("wkAiBox");
+  if(!$("wkNeed")){box.innerHTML=`<label class="fld">${w.aiQ}<div class="row" style="flex-wrap:nowrap"><input id="wkNeed" type="text" maxlength="100" placeholder="${esc(w.aiPh)}"><button class="pill pri jelly" type="button" data-wkai="1">${w.aiGo}</button></div></label>`;$("wkNeed").focus();return}
+  const need=$("wkNeed").value.trim();if(!need){$("wkNeed").focus();return}
+  box.innerHTML=`<p class="note">${w.aiThinking}</p>`;await aiReady;
+  if(!AI){box.innerHTML=`<p class="note">${w.noAI}</p>`;return}
+  const W=wkToday();
+  try{
+    const r=await AI.json(`You are a careful home-workout coach. Build today's routine of about ${W.min} minutes for the direction "${W.dir}" and level ${W.lv} (1 beginner, 2 intermediate), adapted to: "${need}".
+Use ONLY these move ids: ${MOVES.map(m=>m.k+" ("+m.n.en+")").join(", ")}; use "rest" for rest. Avoid moves that could hurt given their note (e.g. no jumping for knee pain).
+Reply ONLY JSON {"seg":[{"k":"move id or rest","s":seconds}],"note":"one short encouraging sentence in ${t.replyLang} explaining the adjustment"}. Start with a 1-minute warm-up and end with a 40-second cool-down.`,{modelTier:"default",cache:false});
+    const seg=(Array.isArray(r.seg)?r.seg:[]).filter(x=>x&&(x.k==="rest"||MVMAP[x.k])).map(x=>({k:x.k,s:Math.max(5,Math.min(90,parseInt(x.s,10)||30))})).slice(0,60);
+    if(seg.length<3)throw new Error("short");
+    S.wkRun.seg=seg;S.wkRun.note=String(r.note||"").slice(0,120);save();render();toast(S.wkRun.note||w.tuned);
+  }catch(e){box.innerHTML=`<p class="note">${esc(e&&e.code?aiErrText(e):w.noAI)}</p>`}
+}
+
+/* ---------- the workout player ---------- */
+let wkRun=null;
+const CHEER={zh:["做得很好！","保持呼吸～","你比昨天更強了！","我陪你一起！","慢一點沒關係，動作做好最重要","再撐一下就好！","好棒，繼續！"],
+  ja:["いいね！","呼吸を止めないで～","昨日よりつよい！","いっしょにがんばろう！","ゆっくりでも大丈夫","あと少し！","その調子！"],
+  en:["Great job!","Keep breathing~","Stronger than yesterday!","I'm right here with you!","Slow is fine; good form first","Almost there!","Nice, keep going!"]};
+function beep(f,len,vol){const ctx=ambCtx();if(!ctx)return;try{ctx.resume()}catch(e){}const o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(vol||.2,ctx.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+len);o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+len+.02)}
+// a simple beat for Tabata and dance: kick, hat, clap
+function beatStart(bpm){const ctx=ambCtx();if(!ctx)return;beatStop();let n=0;const step=60/bpm/2;
+  const hit=(type)=>{const t=ctx.currentTime;if(type==="k"){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.2)}
+    else{const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,false);const hp=ctx.createBiquadFilter();hp.type="highpass";hp.frequency.value=type==="h"?7000:1500;const g=ctx.createGain();g.gain.setValueAtTime(type==="h"?.06:.12,t);g.gain.exponentialRampToValueAtTime(.001,t+(type==="h"?.05:.12));s.connect(hp).connect(g).connect(ctx.destination);s.start(t);s.stop(t+.15)}};
+  wkBeat=setInterval(()=>{if(wkRun&&wkRun.paused)return;const i=n%8;if(i===0||i===4)hit("k");if(i===2||i===6)hit("c");hit("h");n++},step*1000)}
+let wkBeat=null;const beatStop=()=>{clearInterval(wkBeat);wkBeat=null};
+function wkStart(){
+  const W=wkToday();if(!W)return;const wasPlaying=AMB.playing;if(wasPlaying){AMB.userPaused=true;ambPause()}
+  wkRun={W,i:0,left:W.seg[0].s,paused:false,voice:S.fit.voice!==false,resume:wasPlaying,lock:null,done:0};
+  try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{if(wkRun)wkRun.lock=l},()=>{})}catch(e){}
+  if(W.beat||W.dir==="burn")beatStart(W.dir==="burn"?128:112);
+  wkDraw();wkAnnounce();wkRun.timer=setInterval(wkTick,1000);
+}
+function wkSay(text){if(wkRun&&wkRun.voice)sayIn(text,LANG[S.region])}
+function wkAnnounce(){const w=WKT(),x=wkRun.W.seg[wkRun.i],nx=wkRun.W.seg[wkRun.i+1];
+  if(x.k==="rest")wkSay(nx?w.sayRest(x.s,wkName(nx.k)):w.rest);
+  else{const m=MVMAP[x.k];wkSay(w.sayGo(m.n[LANG[S.region]],x.s)+(wkRun.i<3||Math.random()<.35?" "+m.c[LANG[S.region]]:""))}
+  beep(880,.35,.25);
+}
+function wkTick(){
+  if(!wkRun||wkRun.paused)return;wkRun.left--;
+  if(wkRun.W.seg[wkRun.i].k!=="rest")wkRun.done++;
+  if(wkRun.left<=3&&wkRun.left>0)beep(660,.12,.18);
+  if(wkRun.left===Math.floor(wkRun.W.seg[wkRun.i].s/2)&&wkRun.W.seg[wkRun.i].k!=="rest"&&wkRun.W.seg[wkRun.i].s>=20){const c=CHEER[LANG[S.region]];wkRun.cheer=c[Math.floor(Math.random()*c.length)];if(Math.random()<.5)wkSay(wkRun.cheer)}
+  if(wkRun.left<=0){wkRun.i++;if(wkRun.i>=wkRun.W.seg.length){wkFinish();return}wkRun.left=wkRun.W.seg[wkRun.i].s;wkRun.cheer="";wkDraw();wkAnnounce();return}
+  wkUpdate();
+}
+function wkDraw(){
+  const w=WKT(),x=wkRun.W.seg[wkRun.i],m=MVMAP[x.k],nx=wkRun.W.seg.slice(wkRun.i+1).find(s=>s.k!=="rest"),l=LANG[S.region],rest=x.k==="rest";
+  layer(`<div class="wkplay${rest?" rest":""}"><div class="wktop"><div class="wkbar">${wkRun.W.seg.map((s,i)=>`<i class="${i<wkRun.i?"d":i===wkRun.i?"on":""}${s.k==="rest"?" r":""}" style="flex:${s.s}"></i>`).join("")}</div><button class="round jelly" type="button" data-wkquit="1" aria-label="${w.quit}">${I.x}</button></div>
+<div class="wkstage"><div class="wkbubble" id="wkBubble">${esc(wkRun.cheer||(rest?w.restTalk:m.c[l]))}</div>${mascot("idle","wkmas a-"+(rest?"breathe":m.a))}</div>
+<div class="wkname">${rest?"😮‍💨 "+w.rest:esc(m.n[l])}</div>
+<div class="wkring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--chip)" stroke-width="10"/><circle id="wkArc" cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="326.7" stroke-dashoffset="0"/></svg><b id="wkLeft">${wkRun.left}</b></div>
+<div class="wknext">${nx?`${w.next}：${esc(wkName(nx.k))}`:w.lastOne}</div>
+<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-wkvoice="1">${wkRun.voice?"🔊":"🔇"}</button><button class="pill pri jelly wkpause" type="button" data-wkpause="1">${wkRun.paused?"▶ "+w.resume:"❚❚ "+w.pause}</button><button class="pill jelly" type="button" data-wkskip="1">⏭ ${w.skip}</button></div></div>`,true,true);
+  wkUpdate();
+}
+function wkUpdate(){const x=wkRun.W.seg[wkRun.i],a=$("wkArc"),n=$("wkLeft");if(n)n.textContent=wkRun.left;if(a)a.setAttribute("stroke-dashoffset",(326.7*(1-wkRun.left/x.s)).toFixed(1));const b=$("wkBubble");if(b&&wkRun.cheer)b.textContent=wkRun.cheer}
+function wkEnd(){if(!wkRun)return;clearInterval(wkRun.timer);beatStop();try{wkRun.lock&&wkRun.lock.release()}catch(e){}const r=wkRun.resume;wkRun=null;if(r){AMB.userPaused=false;ambStart(S.music.track)}}
+function wkFinish(){
+  const w=WKT(),P=wkRun.W,mins=Math.max(1,Math.round(wkRun.done/60)),D=WK_DIRS.find(x=>x.k===P.dir),l=LANG[S.region];wkEnd();beep(1046,.5,.25);
+  const first=!P.done;P.done=true;S.fit.log=(S.fit.log||[]).concat(todayKey()).filter((x,i,a)=>a.indexOf(x)===i).slice(-120);
+  if(first){const d=new Date(),i=(d.getDay()+6)%7,wkk=W(key(mondayOf(d)));wkk.days[i].push({id:uid(),text:w.calText(D.n[l],P.min),pri:"mid",done:true,sk:["health"]})}
+  save();wkSay(w.doneSay);
+  layer(`<div class="lvup">${mascot("cheer","lvmas")}<h2>${w.doneTitle}</h2><p>${w.doneSum(mins,wkStreak())}</p><p class="note">${first?w.calAdded:""}</p><div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-close="1">${w.yay}</button></div></div>`,true);
+  if(first)setTimeout(()=>xpEvent("fit"),600);
+  render();
+}
+const WK_STR={
+  zh:{tabToday:"今日功課",tabParts:"部位教學",setupQ:"先選你想練的方向和每天的時間，我每天幫你排好功課，一起練！",levelQ:"程度：",lvName:["新手","有在動"],min:"分鐘",setOk:"好，開始我的每日功課",
+    todayIs:"今天的功課",start:"開始，一起練",again:"再練一次",change:"換方向",reroll:"換一組動作",aiTune:"AI 依我的狀況調整",streak:n=>`連續 ${n} 天`,
+    locked:"這個組合是加購內容：舞蹈和 20 分鐘課表。先試試 5 或 10 分鐘的吧！",aiQ:"告訴我你的狀況：",aiPh:"例如：膝蓋不好、樓下有人不能跳",aiGo:"調整",aiThinking:"教練正在幫你調整…",noAI:"現在沒有 AI，先用內建課表；膝蓋不舒服就把跳躍換成原地踏步。",tuned:"已調整今天的課表",
+    rest:"休息",restTalk:"喝口水，深呼吸～",next:"下一個",lastOne:"最後一個了！",pause:"暫停",resume:"繼續",skip:"跳過",quit:"結束",
+    sayGo:(n,s)=>`${n}，${s} 秒，開始！`,sayRest:(s,n)=>`休息 ${s} 秒，下一個是${n}`,doneSay:"完成了！你今天好棒！",doneTitle:"今日功課完成！",
+    doneSum:(m,s)=>`你動了 ${m} 分鐘${s>1?`，已經連續 ${s} 天`:""}。身體會記得今天的努力。`,calAdded:"已經幫你記到行事曆 ✓",yay:"耶！",calText:(n,m)=>`💪 每日功課：${n} ${m} 分鐘`,quest:"完成今天的運動功課"},
+  ja:{tabToday:"今日のメニュー",tabParts:"部位別",setupQ:"鍛えたい方向と 1 日の時間を選んでね。毎日メニューを用意して、一緒にやるよ！",levelQ:"レベル：",lvName:["はじめて","慣れてる"],min:"分",setOk:"これで毎日のメニューを始める",
+    todayIs:"今日のメニュー",start:"一緒にスタート",again:"もう一回",change:"方向を変える",reroll:"入れ替える",aiTune:"AI で自分向けに",streak:n=>`${n} 日連続`,
+    locked:"ダンスと 20 分メニューは追加購入です。まずは 5 分か 10 分で！",aiQ:"今の状態を教えて：",aiPh:"例：膝が痛い、下の階に響くのでジャンプ不可",aiGo:"調整",aiThinking:"コーチが調整中…",noAI:"今は AI が使えません。膝がつらいときはジャンプを足踏みに。",tuned:"今日のメニューを調整しました",
+    rest:"休憩",restTalk:"水を飲んで深呼吸～",next:"次",lastOne:"ラスト！",pause:"一時停止",resume:"再開",skip:"スキップ",quit:"終了",
+    sayGo:(n,s)=>`${n}、${s} 秒、スタート！`,sayRest:(s,n)=>`${s} 秒休憩、次は${n}`,doneSay:"おつかれさま！よくがんばったね！",doneTitle:"今日のメニュー完了！",
+    doneSum:(m,s)=>`${m} 分動きました${s>1?`、${s} 日連続`:""}。体はちゃんと覚えています。`,calAdded:"カレンダーに記録しました ✓",yay:"やった！",calText:(n,m)=>`💪 今日のメニュー：${n} ${m} 分`,quest:"今日の運動メニューを終える"},
+  en:{tabToday:"Today's workout",tabParts:"By body part",setupQ:"Pick what you want to train and how long each day. I'll plan it daily and train with you!",levelQ:"Level:",lvName:["New to it","Active"],min:"min",setOk:"Start my daily workout",
+    todayIs:"Today's workout",start:"Start, let's go together",again:"Do it again",change:"Change direction",reroll:"Swap moves",aiTune:"Tailor with AI",streak:n=>`${n}-day streak`,
+    locked:"Dance and 20-minute sessions are an add-on. Try 5 or 10 minutes first!",aiQ:"Tell me your situation:",aiPh:"e.g. sore knees, no jumping (neighbours below)",aiGo:"Adjust",aiThinking:"Your coach is adjusting…",noAI:"No AI right now. If your knees hurt, swap jumps for marching.",tuned:"Today's workout adjusted",
+    rest:"Rest",restTalk:"Sip some water, breathe~",next:"Next",lastOne:"Last one!",pause:"Pause",resume:"Resume",skip:"Skip",quit:"End",
+    sayGo:(n,s)=>`${n}, ${s} seconds, go!`,sayRest:(s,n)=>`Rest ${s} seconds. Next: ${n}`,doneSay:"Done! You were great today!",doneTitle:"Workout done!",
+    doneSum:(m,s)=>`You moved for ${m} minutes${s>1?`, ${s} days in a row`:""}. Your body will remember today.`,calAdded:"Logged on your calendar ✓",yay:"Yay!",calText:(n,m)=>`💪 Daily workout: ${n} ${m} min`,quest:"Finish today's workout"}
+};
+const WKT=()=>WK_STR[LANG[S.region]];
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -5076,6 +5315,19 @@ document.addEventListener("click",e=>{
   const crg=el.closest("[data-crgo]");if(crg){
     if(crg.dataset.crgo==="ai"){crGenerate();return}return}
   if(el.closest("[data-crcopy]")){const tx=$("crText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("crText").select())}catch(x){$("crText").select()}return}
+  const ftb=el.closest("[data-fittab]");if(ftb){fitTab=ftb.dataset.fittab;render();return}
+  const wdr=el.closest("[data-wkdir]");if(wdr){S.fit.dir=wdr.dataset.wkdir;wkSetup=true;save();render();return}
+  const wmn=el.closest("[data-wkmin]");if(wmn){S.fit.min=+wmn.dataset.wkmin;save();render();return}
+  const wlv=el.closest("[data-wklv]");if(wlv){S.fit.lv=+wlv.dataset.wklv;save();render();return}
+  if(el.closest("[data-wkset]")){wkSetup=false;S.wk=null;save();render();return}
+  if(el.closest("[data-wkchange]")){wkSetup=true;render();return}
+  if(el.closest("[data-wkstart]")){wkStart();return}
+  if(el.closest("[data-wkre]")){S.wk.re=(S.wk.re||0)+1;const re=S.wk.re,d=S.wk.d;S.wk=Object.assign(wkBuild(S.fit.dir,S.fit.min,S.fit.lv,d+re),{d,dir:S.fit.dir,min:S.fit.min,lv:S.fit.lv,re,done:S.wk.done});save();render();return}
+  if(el.closest("[data-wkai]")){wkAiTune();return}
+  if(el.closest("[data-wkquit]")){wkEnd();closeLayer();render();toast(WKT().quit+" ✓");return}
+  if(el.closest("[data-wkpause]")){if(wkRun){wkRun.paused=!wkRun.paused;wkDraw()}return}
+  if(el.closest("[data-wkskip]")){if(wkRun){wkRun.left=1;wkRun.paused=false;wkTick()}return}
+  if(el.closest("[data-wkvoice]")){if(wkRun){wkRun.voice=!wkRun.voice;S.fit.voice=wkRun.voice;save();wkDraw()}return}
   const ft=el.closest("[data-fit]");if(ft){openFit(ft.dataset.fit);return}
   const flv=el.closest("[data-fitlv]");if(flv){S.fit.lv=+flv.dataset.fitlv;save();openFit(fitSel);return}
   const feq=el.closest("[data-fiteq]");if(feq){S.fit.eq=feq.dataset.fiteq;save();openFit(fitSel);return}
