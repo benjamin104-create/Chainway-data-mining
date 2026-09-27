@@ -402,6 +402,15 @@ body.ranging .gbar{pointer-events:none}
 .plan .wk span{font-size:12px;border-radius:999px;padding:3px 10px;background:var(--chip)}
 .firsthint{font-size:13px;border-radius:14px;padding:8px 12px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--ink)}
 
+/* YouTube import */
+.imp{display:flex;flex-direction:column;gap:6px;max-height:min(40vh,360px);overflow-y:auto;overscroll-behavior:contain}
+.imp label{display:grid;grid-template-columns:22px 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:14px;background:var(--chip);border:1px solid var(--chip-edge);cursor:pointer}
+.imp input{width:18px;height:18px;accent-color:var(--accent)}
+.imp b{font-weight:400;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp small{grid-column:2;color:var(--muted);font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.impta{font:inherit;font-size:15px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:16px;padding:10px 12px;width:100%;min-height:84px;resize:vertical}
+.linkbtn{color:var(--accent);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -548,7 +557,11 @@ const STR={
     aiErr:{rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
     fQs:["為什麼這件事對你重要？完成之後，你會變成什麼樣的人？","你現在的起點在哪？手上有哪些資源，最大的限制是什麼？","每週大概能投入多少時間在這件事上？"],
     fDone:"寫得很好！我先把目標放進九宮格中間，周圍八格請你拆成八個小步驟，每一步都寫下「做到什麼算完成」。",
-    firstLbl:"第一個小行動",replyLang:"Traditional Chinese as used in Taiwan",
+    firstLbl:"第一個小行動",
+    impBtn:"從 YouTube 匯入",impTitle:"匯入你的 YouTube",impYt:"連接 YouTube 帳號",impYtNote:"讀取你的播放清單、按讚的音樂和訂閱頻道，自動排進九格。",impYtSite:"要在安裝版網址用 Google 登入後才能讀取。",
+    impTk:"用 Google Takeout 匯入聽歌習慣",impTkHow:"到 Google Takeout 只勾選「YouTube 和 YouTube Music」裡的「記錄」和「訂閱內容」，記錄格式選 JSON。下載後把 .zip 直接上傳，會照你播放最多次的歌排序。",impTkOpen:"打開 Google Takeout",impUp:"上傳檔案",
+    impPaste:"貼上 YouTube 連結",impPastePh:"一行一個連結，前面可以寫歌名",impRead:"讀取",impFound:n=>`找到 ${n} 個，勾選要放進九格的：`,impApply:n=>`放進心流歌單（${n}）`,impNone:"沒有找到 YouTube 影片或播放清單。",impReading:"讀取中…",impDone:"歌單換好了",
+    kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",replyLang:"Traditional Chinese as used in Taiwan",
     guides:[
       [["[data-slot=inbox]","先在中間寫下這週想做的事，選一個顏色代表重要程度。"],
        ["[data-slot=d0]","按住一件事，拖到某一天，就排好了。","drag"],
@@ -620,7 +633,11 @@ const STR={
     aiErr:{rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
     fQs:["なぜそれが大切ですか？叶えたとき、どんな自分になっていたいですか？","今の出発点は？使える資源と、いちばんの制約は？","毎週どれくらい時間を使えますか？"],
     fDone:"いいですね。目標を九マスの真ん中に入れました。まわりの八つに、完了の基準がわかる小さなステップを書いてみてください。",
-    firstLbl:"最初の小さな行動",replyLang:"Japanese",
+    firstLbl:"最初の小さな行動",
+    impBtn:"YouTube から取り込む",impTitle:"YouTube を取り込む",impYt:"YouTube アカウントに接続",impYtNote:"再生リスト、高く評価した音楽、登録チャンネルを読み込み、九マスに並べます。",impYtSite:"インストール版の URL で Google にログインすると使えます。",
+    impTk:"Google Takeout で再生履歴を取り込む",impTkHow:"Google Takeout で「YouTube と YouTube Music」の「履歴」と「登録チャンネル」だけを選び、履歴の形式は JSON に。ダウンロードした .zip をそのままアップロードすると、よく再生した順に並べます。",impTkOpen:"Google Takeout を開く",impUp:"ファイルを選ぶ",
+    impPaste:"YouTube のリンクを貼る",impPastePh:"1 行に 1 リンク。前に曲名を書いても OK",impRead:"読み込む",impFound:n=>`${n} 件見つかりました。九マスに入れるものを選んでください：`,impApply:n=>`プレイリストに入れる（${n}）`,impNone:"YouTube の動画や再生リストが見つかりません。",impReading:"読み込み中…",impDone:"プレイリストを更新しました",
+    kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",replyLang:"Japanese",
     guides:[
       [["[data-slot=inbox]","まず真ん中に今週やることを書き、色で重要度を選びます。"],
        ["[data-slot=d0]","タスクをつかんで曜日へドラッグすれば予定完了。","drag"],
@@ -692,7 +709,11 @@ const STR={
     aiErr:{rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
     fQs:["Why does this matter to you? Who do you want to become by doing it?","Where are you starting from? What resources do you have, and what's your biggest limit?","How much time can you give it each week?"],
     fDone:"Nice work. Your goal is now in the middle of the grid. Fill the eight squares around it with small steps, each with a clear finish line.",
-    firstLbl:"First small action",replyLang:"English",
+    firstLbl:"First small action",
+    impBtn:"Import from YouTube",impTitle:"Import your YouTube",impYt:"Connect YouTube",impYtNote:"Reads your playlists, liked music and subscriptions and fills the nine squares.",impYtSite:"Works on the app link after signing in with Google.",
+    impTk:"Import your listening habits with Google Takeout",impTkHow:"In Google Takeout, select only “history” and “subscriptions” under “YouTube and YouTube Music”, and choose JSON for history. Upload the .zip as it is; songs are ranked by how often you played them.",impTkOpen:"Open Google Takeout",impUp:"Upload file",
+    impPaste:"Paste YouTube links",impPastePh:"One link per line; you can put the song name first",impRead:"Read",impFound:n=>`Found ${n}. Tick the ones for your grid:`,impApply:n=>`Add to Flow Playlist (${n})`,impNone:"No YouTube videos or playlists found.",impReading:"Reading…",impDone:"Playlist updated",
+    kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",replyLang:"English",
     guides:[
       [["[data-slot=inbox]","Start in the middle: write this week's tasks and pick a colour for how important each is."],
        ["[data-slot=d0]","Grab a task and drag it onto a day. That's it.","drag"],
@@ -1338,7 +1359,7 @@ function cover(seed){
 }
 function renderMusicFace(){
   const t=T();
-  $("face").innerHTML=`<div class="music">${S.songs.map((s,i)=>{
+  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-imp="open">${I.music}${t.impBtn}</button></div><div class="music">${S.songs.map((s,i)=>{
     const center=i===4;
     if(!s||!s.url)return `<button class="stile jelly blank${center?" center":""}" type="button" data-song="${i}" data-edit="${i}" aria-label="${t.addSong}"><span class="plus">+</span></button>`;
     const title=s.title||(center?t.playlist:"♪");
@@ -1782,14 +1803,14 @@ async function doShare(kind){
 var GS={token:null,exp:0,fileId:null,timer:0};
 function gisLoad(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.async=true;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
 async function gfetch(url,opt){const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({Authorization:"Bearer "+GS.token},(opt&&opt.headers)||{})}));if(!r.ok)throw new Error(r.status);return r}
-function googleToken(){
+function googleToken(yt){
   return new Promise(async(res)=>{
     if(!canGoogle()){toast(T().wNoLogin);res(false);return}
     try{await gisLoad()}catch(e){toast(T().syncFail);res(false);return}
-    const cl=google.accounts.oauth2.initTokenClient({client_id:OWNER.googleClientId,scope:"openid email profile https://www.googleapis.com/auth/drive.appdata",
+    const cl=google.accounts.oauth2.initTokenClient({client_id:OWNER.googleClientId,scope:"openid email profile https://www.googleapis.com/auth/drive.appdata"+(yt?" https://www.googleapis.com/auth/youtube.readonly":""),
       callback:r=>{if(!r||r.error){res(false);return}GS.token=r.access_token;GS.exp=Date.now()+((+r.expires_in||3600)-60)*1000;res(true)},
       error_callback:()=>res(false)});
-    cl.requestAccessToken({prompt:S.account?"":"consent"});
+    cl.requestAccessToken({prompt:S.account&&!yt?"":"consent"});
   });
 }
 async function googleSignIn(){
@@ -1957,6 +1978,121 @@ function coachImport(){
   coach.plan=null;coach.turns=[];save();closeLayer();S.face=1;render();toast(T().imported);
 }
 
+
+/* ---------- import the viewer's YouTube habits into the Flow Playlist ---------- */
+let impC=[];
+const YTRE=/(https?:\/\/(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be)\/[^\s"'<>]+)/i;
+function ytNorm(u){
+  try{const x=new URL(u);let v=x.searchParams.get("v"),l=x.searchParams.get("list");
+    if(x.hostname==="youtu.be")v=x.pathname.slice(1);
+    if(v)return {url:"https://www.youtube.com/watch?v="+v,id:"v:"+v,kind:"video"};
+    if(l)return {url:"https://www.youtube.com/playlist?list="+l,id:"l:"+l,kind:"playlist"};
+    const m=x.pathname.match(/\/(channel\/[\w-]+|@[\w.-]+)/);if(m)return {url:"https://www.youtube.com/"+m[1],id:"c:"+m[1],kind:"channel"};
+  }catch(e){}return null;
+}
+const cleanWatched=t=>String(t||"").replace(/^\s*(Watched|已觀看|觀看了|收看了|已收看|已观看|觀看)\s*/i,"").replace(/\s*を視聴しました\s*$/,"").trim();
+function addCand(map,o){const k=o.id;if(!map.has(k))map.set(k,Object.assign({count:0},o));const c=map.get(k);c.count++;if(!c.artist&&o.artist)c.artist=o.artist;if(o.music)c.music=true}
+function fromHistoryJSON(arr,map){
+  if(!Array.isArray(arr))return;
+  for(const e of arr){
+    if(!e||!e.titleUrl||e.details)continue;   // entries with details are ads
+    const n=ytNorm(e.titleUrl);if(!n||n.kind!=="video")continue;
+    const ch=e.subtitles&&e.subtitles[0]&&e.subtitles[0].name||"";
+    addCand(map,Object.assign(n,{title:cleanWatched(e.title),artist:ch.replace(/\s*-\s*Topic$/,""),music:e.header==="YouTube Music"}));
+  }
+}
+function fromHistoryHTML(text,map){
+  const doc=new DOMParser().parseFromString(text,"text/html");
+  const cells=doc.querySelectorAll(".outer-cell");
+  (cells.length?cells:[doc.body]).forEach(cell=>{
+    const tx=cell.textContent||"";if(/Google Ads|Google 廣告|Google 广告|Google 広告/.test(tx))return;
+    const head=(cell.querySelector(".header-cell")||{}).textContent||"";
+    cell.querySelectorAll('a[href*="watch?v="]').forEach(a=>{
+      const n=ytNorm(a.href);if(!n)return;
+      const ch=a.parentElement&&a.parentElement.querySelector('a[href*="/channel/"]');
+      addCand(map,Object.assign(n,{title:cleanWatched(a.textContent),artist:ch?ch.textContent.replace(/\s*-\s*Topic$/,"").trim():"",music:/YouTube Music/.test(head)}));
+    });
+  });
+}
+function fromCSV(text,map){
+  text.split(/\r?\n/).slice(1).forEach(line=>{
+    const cells=(line.match(/("([^"]|"")*"|[^,]*)(,|$)/g)||[]).map(c=>c.replace(/,$/,"").replace(/^"|"$/g,"").replace(/""/g,'"').trim()).filter(Boolean);
+    const u=cells.find(c=>/^https?:\/\//.test(c));if(!u)return;
+    const n=ytNorm(u);if(!n)return;
+    addCand(map,Object.assign(n,{title:cells[cells.length-1]===u?cells[0]:cells[cells.length-1],kind:"channel"}));
+  });
+}
+function rankCands(map){
+  const k={playlist:0,video:1,channel:2};
+  return [...map.values()].sort((a,b)=>(k[a.kind]-k[b.kind])||((b.music?1:0)-(a.music?1:0))||(b.count-a.count)).slice(0,40).map((c,i)=>Object.assign(c,{on:i<9}));
+}
+function loadJSZip(){return new Promise((res,rej)=>{if(window.JSZip)return res(window.JSZip);const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";sc.onload=()=>res(window.JSZip);sc.onerror=rej;document.head.appendChild(sc)})}
+async function importFiles(files){
+  const t=T(),map=new Map();impStatus(t.impReading);
+  try{
+    for(const f of files){
+      if(f.size>300*1024*1024){impStatus(t.impBig);return}
+      if(/\.zip$/i.test(f.name)){
+        const Z=await loadJSZip(),zip=await Z.loadAsync(f);
+        for(const e of zip.file(/watch-history\.json$/i))fromHistoryJSON(JSON.parse(await e.async("string")),map);
+        if(!map.size)for(const e of zip.file(/watch-history\.html$/i))fromHistoryHTML(await e.async("string"),map);
+        for(const e of zip.file(/subscriptions\.csv$/i))fromCSV(await e.async("string"),map);
+      }else{
+        const text=await f.text();
+        if(/\.json$/i.test(f.name))fromHistoryJSON(JSON.parse(text),map);
+        else if(/\.html?$/i.test(f.name))fromHistoryHTML(text,map);
+        else fromCSV(text,map);
+      }
+    }
+  }catch(e){impStatus(t.impFail);return}
+  showCands(rankCands(map));
+}
+function importPaste(){
+  const map=new Map();let n=0;
+  ($("impPaste").value||"").split(/\n/).forEach(line=>{const m=line.match(YTRE);if(!m)return;const x=ytNorm(m[1]);if(!x)return;n++;
+    addCand(map,Object.assign(x,{title:line.replace(m[1],"").replace(/[-–—:：|]+\s*$/,"").trim()||(x.kind==="playlist"?T().kPlaylist:"YouTube "+n)}))});
+  showCands([...map.values()].map((c,i)=>Object.assign(c,{on:i<9})));
+}
+async function importYouTube(){
+  const t=T();if(!canGoogle()){impStatus(t.impYtSite);return}
+  if(!await googleToken(true))return;
+  impStatus(t.impReading);
+  const map=new Map(),get=u=>gfetch(u).then(r=>r.json());
+  const [pl,lk,sb]=await Promise.allSettled([
+    get("https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=25"),
+    get("https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=50"),
+    get("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=30&order=relevance")]);
+  if(pl.status==="fulfilled")(pl.value.items||[]).forEach(p=>addCand(map,{id:"l:"+p.id,kind:"playlist",url:"https://www.youtube.com/playlist?list="+p.id,title:p.snippet.title,artist:p.snippet.channelTitle}));
+  if(lk.status==="fulfilled")(lk.value.items||[]).forEach(v=>addCand(map,{id:"v:"+v.id,kind:"video",url:"https://www.youtube.com/watch?v="+v.id,title:v.snippet.title,artist:(v.snippet.channelTitle||"").replace(/\s*-\s*Topic$/,""),music:v.snippet.categoryId==="10",liked:true}));
+  if(sb.status==="fulfilled")(sb.value.items||[]).forEach(c=>addCand(map,{id:"c:"+c.snippet.resourceId.channelId,kind:"channel",url:"https://www.youtube.com/channel/"+c.snippet.resourceId.channelId,title:c.snippet.title}));
+  if(!map.size&&[pl,lk,sb].every(x=>x.status==="rejected")){impStatus(t.syncFail);return}
+  showCands(rankCands(map));
+}
+function impStatus(msg){const r=$("impRes");if(r)r.innerHTML=`<p class="note">${esc(msg)}</p>`}
+function showCands(list){
+  const t=T();impC=list;const r=$("impRes");if(!r)return;
+  if(!list.length){impStatus(t.impNone);return}
+  const sub=c=>c.kind==="playlist"?t.kPlaylist:c.kind==="channel"?t.kChannel:[c.artist,c.count>1?t.plays(c.count):c.liked?t.kLiked:""].filter(Boolean).join(" · ");
+  r.innerHTML=`<p class="note">${t.impFound(list.length)}</p><div class="imp">${list.map((c,i)=>`<label><input type="checkbox" data-ci="${i}"${c.on?" checked":""}><b>${esc(c.title||"YouTube")}</b><small>${esc(sub(c))}</small></label>`).join("")}</div>
+<div class="row end"><button class="pill pri jelly" type="button" data-imp="apply" id="impApply">${t.impApply(list.filter(c=>c.on).length)}</button></div>`;
+  r.scrollIntoView({block:"nearest"});
+}
+function applyImport(){
+  const sel=impC.filter(c=>c.on).slice(0,9);if(!sel.length)return;
+  const pi=sel.findIndex(c=>c.kind==="playlist");if(pi>0)sel.unshift(sel.splice(pi,1)[0]);   // a playlist belongs in the middle square
+  const order=[4,0,1,2,3,5,6,7,8],songs=S.songs.slice();
+  sel.forEach((c,i)=>{songs[order[i]]={title:c.title||"",artist:c.kind==="video"?(c.artist||""):"",url:c.url}});
+  S.songs=songs;save();closeLayer();render();toast(T().impDone);
+}
+function openImport(){
+  const t=T();
+  layer(`<div class="shead"><h2>${t.impTitle}</h2>${closeBtn(t)}</div>
+<div class="sgroup"><h3>${I.music}${t.impYt}</h3><p class="note">${canGoogle()?t.impYtNote:t.impYtNote+" "+t.impYtSite}</p>${canGoogle()?`<div class="row"><button class="gbtn" type="button" data-imp="yt" style="max-width:280px">${GLOGO}${t.impYt}</button></div>`:""}</div>
+<div class="sgroup"><h3>${I.upload}${t.impTk}</h3><p class="note">${t.impTkHow}</p><div class="row"><label class="pill jelly upload">${I.upload}${t.impUp}<input id="impFile" type="file" accept=".zip,.json,.html,.htm,.csv" multiple></label><a class="linkbtn" href="https://takeout.google.com/" target="_blank" rel="noopener">${t.impTkOpen}</a></div></div>
+<div class="sgroup"><h3>${I.list}${t.impPaste}</h3><textarea id="impPaste" class="impta" placeholder="${esc(t.impPastePh)}"></textarea><div class="row end"><button class="pill jelly" type="button" data-imp="paste">${t.impRead}</button></div></div>
+<div id="impRes"></div>`,true);
+}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -1991,6 +2127,13 @@ document.addEventListener("click",e=>{
     if(a==="plan")coachPlan();
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
+    return}
+  const im=el.closest("[data-imp]");
+  if(im){const a=im.dataset.imp;
+    if(a==="open")openImport();
+    if(a==="yt")importYouTube();
+    if(a==="paste")importPaste();
+    if(a==="apply")applyImport();
     return}
   const cp=el.closest("[data-chip]");if(cp){coachSend(cp.dataset.chip);return}
   const wl=el.closest("[data-wel]");
@@ -2118,6 +2261,8 @@ document.addEventListener("keydown",e=>{
 });
 document.addEventListener("change",e=>{
   const el=e.target;
+  if(el.dataset&&el.dataset.ci!=null){impC[+el.dataset.ci].on=el.checked;const b=$("impApply");if(b)b.textContent=T().impApply(impC.filter(c=>c.on).length);return}
+  if(el.id==="impFile"){if(el.files&&el.files.length)importFiles([...el.files]);el.value="";return}
   if(el.id==="wallFile"){takeWallpaper(el.files&&el.files[0]);el.value="";return}
   if(el.id==="region"){S.region=el.value;save();render();if($("layer").querySelector(".welcome"))showWelcome();else if($("layer").querySelector("#region"))openSettings();return}
   if(el.classList.contains("tin")){
