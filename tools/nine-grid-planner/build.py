@@ -15,8 +15,8 @@ head = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#FFFFFF">
-<meta name="description" content="九宮格週計畫：把一週的待辦放進九個格子，含國定假日提醒、語音提醒與自訂桌布。">
+<meta name="theme-color" content="#E7EFF2">
+<meta name="description" content="九宮格週計畫：把一週的待辦放進九個格子，四個面：行事曆、目標路線圖、心流歌單、友善連結。">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -28,7 +28,7 @@ head = """<!doctype html>
 """ % repr(site_url).replace("'", '"')
 
 # the page starts with <title> and <style>; keep them in <head>, the rest goes in <body>
-split = page.index('<div id="wall">')
+split = page.index('<canvas id="bgArt"')
 out = head + page[:split] + "</head>\n<body>\n" + page[split:] + "\n</body>\n</html>\n"
 (HERE / "site" / "index.html").write_text(out, encoding="utf-8")
 print("wrote site/index.html", len(out), "bytes")
