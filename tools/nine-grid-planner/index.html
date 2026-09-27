@@ -931,6 +931,30 @@ html .knob svg{width:22px;height:22px}
 @keyframes mvPunch{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-12%) rotate(-8deg)}75%{transform:translateX(12%) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.wkmas img{animation-duration:3s!important}}
 
+/* course path */
+.cstats{padding:10px 12px;--r:22px;display:flex;align-items:center;gap:10px}
+.cring{position:relative;width:52px;height:52px;flex:none}.cring svg{width:100%;height:100%}.cring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:12px}
+.cst{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.cst b{font-weight:400;font-size:15px}.cst span{font-size:12px;color:var(--muted)}
+.calarm{flex:none;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-edge)}.calarm.on{color:var(--accent);border-color:var(--accent)}
+.ccourse{padding:6px;--r:24px}
+.csvg{width:100%;height:auto;display:block;overflow:visible}
+.cnode{cursor:pointer}.cnode.future,.cnode.rest{opacity:.8}
+.cpulse{transform-box:fill-box;transform-origin:center;animation:cpulse 1.6s ease-out infinite}
+@keyframes cpulse{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.cmas{animation:mbob 2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+.cmake{--r:18px;padding:10px 14px;font-size:14px;color:#E0535A;text-align:center}
+.wkstartbig{--r:26px;--t:var(--accent);display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px}
+.wkstartbig span{font-size:20px;font-family:var(--f-num);font-weight:800;color:var(--accent)}
+.wkstartbig small{font-size:18px;letter-spacing:4px}
+.wkstartbig.done span{color:var(--muted)}
+.wkrestday{--r:22px;display:flex;align-items:center;gap:10px;padding:12px}.wkrestday span{flex:1;font-size:14px}
+.cweek{padding:10px 14px;--r:20px}.cweek>small{font-size:11px;color:var(--muted)}
+.wbars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;height:74px;align-items:end;margin-top:6px}
+.wb{display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+.wb i{width:70%;max-width:22px;min-height:4px;border-radius:6px;background:var(--accent)}
+.wb i.zero{background:var(--chip)}.wb i.zero.rest{background:transparent;border:1px dashed var(--chip-edge)}
+.wb small{font-size:10px;color:var(--muted)}.wb.today small{color:var(--accent);font-weight:800}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -5156,14 +5180,88 @@ function renderFitFaceNew(){
     $("face").innerHTML=`<div class="bar">${tabs}</div><div class="wksay">${gcSay(w.setupQ,"wave")}</div><div class="wkgrid">${cells.join("")}</div>
 <div class="row"><span class="note">${w.levelQ}</span><div class="mini-seg">${[1,2].map(v=>`<button type="button" data-wklv="${v}" aria-pressed="${f.lv===v}">${w.lvName[v-1]}</button>`).join("")}</div></div>
 <div class="row end"><button class="pill pri jelly" type="button" data-wkset="1"${f.dir&&f.min?"":" disabled"}>${w.setOk}</button></div><p class="note">${t.fitSafe}</p>`;return}
-  const W=wkToday(),D=WK_DIRS.find(x=>x.k===W.dir),free=wkFree(W.dir,W.min),moves=[...new Set(W.seg.filter(x=>x.k!=="rest").map(x=>x.k))],st=wkStreak();
-  $("face").innerHTML=`<div class="bar">${tabs}<span class="grow"></span><button class="linkbtn" type="button" data-wkchange="1">${w.change}</button></div>
-<section class="wktoday jelly${W.done?" done":""}" id="wktoday"><div class="wkhead">${mascot(W.done?"cheer":"wave","wkme")}<div><small>${w.todayIs}</small><b>${D.e} ${esc(D.n[l])} · ${W.min} ${w.min}</b><small>${esc(D.d[l])}${st?` · 🔥 ${w.streak(st)}`:""}</small></div></div>
-<div class="wkmoves">${moves.map(k=>`<span>${esc(wkName(k))}</span>`).join("")}</div>
-${free?`<button class="pill pri jelly wkgo" type="button" data-wkstart="1">▶ ${W.done?w.again:w.start}</button>`:`<div class="firsthint">${I.lock} ${w.locked}</div>${OWNER.fitStore?`<a class="pill pri jelly" href="${esc(OWNER.fitStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<small class="note">${t.wSoon}</small>`}`}
-<div class="row"><button class="pill jelly" type="button" data-wkre="1">🔀 ${w.reroll}</button><button class="pill jelly" type="button" data-wkai="1">${I.sparkle}${w.aiTune}</button></div><div id="wkAiBox"></div></section>
-<p class="note">${t.fitSafe}</p>`;
+  renderCourse(tabs);
 }
+/* ---------- 28-day course: a path of days, done / today / missed / rest ---------- */
+const WK_PER={3:[0,2,4],4:[0,1,3,5],5:[0,1,2,4,5],7:[0,1,2,3,4,5,6]};
+const isTrainDay=d=>(WK_PER[S.fit.per||5]||WK_PER[5]).includes((d.getDay()+6)%7);
+function courseDays(){
+  if(!S.fit.start){S.fit.start=todayKey();save()}
+  const st=parse(S.fit.start),today=todayKey(),log=new Set(S.fit.log||[]),made=new Set(S.fit.made||[]);
+  return Array.from({length:28},(_,i)=>{const d=addDays(st,i),k=key(d),train=isTrainDay(d);
+    const state=log.has(k)?(made.has(k)?"made":"done"):!train?"rest":k===today?"today":k<today?"missed":"future";
+    const back=Math.round((parse(today)-d)/864e5);
+    return {i,k,d,state,canMake:state==="missed"&&back<=3}});
+}
+// the snake: four rows of seven, turning at each end, one week per row
+function courseSVG(days){
+  const w=WKT(),X=i=>{const r=Math.floor(i/7),c=i%7;return 26+(r%2?6-c:c)*46},Y=i=>30+Math.floor(i/7)*62;
+  let path=`M${X(0)} ${Y(0)}`;for(let i=1;i<28;i++){const px=X(i-1),py=Y(i-1),x=X(i),y=Y(i);path+=py===y?` L${x} ${y}`:` C${px+(px>150?40:-40)} ${py} ${x+(x>150?40:-40)} ${y} ${x} ${y}`}
+  const doneTo=days.reduce((a,x,i)=>(x.state==="done"||x.state==="made")?i:a,-1);
+  let donePath=`M${X(0)} ${Y(0)}`;for(let i=1;i<=doneTo;i++){const px=X(i-1),py=Y(i-1),x=X(i),y=Y(i);donePath+=py===y?` L${x} ${y}`:` C${px+(px>150?40:-40)} ${py} ${x+(x>150?40:-40)} ${y} ${x} ${y}`}
+  const node=x=>{const cx=X(x.i),cy=Y(x.i),s=x.state;
+    const body=s==="done"||s==="made"?`<circle r="14" fill="var(--accent)"/><path d="M-5 0l3.5 3.5 6.5-7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>${s==="made"?`<text y="-17" text-anchor="middle" font-size="9" fill="var(--accent)">${w.mk}</text>`:""}`
+      :s==="today"?`<circle r="18" fill="none" stroke="var(--accent)" stroke-width="3" class="cpulse"/><circle r="14" fill="color-mix(in srgb,var(--accent) 20%,var(--bg))" stroke="var(--accent)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14">▶</text>`
+      :s==="missed"?`<circle r="13" fill="var(--bg)" stroke="#E0535A" stroke-width="2" stroke-dasharray="4 3"/>${x.canMake?`<text y="4" text-anchor="middle" font-size="11" fill="#E0535A" font-weight="800">${w.mk}</text>`:`<text y="4" text-anchor="middle" font-size="11" fill="#E0535A">✕</text>`}`
+      :s==="rest"?`<circle r="9" fill="var(--chip)"/><text y="4" text-anchor="middle" font-size="10">💤</text>`
+      :`<circle r="11" fill="var(--bg)" stroke="color-mix(in srgb,var(--muted) 45%,transparent)" stroke-width="2"/>`;
+    return `<g class="cnode ${s}" data-cday="${x.i}" transform="translate(${cx} ${cy})">${body}<text y="${s==="today"?31:27}" text-anchor="middle" font-size="9" fill="var(--muted)">${x.d.getMonth()+1}/${x.d.getDate()}</text></g>`};
+  const today=days.find(x=>x.state==="today");
+  return `<svg class="csvg" viewBox="0 0 330 250" role="img" aria-label="${w.courseTitle}">
+${[0,1,2,3].map(r=>`<text x="${r%2?322:4}" y="${Y(r*7)-18}" font-size="9" fill="var(--muted)" text-anchor="${r%2?"end":"start"}">W${r+1} ${w.weekName[r]}</text>`).join("")}
+<path d="${path}" fill="none" stroke="var(--chip)" stroke-width="8" stroke-linecap="round"/>${doneTo>0?`<path d="${donePath}" fill="none" stroke="color-mix(in srgb,var(--accent) 55%,transparent)" stroke-width="8" stroke-linecap="round"/>`:""}
+${days.map(node).join("")}
+${today?`<image href="${esc(OWNER.mascotImg||JELLY)}" x="${X(today.i)-17}" y="${Y(today.i)-58}" width="34" height="34" class="cmas"/>`:""}</svg>`;
+}
+function weekBars(){
+  const w=WKT(),mon=mondayOf(new Date()),m=S.fit.mins||{},t=T();
+  const vals=[0,1,2,3,4,5,6].map(i=>{const k=key(addDays(mon,i));return {k,v:m[k]||0,train:isTrainDay(addDays(mon,i)),today:k===todayKey()}});
+  const max=Math.max(S.fit.min||10,...vals.map(x=>x.v));
+  return `<div class="wbars">${vals.map((x,i)=>`<div class="wb${x.today?" today":""}"><i style="height:${Math.round(x.v/max*100)}%"${x.v?"":` class="zero${x.train?"":" rest"}"`}></i><small>${t.short[i]}</small></div>`).join("")}</div>`;
+}
+function renderCourse(tabs){
+  const w=WKT(),t=T(),l=LANG[S.region],f=S.fit,days=courseDays(),D=WK_DIRS.find(x=>x.k===f.dir);
+  const doneN=days.filter(x=>x.state==="done"||x.state==="made").length,planN=days.filter(x=>x.state!=="rest").length||1,pct=Math.round(doneN/planN*100);
+  const mon=key(mondayOf(new Date())),sun=key(addDays(mondayOf(new Date()),6)),wkDone=(S.fit.log||[]).filter(k=>k>=mon&&k<=sun).length,st=wkStreak();
+  const miss=days.filter(x=>x.canMake),W=wkToday(),trainToday=isTrainDay(new Date()),free=wkFree(f.dir,f.min);
+  const C=2*Math.PI*22;
+  $("face").innerHTML=`<div class="bar">${tabs}<span class="grow"></span><button class="round jelly" type="button" data-wkchange="1" aria-label="${w.change}">⚙️</button></div>
+<section class="cstats jelly"><div class="cring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--chip)" stroke-width="6"/><circle cx="26" cy="26" r="22" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*pct/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 26 26)"/></svg><b>${pct}%</b></div>
+<div class="cst"><b>${D.e} ${esc(D.n[l])}</b><span>🔥 ${st} · ${w.thisWeek} ${wkDone}/${(WK_PER[f.per||5]||[]).length} · ⏱ ${f.min}′</span></div>
+<button type="button" class="calarm${f.at?" on":""}" data-walarm="1">⏰ ${f.at||w.setAlarm}</button></section>
+<section class="ccourse jelly">${courseSVG(days)}</section>
+${miss.length?`<button type="button" class="cmake jelly" data-cday="${miss[0].i}">🩹 ${w.makeUp(t.md(miss[0].d))}</button>`:""}
+${trainToday?(free?`<button class="wkstartbig jelly${W.done?" done":""}" type="button" data-wkstart="1">${mascot(W.done?"cheer":"wave","wkme")}<span>${W.done?"✓ "+w.again:"▶ "+w.startShort}</span><small>${W.seg.filter(x=>x.k!=="rest").slice(0,6).map(x=>MV_ICON[MVMAP[x.k].a]||"•").join(" ")}</small></button>`
+  :`<div class="firsthint">${I.lock} ${w.locked}</div>`):`<div class="wkrestday jelly">${mascot("idle","wkme")}<span>💤 ${w.restDay}</span><button class="linkbtn" type="button" data-wkstart="1">${w.extra}</button></div>`}
+<section class="cweek jelly"><small>${w.weekMins}</small>${weekBars()}</section>
+<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-wkre="1">🔀</button><button class="pill jelly" type="button" data-wkai="1">${I.sparkle}${w.aiTune}</button></div><div id="wkAiBox"></div>`;
+}
+const MV_ICON={jump:"🤸",run:"🏃",march:"🚶",squat:"🦵",push:"💪",hold:"🧱",bridge:"🌉",bounce:"🎵",sway:"💃",twist:"🌀",circle:"⭕",lean:"🌿",fold:"🙇",breathe:"🫁",wave:"🌊",punch:"🥊"};
+// tap a day on the path
+function courseTap(i){
+  const w=WKT(),t=T(),x=courseDays()[i];if(!x)return;
+  if(x.state==="today"){wkStart();return}
+  if(x.state==="missed"){if(!x.canMake){toast(w.tooLate);return}
+    layer(`<div class="lvup">${mascot("wave","lvmas")}<h2>${w.makeUp(t.md(x.d))}</h2><p>${w.makeHint}</p><div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-wkmake="${x.k}">▶ ${w.startShort}</button></div></div>`,true);return}
+  if(x.state==="done"||x.state==="made"){toast(w.didOn(t.md(x.d),(S.fit.mins||{})[x.k]||S.fit.min));return}
+  if(x.state==="rest"){toast(w.restDay);return}
+  toast(w.notYet);
+}
+// daily reminder: at the chosen time on a training day, if not done yet
+function wkAlarmCheck(){
+  const f=S.fit;if(!f||!f.at||!f.dir)return;const now=new Date(),k=key(now);
+  if(!isTrainDay(now)||(f.log||[]).includes(k)||f.nudged===k)return;
+  const [h,m]=f.at.split(":").map(Number);if(now.getHours()*60+now.getMinutes()<h*60+m)return;
+  f.nudged=k;save();const w=WKT();toast("⏰ "+w.nudge);if(S.voice!==false)sayIn(w.nudge,LANG[S.region]);
+  try{if(window.Notification&&Notification.permission==="granted")new Notification("💪 "+w.nudge)}catch(e){}
+}
+setInterval(wkAlarmCheck,30000);setTimeout(wkAlarmCheck,4000);
+function openAlarm(){const w=WKT(),t=T();
+  layer(`<div class="shead"><h2>⏰ ${w.setAlarm}</h2>${closeBtn(t)}</div><div class="qchips">${["07:00","12:30","18:30","20:00","21:30"].map(x=>`<button type="button" data-walset="${x}" aria-pressed="${S.fit.at===x}">${x}</button>`).join("")}</div>
+<label class="fld">${w.otherTime}<input id="walT" type="time" value="${esc(S.fit.at||"20:00")}"></label>
+<h3>${w.perWeek}</h3><div class="qchips">${[3,4,5,7].map(n=>`<button type="button" data-wper="${n}" aria-pressed="${(S.fit.per||5)===n}">${w.perN(n)}</button>`).join("")}</div>
+<div class="row end">${S.fit.at?`<button class="linkbtn" type="button" data-walset="">${w.alarmOff}</button>`:""}<button class="pill pri jelly" type="button" data-walset="custom">${t.save}</button></div>`,true)}
+
 let wkSetup=false;
 async function wkAiTune(){
   const w=WKT(),t=T(),box=$("wkAiBox");
@@ -5194,8 +5292,8 @@ function beatStart(bpm){const ctx=ambCtx();if(!ctx)return;beatStop();let n=0;con
     else{const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,false);const hp=ctx.createBiquadFilter();hp.type="highpass";hp.frequency.value=type==="h"?7000:1500;const g=ctx.createGain();g.gain.setValueAtTime(type==="h"?.06:.12,t);g.gain.exponentialRampToValueAtTime(.001,t+(type==="h"?.05:.12));s.connect(hp).connect(g).connect(ctx.destination);s.start(t);s.stop(t+.15)}};
   wkBeat=setInterval(()=>{if(wkRun&&wkRun.paused)return;const i=n%8;if(i===0||i===4)hit("k");if(i===2||i===6)hit("c");hit("h");n++},step*1000)}
 let wkBeat=null;const beatStop=()=>{clearInterval(wkBeat);wkBeat=null};
-function wkStart(){
-  const W=wkToday();if(!W)return;const wasPlaying=AMB.playing;if(wasPlaying){AMB.userPaused=true;ambPause()}
+function wkStart(day){
+  const W=day?Object.assign(wkBuild(S.fit.dir,S.fit.min,S.fit.lv,day),{d:day,make:true}):wkToday();if(!W)return;const wasPlaying=AMB.playing;if(wasPlaying){AMB.userPaused=true;ambPause()}
   wkRun={W,i:0,left:W.seg[0].s,paused:false,voice:S.fit.voice!==false,resume:wasPlaying,lock:null,done:0};
   try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{if(wkRun)wkRun.lock=l},()=>{})}catch(e){}
   if(W.beat||W.dir==="burn")beatStart(W.dir==="burn"?128:112);
@@ -5229,27 +5327,28 @@ function wkUpdate(){const x=wkRun.W.seg[wkRun.i],a=$("wkArc"),n=$("wkLeft");if(n
 function wkEnd(){if(!wkRun)return;clearInterval(wkRun.timer);beatStop();try{wkRun.lock&&wkRun.lock.release()}catch(e){}const r=wkRun.resume;wkRun=null;if(r){AMB.userPaused=false;ambStart(S.music.track)}}
 function wkFinish(){
   const w=WKT(),P=wkRun.W,mins=Math.max(1,Math.round(wkRun.done/60)),D=WK_DIRS.find(x=>x.k===P.dir),l=LANG[S.region];wkEnd();beep(1046,.5,.25);
-  const first=!P.done;P.done=true;S.fit.log=(S.fit.log||[]).concat(todayKey()).filter((x,i,a)=>a.indexOf(x)===i).slice(-120);
-  if(first){const d=new Date(),i=(d.getDay()+6)%7,wkk=W(key(mondayOf(d)));wkk.days[i].push({id:uid(),text:w.calText(D.n[l],P.min),pri:"mid",done:true,sk:["health"]})}
+  const dk=P.make?P.d:todayKey(),first=!(S.fit.log||[]).includes(dk);P.done=true;S.fit.log=(S.fit.log||[]).concat(dk).filter((x,i,a)=>a.indexOf(x)===i).slice(-120);
+  S.fit.mins=S.fit.mins||{};S.fit.mins[dk]=(S.fit.mins[dk]||0)+mins;if(P.make)S.fit.made=(S.fit.made||[]).concat(dk).slice(-60);
+  if(first){const d=parse(dk),i=(d.getDay()+6)%7,wkk=W(key(mondayOf(d)));wkk.days[i].push({id:uid(),text:w.calText(D.n[l],P.min),pri:"mid",done:true,sk:["health"]})}
   save();wkSay(w.doneSay);
   layer(`<div class="lvup">${mascot("cheer","lvmas")}<h2>${w.doneTitle}</h2><p>${w.doneSum(mins,wkStreak())}</p><p class="note">${first?w.calAdded:""}</p><div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-close="1">${w.yay}</button></div></div>`,true);
-  if(first)setTimeout(()=>xpEvent("fit"),600);
+  if(first&&!P.make)setTimeout(()=>xpEvent("fit"),600);else if(first)setTimeout(()=>xpAdd("task",15),600);
   render();
 }
 const WK_STR={
-  zh:{tabToday:"今日功課",tabParts:"部位教學",setupQ:"先選你想練的方向和每天的時間，我每天幫你排好功課，一起練！",levelQ:"程度：",lvName:["新手","有在動"],min:"分鐘",setOk:"好，開始我的每日功課",
+  zh:{tabToday:"今日功課",mk:"補",weekName:["適應","建立","加強","挑戰"],courseTitle:"28 天課程",thisWeek:"本週",setAlarm:"設定提醒",startShort:"開始",restDay:"今天休息日，讓肌肉長大",extra:"還是想動一下",weekMins:"本週每天分鐘數",makeUp:d=>`補 ${d} 的課`,makeHint:"補完會把那天點亮，連續天數也會接起來。",tooLate:"超過 3 天就不補了，往前看就好！",didOn:(d,m)=>`${d} 練了 ${m} 分鐘 ✓`,notYet:"還沒到喔，先專心今天～",nudge:"該動一動囉！今天的功課在等你",otherTime:"或自己選時間",perWeek:"每週練幾天",perN:n=>n===7?"每天":`${n} 天`,alarmOff:"關閉提醒",tabParts:"部位教學",setupQ:"先選你想練的方向和每天的時間，我每天幫你排好功課，一起練！",levelQ:"程度：",lvName:["新手","有在動"],min:"分鐘",setOk:"好，開始我的每日功課",
     todayIs:"今天的功課",start:"開始，一起練",again:"再練一次",change:"換方向",reroll:"換一組動作",aiTune:"AI 依我的狀況調整",streak:n=>`連續 ${n} 天`,
     locked:"這個組合是加購內容：舞蹈和 20 分鐘課表。先試試 5 或 10 分鐘的吧！",aiQ:"告訴我你的狀況：",aiPh:"例如：膝蓋不好、樓下有人不能跳",aiGo:"調整",aiThinking:"教練正在幫你調整…",noAI:"現在沒有 AI，先用內建課表；膝蓋不舒服就把跳躍換成原地踏步。",tuned:"已調整今天的課表",
     rest:"休息",restTalk:"喝口水，深呼吸～",next:"下一個",lastOne:"最後一個了！",pause:"暫停",resume:"繼續",skip:"跳過",quit:"結束",
     sayGo:(n,s)=>`${n}，${s} 秒，開始！`,sayRest:(s,n)=>`休息 ${s} 秒，下一個是${n}`,doneSay:"完成了！你今天好棒！",doneTitle:"今日功課完成！",
     doneSum:(m,s)=>`你動了 ${m} 分鐘${s>1?`，已經連續 ${s} 天`:""}。身體會記得今天的努力。`,calAdded:"已經幫你記到行事曆 ✓",yay:"耶！",calText:(n,m)=>`💪 每日功課：${n} ${m} 分鐘`,quest:"完成今天的運動功課"},
-  ja:{tabToday:"今日のメニュー",tabParts:"部位別",setupQ:"鍛えたい方向と 1 日の時間を選んでね。毎日メニューを用意して、一緒にやるよ！",levelQ:"レベル：",lvName:["はじめて","慣れてる"],min:"分",setOk:"これで毎日のメニューを始める",
+  ja:{tabToday:"今日のメニュー",mk:"補",weekName:["慣らす","つくる","伸ばす","挑戦"],courseTitle:"28 日コース",thisWeek:"今週",setAlarm:"通知時間",startShort:"スタート",restDay:"今日は休養日。筋肉が育つ日",extra:"それでも動きたい",weekMins:"今週の分数",makeUp:d=>`${d} の分を補う`,makeHint:"補うとその日が点灯し、連続日数もつながります。",tooLate:"3 日を過ぎたら前を向こう！",didOn:(d,m)=>`${d}：${m} 分 ✓`,notYet:"まだ先の日です。今日に集中～",nudge:"そろそろ動こう！今日のメニューが待ってるよ",otherTime:"時間を選ぶ",perWeek:"週に何日",perN:n=>n===7?"毎日":`${n} 日`,alarmOff:"通知オフ",tabParts:"部位別",setupQ:"鍛えたい方向と 1 日の時間を選んでね。毎日メニューを用意して、一緒にやるよ！",levelQ:"レベル：",lvName:["はじめて","慣れてる"],min:"分",setOk:"これで毎日のメニューを始める",
     todayIs:"今日のメニュー",start:"一緒にスタート",again:"もう一回",change:"方向を変える",reroll:"入れ替える",aiTune:"AI で自分向けに",streak:n=>`${n} 日連続`,
     locked:"ダンスと 20 分メニューは追加購入です。まずは 5 分か 10 分で！",aiQ:"今の状態を教えて：",aiPh:"例：膝が痛い、下の階に響くのでジャンプ不可",aiGo:"調整",aiThinking:"コーチが調整中…",noAI:"今は AI が使えません。膝がつらいときはジャンプを足踏みに。",tuned:"今日のメニューを調整しました",
     rest:"休憩",restTalk:"水を飲んで深呼吸～",next:"次",lastOne:"ラスト！",pause:"一時停止",resume:"再開",skip:"スキップ",quit:"終了",
     sayGo:(n,s)=>`${n}、${s} 秒、スタート！`,sayRest:(s,n)=>`${s} 秒休憩、次は${n}`,doneSay:"おつかれさま！よくがんばったね！",doneTitle:"今日のメニュー完了！",
     doneSum:(m,s)=>`${m} 分動きました${s>1?`、${s} 日連続`:""}。体はちゃんと覚えています。`,calAdded:"カレンダーに記録しました ✓",yay:"やった！",calText:(n,m)=>`💪 今日のメニュー：${n} ${m} 分`,quest:"今日の運動メニューを終える"},
-  en:{tabToday:"Today's workout",tabParts:"By body part",setupQ:"Pick what you want to train and how long each day. I'll plan it daily and train with you!",levelQ:"Level:",lvName:["New to it","Active"],min:"min",setOk:"Start my daily workout",
+  en:{tabToday:"Today's workout",mk:"+",weekName:["Ease in","Build","Push","Challenge"],courseTitle:"28-day course",thisWeek:"This week",setAlarm:"Reminder",startShort:"Start",restDay:"Rest day: your muscles grow today",extra:"I still want to move",weekMins:"Minutes this week",makeUp:d=>`Make up ${d}`,makeHint:"Making up lights that day and joins your streak back up.",tooLate:"Past 3 days: just look ahead!",didOn:(d,m)=>`${d}: ${m} min ✓`,notYet:"Not yet. Focus on today~",nudge:"Time to move! Today's workout is waiting",otherTime:"Or pick a time",perWeek:"Days a week",perN:n=>n===7?"Every day":`${n} days`,alarmOff:"Turn off",tabParts:"By body part",setupQ:"Pick what you want to train and how long each day. I'll plan it daily and train with you!",levelQ:"Level:",lvName:["New to it","Active"],min:"min",setOk:"Start my daily workout",
     todayIs:"Today's workout",start:"Start, let's go together",again:"Do it again",change:"Change direction",reroll:"Swap moves",aiTune:"Tailor with AI",streak:n=>`${n}-day streak`,
     locked:"Dance and 20-minute sessions are an add-on. Try 5 or 10 minutes first!",aiQ:"Tell me your situation:",aiPh:"e.g. sore knees, no jumping (neighbours below)",aiGo:"Adjust",aiThinking:"Your coach is adjusting…",noAI:"No AI right now. If your knees hurt, swap jumps for marching.",tuned:"Today's workout adjusted",
     rest:"Rest",restTalk:"Sip some water, breathe~",next:"Next",lastOne:"Last one!",pause:"Pause",resume:"Resume",skip:"Skip",quit:"End",
@@ -5315,11 +5414,18 @@ document.addEventListener("click",e=>{
   const crg=el.closest("[data-crgo]");if(crg){
     if(crg.dataset.crgo==="ai"){crGenerate();return}return}
   if(el.closest("[data-crcopy]")){const tx=$("crText").value;try{navigator.clipboard.writeText(tx).then(()=>toast(T().copied),()=>$("crText").select())}catch(x){$("crText").select()}return}
+  const cdy=el.closest("[data-cday]");if(cdy){courseTap(+cdy.dataset.cday);return}
+  const wmk=el.closest("[data-wkmake]");if(wmk){closeLayer();wkStart(wmk.dataset.wkmake);return}
+  if(el.closest("[data-walarm]")){openAlarm();return}
+  const wper=el.closest("[data-wper]");if(wper){S.fit.per=+wper.dataset.wper;save();document.querySelectorAll("[data-wper]").forEach(b=>b.setAttribute("aria-pressed",b===wper));render();return}
+  const wal=el.closest("[data-walset]");if(wal){const v=wal.dataset.walset;if(v==="custom"){S.fit.at=$("walT").value||"20:00"}else{S.fit.at=v}
+    if(S.fit.at){try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission()}catch(e){}}
+    if(v===""||v==="custom"){closeLayer()}else{document.querySelectorAll("[data-walset]").forEach(b=>b.setAttribute("aria-pressed",b===wal))}save();render();return}
   const ftb=el.closest("[data-fittab]");if(ftb){fitTab=ftb.dataset.fittab;render();return}
   const wdr=el.closest("[data-wkdir]");if(wdr){S.fit.dir=wdr.dataset.wkdir;wkSetup=true;save();render();return}
   const wmn=el.closest("[data-wkmin]");if(wmn){S.fit.min=+wmn.dataset.wkmin;save();render();return}
   const wlv=el.closest("[data-wklv]");if(wlv){S.fit.lv=+wlv.dataset.wklv;save();render();return}
-  if(el.closest("[data-wkset]")){wkSetup=false;S.wk=null;save();render();return}
+  if(el.closest("[data-wkset]")){wkSetup=false;S.wk=null;S.fit.start=todayKey();save();render();return}
   if(el.closest("[data-wkchange]")){wkSetup=true;render();return}
   if(el.closest("[data-wkstart]")){wkStart();return}
   if(el.closest("[data-wkre]")){S.wk.re=(S.wk.re||0)+1;const re=S.wk.re,d=S.wk.d;S.wk=Object.assign(wkBuild(S.fit.dir,S.fit.min,S.fit.lv,d+re),{d,dir:S.fit.dir,min:S.fit.min,lv:S.fit.lv,re,done:S.wk.done});save();render();return}
