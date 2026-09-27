@@ -480,7 +480,67 @@ body.ranging .gbar{pointer-events:none}
 .wnav .grow{flex:1}
 .trail{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .stars{font-size:26px;letter-spacing:4px;color:var(--mid)}
-@media (max-width:600px){.wcell{padding:7px;--r:20px}.wcell .ww{font-size:18px}.wc .big{font-size:26px}.wc .emo{font-size:32px}.wcell .wx{font-size:11.5px}}
+@media (max-width:600px) {.wcell{padding:7px;--r:20px}.wcell .ww{font-size:18px}.wc .big{font-size:26px}.wc .emo{font-size:32px}.wcell .wx{font-size:11.5px}}
+
+/* game table */
+.glist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gtile{aspect-ratio:1;max-width:100%;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;--r:26px;transition:transform .25s var(--ease)}
+.gtile:hover{transform:translateY(-3px)}
+.gtile svg{width:46px;height:46px;margin-bottom:auto}
+.gtile b{font-weight:400;font-size:15px}
+.gtile small{font-size:11px;color:var(--muted);line-height:1.4}
+.gtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gtop h3{margin:0;font-size:17px;font-weight:400;flex:1;min-width:0}
+.pls{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center}
+.pl{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px 4px 6px;font-size:13px;background:var(--chip);border:1px solid var(--chip-edge)}
+.pl i{width:18px;height:18px;border-radius:50%;background:var(--pc);box-shadow:inset 0 1px 1px rgba(255,255,255,.6)}
+.pl.on{box-shadow:0 0 0 2.5px var(--pc)}
+.gstat{font-size:14px;text-align:center;min-height:22px}
+.gstat b{font-weight:400;color:var(--accent)}
+.codebox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;border-radius:18px;padding:10px 14px;background:color-mix(in srgb,var(--accent) 12%,var(--chip))}
+.codebox strong{font-family:var(--f-num);font-weight:800;font-size:22px;letter-spacing:.18em}
+.board{margin-inline:auto;width:100%;max-width:560px}
+.pc1{--pc:var(--c0)}.pc2{--pc:var(--c1)}
+.piece{width:70%;height:70%;border-radius:50%;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,#fff 55%,var(--pc)),var(--pc) 60%,color-mix(in srgb,#000 18%,var(--pc)));box-shadow:0 4px 10px -4px var(--pc),inset 0 -3px 6px color-mix(in srgb,#000 12%,var(--pc))}
+.piece.px{background:none;box-shadow:none;position:relative}
+.piece.px::before,.piece.px::after{content:"";position:absolute;left:50%;top:6%;width:22%;height:88%;margin-left:-11%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,#fff 40%,var(--pc)),var(--pc));transform:rotate(45deg)}
+.piece.px::after{transform:rotate(-45deg)}
+.piece.po{background:none;box-shadow:inset 0 0 0 9px var(--pc),0 4px 10px -6px var(--pc)}
+.t3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:420px}
+.t3 button{aspect-ratio:1;display:grid;place-items:center;--r:24px}
+.win{box-shadow:0 0 0 3px var(--accent),0 12px 24px -12px var(--accent)!important}
+.ug{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mini{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:6px;--r:18px}
+.mini.act{box-shadow:0 0 0 3px var(--accent)}
+.mini button{aspect-ratio:1;border-radius:9px;background:var(--chip);display:grid;place-items:center}
+.mini .piece.po{box-shadow:inset 0 0 0 4px var(--pc)}
+.mini .big{position:absolute;inset:0;display:grid;place-items:center;border-radius:18px;background:color-mix(in srgb,var(--bg) 55%,transparent)}
+.mini .big .piece{width:72%;height:72%}
+.mini .big .piece.po{box-shadow:inset 0 0 0 16px var(--pc)}
+.gomo{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));padding:8px;--r:22px;--t:var(--c2)}
+.gomo button{position:relative;aspect-ratio:1;display:grid;place-items:center;background:linear-gradient(90deg,transparent calc(50% - .6px),color-mix(in srgb,var(--ink) 35%,transparent) calc(50% - .6px) calc(50% + .6px),transparent 0),linear-gradient(0deg,transparent calc(50% - .6px),color-mix(in srgb,var(--ink) 35%,transparent) calc(50% - .6px) calc(50% + .6px),transparent 0)}
+.gomo .piece{width:86%;height:86%}
+.gomo .last::after{content:"";width:22%;height:22%;border-radius:50%;background:#fff;position:absolute}
+.c4{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:10px;--r:24px;--t:var(--c3);max-width:460px}
+.c4 button{aspect-ratio:1;border-radius:50%;background:color-mix(in srgb,var(--bg) 70%,transparent);display:grid;place-items:center;box-shadow:inset 0 3px 6px var(--shade)}
+.c4 .piece{width:88%;height:88%}
+.c4 .drop{animation:drop .45s cubic-bezier(.3,1.4,.5,1)}
+@keyframes drop{from{transform:translateY(-420%)}}
+.sud{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));padding:8px;--r:22px;max-width:480px;gap:0}
+.sud button{aspect-ratio:1;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:clamp(14px,4.4vw,22px);color:var(--accent);background:var(--chip);border:.5px solid var(--line)}
+.sud button.gv{color:var(--ink)}
+.sud button.bx{border-right:2.5px solid color-mix(in srgb,var(--ink) 45%,transparent)}
+.sud button.by{border-bottom:2.5px solid color-mix(in srgb,var(--ink) 45%,transparent)}
+.sud button.hl{background:color-mix(in srgb,var(--accent) 10%,var(--chip))}
+.sud button.same{background:color-mix(in srgb,var(--accent) 22%,var(--chip))}
+.sud button.sel{background:color-mix(in srgb,var(--accent) 38%,var(--chip))}
+.sud button.bad{color:var(--hi)}
+.npad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-width:480px;margin-inline:auto}
+.npad button{height:44px;border-radius:14px;font-family:var(--f-num);font-weight:800;font-size:18px;--r:14px}
+.score{display:flex;flex-direction:column;gap:6px}
+.score div{display:flex;align-items:center;gap:8px;font-size:14px}
+.score .bar2{flex:1;height:10px;border-radius:999px;background:var(--chip);overflow:hidden}
+.score .bar2 i{display:block;height:100%;background:var(--accent);border-radius:999px}
 
 @media (max-width:600px){
   .app{gap:12px}
@@ -549,6 +609,7 @@ body.ranging .gbar{pointer-events:none}
   <button class="fb" type="button" data-face="2"></button>
   <button class="fb" type="button" data-face="3"></button>
   <button class="fb" type="button" data-face="4"></button>
+  <button class="fb" type="button" data-face="5"></button>
 </nav>
 
 <div id="layer"></div>
@@ -581,8 +642,8 @@ const SPONSORS=[
 /* ---------- strings ---------- */
 const STR={
   zh:{
-    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡"],
-    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義"],
+    faces:["九宮格行事曆","未來九宮格","心流歌單","友善連結","語寶字卡","九宮遊戲桌"],
+    subs:["把這週的事放進九個格子","拆解目標，一步一步走到終點","點一格，就開始播放","找到和你合拍的夥伴","左右滑學新字，點外圈延伸同義、反義","井字、五子棋、數獨……一個人玩或連線對戰"],
     days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
     inbox:"本週待辦",prev:"上週未完成",placeholder:"寫下一件事",
     pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
@@ -639,6 +700,13 @@ const STR={
     impTk:"用 Google Takeout 匯入聽歌習慣",impTkHow:"到 Google Takeout 只勾選「YouTube 和 YouTube Music」裡的「記錄」和「訂閱內容」，記錄格式選 JSON。下載後把 .zip 直接上傳，會照你播放最多次的歌排序。",impTkOpen:"打開 Google Takeout",impUp:"上傳檔案",
     impPaste:"貼上 YouTube 連結",impPastePh:"一行一個連結，前面可以寫歌名",impRead:"讀取",impFound:n=>`找到 ${n} 個，勾選要放進九格的：`,impApply:n=>`放進心流歌單（${n}）`,impNone:"沒有找到 YouTube 影片或播放清單。",impReading:"讀取中…",impDone:"歌單換好了",
     kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",
+    gNames:{ttt:"井字棋",ult:"超級九宮格",gomoku:"五子棋",c4:"四子棋",sud:"數獨",quiz:"語寶猜謎"},
+    gDesc:{ttt:"三個連成一線就贏",ult:"九個井字盤一起下",gomoku:"先連成五顆就贏",c4:"棋子會往下掉，連成四顆",sud:"每行、每列、每宮 1–9 不重複",quiz:"看圖猜字，答對會念給你聽"},
+    mAI:"對電腦",mLocal:"同一支手機",mOnline:"線上對戰",mSolo:"自己玩",nick:"你的名字",gCreate:"建立房間",gJoin:"加入",gCodePh:"輸入房間代碼",gStart:"開始",
+    gCode:c=>`房間代碼 ${c}`,gShare:"把代碼傳給朋友，他在「線上對戰」輸入就能加入。",gCopy:"複製代碼",gWait:"等對手加入…",gYour:"輪到你了",gTheir:n=>`輪到 ${n}`,
+    gWin:n=>`${n} 贏了！`,gDraw:"平手",gRestart:"再來一局",gLeave:"離開",gSpect:"觀戰中",gNotYou:"還沒輪到你",
+    gOnlineOff:"線上對戰要在 Claude 裡打開，並把這個網頁分享給朋友才能連線。",gBadCode:"這個代碼不對，請再確認一次",gCPU:"電腦",gP:n=>`玩家 ${n}`,
+    gDone:"完成了！",gMist:n=>`錯 ${n} 次`,gErase:"清除",gQuiz:"這是什麼？",gQScore:(a,b)=>`答對 ${a}/${b}`,gUltHint:"你下在小盤的哪一格，對手就得去大盤的那一格。",gPlayers:"玩家",
     wLearn:"學習",wGame:"遊戲",wReview:"複習",wSyn:"同義",wAnt:"反義",wRel:"相關",wEx:"例句",wKnown:"記住了",wAgain:"再看看",wBack:"回到",wImport:"匯入字卡",wAI:"用 AI 延伸",wAIing:"延伸中…",wNoMore:"這個字還沒有延伸資料",wAddMine:"加入我的字卡",wMine:"我的字卡",
     wFind:(w,n,k)=>`找出「${w}」的 ${n} 個${k}字`,wQ:(i,n)=>`第 ${i}/${n} 題`,wScore:(a,b)=>`答對 ${a}/${b} 題`,wAgainPlay:"再玩一次",wReviewEmpty:"沒有要複習的字，太棒了！",wTrialEnd:"試玩到這裡",wUnlock:n=>`加購解鎖完整 ${n} 張`,wPro:"加購",wSoon:"即將推出",
     wImpTitle:"匯入我的字卡",wImpName:"字卡名稱",wImpHow:"一行一個字，用逗號或 Tab 分成：詞, 同義, 反義, 相關, 例句。同一欄有多個字用「/」或「、」隔開。也可以只寫詞，再按「用 AI 補齊」。",wImpGo:"匯入",wImpAI:"用 AI 補齊",wImpDone:n=>`匯入了 ${n} 張字卡`,wImpNone:"沒有讀到字卡",wDelDeck:"刪除這副字卡",
@@ -660,12 +728,13 @@ const STR={
       [["#sideSeg","這裡分成兩個入口：「為你推薦」給你用，「成為合作夥伴」給品牌看。"],["#tagRow","選幾個你有興趣的主題。"],
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
-      [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]]
+      [["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
+      [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]]
     ]
   },
   ja:{
-    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード"],
-    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ"],
+    faces:["九マス週間","未来の九マス","フロー・プレイリスト","フレンドリンク","語宝カード","九マス・ゲームテーブル"],
+    subs:["今週のことを九つのマスへ","目標を分けて、一歩ずつゴールへ","タップして再生","気の合う仲間を見つけよう","スワイプで新しい言葉、外側で類義語・対義語へ","三目並べ、五目並べ、数独…ひとりでも対戦でも"],
     days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
     inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを書く",
     pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
@@ -722,6 +791,13 @@ const STR={
     impTk:"Google Takeout で再生履歴を取り込む",impTkHow:"Google Takeout で「YouTube と YouTube Music」の「履歴」と「登録チャンネル」だけを選び、履歴の形式は JSON に。ダウンロードした .zip をそのままアップロードすると、よく再生した順に並べます。",impTkOpen:"Google Takeout を開く",impUp:"ファイルを選ぶ",
     impPaste:"YouTube のリンクを貼る",impPastePh:"1 行に 1 リンク。前に曲名を書いても OK",impRead:"読み込む",impFound:n=>`${n} 件見つかりました。九マスに入れるものを選んでください：`,impApply:n=>`プレイリストに入れる（${n}）`,impNone:"YouTube の動画や再生リストが見つかりません。",impReading:"読み込み中…",impDone:"プレイリストを更新しました",
     kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",
+    gNames:{ttt:"三目並べ",ult:"スーパー九マス",gomoku:"五目並べ",c4:"四目並べ",sud:"数独",quiz:"語宝クイズ"},
+    gDesc:{ttt:"3 つ並べたら勝ち",ult:"9 つの盤で同時に",gomoku:"先に 5 つ並べたら勝ち",c4:"駒が下に落ちる。4 つ並べよう",sud:"行・列・ブロックに 1–9 を 1 回ずつ",quiz:"絵を見て言葉を当てる。正解すると読み上げ"},
+    mAI:"コンピューター",mLocal:"1 台で 2 人",mOnline:"オンライン対戦",mSolo:"ひとりで",nick:"あなたの名前",gCreate:"ルームを作る",gJoin:"参加",gCodePh:"ルームコードを入力",gStart:"スタート",
+    gCode:c=>`ルームコード ${c}`,gShare:"コードを友だちに送ると、「オンライン対戦」で入力して参加できます。",gCopy:"コードをコピー",gWait:"相手を待っています…",gYour:"あなたの番",gTheir:n=>`${n} の番`,
+    gWin:n=>`${n} の勝ち！`,gDraw:"引き分け",gRestart:"もう一局",gLeave:"退出",gSpect:"観戦中",gNotYou:"まだ相手の番です",
+    gOnlineOff:"オンライン対戦は Claude の中で開き、このページを友だちと共有すると使えます。",gBadCode:"コードが正しくありません",gCPU:"コンピューター",gP:n=>`プレイヤー ${n}`,
+    gDone:"完成！",gMist:n=>`ミス ${n} 回`,gErase:"消す",gQuiz:"これは何？",gQScore:(a,b)=>`${b} 問中 ${a} 問正解`,gUltHint:"小さな盤で置いたマスの位置が、相手が次に打つ大きな盤になります。",gPlayers:"プレイヤー",
     wLearn:"学ぶ",wGame:"ゲーム",wReview:"復習",wSyn:"類義",wAnt:"対義",wRel:"関連",wEx:"例文",wKnown:"覚えた",wAgain:"もう一度",wBack:"戻る",wImport:"カードを取り込む",wAI:"AI で広げる",wAIing:"広げています…",wNoMore:"この言葉の関連データはまだありません",wAddMine:"マイカードに追加",wMine:"マイカード",
     wFind:(w,n,k)=>`「${w}」の${k}語を ${n} つ選んでください`,wQ:(i,n)=>`${i}/${n} 問目`,wScore:(a,b)=>`${b} 問中 ${a} 問正解`,wAgainPlay:"もう一回",wReviewEmpty:"復習する言葉はありません。すばらしい！",wTrialEnd:"お試しはここまで",wUnlock:n=>`購入して全 ${n} 枚を解放`,wPro:"有料",wSoon:"近日公開",
     wImpTitle:"マイカードを取り込む",wImpName:"カード名",wImpHow:"1 行に 1 語。カンマかタブで「語, 類義語, 対義語, 関連語, 例文」。同じ欄に複数あるときは「/」か「、」で区切ります。語だけ書いて「AI で補完」も使えます。",wImpGo:"取り込む",wImpAI:"AI で補完",wImpDone:n=>`${n} 枚取り込みました`,wImpNone:"カードが見つかりません",wDelDeck:"このカードを削除",
@@ -743,12 +819,13 @@ const STR={
       [["#sideSeg","入口は二つ。「あなたへのおすすめ」はあなた用、「パートナーになる」はブランド向けです。"],["#tagRow","興味のあるテーマを選んでください。"],
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
        [".spons .center","気に入ったら、ここから応援できます。"]],
-      [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]]
+      [["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
+      [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]]
     ]
   },
   en:{
-    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards"],
-    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites"],
+    faces:["Nine-Grid Week","Future Grid","Flow Playlist","Friends","Word Cards","Game Table"],
+    subs:["Your week in nine squares","Break a goal into steps and walk it","Tap a square to play","Find people who share your interests","Swipe for new words, tap around for synonyms and opposites","Tic-tac-toe, gomoku, sudoku… solo or head to head"],
     days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
     inbox:"This week",prev:"Left over",placeholder:"Add a task",
     pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
@@ -805,6 +882,13 @@ const STR={
     impTk:"Import your listening habits with Google Takeout",impTkHow:"In Google Takeout, select only “history” and “subscriptions” under “YouTube and YouTube Music”, and choose JSON for history. Upload the .zip as it is; songs are ranked by how often you played them.",impTkOpen:"Open Google Takeout",impUp:"Upload file",
     impPaste:"Paste YouTube links",impPastePh:"One link per line; you can put the song name first",impRead:"Read",impFound:n=>`Found ${n}. Tick the ones for your grid:`,impApply:n=>`Add to Flow Playlist (${n})`,impNone:"No YouTube videos or playlists found.",impReading:"Reading…",impDone:"Playlist updated",
     kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",
+    gNames:{ttt:"Tic-tac-toe",ult:"Ultimate grid",gomoku:"Gomoku",c4:"Connect four",sud:"Sudoku",quiz:"Picture quiz"},
+    gDesc:{ttt:"Three in a row wins",ult:"Nine boards at once",gomoku:"First to five in a row",c4:"Pieces drop; line up four",sud:"1–9 once in every row, column and box",quiz:"Guess the word from the picture; it's read aloud"},
+    mAI:"vs computer",mLocal:"Pass the phone",mOnline:"Play online",mSolo:"Solo",nick:"Your name",gCreate:"Create room",gJoin:"Join",gCodePh:"Room code",gStart:"Start",
+    gCode:c=>`Room code ${c}`,gShare:"Send the code to a friend; they enter it under “Play online” to join.",gCopy:"Copy code",gWait:"Waiting for an opponent…",gYour:"Your turn",gTheir:n=>`${n}'s turn`,
+    gWin:n=>`${n} wins!`,gDraw:"Draw",gRestart:"Play again",gLeave:"Leave",gSpect:"Watching",gNotYou:"Not your turn yet",
+    gOnlineOff:"Online play works when this page is opened inside Claude and shared with your friend.",gBadCode:"That code doesn't look right",gCPU:"Computer",gP:n=>`Player ${n}`,
+    gDone:"Solved!",gMist:n=>`${n} mistake${n===1?"":"s"}`,gErase:"Erase",gQuiz:"What is this?",gQScore:(a,b)=>`${a} of ${b} right`,gUltHint:"The square you play in sends your opponent to that board.",gPlayers:"Players",
     wLearn:"Learn",wGame:"Game",wReview:"Review",wSyn:"Similar",wAnt:"Opposite",wRel:"Related",wEx:"Example",wKnown:"Got it",wAgain:"Again",wBack:"Back to",wImport:"Import cards",wAI:"Expand with AI",wAIing:"Expanding…",wNoMore:"No links for this word yet",wAddMine:"Add to my cards",wMine:"My cards",
     wFind:(w,n,k)=>`Find ${n} ${k.toLowerCase()} word${n>1?"s":""} for “${w}”`,wQ:(i,n)=>`Question ${i}/${n}`,wScore:(a,b)=>`${a} of ${b} right`,wAgainPlay:"Play again",wReviewEmpty:"Nothing to review. Great job!",wTrialEnd:"That's the free preview",wUnlock:n=>`Unlock all ${n} cards`,wPro:"Paid",wSoon:"Coming soon",
     wImpTitle:"Import my cards",wImpName:"Deck name",wImpHow:"One word per line, split by commas or tabs: word, similar, opposite, related, example. Separate several words in one column with “/”. You can also write only the word and press “Fill in with AI”.",wImpGo:"Import",wImpAI:"Fill in with AI",wImpDone:n=>`Imported ${n} cards`,wImpNone:"No cards found",wDelDeck:"Delete this deck",
@@ -826,7 +910,8 @@ const STR={
       [["#sideSeg","Two doors: “For you” is yours; “Partner with us” is for brands."],["#tagRow","Pick a few topics you care about."],
        [".spons [data-sp='0']","Partners that match light up."],
        [".spons .center","Like the tool? You can support it here."]],
-      [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]]
+      [["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
+      [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]]
     ]
   }
 };
@@ -1026,11 +1111,12 @@ const I={
   list:sv('<path d="M7 5h10M7 10h10M7 15h10"/><circle cx="3.5" cy="5" r=".9" fill="currentColor"/><circle cx="3.5" cy="10" r=".9" fill="currentColor"/><circle cx="3.5" cy="15" r=".9" fill="currentColor"/>'),
   globe:sv('<circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/>'),
   user:sv('<circle cx="10" cy="7" r="3.3"/><path d="M3.5 17.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5"/>'),
+  game:sv('<rect x="2" y="6" width="16" height="9.5" rx="4.5"/><path d="M6 9v3.5M4.3 10.8h3.4"/><circle cx="13" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="12.2" r=".9" fill="currentColor"/>'),
   cards:sv('<rect x="2.5" y="5" width="11" height="12.5" rx="2.5"/><path d="M6.5 5V4a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17.5 4v10a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M5.5 10h5M5.5 13h3"/>'),
   lock:sv('<rect x="4" y="9" width="12" height="8.5" rx="2.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/>'),
   life:sv('<path d="M3 9.5L10 3.5l7 6V16a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16z"/><path d="M8 17.5V12.5h4v5"/>')
 };
-const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards];
+const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game];
 
 /* ---------- skins & background art ---------- */
 const SKINS={
@@ -1200,9 +1286,9 @@ function render(){
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
   document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%5]);
+  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%6]);
   $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
-  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace][S.face]();
+  [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
 
@@ -1507,7 +1593,7 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 
 /* ---------- face rotation ---------- */
 function goFace(n,dir){
-  n=(n+5)%5;if(n===S.face||rotating)return;
+  n=(n+6)%6;if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -1792,7 +1878,7 @@ async function makeCard(fmt){
   const foot=SITE_URL?SITE_URL.replace(/^https?:\/\//,"").replace(/\/$/,""):t.tagline||t.subs[0];
   tx(x,`${t.faces[0]}  ·  ${foot}`,W0/2,H0-64,28,P.muted,{align:"center",max:W0-160});
   const B={X:60,Y:268,W:W0-120,H:H0-268-130};
-  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords][S.face](x,B,P,t);
+  [cardWeek,cardGoal,cardMusic,cardFriends,cardWords,cardFriends][S.face](x,B,P,t);
   return c;
 }
 function gridBox(B,gap){const ts=Math.min((B.W-2*gap)/3,(B.H-2*gap)/3);return {ts,gx:B.X+(B.W-(3*ts+2*gap))/2,gy:B.Y+(B.H-(3*ts+2*gap))/2,gap}}
@@ -2431,6 +2517,254 @@ function cardWords(x,B,P,t){
   });
 }
 
+
+/* =========================================================
+   九宮遊戲桌: grid games, solo, pass-the-phone, or online through the `room` capability
+   ========================================================= */
+let RM;   // room namespace: undefined while connecting, null where it can't run
+const roomReady=(window.claude&&typeof window.claude.use==="function")?window.claude.use("room").then(r=>(RM=r||null),()=>(RM=null)):Promise.resolve(RM=null);
+const GAMES=["ttt","ult","gomoku","c4","sud","quiz"];
+const TURN_GAMES=["ttt","ult","gomoku","c4"];
+const CODE_LETTER={ttt:"T",ult:"U",gomoku:"G",c4:"C",sud:"S",quiz:"Q"};
+let GM=null,NET=null,gsel=null;   // GM: the game in play; NET: the online room
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const shuffle=(arr,r)=>{const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const L3=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function win3(b){for(const l of L3)if(b[l[0]]&&b[l[0]]!==3&&b[l[0]]===b[l[1]]&&b[l[1]]===b[l[2]])return {w:b[l[0]],line:l};return b.every(x=>x)?{w:3}:null}
+// n in a row through cell i on a W×H board
+function lineAt(b,W,H,i,n){
+  const x0=i%W,y0=Math.floor(i/W),p=b[i];if(!p)return null;
+  for(const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]){
+    const cells=[i];
+    for(const s of [1,-1]){let x=x0+dx*s,y=y0+dy*s;while(x>=0&&y>=0&&x<W&&y<H&&b[y*W+x]===p){cells.push(y*W+x);x+=dx*s;y+=dy*s}}
+    if(cells.length>=n)return cells;
+  }
+  return null;
+}
+function newGame2(id,seed){
+  seed=seed||Math.floor(Math.random()*1e9);
+  const base={id,seed,seq:1,turn:1,win:0,line:null,last:-1};
+  if(id==="ttt")return Object.assign(base,{b:Array(9).fill(0)});
+  if(id==="ult")return Object.assign(base,{b:Array(81).fill(0),mw:Array(9).fill(0),nx:-1});
+  if(id==="gomoku")return Object.assign(base,{b:Array(225).fill(0)});
+  if(id==="c4")return Object.assign(base,{b:Array(42).fill(0)});
+  if(id==="sud"){const {p,sol}=sudokuMake(seed);return Object.assign(base,{p,sol,c:p.split("").map(Number),sel:-1,mist:0})}
+  if(id==="quiz")return Object.assign(base,{qs:quizMake(seed),qi:0,score:0,pick:[]});
+}
+/* ---- moves ---- */
+function play(i){
+  const g=GM;if(!g||g.win)return false;
+  if(g.id==="ttt"){if(g.b[i])return false;g.b[i]=g.turn;const r=win3(g.b);if(r){g.win=r.w;g.line=r.line||null}}
+  else if(g.id==="ult"){
+    const k=Math.floor(i/9),c=i%9;if(g.b[i]||g.mw[k]||(g.nx!==-1&&g.nx!==k))return false;
+    g.b[i]=g.turn;const r=win3(g.b.slice(k*9,k*9+9));if(r)g.mw[k]=r.w;
+    const R=win3(g.mw);if(R&&R.w!==3){g.win=R.w;g.line=R.line}else if(g.mw.every(x=>x))g.win=3;
+    g.nx=g.mw[c]?-1:c;
+  }
+  else if(g.id==="gomoku"){if(g.b[i])return false;g.b[i]=g.turn;const l=lineAt(g.b,15,15,i,5);if(l){g.win=g.turn;g.line=l}else if(g.b.every(x=>x))g.win=3}
+  else if(g.id==="c4"){const col=i%7;let r=5;while(r>=0&&g.b[r*7+col])r--;if(r<0)return false;i=r*7+col;g.b[i]=g.turn;const l=lineAt(g.b,7,6,i,4);if(l){g.win=g.turn;g.line=l}else if(g.b.every(x=>x))g.win=3}
+  g.last=i;if(!g.win)g.turn=3-g.turn;g.seq++;return true;
+}
+function legal(g){
+  if(g.id==="ult"){const out=[];for(let i=0;i<81;i++){const k=Math.floor(i/9);if(!g.b[i]&&!g.mw[k]&&(g.nx===-1||g.nx===k))out.push(i)}return out}
+  if(g.id==="c4"){const out=[];for(let c=0;c<7;c++)if(!g.b[c])out.push(c);return out}
+  return g.b.map((v,i)=>v?-1:i).filter(i=>i>=0);
+}
+/* ---- computer opponent ---- */
+function aiMove(){
+  const g=GM,me=g.turn,op=3-me;let pick;
+  if(g.id==="ttt"){
+    const mm=(b,t)=>{const r=win3(b);if(r)return r.w===me?10:r.w===op?-10:0;let best=t===me?-99:99;
+      for(let i=0;i<9;i++)if(!b[i]){b[i]=t;const v=mm(b,3-t);b[i]=0;best=t===me?Math.max(best,v):Math.min(best,v)}return best};
+    let bv=-99;for(const i of legal(g)){g.b[i]=me;const v=mm(g.b,op)+Math.random()*.1;g.b[i]=0;if(v>bv){bv=v;pick=i}}
+  }else if(g.id==="ult"){
+    const canWin=(sub,t)=>{for(let c=0;c<9;c++)if(!sub[c]){sub[c]=t;const w=win3(sub);sub[c]=0;if(w&&w.w===t)return true}return false};
+    let bv=-1e9;
+    for(const i of legal(g)){
+      const k=Math.floor(i/9),c=i%9,sub=g.b.slice(k*9,k*9+9);let v=Math.random();
+      sub[c]=me;const w=win3(sub);const wonHere=!!(w&&w.w===me);
+      if(wonHere){v+=100;const mw=g.mw.slice();mw[k]=me;const W2=win3(mw);if(W2&&W2.w===me)v+=10000}
+      sub[c]=op;const wo=win3(sub);if(wo&&wo.w===op)v+=60;
+      if(c===4)v+=3;
+      const free=!(g.mw[c]||(c===k&&wonHere));
+      if(!free)v-=25;else if(canWin(g.b.slice(c*9,c*9+9),op))v-=80;
+      if(v>bv){bv=v;pick=i}
+    }
+  }else if(g.id==="gomoku"){
+    const b=g.b;if(b.every(x=>!x))pick=112;else{
+      const score=(i,p)=>{let s=0;const x0=i%15,y0=Math.floor(i/15);
+        for(const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]){let n=1,open=0;
+          for(const d of [1,-1]){let x=x0+dx*d,y=y0+dy*d;while(x>=0&&y>=0&&x<15&&y<15&&b[y*15+x]===p){n++;x+=dx*d;y+=dy*d}if(x>=0&&y>=0&&x<15&&y<15&&!b[y*15+x])open++}
+          s+=n>=5?1e6:n===4?(open===2?1e5:open?1e4:0):n===3?(open===2?5e3:open?400:0):n===2?(open===2?200:open?40:0):open*5}
+        return s};
+      let bv=-1;
+      for(let i=0;i<225;i++){if(b[i])continue;const x=i%15,y=Math.floor(i/15);let near=false;
+        for(let dy=-2;dy<=2&&!near;dy++)for(let dx=-2;dx<=2;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<15&&Y<15&&b[Y*15+X]){near=true;break}}
+        if(!near)continue;const v=score(i,me)*1.1+score(i,op)+Math.random();if(v>bv){bv=v;pick=i}}
+    }
+  }else if(g.id==="c4"){
+    const drop=(b,c)=>{for(let r=5;r>=0;r--)if(!b[r*7+c])return r*7+c;return -1};
+    const evalB=(b,who)=>{const other=3-who;let s=0;for(let r=0;r<6;r++)if(b[r*7+3]===who)s+=3;else if(b[r*7+3]===other)s-=3;
+      for(const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]])for(let r=0;r<6;r++)for(let c=0;c<7;c++){
+        let m=0,o=0,ok=true;for(let k=0;k<4;k++){const R=r+dy*k,C=c+dx*k;if(R<0||R>5||C>6){ok=false;break}const v=b[R*7+C];if(v===who)m++;else if(v===other)o++}
+        if(!ok)continue;if(m&&!o)s+=m===3?5:m===2?2:0;if(o&&!m)s-=o===3?6:o===2?2:0}
+      return s};
+    const nega=(b,depth,t,a,bb)=>{
+      const moves=[3,2,4,1,5,0,6].filter(c=>!b[c]);if(!moves.length)return 0;
+      if(depth===0)return evalB(b,t);
+      let best=-1e9;
+      for(const c of moves){const i=drop(b,c);b[i]=t;const v=lineAt(b,7,6,i,4)?1e6+depth:-nega(b,depth-1,3-t,-bb,-a);b[i]=0;if(v>best)best=v;if(v>a)a=v;if(a>=bb)break}
+      return best};
+    let bv=-1e12;for(const c of [3,2,4,1,5,0,6]){if(g.b[c])continue;const b=g.b.slice(),i=drop(b,c);b[i]=me;const v=lineAt(b,7,6,i,4)?1e9:-nega(b,4,op,-1e12,1e12);if(v>bv){bv=v;pick=c}}
+  }
+  if(pick==null){const l=legal(g);pick=l[Math.floor(Math.random()*l.length)]}
+  play(pick);afterMove(true);
+}
+/* ---- sudoku: random full grid, then remove clues while the answer stays unique ---- */
+function sudokuSolve(g,r,count){
+  const i=g.indexOf(0);if(i<0)return count+1;
+  const row=Math.floor(i/9),col=i%9,br=row-row%3,bc=col-col%3,used=new Set();
+  for(let k=0;k<9;k++){used.add(g[row*9+k]);used.add(g[k*9+col]);used.add(g[(br+Math.floor(k/3))*9+bc+k%3])}
+  const digits=r?shuffle([1,2,3,4,5,6,7,8,9],r):[1,2,3,4,5,6,7,8,9];
+  for(const d of digits){if(used.has(d))continue;g[i]=d;count=sudokuSolve(g,r,count);if(r&&count)return count;if(!r&&count>1){g[i]=0;return count}g[i]=0}
+  return count;
+}
+function sudokuMake(seed){
+  const r=rng(seed),full=Array(81).fill(0);sudokuSolve(full,r,0);
+  const sol=full.join(""),g=full.slice();
+  for(const i of shuffle([...Array(81).keys()],r)){
+    if(g.filter(Boolean).length<=36)break;
+    const keep=g[i];g[i]=0;if(sudokuSolve(g.slice(),null,0)!==1)g[i]=keep;
+  }
+  return {p:g.join(""),sol};
+}
+/* ---- picture quiz from the word cards ---- */
+function quizMake(seed){
+  const r=rng(seed),cards=[];for(const d of allDecks())for(const k of d.cards)if(k.e&&!cards.some(x=>x.w===k.w))cards.push(k);
+  const pool=cards.map(k=>k.w);
+  return shuffle(cards,r).slice(0,10).map(k=>({w:k.w,e:k.e,o:shuffle([k.w,...shuffle(pool.filter(x=>x!==k.w),r).slice(0,7)],r)}));
+}
+
+/* ---- online: players share the game through presence in a named room ---- */
+function myName(){return (S.nick||S.account&&S.account.name||T().gP(1)).slice(0,16)}
+function seatName(n){
+  const t=T();
+  if(GM&&GM.mode==="ai")return n===1?myName():t.gCPU;
+  if(!NET)return t.gP(n);
+  const p=NET.room.peers().find(x=>x.presence&&x.presence.seat===n);return p?String(p.presence.n||t.gP(n)).slice(0,16):"…";
+}
+async function netStart(id,code,create){
+  const t=T();await roomReady;if(!RM){toast(t.gOnlineOff);return}
+  let room;try{room=await RM.join(("ng-"+code).toLowerCase())}catch(e){toast(t.gOnlineOff);return}
+  NET={room,code,seat:create?1:0,unsub:[]};
+  if(create){GM=newGame2(id);GM.mode="online";room.presence({n:myName(),seat:1,st:GM}).catch(()=>{})}
+  else{
+    GM={id,mode:"online",seq:0,wait:true};room.presence({n:myName(),seat:0}).catch(()=>{});
+    // take whichever seat is free once the room has answered
+    setTimeout(()=>{if(!NET||NET.room!==room)return;const taken=room.peers().filter(p=>!(p.isMe&&p.sameTab)).map(p=>p.presence&&p.presence.seat);
+      NET.seat=TURN_GAMES.includes(id)?([1,2].find(x=>!taken.includes(x))||0):2;room.presence({seat:NET.seat}).catch(()=>{});renderGameFace()},1300);
+  }
+  NET.unsub.push(room.onPeers(()=>netSync()));
+  closeLayer();renderGameFace();
+}
+function netSync(){
+  if(!NET||!GM)return;let best=null;
+  for(const p of NET.room.peers()){const st=p.presence&&p.presence.st;if(st&&st.id===GM.id&&(!best||st.seq>best.seq))best=st}
+  if(best&&best.seq>(GM.seq||0)){
+    const keep=(GM.id==="sud"||GM.id==="quiz")&&GM.seed===best.seed?GM:null;
+    GM=JSON.parse(JSON.stringify(best));GM.mode="online";
+    if(keep)["c","sel","mist","qi","score","pick"].forEach(k=>{if(k in keep)GM[k]=keep[k]});
+  }
+  if(S.face===5)renderGameFace();
+}
+function netLeave(){if(NET){NET.unsub.forEach(f=>f());NET.room.leave().catch(()=>{});NET=null}}
+function netPush(){
+  if(!NET||!GM)return;const st=Object.assign({},GM);delete st.mode;
+  if(GM.id==="sud"){st.c=GM.p.split("").map(Number);st.sel=-1;st.mist=0}
+  if(GM.id==="quiz"){st.qi=0;st.score=0;st.pick=[]}
+  NET.room.presence({st}).catch(()=>{});
+}
+function netProgress(v){if(NET)NET.room.presence({pg:v}).catch(()=>{})}
+function afterMove(fromAI){
+  if(GM.mode==="online")netPush();
+  renderGameFace();
+  if(GM.win&&GM.win!==3&&S.chime){unlockAudio();chime()}
+  if(!fromAI&&GM.mode==="ai"&&!GM.win&&GM.turn===2)setTimeout(()=>{if(GM&&GM.mode==="ai"&&GM.turn===2&&!GM.win)aiMove()},380);
+}
+
+/* ---- render ---- */
+const GICON={
+  ttt:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/><path d="M16.5 8v30M29.5 8v30M8 16.5h30M8 29.5h30" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/><path d="M8 8l6 6M14 8l-6 6" stroke="var(--c0)" stroke-width="3" stroke-linecap="round"/><circle cx="23" cy="23" r="3.6" fill="none" stroke="var(--c1)" stroke-width="2.6"/></svg>',
+  ult:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/>'+[0,1,2].map(r=>[0,1,2].map(c=>`<rect x="${6+c*12.3}" y="${6+r*12.3}" width="10.5" height="10.5" rx="3" fill="${(r+c)%2?"var(--c0)":"var(--c1)"}" opacity=".55"/>`).join("")).join("")+'</svg>',
+  gomoku:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--c2)" opacity=".5"/><path d="M9 14h28M9 23h28M9 32h28M14 9v28M23 9v28M32 9v28" stroke="var(--ink)" stroke-opacity=".35"/><circle cx="14" cy="14" r="4" fill="var(--c0)"/><circle cx="23" cy="23" r="4" fill="var(--c0)"/><circle cx="32" cy="32" r="4" fill="var(--c0)"/><circle cx="32" cy="14" r="4" fill="var(--c1)"/></svg>',
+  c4:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--c3)" opacity=".55"/>'+[0,1,2].map(r=>[0,1,2,3].map(c=>`<circle cx="${10.5+c*8.3}" cy="${14+r*9}" r="3.3" fill="${r===2&&c<3?(c%2?"var(--c1)":"var(--c0)"):r===1&&c===1?"var(--c0)":"var(--bg)"}"/>`).join("")).join("")+'</svg>',
+  sud:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/><path d="M16 6v34M30 6v34M6 16h34M6 30h34" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.6"/><text x="11" y="14" font-size="8" fill="var(--accent)" font-family="Nunito" font-weight="800" text-anchor="middle">5</text><text x="23" y="27" font-size="8" fill="var(--ink)" font-family="Nunito" font-weight="800" text-anchor="middle">9</text><text x="35" y="40" font-size="8" fill="var(--accent)" font-family="Nunito" font-weight="800" text-anchor="middle">1</text></svg>',
+  quiz:'<svg viewBox="0 0 46 46" aria-hidden="true"><rect x="2" y="2" width="42" height="42" rx="12" fill="var(--chip)"/><text x="23" y="30" font-size="20" text-anchor="middle">🐘</text><circle cx="37" cy="9" r="6" fill="var(--accent)"/><text x="37" y="12.5" font-size="9" fill="#fff" text-anchor="middle" font-weight="800">?</text></svg>'
+};
+function renderGameFace(){
+  const t=T();
+  if(!GM){
+    $("face").innerHTML=`<div class="glist">${GAMES.map((id,i)=>`<button class="gtile jelly" type="button" data-gpick="${id}" style="--t:var(--c${i%7})">${GICON[id]}<b>${t.gNames[id]}</b><small>${t.gDesc[id]}</small></button>`).join("")}</div>`;
+    return;
+  }
+  const g=GM,turnGame=TURN_GAMES.includes(g.id);
+  let status="";
+  if(g.wait)status=t.gWait;
+  else if(turnGame){
+    if(g.win===3)status=t.gDraw;else if(g.win)status=`<b>${esc(t.gWin(seatName(g.win)))}</b>`;
+    else if(g.mode==="online")status=NET&&NET.seat===g.turn?`<b>${t.gYour}</b>`:NET&&!NET.seat?t.gSpect:esc(t.gTheir(seatName(g.turn)));
+    else status=g.mode==="ai"&&g.turn===2?esc(t.gTheir(t.gCPU)):`<b>${esc(t.gTheir(seatName(g.turn)))}</b>`;
+    if(g.mode==="online"&&!g.win&&NET&&NET.seat===1&&!NET.room.peers().some(p=>p.presence&&p.presence.seat===2))status=t.gWait;
+  }
+  const pls=turnGame&&!g.wait?`<div class="pls">${[1,2].map(n=>`<span class="pl pc${n}${!g.win&&g.turn===n?" on":""}"><i></i>${esc(seatName(n))}</span>`).join("")}</div>`:"";
+  let h=`<div class="gtop"><button class="round jelly" type="button" data-glv="1" aria-label="${t.gLeave}">${sv('<path d="M12.5 4.5 7 10l5.5 5.5"/>',2)}</button><h3>${t.gNames[g.id]}</h3>${g.wait?"":`<button class="pill jelly" type="button" data-grs="1">${t.gRestart}</button>`}</div>`;
+  if(NET)h+=`<div class="codebox"><strong>${esc(NET.code)}</strong><button class="pill jelly" type="button" data-gcopy="1">${t.gCopy}</button></div>`;
+  h+=pls+(status?`<div class="gstat">${status}</div>`:"");
+  if(!g.wait)h+=`<div class="board">${boardHTML(g,t)}</div>`;
+  if(NET&&(g.id==="sud"||g.id==="quiz"))h+=raceHTML(g,t);
+  $("face").innerHTML=h;
+}
+const PIECE=(p,shape)=>p?`<span class="piece pc${p}${shape?" "+(p===1?"px":"po"):""}"></span>`:"";
+function boardHTML(g,t){
+  if(g.id==="ttt")return `<div class="t3" style="margin-inline:auto">${g.b.map((v,i)=>`<button class="jelly${g.line&&g.line.includes(i)?" win":""}" type="button" data-gm="${i}" aria-label="${i+1}">${PIECE(v,1)}</button>`).join("")}</div>`;
+  if(g.id==="ult")return `<p class="note" style="text-align:center;margin-bottom:8px">${t.gUltHint}</p><div class="ug">${[...Array(9).keys()].map(k=>{
+    const act=!g.win&&!g.mw[k]&&(g.nx===-1||g.nx===k);
+    return `<div class="mini jelly${act?" act":""}${g.line&&g.line.includes(k)?" win":""}">${[...Array(9).keys()].map(c=>{const i=k*9+c;return `<button type="button" data-gm="${i}" aria-label="${k+1}-${c+1}">${PIECE(g.b[i],1)}</button>`}).join("")}${g.mw[k]&&g.mw[k]!==3?`<div class="big">${PIECE(g.mw[k],1)}</div>`:""}</div>`}).join("")}</div>`;
+  if(g.id==="gomoku")return `<div class="gomo jelly">${g.b.map((v,i)=>`<button type="button" data-gm="${i}" class="${g.last===i&&v?"last":""}${g.line&&g.line.includes(i)?" win":""}" aria-label="${i%15+1},${Math.floor(i/15)+1}">${PIECE(v)}</button>`).join("")}</div>`;
+  if(g.id==="c4")return `<div class="c4 jelly" style="margin-inline:auto">${g.b.map((v,i)=>`<button type="button" data-gm="${i}" class="${g.line&&g.line.includes(i)?"win":""}" aria-label="${i%7+1}">${v?`<span class="piece pc${v}${g.last===i?" drop":""}"></span>`:""}</button>`).join("")}</div>`;
+  if(g.id==="sud"){
+    const selv=g.sel>=0?g.c[g.sel]:0,sr=g.sel>=0?Math.floor(g.sel/9):-1,sc=g.sel>=0?g.sel%9:-1,sb=g.sel>=0?Math.floor(sr/3)*3+Math.floor(sc/3):-1;
+    const done=g.c.join("")===g.sol;
+    return `<div class="gstat">${done?`<b>${t.gDone}</b> · `:""}${t.gMist(g.mist)}</div>
+<div class="sud jelly" style="margin-inline:auto">${g.c.map((v,i)=>{const r=Math.floor(i/9),c=i%9,given=g.p[i]!=="0";
+      const cls=[given?"gv":"",c%3===2&&c<8?"bx":"",r%3===2&&r<8?"by":"",i===g.sel?"sel":"",selv&&v===selv&&i!==g.sel?"same":"",(r===sr||c===sc||Math.floor(r/3)*3+Math.floor(c/3)===sb)&&i!==g.sel?"hl":"",v&&!given&&String(v)!==g.sol[i]?"bad":""].filter(Boolean).join(" ");
+      return `<button type="button" data-gs="${i}" class="${cls}">${v||""}</button>`}).join("")}</div>
+<div class="npad" style="margin-top:10px">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="jelly" type="button" data-gn="${n}">${n}</button>`).join("")}<button class="jelly" type="button" data-gn="0">${t.gErase}</button></div>`;
+  }
+  if(g.id==="quiz"){
+    if(g.qi>=g.qs.length){const st=Math.round(g.score/g.qs.length*3);return `<div class="wgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="stars">${"★".repeat(st)}${"☆".repeat(3-st)}</span><b style="font-weight:400">${t.gQScore(g.score,g.qs.length)}</b></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`}
+    const q=g.qs[g.qi],slots=[0,1,2,3,5,6,7,8],cells=Array(9);
+    q.o.forEach((w,j)=>{const st=g.pick.includes(w)?(w===q.w?" ok":" bad"):"";cells[slots[j]]=`<button class="wcell jelly rel${st}" type="button" data-gq="${esc(w)}"><span class="ww">${esc(w)}</span></button>`});
+    cells[4]=`<div class="wcell jelly wc q"><small>${g.qi+1}/${g.qs.length} · ★ ${g.score}</small><span class="emo" style="font-size:52px">${esc(q.e)}</span><small style="color:var(--ink)">${t.gQuiz}</small></div>`;
+    return `<div class="wgrid">${cells.join("")}</div>`;
+  }
+  return "";
+}
+function raceHTML(g,t){
+  const total=g.id==="sud"?g.p.split("").filter(x=>x==="0").length:g.qs.length;
+  const rows=NET.room.peers().filter(p=>p.presence&&p.presence.n).map(p=>{const pg=p.presence.pg||{};return {n:String(p.presence.n).slice(0,16)+(p.isMe&&p.sameTab?" ✦":""),v:+pg.v||0,done:!!pg.done}});
+  return `<div class="score jelly" style="padding:14px;--r:22px"><b style="font-weight:400">${t.gPlayers}</b>${rows.map(r=>`<div><span style="min-width:80px">${esc(r.n)}</span><span class="bar2"><i style="width:${Math.round(Math.min(1,r.v/total)*100)}%"></i></span><span style="font-family:var(--f-num);font-weight:800;font-size:12px">${r.done?"✓":r.v+"/"+total}</span></div>`).join("")}</div>`;
+}
+function openGameSetup(id){
+  const t=T(),turn=TURN_GAMES.includes(id);gsel=id;
+  const modes=turn?[["ai",t.mAI],["local",t.mLocal],["online",t.mOnline]]:[["solo",t.mSolo],["online",t.mOnline]];
+  layer(`<div class="shead"><h2>${t.gNames[id]}</h2>${closeBtn(t)}</div><p class="note">${t.gDesc[id]}</p>
+<label class="fld">${t.nick}<input id="gNick" type="text" maxlength="16" value="${esc(S.nick||S.account&&S.account.name||"")}" placeholder="${esc(t.gP(1))}"></label>
+<div class="row">${modes.map(([m,l],i)=>`<button class="pill jelly${i===0?" pri":""}" type="button" data-gmode="${m}">${l}</button>`).join("")}</div>
+<div id="gOnline" hidden class="sgroup"><p class="note">${t.gShare}</p><div class="row"><button class="pill pri jelly" type="button" data-gnet="create">${t.gCreate}</button></div>
+<div class="row"><input id="gCode" class="region jelly" style="max-width:none;flex:1;min-width:0;text-transform:uppercase;font-size:16px" maxlength="4" placeholder="${esc(t.gCodePh)}" aria-label="${esc(t.gCodePh)}"><button class="pill jelly" type="button" data-gnet="join">${t.gJoin}</button></div></div>`,true);
+}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -2466,6 +2800,38 @@ document.addEventListener("click",e=>{
     if(a==="talk"){coach.plan=null;drawCoach(true)}
     if(a==="import")coachImport();
     return}
+  const gpk=el.closest("[data-gpick]");if(gpk){openGameSetup(gpk.dataset.gpick);return}
+  const gmd=el.closest("[data-gmode]");if(gmd){
+    const m=gmd.dataset.gmode;S.nick=($("gNick").value||"").trim();save();
+    if(m==="online"){$("gOnline").hidden=false;roomReady.then(()=>{if(!RM&&$("gOnline"))$("gOnline").innerHTML=`<p class="note">${T().gOnlineOff}</p>`});return}
+    netLeave();GM=newGame2(gsel);GM.mode=m;closeLayer();renderGameFace();return}
+  const gnt=el.closest("[data-gnet]");if(gnt){
+    S.nick=($("gNick").value||"").trim();save();
+    if(gnt.dataset.gnet==="create"){netLeave();netStart(gsel,CODE_LETTER[gsel]+String(Math.floor(100+Math.random()*900)),true)}
+    else{const code=($("gCode").value||"").trim().toUpperCase(),id=Object.keys(CODE_LETTER).find(k=>CODE_LETTER[k]===code[0]);
+      if(!/^[A-Z]\d{3}$/.test(code)||!id){toast(T().gBadCode);return}netLeave();netStart(id,code,false)}
+    return}
+  if(el.closest("[data-glv]")){netLeave();GM=null;renderGameFace();return}
+  if(el.closest("[data-gcopy]")){const c=NET&&NET.code;if(c){try{navigator.clipboard.writeText(c).then(()=>toast(T().copied),()=>toast(c))}catch(x){toast(c)}}return}
+  if(el.closest("[data-grs]")&&GM){
+    const id=GM.id,mode=GM.mode,seq=GM.seq||0;GM=newGame2(id);GM.mode=mode;GM.seq=seq+1;
+    if(mode==="online"){netPush();netProgress({v:0,done:false})}renderGameFace();return}
+  const gmv=el.closest("[data-gm]");if(gmv&&GM){
+    if(GM.mode==="online"&&(!NET||NET.seat!==GM.turn)){toast(T().gNotYou);return}
+    if(GM.mode==="ai"&&GM.turn===2)return;
+    if(play(+gmv.dataset.gm))afterMove(false);return}
+  const gs=el.closest("[data-gs]");if(gs&&GM){GM.sel=+gs.dataset.gs;renderGameFace();return}
+  const gn=el.closest("[data-gn]");if(gn&&GM&&GM.sel>=0&&GM.p[GM.sel]==="0"&&GM.c.join("")!==GM.sol){
+    const n=+gn.dataset.gn;GM.c[GM.sel]=n;if(n&&String(n)!==GM.sol[GM.sel])GM.mist++;
+    const right=GM.c.filter((v,i)=>GM.p[i]==="0"&&String(v)===GM.sol[i]).length,done=GM.c.join("")===GM.sol;
+    if(done&&S.chime){unlockAudio();chime()}
+    netProgress({v:right,done});renderGameFace();return}
+  const gq=el.closest("[data-gq]");if(gq&&GM&&GM.id==="quiz"){
+    const q=GM.qs[GM.qi],w=gq.dataset.gq;if(GM.pick.includes(q.w)||GM.pick.includes(w))return;
+    GM.pick.push(w);
+    if(w===q.w){if(GM.pick.length===1)GM.score++;speak(w);if(S.chime){unlockAudio();chime()}
+      setTimeout(()=>{GM.qi++;GM.pick=[];netProgress({v:GM.score,done:GM.qi>=GM.qs.length});renderGameFace()},900)}
+    renderGameFace();return}
   const dk=el.closest("[data-deck]");if(dk){S.w.deck=dk.dataset.deck;S.w.idx=0;if(S.w.mode==="review")S.w.mode="learn";wview=null;wtrail=[];game=null;save();render();return}
   const wm=el.closest("[data-wmode]");if(wm){S.w.mode=wm.dataset.wmode;S.w.idx=0;wview=null;wtrail=[];game=null;save();render();return}
   const wn=el.closest("[data-wnav]");if(wn){wordNav(+wn.dataset.wnav);return}
