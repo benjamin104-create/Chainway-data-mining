@@ -426,6 +426,26 @@ body.ranging .gbar{pointer-events:none}
 .impta{font:inherit;font-size:15px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:16px;padding:10px 12px;width:100%;min-height:84px;resize:vertical}
 .linkbtn{color:var(--accent);font-size:13px;text-decoration:underline;text-underline-offset:3px}
 
+/* friends face: separate doors for visitors and partners */
+.seg.small button svg{width:15px;height:15px}
+.seg.small button{display:inline-flex;align-items:center;gap:5px;height:34px}
+.ptile.soon{opacity:.72}
+.ptile.soon::after{content:"";position:absolute;inset:6px;border-radius:21px;border:1.5px dashed color-mix(in srgb,var(--muted) 35%,transparent);pointer-events:none}
+.pcard{padding:16px;--r:26px;display:flex;flex-direction:column;gap:12px}
+.pcard h3{margin:0;font-size:17px;font-weight:400;text-wrap:balance}
+.pts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.pts li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.55}
+.pts li span{flex:none;width:30px;height:30px;border-radius:11px;display:grid;place-items:center;background:var(--accent);color:var(--on-accent)}
+.pts li span svg{width:16px;height:16px}
+.price{border-radius:999px;padding:6px 14px;font-size:14px;background:color-mix(in srgb,var(--accent) 14%,var(--chip));color:var(--ink);font-family:var(--f-num);font-weight:800}
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.slot{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:16px;background:var(--chip);border:1px solid var(--chip-edge);text-align:left;min-width:0}
+.slot i{flex:none;width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:var(--t);color:#fff}
+.slot i svg{width:15px;height:15px}
+.slot b{font-weight:400;font-size:13px;flex:1;min-width:0}
+.slot em{font-style:normal;font-size:11px;border-radius:999px;padding:1px 8px;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);white-space:nowrap}
+.slot.taken em{background:var(--chip);color:var(--muted)}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -578,7 +598,10 @@ const STR={
     impBtn:"從 YouTube 匯入",impTitle:"匯入你的 YouTube",impYt:"連接 YouTube 帳號",impYtNote:"讀取你的播放清單、按讚的音樂和訂閱頻道，自動排進九格。",impYtSite:"要在安裝版網址用 Google 登入後才能讀取。",
     impTk:"用 Google Takeout 匯入聽歌習慣",impTkHow:"到 Google Takeout 只勾選「YouTube 和 YouTube Music」裡的「記錄」和「訂閱內容」，記錄格式選 JSON。下載後把 .zip 直接上傳，會照你播放最多次的歌排序。",impTkOpen:"打開 Google Takeout",impUp:"上傳檔案",
     impPaste:"貼上 YouTube 連結",impPastePh:"一行一個連結，前面可以寫歌名",impRead:"讀取",impFound:n=>`找到 ${n} 個，勾選要放進九格的：`,impApply:n=>`放進心流歌單（${n}）`,impNone:"沒有找到 YouTube 影片或播放清單。",impReading:"讀取中…",impDone:"歌單換好了",
-    kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",replyLang:"Traditional Chinese as used in Taiwan",
+    kPlaylist:"播放清單",kChannel:"訂閱頻道",kLiked:"按讚的影片",plays:n=>`播放 ${n} 次`,impBig:"檔案太大了，請只匯出 YouTube 的記錄和訂閱內容。",impFail:"讀不到內容，請確認是 Google Takeout 匯出的檔案。",
+    sideUser:"為你推薦",sidePartner:"成為合作夥伴",soonSlot:"即將加入",pickTags:"選幾個有興趣的主題，合拍的夥伴會排在前面。",noPartners:"夥伴陸續加入中。先選好你有興趣的主題，之後會優先推薦給你。",
+    pTitle:"讓對的人，在規劃一週的時候看見你",pPoints:["依使用者自己選的興趣主題配對，只出現在合拍的人面前","出現在每天打開的九宮格裡，不是一閃而過的廣告","配對在使用者自己的手機上完成，我們不收集個人資料"],
+    pPlans:"合作方案",pSlots:"合作版位",slotOpen:"開放中",slotTaken:"已有夥伴",pContact:"洽詢合作",replyLang:"Traditional Chinese as used in Taiwan",
     guides:[
       [["[data-slot=inbox]","先在中間寫下這週想做的事，選一個顏色代表重要程度。"],
        ["[data-slot=d0]","按住一件事，拖到某一天，就排好了。","drag"],
@@ -591,7 +614,7 @@ const STR={
       [[".music .center","中間放你最愛的歌單。"],
        [".music [data-song='0']","點一下，就到 YouTube 播放。"],
        [".music [data-song='0'] .pen","點筆，換成你自己的歌。"]],
-      [["#tagRow","選幾個你有興趣的主題。"],
+      [["#sideSeg","這裡分成兩個入口：「為你推薦」給你用，「成為合作夥伴」給品牌看。"],["#tagRow","選幾個你有興趣的主題。"],
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]]
     ]
@@ -654,7 +677,10 @@ const STR={
     impBtn:"YouTube から取り込む",impTitle:"YouTube を取り込む",impYt:"YouTube アカウントに接続",impYtNote:"再生リスト、高く評価した音楽、登録チャンネルを読み込み、九マスに並べます。",impYtSite:"インストール版の URL で Google にログインすると使えます。",
     impTk:"Google Takeout で再生履歴を取り込む",impTkHow:"Google Takeout で「YouTube と YouTube Music」の「履歴」と「登録チャンネル」だけを選び、履歴の形式は JSON に。ダウンロードした .zip をそのままアップロードすると、よく再生した順に並べます。",impTkOpen:"Google Takeout を開く",impUp:"ファイルを選ぶ",
     impPaste:"YouTube のリンクを貼る",impPastePh:"1 行に 1 リンク。前に曲名を書いても OK",impRead:"読み込む",impFound:n=>`${n} 件見つかりました。九マスに入れるものを選んでください：`,impApply:n=>`プレイリストに入れる（${n}）`,impNone:"YouTube の動画や再生リストが見つかりません。",impReading:"読み込み中…",impDone:"プレイリストを更新しました",
-    kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",replyLang:"Japanese",
+    kPlaylist:"再生リスト",kChannel:"登録チャンネル",kLiked:"高く評価した動画",plays:n=>`${n} 回再生`,impBig:"ファイルが大きすぎます。YouTube の履歴と登録チャンネルだけを書き出してください。",impFail:"読み込めませんでした。Google Takeout のファイルか確認してください。",
+    sideUser:"あなたへのおすすめ",sidePartner:"パートナーになる",soonSlot:"近日参加",pickTags:"興味のあるテーマを選ぶと、合うパートナーが先に並びます。",noPartners:"パートナーは順次参加予定です。テーマを選んでおくと、優先しておすすめします。",
+    pTitle:"一週間を計画するその時に、ぴったりの人へ届く",pPoints:["ユーザーが自分で選んだ興味テーマでマッチング","毎日開く九マスの中に表示。流れていく広告ではありません","マッチングはユーザーの端末内で完結。個人データは収集しません"],
+    pPlans:"プラン",pSlots:"掲載枠",slotOpen:"募集中",slotTaken:"掲載中",pContact:"お問い合わせ",replyLang:"Japanese",
     guides:[
       [["[data-slot=inbox]","まず真ん中に今週やることを書き、色で重要度を選びます。"],
        ["[data-slot=d0]","タスクをつかんで曜日へドラッグすれば予定完了。","drag"],
@@ -667,7 +693,7 @@ const STR={
       [[".music .center","真ん中にお気に入りのプレイリストを。"],
        [".music [data-song='0']","タップすると YouTube で再生。"],
        [".music [data-song='0'] .pen","ペンで自分の曲に変更。"]],
-      [["#tagRow","興味のあるテーマを選んでください。"],
+      [["#sideSeg","入口は二つ。「あなたへのおすすめ」はあなた用、「パートナーになる」はブランド向けです。"],["#tagRow","興味のあるテーマを選んでください。"],
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
        [".spons .center","気に入ったら、ここから応援できます。"]]
     ]
@@ -730,7 +756,10 @@ const STR={
     impBtn:"Import from YouTube",impTitle:"Import your YouTube",impYt:"Connect YouTube",impYtNote:"Reads your playlists, liked music and subscriptions and fills the nine squares.",impYtSite:"Works on the app link after signing in with Google.",
     impTk:"Import your listening habits with Google Takeout",impTkHow:"In Google Takeout, select only “history” and “subscriptions” under “YouTube and YouTube Music”, and choose JSON for history. Upload the .zip as it is; songs are ranked by how often you played them.",impTkOpen:"Open Google Takeout",impUp:"Upload file",
     impPaste:"Paste YouTube links",impPastePh:"One link per line; you can put the song name first",impRead:"Read",impFound:n=>`Found ${n}. Tick the ones for your grid:`,impApply:n=>`Add to Flow Playlist (${n})`,impNone:"No YouTube videos or playlists found.",impReading:"Reading…",impDone:"Playlist updated",
-    kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",replyLang:"English",
+    kPlaylist:"Playlist",kChannel:"Subscription",kLiked:"Liked video",plays:n=>`Played ${n} ${n>1?"times":"time"}`,impBig:"That file is too large. Export only YouTube history and subscriptions.",impFail:"Couldn't read it. Check that the file came from Google Takeout.",
+    sideUser:"For you",sidePartner:"Partner with us",soonSlot:"Coming soon",pickTags:"Pick a few topics you like; matching partners come first.",noPartners:"Partners are joining soon. Pick your topics now and we'll suggest the right ones first.",
+    pTitle:"Be seen by the right people while they plan their week",pPoints:["Matched on the interest topics people choose themselves","Shown inside the grid they open every day, not a passing ad","Matching happens on the person's own phone; we collect no personal data"],
+    pPlans:"Plans",pSlots:"Partner slots",slotOpen:"Open",slotTaken:"Taken",pContact:"Talk to us",replyLang:"English",
     guides:[
       [["[data-slot=inbox]","Start in the middle: write this week's tasks and pick a colour for how important each is."],
        ["[data-slot=d0]","Grab a task and drag it onto a day. That's it.","drag"],
@@ -743,7 +772,7 @@ const STR={
       [[".music .center","Put your favourite playlist in the middle."],
        [".music [data-song='0']","Tap to play it on YouTube."],
        [".music [data-song='0'] .pen","Tap the pen to swap in your own song."]],
-      [["#tagRow","Pick a few topics you care about."],
+      [["#sideSeg","Two doors: “For you” is yours; “Partner with us” is for brands."],["#tagRow","Pick a few topics you care about."],
        [".spons [data-sp='0']","Partners that match light up."],
        [".spons .center","Like the tool? You can support it here."]]
     ]
@@ -1389,19 +1418,37 @@ function renderMusicFace(){
 /* ---------- face 3: sponsors ---------- */
 const TAGS=["kids","edu","read","mind","sport","music","career","life"];
 function renderSponsorFace(){
-  const t=T(),mine=new Set(S.tags),cells=Array(9);
-  SPONSORS.slice(0,8).forEach((sp,i)=>{
-    const tg=sp.tags||[],match=tg.some(x=>mine.has(x)),icon=I[tg[0]]||I.sparkle;
-    const inner=`${match?`<span class="fit">${t.fit}</span>`:""}<span class="pic">${icon}</span><b>${esc(sp.name||t.tagNames[tg[0]]||"")}</b><small>${sp.name?esc(sp.desc||""):t.openSlot}</small>`;
-    cells[RING[i]]=sp.url&&sp.name
-      ?`<a class="ptile jelly${match?" match":""}" data-sp="${i}" style="--t:var(--c${i%7})" href="${esc(sp.url)}" target="_blank" rel="noopener sponsored">${inner}</a>`
-      :`<button class="ptile jelly open${match?" match":""}" data-sp="${i}" style="--t:var(--c${i%7})" type="button" data-act="join">${inner}</button>`;
+  const t=T(),side=S.fside==="partner"?"partner":"user";
+  const seg=`<div class="seg jelly small" id="sideSeg" role="group" style="align-self:flex-start"><button type="button" data-side="user" aria-pressed="${side==="user"}">${I.heart}${t.sideUser}</button><button type="button" data-side="partner" aria-pressed="${side==="partner"}">${I.career}${t.sidePartner}</button></div>`;
+  $("face").innerHTML=seg+(side==="user"?userSide(t):partnerSide(t));
+}
+// demand side: what a visitor sees. Only live partners are clickable; empty slots never ask the visitor to sign up.
+function userSide(t){
+  const mine=new Set(S.tags),cells=Array(9);
+  const live=SPONSORS.map((sp,i)=>({sp,i,live:!!(sp.url&&sp.name),match:(sp.tags||[]).some(x=>mine.has(x))}));
+  live.sort((a,b)=>(b.live-a.live)||(b.match-a.match)||(a.i-b.i));
+  live.slice(0,8).forEach((o,n)=>{
+    const tg=o.sp.tags||[],icon=I[tg[0]]||I.sparkle,col=`--t:var(--c${o.i%7})`;
+    cells[RING[n]]=o.live
+      ?`<a class="ptile jelly${o.match?" match":""}" data-sp="${o.i}" style="${col}" href="${esc(o.sp.url)}" target="_blank" rel="noopener sponsored">${o.match?`<span class="fit">${t.fit}</span>`:""}<span class="pic">${icon}</span><b>${esc(o.sp.name)}</b><small>${esc(o.sp.desc||t.tagNames[tg[0]]||"")}</small></a>`
+      :`<div class="ptile jelly soon${o.match?" match":""}" data-sp="${o.i}" style="${col}">${o.match?`<span class="fit">${t.fit}</span>`:""}<span class="pic">${icon}</span><b>${esc(t.tagNames[tg[0]]||"")}</b><small>${t.soonSlot}</small></div>`;
   });
   const url=OWNER.donate[S.donatePlan];
   cells[4]=`<div class="ptile jelly center"><svg class="heart" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.2s-7-4.3-7-9.2A3.8 3.8 0 0 1 10 5.6 3.8 3.8 0 0 1 17 8c0 4.9-7 9.2-7 9.2z" fill="var(--hi)"/><path d="M6 7.2a2 2 0 0 1 2-1.4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none" opacity=".8"/></svg>
 <span class="mini-seg" role="group"><button type="button" data-plan="week" aria-pressed="${S.donatePlan==="week"}">${t.weekly}</button><button type="button" data-plan="month" aria-pressed="${S.donatePlan==="month"}">${t.monthly}</button></span>
 ${url?`<a class="pill pri jelly" href="${esc(url)}" target="_blank" rel="noopener">${t.donate}</a>`:`<button class="pill jelly" type="button" data-act="soon">${t.soon}</button>`}</div>`;
-  $("face").innerHTML=`<div class="tags" id="tagRow" role="group">${TAGS.map(k=>`<button class="tag" type="button" data-tag="${k}" aria-pressed="${mine.has(k)}">${t.tagNames[k]}</button>`).join("")}</div><div class="spons">${cells.join("")}</div>`;
+  const anyLive=live.some(o=>o.live);
+  return `<p class="note">${anyLive?t.pickTags:t.noPartners}</p><div class="tags" id="tagRow" role="group">${TAGS.map(k=>`<button class="tag" type="button" data-tag="${k}" aria-pressed="${mine.has(k)}">${t.tagNames[k]}</button>`).join("")}</div><div class="spons">${cells.join("")}</div>`;
+}
+// supply side: what a brand sees. Pricing, open slots and how matching works; no visitor data is shown here.
+function partnerSide(t){
+  const pts=[[I.target,t.pPoints[0]],[I.grid,t.pPoints[1]],[I.mind,t.pPoints[2]]];
+  const price=[OWNER.sponsorPrice.week&&`${t.perWeek} ${OWNER.sponsorPrice.week}`,OWNER.sponsorPrice.month&&`${t.perMonth} ${OWNER.sponsorPrice.month}`].filter(Boolean);
+  return `<section class="pcard jelly"><h3>${t.pTitle}</h3><ul class="pts">${pts.map(([ic,tx])=>`<li><span>${ic}</span>${esc(tx)}</li>`).join("")}</ul></section>
+${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row">${price.map(x=>`<span class="price">${esc(x)}</span>`).join("")}</div></section>`:""}
+<section class="pcard jelly"><h3>${t.pSlots}</h3><div class="slots">${SPONSORS.slice(0,8).map((sp,i)=>{const tg=(sp.tags||[])[0],taken=!!(sp.url&&sp.name);
+  return `<${taken?"div":"button type=\"button\" data-act=\"join\""} class="slot${taken?" taken":""}" style="--t:var(--c${i%7})"><i>${I[tg]||I.sparkle}</i><b>${esc(t.tagNames[tg]||"")}</b><em>${taken?t.slotTaken:t.slotOpen}</em></${taken?"div":"button"}>`}).join("")}</div></section>
+<div class="row" style="justify-content:center">${OWNER.sponsorContact?`<a class="pill pri jelly" href="${esc(OWNER.sponsorContact)}" target="_blank" rel="noopener">${t.pContact}</a>`:`<button class="pill jelly" type="button" data-act="join">${t.pContact}</button>`}</div>`;
 }
 
 /* ---------- face rotation ---------- */
@@ -2227,6 +2274,7 @@ document.addEventListener("click",e=>{
   }
   const tg=el.closest("[data-tag]");
   if(tg){const k=tg.dataset.tag;S.tags=S.tags.includes(k)?S.tags.filter(x=>x!==k):[...S.tags,k];save();render();return}
+  const sd=el.closest("[data-side]");if(sd){S.fside=sd.dataset.side;save();render();return}
   const pl=el.closest("[data-plan]");if(pl){S.donatePlan=pl.dataset.plan;save();render();return}
   const ed=el.closest("[data-edit]");if(ed){e.preventDefault();popSong(+ed.dataset.edit);return}
   const st=el.closest("[data-step]");if(st&&S.face===1){popStep(+st.dataset.step);return}
