@@ -372,6 +372,36 @@ body.ranging .gbar{pointer-events:none}
 .seg.small button{width:auto;padding:0 12px;font-size:12px;color:var(--muted)}
 .seg.small button[aria-pressed="true"]{color:var(--on-accent)}
 
+/* AI goal coach */
+.coachbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.coachbar .pill svg{width:16px;height:16px}
+.coachbar small{color:var(--muted);font-size:12px}
+.chat{display:flex;flex-direction:column;gap:8px;max-height:min(44vh,400px);overflow-y:auto;padding:2px 2px 4px;overscroll-behavior:contain}
+.msg{max-width:86%;padding:9px 13px;border-radius:18px;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.ai{align-self:flex-start;background:var(--chip);border:1px solid var(--chip-edge);border-bottom-left-radius:6px}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:6px}
+.msg.wait{color:var(--muted)}
+.msg.wait::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.qchips{display:flex;flex-wrap:wrap;gap:6px}
+.qchips button{border-radius:999px;padding:5px 12px;font-size:12px;background:var(--chip);border:1px solid var(--chip-edge)}
+.chatin{display:flex;gap:8px;align-items:center}
+.chatin input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:999px;padding:10px 14px}
+.chatin .send{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.chatin .send svg{width:18px;height:18px}
+.chatin .send:disabled{opacity:.45}
+.plan{display:flex;flex-direction:column;gap:10px;border-radius:22px;padding:14px;background:color-mix(in srgb,var(--accent) 9%,var(--chip));border:1px solid var(--chip-edge)}
+.plan h4{margin:0;font-size:17px;font-weight:400}
+.plan .why{font-size:13px;color:var(--muted);margin:0}
+.plan ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plan li{display:grid;grid-template-columns:24px 1fr auto;gap:2px 8px;align-items:baseline;font-size:13px}
+.plan li b{font-family:var(--f-num);font-weight:800;font-size:12px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--chip)}
+.plan li em{font-style:normal;font-family:var(--f-num);font-weight:800;font-size:11px;color:var(--muted)}
+.plan li small{grid-column:2/4;color:var(--muted);font-size:12px}
+.plan .wk{display:flex;flex-wrap:wrap;gap:6px}
+.plan .wk span{font-size:12px;border-radius:999px;padding:3px 10px;background:var(--chip)}
+.firsthint{font-size:13px;border-radius:14px;padding:8px 12px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--ink)}
+
 @media (max-width:600px){
   .app{gap:12px}
   .htitle b{font-size:17px}
@@ -509,6 +539,16 @@ const STR={
     holdSave:"長按圖片存到手機，再到 IG 或 FB 發佈。",caption:"我的這週九宮格 #九宮格週計畫",shareFail:"這台裝置不能直接分享，改成下載圖片。",
     account:"帳號",signedAs:n=>`已登入：${n}`,signOut:"登出",syncNow:"立即同步",synced:"已同步到 Google 雲端硬碟",syncFail:"同步沒有成功，請稍後再試。",guestNote:"目前是訪客模式，資料只存在這支手機。",region:"地區與假日",
     cardDone:"本週完成",cardTry:"免費使用 →",
+    coachBtn:"AI 陪你規劃",coachSub:"先聊聊，再排進九宮格",coachTitle:"AI 目標教練",
+    coachHello:"嗨，我是你的目標教練。我們先聊幾句，把目標變成做得到的八個步驟。\n你最想完成的一件事是什麼？大概希望什麼時候做到？",
+    coachChips:["一年內存到第一桶金","三個月內考到證照","每週運動三次，持續半年","今年出版第一本書"],
+    coachPh:"輸入你的想法…",send:"送出",stop:"停止",makePlan:"產生九宮格計畫",planning:"正在幫你排出八個步驟",
+    planWeek:"這週先做",importPlan:"放進未來九宮格",keepTalk:"再聊聊",imported:"計畫已經放進九宮格和行事曆",
+    aiOff:"AI 教練要在 Claude 裡打開這個頁面才能用。先用引導問答幫你想清楚：",
+    aiErr:{rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
+    fQs:["為什麼這件事對你重要？完成之後，你會變成什麼樣的人？","你現在的起點在哪？手上有哪些資源，最大的限制是什麼？","每週大概能投入多少時間在這件事上？"],
+    fDone:"寫得很好！我先把目標放進九宮格中間，周圍八格請你拆成八個小步驟，每一步都寫下「做到什麼算完成」。",
+    firstLbl:"第一個小行動",replyLang:"Traditional Chinese as used in Taiwan",
     guides:[
       [["[data-slot=inbox]","先在中間寫下這週想做的事，選一個顏色代表重要程度。"],
        ["[data-slot=d0]","按住一件事，拖到某一天，就排好了。","drag"],
@@ -571,6 +611,16 @@ const STR={
     holdSave:"画像を長押しして保存し、IG や FB に投稿してください。",caption:"今週の九マス #九マス週間プランナー",shareFail:"この端末では直接シェアできないため、画像を保存します。",
     account:"アカウント",signedAs:n=>`ログイン中：${n}`,signOut:"ログアウト",syncNow:"今すぐ同期",synced:"Google ドライブに同期しました",syncFail:"同期できませんでした。後でもう一度お試しください。",guestNote:"ゲストモードです。データはこの端末だけに保存されます。",region:"地域と祝日",
     cardDone:"今週の完了",cardTry:"無料で使う →",
+    coachBtn:"AI と計画する",coachSub:"話してから九マスへ",coachTitle:"AI 目標コーチ",
+    coachHello:"こんにちは、目標コーチです。少し話しながら、目標を実行できる八つのステップにしましょう。\nいちばん叶えたいことは何ですか？いつまでに？",
+    coachChips:["1年で貯金100万円","3か月で資格を取る","週3回の運動を半年続ける","今年、本を出す"],
+    coachPh:"思っていることを入力…",send:"送信",stop:"停止",makePlan:"九マス計画を作る",planning:"八つのステップを組み立てています",
+    planWeek:"今週やること",importPlan:"未来の九マスに入れる",keepTalk:"もう少し話す",imported:"計画を九マスとカレンダーに入れました",
+    aiOff:"AI コーチは Claude の中でこのページを開いたときに使えます。代わりに質問に答えて整理しましょう：",
+    aiErr:{rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
+    fQs:["なぜそれが大切ですか？叶えたとき、どんな自分になっていたいですか？","今の出発点は？使える資源と、いちばんの制約は？","毎週どれくらい時間を使えますか？"],
+    fDone:"いいですね。目標を九マスの真ん中に入れました。まわりの八つに、完了の基準がわかる小さなステップを書いてみてください。",
+    firstLbl:"最初の小さな行動",replyLang:"Japanese",
     guides:[
       [["[data-slot=inbox]","まず真ん中に今週やることを書き、色で重要度を選びます。"],
        ["[data-slot=d0]","タスクをつかんで曜日へドラッグすれば予定完了。","drag"],
@@ -633,6 +683,16 @@ const STR={
     holdSave:"Press and hold the image to save it, then post it on IG or FB.",caption:"My week in nine squares #NineGridWeek",shareFail:"This device can't share directly, so the image was saved instead.",
     account:"Account",signedAs:n=>`Signed in as ${n}`,signOut:"Sign out",syncNow:"Sync now",synced:"Synced to Google Drive",syncFail:"Sync didn't work. Try again in a moment.",guestNote:"You're a guest. Your plan is saved only on this device.",region:"Region & holidays",
     cardDone:"Done this week",cardTry:"Try it free →",
+    coachBtn:"Plan it with AI",coachSub:"Talk it through, then fill the grid",coachTitle:"AI goal coach",
+    coachHello:"Hi, I'm your goal coach. Let's talk for a minute and turn your goal into eight steps you can actually take.\nWhat's the one thing you most want to achieve, and by when?",
+    coachChips:["Save my first $10k this year","Pass a certification in 3 months","Work out 3 times a week for 6 months","Publish my first book this year"],
+    coachPh:"Type your thoughts…",send:"Send",stop:"Stop",makePlan:"Make my grid plan",planning:"Laying out your eight steps",
+    planWeek:"Start this week",importPlan:"Put it in the Future Grid",keepTalk:"Keep talking",imported:"Your plan is in the grid and the calendar",
+    aiOff:"The AI coach works when this page is opened inside Claude. Let's think it through with a few questions instead:",
+    aiErr:{rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
+    fQs:["Why does this matter to you? Who do you want to become by doing it?","Where are you starting from? What resources do you have, and what's your biggest limit?","How much time can you give it each week?"],
+    fDone:"Nice work. Your goal is now in the middle of the grid. Fill the eight squares around it with small steps, each with a clear finish line.",
+    firstLbl:"First small action",replyLang:"English",
     guides:[
       [["[data-slot=inbox]","Start in the middle: write this week's tasks and pick a colour for how important each is."],
        ["[data-slot=d0]","Grab a task and drag it onto a day. That's it.","drag"],
@@ -1233,8 +1293,8 @@ function renderGoalFace(){
 <span class="mnum">${s.done?"✓":i+1}</span><span class="mtext${s.text?"":" ph"}">${esc(s.text||t.stepN(i+1))}</span>${s.date?`<span class="mdate">${esc(t.md(parse(s.date)))}</span>`:""}</button>`;
   });
   const C=2*Math.PI*30;
-  cells[4]=`<button class="mtile jelly center" type="button" data-goal="1"><span class="prog"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="30" fill="none" stroke="var(--chip)" stroke-width="8"/><circle cx="36" cy="36" r="30" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C*done/8).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"/></svg><b>${done}/8</b></span><span class="mtext${G.title?"":" ph"}">${esc(G.title||t.goalPh)}</span></button>`;
-  $("face").innerHTML=`<div class="mandala">${cells.join("")}</div>
+  cells[4]=`<button class="mtile jelly center" type="button" data-goal="1"><span class="prog"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="30" fill="none" stroke="var(--chip)" stroke-width="8"/>${done?`<circle cx="36" cy="36" r="30" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C*done/8).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"/>`:""}</svg><b>${done}/8</b></span><span class="mtext${G.title?"":" ph"}">${esc(G.title||t.goalPh)}</span></button>`;
+  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-coach="open">${I.sparkle}${t.coachBtn}</button><small>${t.coachSub}</small></div><div class="mandala">${cells.join("")}</div>
 <section class="road jelly" id="road"><h3><span>${I.flag}</span>${t.roadTitle}</h3>
 <svg id="roadSvg" viewBox="0 0 356 226" role="img" aria-label="${t.roadTitle} ${done}/8">
 <path class="track" d="${ROAD}"/><path class="walked" id="walked" d="${ROAD}"/><path class="lane" d="${ROAD}"/>
@@ -1242,6 +1302,7 @@ function renderGoalFace(){
 <g class="walker" id="walker"><g class="body"><ellipse cx="0" cy="3" rx="9" ry="3" fill="rgba(0,0,0,.15)"/><path d="M-6.5 0 Q0 -24 6.5 0 Z" fill="var(--accent)"/><circle cx="0" cy="-22" r="6.5" fill="var(--ink)"/><circle cx="-2.2" cy="-23" r="1.2" fill="var(--bg)"/><circle cx="2.4" cy="-23" r="1.2" fill="var(--bg)"/></g></g>
 </svg></section>`;
   placeRoad(done);
+  if(!G.title&&!S.seen.coach&&S.welcomed){S.seen.coach=1;save();setTimeout(()=>{if(S.face===1&&!$("layer").innerHTML){endGuide(true);openCoach()}},500)}
 }
 function placeRoad(done){
   const svg=$("roadSvg");if(!svg)return;
@@ -1354,6 +1415,7 @@ function popStep(i){
   layer(`<div class="shead"><h2>${t.stepN(i+1)}</h2>${closeBtn(t)}</div>
 <label class="fld">${t.stepPh}<input id="pText" type="text" maxlength="60" value="${esc(s.text)}"></label>
 <label class="fld">${t.date}<input id="pDate" type="date" value="${esc(s.date)}"></label>
+${s.first?`<div class="firsthint">${esc(t.firstLbl)}：${esc(s.first)}</div>`:""}
 <div class="row"><button class="pill jelly tgl" type="button" id="pDone" aria-pressed="${s.done}">✓ ${t.doneLbl}</button></div>
 <div class="row end"><button class="pill jelly" type="button" data-pop="schedule" data-i="${i}">${I.cal}${t.schedule}</button><button class="pill pri jelly" type="button" data-pop="step" data-i="${i}">${t.save}</button></div>`,true);
 }
@@ -1380,7 +1442,7 @@ function popText(title,body,extra){
 /* ---------- guide bubbles ---------- */
 let guide=null,demo=null;
 function pick(sel){for(const s of sel.split(",")){const el=document.querySelector(s.trim());if(el)return el}return null}
-function maybeGuide(){if(!S.seen[S.face])setTimeout(()=>{if(!guide&&!$("layer").innerHTML)startGuide()},700)}
+function maybeGuide(){if(!S.seen[S.face])setTimeout(()=>{if(!guide&&!$("layer").innerHTML&&!(S.face===1&&!S.goal.title))startGuide()},700)}
 function startGuide(k,steps){
   closeLayer();
   if(k==null){if(S.face===0&&S.mode==="month"){k="m";steps=[[".mday.today,.mweek .mday:not(.out)",T().rTip,"range"]]}else{k=S.face;steps=T().guides[S.face]}}
@@ -1771,6 +1833,130 @@ async function syncNow(){
 function schedulePush(){if(!GS||!GS.token)return;clearTimeout(GS.timer);GS.timer=setTimeout(()=>pushDrive().catch(()=>{}),4000)}
 function googleSignOut(){try{if(GS.token&&window.google)google.accounts.oauth2.revoke(GS.token,()=>{})}catch(e){}GS.token=null;GS.fileId=null;delete S.account;save()}
 
+
+/* ---------- AI goal coach (uses the viewer's own Claude through the `sample` capability) ---------- */
+let AI;   // undefined: still connecting; null: not available here; function: ready
+const aiReady=(window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").then(f=>(AI=f||null),()=>(AI=null)):Promise.resolve(AI=null);
+const coach={turns:[],busy:false,ctl:null,plan:null,fq:-1,answers:[],offline:false};
+const SEND_ICON='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16V4M5 9l5-5 5 5"/></svg>';
+function coachRules(){
+  const t=T(),d=new Date();
+  return `You are the goal coach inside "Nine-Grid Week", a planner that turns one big goal into 8 milestone steps around it on a 3x3 grid.
+Speak warmly, concretely and casually. Always reply in ${t.replyLang}.
+Blend three lenses quietly, without lecturing or jargon:
+- Adler: focus on purpose (who they want to become), separate their own tasks from others', encourage effort rather than praise results.
+- Flow: tune the goal so it is a stretch but reachable, with clear finish lines and quick feedback for each step.
+- Maslow: notice which need the goal serves (safety, belonging, esteem, self-actualisation); gently make sure basics are covered.
+Rules: ask exactly ONE question per reply, at most 80 words (or 80 Chinese/Japanese characters). Ask at most 4 questions in total, in this order as needed: 1) what exactly and by when; 2) why it matters to them; 3) their starting point, resources and biggest constraint; 4) how many hours per week they can give. If the goal is unrealistic (for example a very large amount of money in a short time), kindly help reshape it into something measurable and within their control; never promise outcomes and give no investment, legal or medical advice. When you know enough, summarise the goal in one sentence and invite them to press the "${t.makePlan}" button.
+Today is ${key(d)}.`;
+}
+function coachHTML(){
+  const t=T(),n=coach.turns.filter(x=>x.role==="user").length;
+  const msgs=[`<div class="msg ai">${esc(t.coachHello)}</div>`];
+  if(coach.offline)msgs.push(`<div class="msg ai">${esc(t.aiOff)}</div>`);
+  coach.turns.forEach((m,i)=>msgs.push(`<div class="msg ${m.role==="user"?"me":"ai"}${m.wait?" wait":""}" data-mi="${i}">${esc(m.content)}</div>`));
+  let plan="";
+  if(coach.plan){
+    const P=coach.plan;
+    plan=`<div class="plan"><h4>${esc(P.goal)}</h4>${P.why?`<p class="why">${esc(P.why)}</p>`:""}
+<ol>${P.steps.map((st,i)=>`<li><b>${i+1}</b><span>${esc(st.text)}</span><em>${st.date?esc(t.md(parse(st.date))):""}</em>${st.first?`<small>${esc(t.firstLbl)}：${esc(st.first)}</small>`:""}</li>`).join("")}</ol>
+${P.week.length?`<div><div class="note" style="margin-bottom:6px">${t.planWeek}</div><div class="wk">${P.week.map(w=>`<span>${t.short[w.day]}・${esc(w.text)}</span>`).join("")}</div></div>`:""}
+${P.note?`<p class="why">${esc(P.note)}</p>`:""}</div>`;
+  }
+  const chips=!n&&!coach.busy?`<div class="qchips">${t.coachChips.map(c=>`<button type="button" data-chip="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:"";
+  const acts=coach.plan
+    ?`<div class="row end"><button class="pill jelly" type="button" data-coach="talk">${t.keepTalk}</button><button class="pill pri jelly" type="button" data-coach="import">${t.importPlan}</button></div>`
+    :coach.busy?`<div class="row end"><button class="pill jelly" type="button" data-coach="stop">${t.stop}</button></div>`
+    :(!coach.offline&&n>=2)?`<div class="row end"><button class="pill pri jelly" type="button" data-coach="plan">${I.sparkle}${t.makePlan}</button></div>`:"";
+  return `<div class="chat" id="chat">${msgs.join("")}</div>${plan}${chips}
+${coach.plan?"":`<form class="chatin" id="coachForm" autocomplete="off"><input id="coachIn" type="text" maxlength="300" placeholder="${esc(t.coachPh)}" aria-label="${esc(t.coachPh)}"${coach.busy?" disabled":""}><button class="send" type="submit" aria-label="${t.send}"${coach.busy?" disabled":""}>${SEND_ICON}</button></form>`}${acts}`;
+}
+function drawCoach(focus){
+  const box=$("coachBody");if(!box)return;
+  const v=$("coachIn")?$("coachIn").value:"";
+  box.innerHTML=coachHTML();
+  if($("coachIn")){$("coachIn").value=v;if(focus)$("coachIn").focus()}
+  const ch=$("chat");if(ch)ch.scrollTop=ch.scrollHeight;
+}
+function openCoach(){
+  const t=T();endGuide(true);
+  layer(`<div class="shead"><h2>${t.coachTitle}</h2>${closeBtn(t)}</div><div id="coachBody" style="display:flex;flex-direction:column;gap:12px"></div>`,true);
+  drawCoach(true);
+  aiReady.then(()=>{if(AI===null&&!coach.offline){coach.offline=true;drawCoach()}});
+}
+function aiErrText(e){const m=T().aiErr;return m[e&&e.code]||m.other}
+async function coachSend(text){
+  text=String(text||"").trim();if(!text||coach.busy)return;
+  coach.turns.push({role:"user",content:text});
+  await aiReady;
+  if(AI===null){coach.offline=true;return coachOffline()}
+  const reply={role:"assistant",content:"",wait:true};coach.turns.push(reply);coach.busy=true;coach.ctl=new AbortController();drawCoach();
+  const history=coach.turns.filter(x=>x!==reply&&x.content).slice(-12).map(x=>({role:x.role,content:x.content}));
+  try{
+    const r=await AI([{role:"user",content:coachRules()},...history],{cache:false,modelTier:"quick",signal:coach.ctl.signal,
+      onText:({text})=>{reply.content=text;reply.wait=false;const el=document.querySelector(`#chat [data-mi="${coach.turns.indexOf(reply)}"]`);if(el){el.textContent=text;el.classList.remove("wait");const ch=$("chat");ch.scrollTop=ch.scrollHeight}}});
+    reply.content=r.text;reply.wait=false;
+  }catch(e){
+    reply.wait=false;
+    if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){coach.turns.pop();coach.offline=true;coach.busy=false;return coachOffline()}
+    reply.content=(e.text?e.text+"\n":"")+(e.code==="cancelled"?"":aiErrText(e));
+    if(!reply.content.trim())coach.turns.pop();
+  }
+  coach.busy=false;coach.ctl=null;drawCoach(true);
+}
+// without AI: the same questions, asked one by one, and the answers become the goal
+function coachOffline(){
+  const t=T(),users=coach.turns.filter(x=>x.role==="user");
+  if(users.length<=t.fQs.length){coach.turns.push({role:"assistant",content:t.fQs[users.length-1]||t.fQs[0]});}
+  if(users.length===t.fQs.length+1){
+    coach.turns.push({role:"assistant",content:t.fDone});
+    const g=users[0].content.slice(0,40);
+    if(S.example){S.example=false;S.weeks={}}
+    S.goal={title:g,why:users[1]?users[1].content:"",steps:Array.from({length:8},()=>({text:"",date:"",done:false}))};walkerP=0;save();
+    coach.done=true;
+  }
+  drawCoach(true);if(coach.done){coach.done=false;setTimeout(()=>{closeLayer();render();maybeGuide()},1800)}
+}
+async function coachPlan(){
+  const t=T();if(coach.busy)return;await aiReady;if(!AI){coach.offline=true;drawCoach();return}
+  coach.busy=true;coach.ctl=new AbortController();
+  const wait={role:"assistant",content:t.planning,wait:true};coach.turns.push(wait);drawCoach();
+  const d=new Date(),dow=(d.getDay()+6)%7;
+  const convo=coach.turns.filter(x=>x!==wait&&x.content).map(x=>`${x.role==="user"?"User":"Coach"}: ${x.content}`).join("\n").slice(-8000);
+  const prompt=`From the coaching conversation below, build a nine-grid goal plan. Write every text value in ${t.replyLang}.
+Reply with ONLY one JSON object of this shape:
+{"goal":"measurable goal with a deadline, max 24 characters/words","why":"one sentence on why it matters to them","steps":[{"text":"milestone starting with a verb, max 16 characters/words","date":"YYYY-MM-DD","first":"a first action that takes 15 minutes or less, max 20 characters/words"}],"week":[{"text":"small task for this week, max 16 characters/words","day":0,"pri":"high"}],"note":"one sentence of encouragement"}
+Rules: exactly 8 steps in time order, each with a clear finish line, dated between today (${key(d)}) and the deadline. "week" has 3 to 5 small tasks for this week; "day" is 0 for Monday to 6 for Sunday; today is day ${dow}, so use days ${dow} to 6; "pri" is high, mid or low. Keep it realistic for the time they said they have.
+
+Conversation:
+${convo}`;
+  try{
+    const r=await AI.json(prompt,{modelTier:"default",signal:coach.ctl.signal,cache:false});
+    coach.turns.pop();coach.plan=cleanPlan(r);
+    if(!coach.plan)coach.turns.push({role:"assistant",content:t.aiErr.invalid_json});
+  }catch(e){
+    coach.turns.pop();
+    if(e.code!=="cancelled")coach.turns.push({role:"assistant",content:aiErrText(e)});
+  }
+  coach.busy=false;coach.ctl=null;drawCoach();
+}
+function cleanPlan(r){
+  if(!r||typeof r!=="object"||!Array.isArray(r.steps))return null;
+  const ds=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";
+  const steps=r.steps.slice(0,8).map(x=>({text:String(x&&x.text||"").slice(0,40),date:ds(x&&x.date),first:String(x&&x.first||"").slice(0,60)}));
+  while(steps.length<8)steps.push({text:"",date:"",first:""});
+  const week=(Array.isArray(r.week)?r.week:[]).slice(0,5).map(x=>({text:String(x&&x.text||"").slice(0,40),day:Math.max(0,Math.min(6,parseInt(x&&x.day,10)||0)),pri:PRI.includes(x&&x.pri)?x.pri:"mid"})).filter(x=>x.text);
+  return {goal:String(r.goal||"").slice(0,60),why:String(r.why||"").slice(0,120),note:String(r.note||"").slice(0,120),steps,week};
+}
+function coachImport(){
+  const P=coach.plan;if(!P)return;
+  if(S.example){S.example=false;S.weeks={}}
+  S.goal={title:P.goal,why:P.why,steps:P.steps.map(x=>({text:x.text,date:x.date,first:x.first,done:false}))};walkerP=0;
+  const w=W(key(mondayOf(new Date())));
+  P.week.forEach(x=>{if(!w.days[x.day].some(y=>y.text===x.text))w.days[x.day].push({id:uid(),text:x.text,pri:x.pri,done:false,goal:true})});
+  coach.plan=null;coach.turns=[];save();closeLayer();S.face=1;render();toast(T().imported);
+}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -1778,7 +1964,7 @@ document.addEventListener("click",e=>{
   const t=T(),el=e.target;
   const g=el.closest("[data-g]");
   if(g){if(g.dataset.g==="next"){guide.i++;showGuide()}else endGuide();return}
-  if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList");closeLayer();if(todo)maybeGuide();return}
+  if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList"),cb=$("coachBody");if(cb&&coach.ctl)coach.ctl.abort();closeLayer();if(todo||cb)maybeGuide();return}
   const fb=el.closest(".dial .fb");if(fb){goFace(+fb.dataset.face);return}
   if(el.closest("#knob")){goFace(S.face+1,1);return}
   if(el.closest("#helpBtn")){startGuide();return}
@@ -1798,6 +1984,15 @@ document.addEventListener("click",e=>{
   }
   const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;save();applySkin();render();openSettings();return}
 
+  const co=el.closest("[data-coach]");
+  if(co){const a=co.dataset.coach;
+    if(a==="open")openCoach();
+    if(a==="stop"&&coach.ctl)coach.ctl.abort();
+    if(a==="plan")coachPlan();
+    if(a==="talk"){coach.plan=null;drawCoach(true)}
+    if(a==="import")coachImport();
+    return}
+  const cp=el.closest("[data-chip]");if(cp){coachSend(cp.dataset.chip);return}
   const wl=el.closest("[data-wel]");
   if(wl){
     const go=()=>{S.welcomed=true;S.face=0;S.mode="week";save();closeLayer();render();openTodo()};
@@ -1943,6 +2138,7 @@ document.addEventListener("paste",e=>{
   addTodoRows(lines,li);
 });
 document.addEventListener("submit",e=>{
+  if(e.target.id==="coachForm"){e.preventDefault();const v=$("coachIn").value;$("coachIn").value="";coachSend(v);return}
   if(e.target.id!=="addForm")return;e.preventDefault();
   const v=$("newTask").value.trim();if(!v)return;
   W(key(cur)).inbox.push({id:uid(),text:v,pri:newPri});$("newTask").value="";save();render();$("newTask").focus();
