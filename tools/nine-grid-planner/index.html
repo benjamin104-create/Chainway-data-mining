@@ -815,6 +815,34 @@ input.need{box-shadow:0 0 0 2px var(--accent);animation:shake .4s}
 .lvrw li{padding:10px 12px;border-radius:14px;background:var(--chip);font-size:14px;text-align:left}
 .rules{font-size:14px;line-height:1.65}.rules ul{padding-left:20px;margin:4px 0 10px}.rules p{margin:6px 0}
 
+/* labelled bottom bar */
+html .dial{gap:2px;padding:6px 8px}
+html .dial .fb{width:58px;height:52px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+html .dial .fb svg{width:20px;height:20px}
+html .dial .fb span,html .knob span{font-size:10.5px;line-height:1;white-space:nowrap}
+html .knob{width:58px;height:56px;border-radius:19px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin-inline:4px}
+html .knob svg{width:22px;height:22px}
+.mplayer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:39;display:flex;align-items:center;gap:4px;padding:4px 12px 4px 4px;--r:999px;max-width:calc(100% - 32px)}
+.mpbtn{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);flex:none}
+.mpbtn svg{width:14px;height:14px}
+.mpname{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.eq{display:inline-flex;align-items:flex-end;gap:2px;height:12px}.eq i{width:3px;background:var(--accent);border-radius:2px;animation:eqb .9s ease-in-out infinite}.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eqb{0%,100%{height:3px}50%{height:12px}}
+.app{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.mptracks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mptr{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;--r:18px;font-size:13px}.mptr span{font-size:26px}.mptr.on{box-shadow:0 0 0 2.5px var(--accent)}
+.mpsongs{display:flex;flex-direction:column;gap:6px}
+.mpsong{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:14px;background:var(--chip);text-decoration:none;color:var(--ink)}.mpsong svg{width:12px;height:12px;color:var(--accent);flex:none}.mpsong b{font-weight:400;font-size:14px}.mpsong small{margin-left:auto;font-size:11px;color:var(--muted)}
+.afgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.aftile{position:relative;--r:20px;aspect-ratio:1}
+.aftile.on{box-shadow:0 0 0 2.5px var(--accent)}
+.afgo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px;text-align:center}
+.afgo svg{width:26px;height:26px;color:var(--accent)}
+.afgo b{font-weight:400;font-size:13px;line-height:1.2}
+.afgo small{font-size:10px;color:var(--muted);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.afpin{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;font-size:12px;opacity:.3;filter:grayscale(1)}
+.afpin.on{opacity:1;filter:none}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -895,18 +923,8 @@ input.need{box-shadow:0 0 0 2px var(--accent);animation:shake .4s}
   <main class="stage" id="stage"><div class="face" id="face"></div></main>
 </div>
 
-<nav class="dial jelly" id="dial">
-  <button class="fb" type="button" data-face="0"></button>
-  <button class="fb" type="button" data-face="1"></button>
-  <button class="knob" id="knob" type="button"><svg viewBox="0 0 34 34" aria-hidden="true"><g fill="currentColor"><rect x="1" y="1" width="9" height="9" rx="3"/><rect x="12.5" y="1" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="1" width="9" height="9" rx="3" opacity=".55"/><rect x="1" y="12.5" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="12.5" width="9" height="9" rx="3" opacity=".55"/><rect x="1" y="24" width="9" height="9" rx="3" opacity=".55"/><rect x="12.5" y="24" width="9" height="9" rx="3" opacity=".55"/><rect x="24" y="24" width="9" height="9" rx="3" opacity=".55"/></g><circle cx="17" cy="17" r="4.6" fill="var(--accent)"/></svg></button>
-  <button class="fb" type="button" data-face="2"></button>
-  <button class="fb" type="button" data-face="3"></button>
-  <button class="fb" type="button" data-face="4"></button>
-  <button class="fb" type="button" data-face="5"></button>
-  <button class="fb" type="button" data-face="6"></button>
-  <button class="fb" type="button" data-face="7"></button>
-  <button class="fb" type="button" data-face="8"></button>
-</nav>
+<div class="mplayer jelly" id="mplayer" hidden></div>
+<nav class="dial jelly" id="dial"></nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
 <linearGradient id="gt1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,#fff 55%,var(--c0))"/><stop offset=".55" style="stop-color:var(--c0)"/><stop offset="1" style="stop-color:color-mix(in srgb,#000 12%,var(--c0))"/></linearGradient>
@@ -1066,7 +1084,7 @@ const STR={
        ["[data-slot=d0]","按住一件事，拖到某一天，就排好了。","drag"],
        ["[data-slot=d0] .bell,[data-slot=d0]","點鈴鐺選時間，到時候會提醒你。"],
        ["#modeSeg","切到月曆，一眼看到整個月和國定假日。"],
-       ["#knob","轉一下這顆按鈕，換到下一個面。"]],
+       ["#mplayer","🎵 背景音樂在這裡：點名字換曲目，也能打開你自己的歌單。"],["#knob","所有功能都在「全部」裡，常用的可以釘到下面。"]],
       [[".mandala .center","中間寫下你的大目標。"],
        [".mandala [data-step='0']","周圍八格拆成八個小步驟，點一格就能編輯、排進行事曆。"],
        ["#road","每完成一步，小人就往終點前進一格。"]],
@@ -1186,7 +1204,7 @@ const STR={
        ["[data-slot=d0]","タスクをつかんで曜日へドラッグすれば予定完了。","drag"],
        ["[data-slot=d0] .bell,[data-slot=d0]","ベルで時刻を選ぶと、時間にお知らせします。"],
        ["#modeSeg","カレンダーに切り替えると、ひと月分と祝日が見られます。"],
-       ["#knob","このボタンを回して、次の面へ。"]],
+       ["#mplayer","🎵 BGM はここ。名前をタップで曲を変えたり、自分のプレイリストを開けます。"],["#knob","すべての機能は「すべて」に。よく使うものは下にピン留めできます。"]],
       [[".mandala .center","真ん中に大きな目標を。"],
        [".mandala [data-step='0']","まわりの八つに小さなステップを。タップで編集やカレンダー登録。"],
        ["#road","一歩終えるごとに、人がゴールへ近づきます。"]],
@@ -1306,7 +1324,7 @@ const STR={
        ["[data-slot=d0]","Grab a task and drag it onto a day. That's it.","drag"],
        ["[data-slot=d0] .bell,[data-slot=d0]","Tap the bell to pick a time and get a reminder."],
        ["#modeSeg","Switch to the month to see public holidays."],
-       ["#knob","Turn this knob to rotate to the next side."]],
+       ["#mplayer","🎵 Background music lives here: tap the name to switch, or open your own playlist."],["#knob","Everything is under All; pin the ones you use to the bar."]],
       [[".mandala .center","Write your big goal in the middle."],
        [".mandala [data-step='0']","Break it into eight steps around it. Tap one to edit it or add it to your week."],
        ["#road","Each finished step moves you one stop closer to the goal."]],
@@ -1698,9 +1716,7 @@ function render(){
   document.documentElement.lang={zh:"zh-Hant-TW",ja:"ja",en:"en"}[LANG[S.region]];
   $("faceTitle").textContent=t.faces[S.face];$("faceSub").textContent=t.subs[S.face];
   $("helpBtn").setAttribute("aria-label",t.help);$("shareBtn").setAttribute("aria-label",t.share);$("setBtn").setAttribute("aria-label",t.settings);
-  document.querySelectorAll(".dial .fb").forEach(b=>{const f=+b.dataset.face;b.innerHTML=FACE_ICONS[f];b.setAttribute("aria-label",t.faces[f]);b.setAttribute("aria-current",f===S.face)});
-  $("knob").setAttribute("aria-label",t.faces[(S.face+1)%9]);
-  $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
+  renderDial();mpRender();
   [renderWeekFace,renderGoalFace,renderMusicFace,renderSponsorFace,renderWordFace,renderGameFace,renderCreatorFace,renderFitFace,renderSkillFace][S.face]();
   if(!$("rem").hidden)showRem(false);
 }
@@ -2014,7 +2030,7 @@ function goFace(n,dir){
   const swap=()=>{S.face=n;save();try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
   if(reduced()||!f.animate){swap();return}
   rotating=true;
-  $("knob").querySelector("svg").style.transform=`rotate(${knobTurns*90}deg)`;
+
   f.animate([{transform:"rotateY(0deg)",opacity:1},{transform:`rotateY(${-dir*88}deg) scale(.92)`,opacity:0}],{duration:280,easing:"cubic-bezier(.5,0,.75,0)"}).finished.then(()=>{
     swap();
     f.animate([{transform:`rotateY(${dir*88}deg) scale(.92)`,opacity:0},{transform:"rotateY(0deg) scale(1)",opacity:1}],{duration:420,easing:"cubic-bezier(.2,.9,.25,1.1)"}).finished.then(()=>{rotating=false},()=>{rotating=false});
@@ -4729,6 +4745,75 @@ const PT_STR={
     result:(s,n)=>`${s} of ${n} right!`,impHelp:"One card per line: picture (emoji or https image link), Chinese, English, Japanese|kana, Taiwanese|Tâi-lô. e.g. 🐶,狗,dog,犬|いぬ,狗|káu"}
 };
 const PT=()=>PT_STR[LANG[S.region]];
+/* ---------- bottom bar: four labelled favourites around an "all" button ---------- */
+S.favs=S.favs||[0,1,8,4];
+const NAV_STR={zh:{short:["週曆","目標","音樂","夥伴","字卡","遊戲","創作","健身","任務"],all:"全部",allTitle:"全部功能",pinHint:"📌 釘到下方（最多 4 個）"},
+  ja:{short:["週間","目標","音楽","仲間","単語","ゲーム","創作","筋トレ","クエスト"],all:"すべて",allTitle:"すべての機能",pinHint:"📌 下にピン留め（4 つまで）"},
+  en:{short:["Week","Goal","Music","Friends","Words","Games","Create","Fitness","Quests"],all:"All",allTitle:"Everything",pinHint:"📌 Pin to the bar (up to 4)"}};
+const NT=()=>NAV_STR[LANG[S.region]];
+function renderDial(){
+  const n=NT(),f=S.favs.slice(0,4);
+  if(!f.includes(S.face))f[3]=S.face;   // the side you're on always shows
+  const b=i=>`<button class="fb" type="button" data-face="${i}" aria-current="${i===S.face}" aria-label="${esc(T().faces[i])}">${FACE_ICONS[i]}<span>${esc(n.short[i])}</span></button>`;
+  $("dial").innerHTML=b(f[0])+b(f[1])+`<button class="knob" id="knob" type="button" aria-label="${esc(n.allTitle)}"><svg viewBox="0 0 34 34" aria-hidden="true"><g fill="currentColor"><rect x="1" y="1" width="9" height="9" rx="3"/><rect x="12.5" y="1" width="9" height="9" rx="3"/><rect x="24" y="1" width="9" height="9" rx="3"/><rect x="1" y="12.5" width="9" height="9" rx="3"/><rect x="12.5" y="12.5" width="9" height="9" rx="4.5" fill="var(--accent)"/><rect x="24" y="12.5" width="9" height="9" rx="3"/><rect x="1" y="24" width="9" height="9" rx="3"/><rect x="12.5" y="24" width="9" height="9" rx="3"/><rect x="24" y="24" width="9" height="9" rx="3"/></g></svg><span>${esc(n.all)}</span></button>`+b(f[2])+b(f[3]);
+}
+// every side as a nine-grid menu; the pin puts one on the bar
+function openAllFaces(){
+  const t=T(),n=NT(),cells=[0,1,2,3,4,5,6,7,8].map(i=>`<div class="aftile jelly${i===S.face?" on":""}" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afgo="${i}">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>${esc(t.subs[i])}</small></button><button type="button" class="afpin${S.favs.includes(i)?" on":""}" data-afpin="${i}" aria-label="📌">📌</button></div>`);
+  layer(`<div class="shead"><h2>${n.allTitle}</h2>${closeBtn(t)}</div><div class="afgrid">${cells.join("")}</div><p class="note">${n.pinHint}</p>`,true);
+}
+
+/* ---------- background music made in the browser, so it plays anywhere ---------- */
+S.music=S.music||{on:true,track:"piano",vol:.5};
+const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
+const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
+const MP_STR={zh:{names:{piano:"輕鋼琴",rain:"雨聲",ocean:"海浪"},title:"背景音樂",here:"在這裡直接播",mine:"我的歌單（在 YouTube 打開）",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
+  ja:{names:{piano:"ピアノ",rain:"雨の音",ocean:"波の音"},title:"BGM",here:"ここで再生",mine:"マイプレイリスト（YouTube で開く）",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
+  en:{names:{piano:"Soft piano",rain:"Rain",ocean:"Waves"},title:"Background music",here:"Plays right here",mine:"My playlist (opens YouTube)",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
+const MPT=()=>MP_STR[LANG[S.region]];
+function ambCtx(){if(!AMB.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AMB.ctx=new C();AMB.master=AMB.ctx.createGain();AMB.master.gain.value=0;AMB.master.connect(AMB.ctx.destination)}return AMB.ctx}
+function noiseBuf(ctx,brown){const n=ctx.sampleRate*4,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5}else d[i]=w}return b}
+function ambStop(){clearInterval(AMB.timer);AMB.timer=null;AMB.nodes.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});AMB.nodes=[]}
+function ambStart(track){
+  const ctx=ambCtx();if(!ctx)return false;try{ctx.resume()}catch(e){}ambStop();AMB.cur=track;
+  const out=ctx.createGain();out.connect(AMB.master);AMB.nodes.push(out);const now=()=>ctx.currentTime;
+  if(track==="rain"){
+    const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,false);s.loop=true;const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1600;const hp=ctx.createBiquadFilter();hp.type="highpass";hp.frequency.value=350;const g=ctx.createGain();g.gain.value=.28;
+    s.connect(lp).connect(hp).connect(g).connect(out);s.start();AMB.nodes.push(s,lp,hp,g);
+    AMB.timer=setInterval(()=>{if(Math.random()<.5)return;const o=ctx.createOscillator(),e=ctx.createGain();o.type="sine";o.frequency.value=900+Math.random()*2200;e.gain.setValueAtTime(0,now());e.gain.linearRampToValueAtTime(.025,now()+.004);e.gain.exponentialRampToValueAtTime(.0001,now()+.07);o.connect(e).connect(out);o.start();o.stop(now()+.08)},90);
+  }else if(track==="ocean"){
+    const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,true);s.loop=true;const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=700;const g=ctx.createGain();g.gain.value=.35;
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.09;lg.gain.value=.25;lfo.connect(lg).connect(g.gain);
+    s.connect(lp).connect(g).connect(out);s.start();lfo.start();AMB.nodes.push(s,lp,g,lfo,lg);
+  }else{   // soft piano: pentatonic notes over slow chords, with a gentle echo
+    const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=.42;fb.gain.value=.32;wet.gain.value=.35;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
+    const scale=[261.6,293.7,329.6,392,440,523.3,587.3,659.3,784];const chords=[[130.8,196,261.6],[110,164.8,220],[87.3,130.8,174.6],[98,146.8,196]];let beat=0;
+    const note=(f,vol,len)=>{const o=ctx.createOscillator(),o2=ctx.createOscillator(),e=ctx.createGain();o.type="triangle";o.frequency.value=f;o2.type="sine";o2.frequency.value=f*2;const e2=ctx.createGain();e2.gain.value=.15;
+      e.gain.setValueAtTime(0,now());e.gain.linearRampToValueAtTime(vol,now()+.015);e.gain.exponentialRampToValueAtTime(.0001,now()+len);o.connect(e);o2.connect(e2).connect(e);e.connect(out);e.connect(dl);o.start();o2.start();o.stop(now()+len+.05);o2.stop(now()+len+.05)};
+    const tick=()=>{if(beat%8===0)chords[(beat/8)%chords.length].forEach(f=>note(f,.05,4.5));if(Math.random()<.62)note(scale[Math.floor(Math.random()*scale.length)],.07+Math.random()*.04,2.2);beat++};
+    tick();AMB.timer=setInterval(tick,560);
+  }
+  AMB.master.gain.cancelScheduledValues(now());AMB.master.gain.setValueAtTime(AMB.master.gain.value,now());AMB.master.gain.linearRampToValueAtTime(S.music.vol*.9,now()+1.2);
+  AMB.playing=true;mpRender();return true;
+}
+function ambPause(){if(!AMB.ctx)return;const t=AMB.ctx.currentTime;AMB.master.gain.cancelScheduledValues(t);AMB.master.gain.setValueAtTime(AMB.master.gain.value,t);AMB.master.gain.linearRampToValueAtTime(0,t+.4);setTimeout(()=>{if(!AMB.playing)ambStop()},450);AMB.playing=false;mpRender()}
+function ambVol(v){S.music.vol=v;save();if(AMB.ctx&&AMB.playing){AMB.master.gain.setTargetAtTime(v*.9,AMB.ctx.currentTime,.1)}}
+function mpRender(){
+  const el=$("mplayer");if(!el)return;const m=MPT(),tr=MP_TRACKS.find(x=>x.k===S.music.track)||MP_TRACKS[0];
+  el.hidden=!S.music.on&&!AMB.playing;
+  el.innerHTML=`<button type="button" class="mpbtn" data-mp="toggle" aria-label="${AMB.playing?"pause":"play"}">${AMB.playing?`<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="3.4" height="12" rx="1.2" fill="currentColor"/><rect x="11.6" y="4" width="3.4" height="12" rx="1.2" fill="currentColor"/></svg>`:I.play}</button><button type="button" class="mpname" data-mp="open">${AMB.playing?`<span class="eq"><i></i><i></i><i></i></span>`:""}${tr.e} ${esc(m.names[tr.k])}</button>`;
+}
+function openMusicSheet(){
+  const t=T(),m=MPT(),songs=(S.songs||[]).filter(s=>s&&s.url).slice(0,8);
+  layer(`<div class="shead"><h2>🎵 ${m.title}</h2>${closeBtn(t)}</div>
+<h3>${m.here}</h3><div class="mptracks">${MP_TRACKS.map(x=>`<button type="button" class="mptr jelly${AMB.playing&&AMB.cur===x.k?" on":""}" data-mptrack="${x.k}"><span>${x.e}</span>${esc(m.names[x.k])}</button>`).join("")}</div>
+<label class="fld">${m.vol}<input id="mpVol" type="range" min="0" max="1" step="0.05" value="${S.music.vol}"></label>
+${songs.length?`<h3>${m.mine}</h3><div class="mpsongs">${songs.map(s=>`<a class="mpsong" href="${esc(s.url)}" target="_blank" rel="noopener">${I.play}<b>${esc(s.title||"YouTube")}</b><small>${esc(s.artist||"")}</small></a>`).join("")}</div>`:""}
+<div class="row"><button class="pill pri jelly" type="button" data-mpgo="1">${m.edit}</button><button class="linkbtn" type="button" data-mpoff="1">${m.off}</button></div>`,true);
+  const v=$("mpVol");if(v)v.addEventListener("input",()=>ambVol(+v.value));
+}
+// browsers only allow sound after a tap: the first tap anywhere starts it
+document.addEventListener("pointerdown",()=>{if(S.music.on&&!AMB.playing&&!AMB.userPaused)ambStart(S.music.track)},{once:true,capture:true});
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -4738,7 +4823,13 @@ document.addEventListener("click",e=>{
   if(g){if(g.dataset.g==="next"){guide.i++;showGuide()}else endGuide();return}
   if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList"),cb=$("coachBody");if(cb&&coach.ctl)coach.ctl.abort();closeLayer();if(todo||cb)maybeGuide();return}
   const fb=el.closest(".dial .fb");if(fb){goFace(+fb.dataset.face);return}
-  if(el.closest("#knob")){goFace(S.face+1,1);return}
+  if(el.closest("#knob")){openAllFaces();return}
+  const afg=el.closest("[data-afgo]");if(afg){closeLayer();goFace(+afg.dataset.afgo);return}
+  const afp=el.closest("[data-afpin]");if(afp){const f=+afp.dataset.afpin;if(S.favs.includes(f)){if(S.favs.length>1)S.favs=S.favs.filter(x=>x!==f)}else{S.favs=S.favs.concat(f).slice(-4)}save();renderDial();openAllFaces();return}
+  const mp=el.closest("[data-mp]");if(mp){if(mp.dataset.mp==="toggle"){if(AMB.playing){AMB.userPaused=true;ambPause()}else{AMB.userPaused=false;S.music.on=true;save();ambStart(S.music.track)}}else openMusicSheet();return}
+  const mpt=el.closest("[data-mptrack]");if(mpt){S.music.track=mpt.dataset.mptrack;S.music.on=true;AMB.userPaused=false;save();ambStart(S.music.track);openMusicSheet();return}
+  if(el.closest("[data-mpgo]")){closeLayer();goFace(2);return}
+  if(el.closest("[data-mpoff]")){S.music.on=false;AMB.userPaused=true;save();ambPause();closeLayer();mpRender();return}
   if(el.closest("#helpBtn")){startGuide();return}
   if(el.closest("#setBtn")){openSettings();return}
 
