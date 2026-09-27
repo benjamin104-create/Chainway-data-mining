@@ -730,7 +730,7 @@ body.ranging .gbar{pointer-events:none}
 .pcell .pw{font-size:13px;line-height:1.2;overflow-wrap:anywhere;color:var(--ink)}
 .pcell.plock{opacity:.6}
 .pcenter{position:relative;cursor:pointer;gap:2px;--t:var(--accent)}
-.pcenter .pword{font-size:26px;letter-spacing:.02em}
+.pcenter .pword{font-size:26px;letter-spacing:.02em;overflow-wrap:anywhere;line-height:1.1}.pcenter .pword.long{font-size:18px}
 .pcenter ruby rt{font-size:11px;color:var(--muted);letter-spacing:.05em}
 .pread{font-size:12px;color:var(--accent);font-family:var(--f-num);font-weight:800}
 .pcenter .say.big{width:64px;height:64px;position:static}
@@ -748,6 +748,17 @@ body.ranging .gbar{pointer-events:none}
 .pex svg{width:18px;height:18px;color:var(--accent)}
 .pmas{width:70px;height:70px}
 @media (max-width:600px){.pemo{font-size:32px}.pemo.big{font-size:44px}.pcenter .pword{font-size:21px}.pcell .pw{font-size:11.5px}.pcenter small{font-size:10.5px}}
+
+.proots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.proots button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 7px;--r:18px;font-size:12.5px;position:relative}
+.proots button span{font-size:24px;line-height:1}
+.proots button i{position:absolute;top:-5px;right:-2px;font-style:normal;font-size:9px;border-radius:999px;padding:0 5px;background:var(--accent);color:var(--on-accent)}
+.proots button[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--accent)}
+.psubs{margin-top:-4px}
+.pmore{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pmore small{font-size:12px;color:var(--muted)}
+.plink{--t:var(--c3)}.plink.kin{--t:var(--c5)}.plink.thing{--t:var(--c2)}.plink.where{--t:var(--c1)}
+.pcell .wt{position:absolute;top:7px;left:8px;font-size:10px}
+@media (max-width:600px){.proots button{font-size:11px}.proots button span{font-size:20px}.pcell .wt{top:5px;left:6px;font-size:9px;padding:0 5px}}
 
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -887,7 +898,7 @@ const OWNER={
   fitStore:"",                             // 健身加購頁網址；空白時顯示「即將推出」
   mascotImg:"",                            // 小潔米果凍官方圖（https 網址或 data:），空白時用內建插畫
   proPics:true,                            // 圖鑑分類是否有加購；false 就全部免費
-  picFree:["animal","fruit","food","color"], // 免費開放的圖鑑分類，其餘可試看 trialCards 張
+  picFree:["animal","plant","life"],       // 免費開放的圖鑑大類（動物、植物、生活），其餘可試看 trialCards 張
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -1011,7 +1022,7 @@ const STR={
       [["#sideSeg","這裡分成兩個入口：「為你推薦」給你用，「成為合作夥伴」給品牌看。"],["#tagRow","選幾個你有興趣的主題。"],
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
        [".spons .center","喜歡這個工具，可以從這裡支持我們。"]],
-      [[".plang","先選要學的語言：English、日本語、中文或台語。"],["#pgrid .pcenter","點圖卡聽發音，左右滑換下一張；外圈是同一類的其他圖。"],[".plangs","下面可以聽同一個字的四種語言。"],["#wmode","切到「聽音找圖」玩一局，看記住了沒。"],["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
+      [[".plang","先選要學的語言：English、日本語、中文或台語。"],["#pgrid .pcenter","點圖卡聽發音，左右滑換下一張；外圈是同一類的其他圖。"],["#pgrid .plink","外圈標著「同類、相關、在哪裡」的是關聯字，例如貓→老虎、貓砂。點下去可以一直延伸。"],["[data-pgrow]","想要更多？按這裡請 AI 幫你擴充關聯字。"],[".plangs","下面可以聽同一個字的四種語言。"],["#wmode","切到「聽音找圖」玩一局，看記住了沒。"],["#wgrid .wc","中間是要學的字。點喇叭聽發音，左右滑換下一張。"],["#wgrid [data-wi]","點外圈的字，會延伸出它自己的同義、反義和相關詞。"],["#wmode","切到遊戲或複習，玩一局看看記住了沒。"]],
       [[".glist","選一個遊戲。可以對電腦、同一支手機兩個人玩，或開房間線上對戰。"]],
       [["#appgrid .aicore","把下面的 prompt 拖到中間的 AI，就會幫你寫好。"],["#pshelf","這些是常用的 prompt，也可以新增自己的。"],["#appgrid [data-app='0']","周圍是你常用的 App，一點就打開，筆可以換成別的。"]],
       [[".fitgrid [data-fit='chest']","點一個部位，看適合的動作、姿勢重點和 YouTube 教學。"],[".fitgrid .center","中間的人形會標出你選的部位。"]],
@@ -1131,7 +1142,7 @@ const STR={
       [["#sideSeg","入口は二つ。「あなたへのおすすめ」はあなた用、「パートナーになる」はブランド向けです。"],["#tagRow","興味のあるテーマを選んでください。"],
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
        [".spons .center","気に入ったら、ここから応援できます。"]],
-      [[".plang","まず学ぶ言語を選びます：English・日本語・中文・台語。"],["#pgrid .pcenter","絵をタップで発音、左右スワイプで次へ。まわりは同じ仲間の絵です。"],[".plangs","同じ言葉を 4 つの言語で聞けます。"],["#wmode","「聞いてさがす」で遊んでみましょう。"],["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
+      [[".plang","まず学ぶ言語を選びます：English・日本語・中文・台語。"],["#pgrid .pcenter","絵をタップで発音、左右スワイプで次へ。まわりは同じ仲間の絵です。"],["#pgrid .plink","「なかま・かんけい・どこ」は関連語。ねこ→とら、猫砂のようにどんどん広がります。"],["[data-pgrow]","もっと増やしたいときは AI に頼めます。"],[".plangs","同じ言葉を 4 つの言語で聞けます。"],["#wmode","「聞いてさがす」で遊んでみましょう。"],["#wgrid .wc","真ん中が学ぶ言葉。スピーカーで発音、左右スワイプで次のカードへ。"],["#wgrid [data-wi]","外側の言葉をタップすると、その言葉の類義語・対義語へ広がります。"],["#wmode","ゲームや復習に切り替えて、覚えたか試してみましょう。"]],
       [[".glist","ゲームを選びましょう。コンピューター対戦、1 台で 2 人、またはルームを作ってオンライン対戦。"]],
       [["#appgrid .aicore","下のプロンプトを真ん中の AI にドラッグすると書いてくれます。"],["#pshelf","よく使うプロンプト。自分のものも追加できます。"],["#appgrid [data-app='0']","まわりはよく使うアプリ。タップで開き、ペンで変更できます。"]],
       [[".fitgrid [data-fit='chest']","部位をタップすると、種目・フォームのコツ・YouTube 解説が出ます。"],[".fitgrid .center","真ん中の人形が選んだ部位を示します。"]],
@@ -1251,7 +1262,7 @@ const STR={
       [["#sideSeg","Two doors: “For you” is yours; “Partner with us” is for brands."],["#tagRow","Pick a few topics you care about."],
        [".spons [data-sp='0']","Partners that match light up."],
        [".spons .center","Like the tool? You can support it here."]],
-      [[".plang","First pick a language: English, Japanese, Chinese or Taiwanese."],["#pgrid .pcenter","Tap the picture to hear it; swipe for the next. Around it: the rest of the category."],[".plangs","Hear the same word in all four languages here."],["#wmode","Try Listen & find to see what stuck."],["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
+      [[".plang","First pick a language: English, Japanese, Chinese or Taiwanese."],["#pgrid .pcenter","Tap the picture to hear it; swipe for the next. Around it: the rest of the category."],["#pgrid .plink","Words tagged Same kind, Goes with or Where are links: cat → tiger, cat litter. Keep tapping to branch out."],["[data-pgrow]","Want more? Let AI add linked words."],[".plangs","Hear the same word in all four languages here."],["#wmode","Try Listen & find to see what stuck."],["#wgrid .wc","The middle is the word to learn. Tap the speaker to hear it; swipe for the next card."],["#wgrid [data-wi]","Tap a word around it to branch out to its own synonyms and opposites."],["#wmode","Switch to Game or Review to check what stuck."]],
       [[".glist","Pick a game. Play the computer, pass one phone between two people, or open a room and play online."]],
       [["#appgrid .aicore","Drag a prompt below onto the AI in the middle and it writes for you."],["#pshelf","Your go-to prompts. Add your own too."],["#appgrid [data-app='0']","Around it are your apps: tap to open, pen to change."]],
       [[".fitgrid [data-fit='chest']","Tap a muscle group for moves, form cues and YouTube tutorials."],[".fitgrid .center","The figure in the middle lights up the part you picked."]],
@@ -4121,29 +4132,127 @@ const SKT=()=>SK_STR[skL()];
    Tap to hear it, swipe for the next, the outer ring shows the
    rest of the category, and a listening game reuses the grid.
    ========================================================= */
-// "picture|中文|English|日本語|かな reading|台語漢字|台羅"
-const PCATS=[
-  {k:"animal",e:"🐶",n:{zh:"動物",ja:"どうぶつ",en:"Animals"},c:["🐶|狗|dog|犬|いぬ|狗|káu","🐱|貓|cat|猫|ねこ|貓|niau","🐰|兔子|rabbit|うさぎ||兔仔|thòo-á","🐘|大象|elephant|象|ぞう|象|tshiūnn","🐒|猴子|monkey|猿|さる|猴|kâu","🐟|魚|fish|魚|さかな|魚|hî","🐦|鳥|bird|鳥|とり|鳥仔|tsiáu-á","🐮|牛|cow|牛|うし|牛|gû","🐷|豬|pig|豚|ぶた|豬|ti","🐔|雞|chicken|鶏|にわとり|雞|ke","🐴|馬|horse|馬|うま|馬|bé","🐯|老虎|tiger|虎|とら|虎|hóo"]},
-  {k:"fruit",e:"🍎",n:{zh:"水果",ja:"くだもの",en:"Fruit"},c:["🍎|蘋果|apple|りんご||蘋果|phōng-kó","🍌|香蕉|banana|バナナ||弓蕉|king-tsio","🍉|西瓜|watermelon|すいか||西瓜|si-kue","🍇|葡萄|grapes|ぶどう||葡萄|phû-tô","🍓|草莓|strawberry|いちご|||","🍊|橘子|orange|みかん||柑仔|kam-á","🍍|鳳梨|pineapple|パイナップル||王梨|ông-lâi","🍑|桃子|peach|もも||桃仔|thô-á","🍋|檸檬|lemon|レモン|||","🥭|芒果|mango|マンゴー||檨仔|suāinn-á","🍐|梨子|pear|なし||梨仔|lâi-á","🍒|櫻桃|cherries|さくらんぼ|||"]},
-  {k:"food",e:"🍚",n:{zh:"食物",ja:"たべもの",en:"Food"},c:["🍚|飯|rice|ごはん||飯|pn̄g","🍜|麵|noodles|麺|めん|麵|mī","🍞|麵包|bread|パン||麭|pháng","🥚|蛋|egg|卵|たまご|卵|nn̄g","🥛|牛奶|milk|牛乳|ぎゅうにゅう|牛奶|gû-ling","💧|水|water|水|みず|水|tsuí","🍵|茶|tea|お茶|おちゃ|茶|tê","🍰|蛋糕|cake|ケーキ||雞卵糕|ke-nn̄g-ko","🍦|冰淇淋|ice cream|アイスクリーム|||","🥟|水餃|dumplings|餃子|ぎょうざ|水餃|tsuí-kiáu","🍬|糖果|candy|飴|あめ|糖仔|thn̂g-á","🍗|雞腿|drumstick|チキン||雞腿|ke-thuí"]},
-  {k:"color",e:"🎨",n:{zh:"顏色",ja:"いろ",en:"Colours"},c:["🔴|紅色|red|赤|あか|紅色|âng-sik","🔵|藍色|blue|青|あお|藍色|nâ-sik","🟡|黃色|yellow|黄色|きいろ|黃色|n̂g-sik","🟢|綠色|green|緑|みどり|青色|tshenn-sik","⚫|黑色|black|黒|くろ|烏色|oo-sik","⚪|白色|white|白|しろ|白色|pe̍h-sik","🟠|橘色|orange|オレンジ||柑仔色|kam-á-sik","🟣|紫色|purple|紫|むらさき|紫色|tsí-sik","🟤|咖啡色|brown|茶色|ちゃいろ|咖啡色|ka-pi-sik","🩷|粉紅色|pink|ピンク||粉紅色|hún-âng-sik"]},
-  {k:"body",e:"✋",n:{zh:"身體",ja:"からだ",en:"Body"},c:["👀|眼睛|eyes|目|め|目睭|ba̍k-tsiu","👂|耳朵|ear|耳|みみ|耳仔|hīnn-á","👃|鼻子|nose|鼻|はな|鼻仔|phīnn-á","👄|嘴巴|mouth|口|くち|喙|tshuì","✋|手|hand|手|て|手|tshiú","🦶|腳|foot|足|あし|跤|kha","🦷|牙齒|teeth|歯|は|喙齒|tshuì-khí","💇|頭髮|hair|髪|かみ|頭毛|thâu-mn̂g","🙂|頭|head|頭|あたま|頭|thâu","❤️|心|heart|心|こころ|心|sim"]},
-  {k:"family",e:"👪",n:{zh:"家人",ja:"かぞく",en:"Family"},c:["👨|爸爸|dad|お父さん|おとうさん|阿爸|a-pah","👩|媽媽|mom|お母さん|おかあさん|阿母|a-bú","👴|爺爺|grandpa|おじいさん||阿公|a-kong","👵|奶奶|grandma|おばあさん||阿媽|a-má","👦|哥哥|big brother|お兄さん|おにいさん|阿兄|a-hiann","👧|姊姊|big sister|お姉さん|おねえさん|阿姊|a-tsí","👶|寶寶|baby|赤ちゃん|あかちゃん|紅嬰仔|âng-enn-á","🧑‍🤝‍🧑|朋友|friend|友達|ともだち|朋友|pîng-iú","🧑‍🏫|老師|teacher|先生|せんせい|老師|lāu-su","🏠|家|home|家|いえ|厝|tshù"]},
-  {k:"home",e:"🛏️",n:{zh:"家裡",ja:"いえのなか",en:"At home"},c:["🛏️|床|bed|ベッド||眠床|bîn-tshn̂g","🪑|椅子|chair|椅子|いす|椅仔|í-á","🚪|門|door|ドア||門|mn̂g","🪟|窗戶|window|窓|まど|窗仔|thang-á","📺|電視|TV|テレビ||電視|tiān-sī","🍽️|盤子|plate|皿|さら|盤仔|puânn-á","🥄|湯匙|spoon|スプーン||湯匙仔|thng-sî-á","🥢|筷子|chopsticks|箸|はし|箸|tī","🧸|玩具|toy|おもちゃ||𨑨迌物|tshit-thô-mi̍h","⏰|時鐘|clock|時計|とけい|時鐘|sî-tsing","👕|衣服|clothes|服|ふく|衫|sann"]},
-  {k:"ride",e:"🚗",n:{zh:"交通",ja:"のりもの",en:"Transport"},c:["🚗|汽車|car|車|くるま|車|tshia","🚌|公車|bus|バス||公車|kong-tshia","🚲|腳踏車|bicycle|自転車|じてんしゃ|跤踏車|kha-ta̍h-tshia","🚆|火車|train|電車|でんしゃ|火車|hué-tshia","✈️|飛機|airplane|飛行機|ひこうき|飛行機|hue-lîng-ki","🚢|船|ship|船|ふね|船|tsûn","🚑|救護車|ambulance|救急車|きゅうきゅうしゃ||","🚒|消防車|fire truck|消防車|しょうぼうしゃ||","🚀|火箭|rocket|ロケット|||","🚁|直升機|helicopter|ヘリコプター|||","🚕|計程車|taxi|タクシー|||"]},
-  {k:"nature",e:"🌈",n:{zh:"天氣自然",ja:"しぜん",en:"Nature"},c:["☀️|太陽|sun|太陽|たいよう|日頭|ji̍t-thâu","🌙|月亮|moon|月|つき|月娘|gue̍h-niû","⭐|星星|star|星|ほし|星|tshenn","☁️|雲|cloud|雲|くも|雲|hûn","🌧️|下雨|rain|雨|あめ|落雨|lo̍h-hōo","🌈|彩虹|rainbow|虹|にじ|虹|khīng","🌸|花|flower|花|はな|花|hue","🌳|樹|tree|木|き|樹仔|tshiū-á","⛰️|山|mountain|山|やま|山|suann","🌊|海|sea|海|うみ|海|hái","❄️|雪|snow|雪|ゆき|雪|seh","🍃|風|wind|風|かぜ|風|hong"]},
-  {k:"action",e:"🏃",n:{zh:"動作",ja:"うごき",en:"Actions"},c:["🏃|跑|run|走る|はしる|走|tsáu","🚶|走路|walk|歩く|あるく|行路|kiânn-lōo","😴|睡覺|sleep|寝る|ねる|睏|khùn","🍴|吃|eat|食べる|たべる|食|tsia̍h","🥤|喝|drink|飲む|のむ|啉|lim","📖|讀書|read|読む|よむ|讀冊|tha̍k-tsheh","✍️|寫字|write|書く|かく|寫|siá","🎤|唱歌|sing|歌う|うたう|唱歌|tshiùnn-kua","💃|跳舞|dance|踊る|おどる|跳舞|thiàu-bú","🏊|游泳|swim|泳ぐ|およぐ|泅水|siû-tsuí","🤗|抱抱|hug|抱きしめる|だきしめる|攬|lám","😂|笑|laugh|笑う|わらう|笑|tshiò"]},
-  {k:"school",e:"🎒",n:{zh:"學校",ja:"がっこう",en:"School"},c:["✏️|鉛筆|pencil|鉛筆|えんぴつ|鉛筆|iân-pit","📚|書|book|本|ほん|冊|tsheh","🎒|書包|school bag|ランドセル||冊包仔|tsheh-pau-á","✂️|剪刀|scissors|はさみ||鉸刀|ka-to","📏|尺|ruler|定規|じょうぎ|尺|tshioh","🖍️|蠟筆|crayon|クレヨン|||","🏫|學校|school|学校|がっこう|學校|ha̍k-hāu","⚽|足球|soccer ball|サッカーボール|||","🎨|畫畫|drawing|絵|え|畫圖|uē-tôo","🔢|數字|numbers|数字|すうじ|數字|sòo-jī","📝|考試|test|テスト||考試|khó-tshì"]}
+// five roots, each with smaller groups. "picture|中文|English|日本語|かな|台語漢字|台羅"
+const PROOTS=[
+  {k:"animal",e:"🐾",n:{zh:"動物",ja:"どうぶつ",en:"Animals"},subs:[
+    {k:"feline",n:{zh:"貓科",ja:"ネコのなかま",en:"Cat family"},c:["🐱|貓|cat|猫|ねこ|貓|niau","🦁|獅子|lion|ライオン||獅|sai","🐯|老虎|tiger|虎|とら|虎|hóo","🐆|花豹|leopard|豹|ひょう|豹|pà"]},
+    {k:"canine",n:{zh:"狗狗家族",ja:"イヌのなかま",en:"Dog family"},c:["🐶|狗|dog|犬|いぬ|狗|káu","🐺|狼|wolf|狼|おおかみ|狼|lông","🦊|狐狸|fox|狐|きつね|狐狸|hôo-lî"]},
+    {k:"farm",n:{zh:"農場",ja:"ぼくじょう",en:"Farm"},c:["🐮|牛|cow|牛|うし|牛|gû","🐷|豬|pig|豚|ぶた|豬|ti","🐔|雞|chicken|鶏|にわとり|雞|ke","🐴|馬|horse|馬|うま|馬|bé","🐑|綿羊|sheep|羊|ひつじ|羊仔|iûnn-á","🦆|鴨子|duck|アヒル||鴨仔|ah-á"]},
+    {k:"wild",n:{zh:"森林草原",ja:"もりとそうげん",en:"Wild"},c:["🐘|大象|elephant|象|ぞう|象|tshiūnn","🐒|猴子|monkey|猿|さる|猴|kâu","🐰|兔子|rabbit|うさぎ||兔仔|thòo-á","🐻|熊|bear|熊|くま|熊|hîm","🦒|長頸鹿|giraffe|キリン|||","🐼|熊貓|panda|パンダ|||"]},
+    {k:"sea",n:{zh:"海洋",ja:"うみのいきもの",en:"Sea life"},c:["🐟|魚|fish|魚|さかな|魚|hî","🐳|鯨魚|whale|鯨|くじら|海翁|hái-ang","🐬|海豚|dolphin|イルカ|||","🦈|鯊魚|shark|鮫|さめ|鯊魚|sua-hî","🐙|章魚|octopus|蛸|たこ|章魚|tsiunn-hî","🐢|烏龜|turtle|亀|かめ|龜|ku"]},
+    {k:"birds",n:{zh:"鳥類",ja:"とり",en:"Birds"},c:["🐦|鳥|bird|鳥|とり|鳥仔|tsiáu-á","🐧|企鵝|penguin|ペンギン|||","🦉|貓頭鷹|owl|ふくろう|||","🦅|老鷹|eagle|鷲|わし||"]}]},
+  {k:"plant",e:"🌱",n:{zh:"植物",ja:"しょくぶつ",en:"Plants"},subs:[
+    {k:"fruit",n:{zh:"水果",ja:"くだもの",en:"Fruit"},c:["🍎|蘋果|apple|りんご||蘋果|phōng-kó","🍌|香蕉|banana|バナナ||弓蕉|king-tsio","🍉|西瓜|watermelon|すいか||西瓜|si-kue","🍇|葡萄|grapes|ぶどう||葡萄|phû-tô","🍓|草莓|strawberry|いちご|||","🍊|橘子|orange|みかん||柑仔|kam-á","🍍|鳳梨|pineapple|パイナップル||王梨|ông-lâi","🍑|桃子|peach|もも||桃仔|thô-á","🍋|檸檬|lemon|レモン|||","🥭|芒果|mango|マンゴー||檨仔|suāinn-á","🍐|梨子|pear|なし||梨仔|lâi-á","🍒|櫻桃|cherries|さくらんぼ|||"]},
+    {k:"veg",n:{zh:"蔬菜",ja:"やさい",en:"Vegetables"},c:["🥕|紅蘿蔔|carrot|人参|にんじん|紅菜頭|âng-tshài-thâu","🍅|番茄|tomato|トマト||柑仔蜜|kam-á-bi̍t","🌽|玉米|corn|とうもろこし||番麥|huan-be̍h","🥔|馬鈴薯|potato|じゃがいも||馬鈴薯|má-lîng-tsî","🍆|茄子|eggplant|なす||茄仔|kiô-á","🍄|香菇|mushroom|きのこ||香菇|hiunn-koo","🥒|小黃瓜|cucumber|きゅうり||刺瓜仔|tshì-kue-á","🥦|花椰菜|broccoli|ブロッコリー|||"]},
+    {k:"flora",n:{zh:"花草樹木",ja:"はなとき",en:"Flowers & trees"},c:["🌸|花|flower|花|はな|花|hue","🌳|樹|tree|木|き|樹仔|tshiū-á","🌹|玫瑰|rose|薔薇|ばら||","🌻|向日葵|sunflower|向日葵|ひまわり||","🌷|鬱金香|tulip|チューリップ|||","🌵|仙人掌|cactus|サボテン|||","🍁|葉子|leaf|葉っぱ|はっぱ|葉仔|hio̍h-á","🎋|竹子|bamboo|竹|たけ|竹仔|tik-á","🌿|草|grass|草|くさ|草|tsháu"]}]},
+  {k:"life",e:"🏠",n:{zh:"生活",ja:"くらし",en:"Daily life"},subs:[
+    {k:"food",n:{zh:"食物",ja:"たべもの",en:"Food"},c:["🍚|飯|rice|ごはん||飯|pn̄g","🍜|麵|noodles|麺|めん|麵|mī","🍞|麵包|bread|パン||麭|pháng","🥚|蛋|egg|卵|たまご|卵|nn̄g","🥛|牛奶|milk|牛乳|ぎゅうにゅう|牛奶|gû-ling","💧|水|water|水|みず|水|tsuí","🍵|茶|tea|お茶|おちゃ|茶|tê","🍰|蛋糕|cake|ケーキ||雞卵糕|ke-nn̄g-ko","🍦|冰淇淋|ice cream|アイスクリーム|||","🥟|水餃|dumplings|餃子|ぎょうざ|水餃|tsuí-kiáu","🍬|糖果|candy|飴|あめ|糖仔|thn̂g-á","🍗|雞腿|drumstick|チキン||雞腿|ke-thuí"]},
+    {k:"home",n:{zh:"家裡",ja:"いえのなか",en:"At home"},c:["🛏️|床|bed|ベッド||眠床|bîn-tshn̂g","🪑|椅子|chair|椅子|いす|椅仔|í-á","🚪|門|door|ドア||門|mn̂g","🪟|窗戶|window|窓|まど|窗仔|thang-á","📺|電視|TV|テレビ||電視|tiān-sī","🍽️|盤子|plate|皿|さら|盤仔|puânn-á","🥄|湯匙|spoon|スプーン||湯匙仔|thng-sî-á","🥢|筷子|chopsticks|箸|はし|箸|tī","🧸|玩具|toy|おもちゃ||𨑨迌物|tshit-thô-mi̍h","⏰|時鐘|clock|時計|とけい|時鐘|sî-tsing","👕|衣服|clothes|服|ふく|衫|sann","🪶|雞毛撢子|feather duster|はたき||雞毛筅|ke-mn̂g-tshíng"]},
+    {k:"pet",n:{zh:"寵物用品",ja:"ペットのもの",en:"Pet things"},c:["🪣|貓砂|cat litter|猫砂|ねこずな||","🎣|逗貓棒|cat teaser|猫じゃらし|ねこじゃらし||","🪵|貓抓板|scratching board|爪とぎ|つめとぎ||","🥫|寵物飼料|pet food|ペットフード|||","🦮|牽繩|leash|リード|||","🦴|骨頭|bone|骨|ほね|骨頭|kut-thâu"]},
+    {k:"color",n:{zh:"顏色",ja:"いろ",en:"Colours"},c:["🔴|紅色|red|赤|あか|紅色|âng-sik","🔵|藍色|blue|青|あお|藍色|nâ-sik","🟡|黃色|yellow|黄色|きいろ|黃色|n̂g-sik","🟢|綠色|green|緑|みどり|青色|tshenn-sik","⚫|黑色|black|黒|くろ|烏色|oo-sik","⚪|白色|white|白|しろ|白色|pe̍h-sik","🟠|橘色|orange colour|オレンジ||柑仔色|kam-á-sik","🟣|紫色|purple|紫|むらさき|紫色|tsí-sik","🟤|咖啡色|brown|茶色|ちゃいろ|咖啡色|ka-pi-sik","🩷|粉紅色|pink|ピンク||粉紅色|hún-âng-sik"]},
+    {k:"body",n:{zh:"身體",ja:"からだ",en:"Body"},c:["👀|眼睛|eyes|目|め|目睭|ba̍k-tsiu","👂|耳朵|ear|耳|みみ|耳仔|hīnn-á","👃|鼻子|nose|鼻|はな|鼻仔|phīnn-á","👄|嘴巴|mouth|口|くち|喙|tshuì","✋|手|hand|手|て|手|tshiú","🦶|腳|foot|足|あし|跤|kha","🦷|牙齒|teeth|歯|は|喙齒|tshuì-khí","💇|頭髮|hair|髪|かみ|頭毛|thâu-mn̂g","🙂|頭|head|頭|あたま|頭|thâu","❤️|心|heart|心|こころ|心|sim"]},
+    {k:"school",n:{zh:"學校",ja:"がっこう",en:"School"},c:["✏️|鉛筆|pencil|鉛筆|えんぴつ|鉛筆|iân-pit","📚|書|book|本|ほん|冊|tsheh","🎒|書包|school bag|ランドセル||冊包仔|tsheh-pau-á","✂️|剪刀|scissors|はさみ||鉸刀|ka-to","📏|尺|ruler|定規|じょうぎ|尺|tshioh","🖍️|蠟筆|crayon|クレヨン|||","🏫|學校|school|学校|がっこう|學校|ha̍k-hāu","⚽|足球|soccer ball|サッカーボール|||","🎨|畫畫|drawing|絵|え|畫圖|uē-tôo","📝|考試|test|テスト||考試|khó-tshì"]},
+    {k:"action",n:{zh:"動作",ja:"うごき",en:"Actions"},c:["🏃|跑|run|走る|はしる|走|tsáu","🚶|走路|walk|歩く|あるく|行路|kiânn-lōo","😴|睡覺|sleep|寝る|ねる|睏|khùn","🍴|吃|eat|食べる|たべる|食|tsia̍h","🥤|喝|drink|飲む|のむ|啉|lim","📖|讀書|read|読む|よむ|讀冊|tha̍k-tsheh","✍️|寫字|write|書く|かく|寫|siá","🎤|唱歌|sing|歌う|うたう|唱歌|tshiùnn-kua","💃|跳舞|dance|踊る|おどる|跳舞|thiàu-bú","🏊|游泳|swim|泳ぐ|およぐ|泅水|siû-tsuí","🤗|抱抱|hug|抱きしめる|だきしめる|攬|lám","😂|笑|laugh|笑う|わらう|笑|tshiò"]}]},
+  {k:"travel",e:"🧳",n:{zh:"旅行",ja:"りょこう",en:"Travel"},subs:[
+    {k:"ride",n:{zh:"交通",ja:"のりもの",en:"Getting around"},c:["🚗|汽車|car|車|くるま|車|tshia","🚌|公車|bus|バス||公車|kong-tshia","🚲|腳踏車|bicycle|自転車|じてんしゃ|跤踏車|kha-ta̍h-tshia","🚆|火車|train|電車|でんしゃ|火車|hué-tshia","✈️|飛機|airplane|飛行機|ひこうき|飛行機|hue-lîng-ki","🚢|船|ship|船|ふね|船|tsûn","🚕|計程車|taxi|タクシー|||","🚁|直升機|helicopter|ヘリコプター|||","🚀|火箭|rocket|ロケット|||","🚑|救護車|ambulance|救急車|きゅうきゅうしゃ||","🚒|消防車|fire truck|消防車|しょうぼうしゃ||"]},
+    {k:"place",n:{zh:"地點",ja:"ばしょ",en:"Places"},c:["🛫|機場|airport|空港|くうこう|機場|ki-tiûnn","🚉|車站|station|駅|えき|車頭|tshia-thâu","🏨|飯店|hotel|ホテル||飯店|pn̄g-tiàm","🏞️|公園|park|公園|こうえん|公園|kong-hn̂g","🏥|醫院|hospital|病院|びょういん|病院|pēnn-īnn","🍴|餐廳|restaurant|レストラン||餐廳|tshan-thiann","🏖️|海灘|beach|砂浜|すなはま||","🏛️|博物館|museum|博物館|はくぶつかん||"]},
+    {k:"bag",n:{zh:"行李",ja:"にもつ",en:"Packing"},c:["🧳|行李箱|suitcase|スーツケース||行李|hîng-lí","🛂|護照|passport|パスポート||護照|hōo-tsiàu","🎫|票|ticket|切符|きっぷ|票|phiò","🗺️|地圖|map|地図|ちず|地圖|tē-tôo","📷|相機|camera|カメラ||相機|siòng-ki","☂️|雨傘|umbrella|傘|かさ|雨傘|hōo-suànn"]},
+    {k:"nature",n:{zh:"天氣自然",ja:"てんきとしぜん",en:"Weather & nature"},c:["☀️|太陽|sun|太陽|たいよう|日頭|ji̍t-thâu","🌙|月亮|moon|月|つき|月娘|gue̍h-niû","⭐|星星|star|星|ほし|星|tshenn","☁️|雲|cloud|雲|くも|雲|hûn","🌧️|下雨|rain|雨|あめ|落雨|lo̍h-hōo","🌈|彩虹|rainbow|虹|にじ|虹|khīng","⛰️|山|mountain|山|やま|山|suann","🌊|海|sea|海|うみ|海|hái","❄️|雪|snow|雪|ゆき|雪|seh","🍃|風|wind|風|かぜ|風|hong"]}]},
+  {k:"people",e:"👪",n:{zh:"稱謂",ja:"よびかた",en:"People"},subs:[
+    {k:"family",n:{zh:"家人",ja:"かぞく",en:"Family"},c:["👨|爸爸|dad|お父さん|おとうさん|阿爸|a-pah","👩|媽媽|mom|お母さん|おかあさん|阿母|a-bú","👴|爺爺|grandpa|おじいさん||阿公|a-kong","👵|奶奶|grandma|おばあさん||阿媽|a-má","👦|哥哥|big brother|お兄さん|おにいさん|阿兄|a-hiann","👧|姊姊|big sister|お姉さん|おねえさん|阿姊|a-tsí","🧒|弟弟|little brother|弟|おとうと|小弟|sió-tī","👧🏻|妹妹|little sister|妹|いもうと|小妹|sió-muē","🧔|叔叔|uncle|おじさん||阿叔|a-tsik","👩‍🦱|阿姨|aunt|おばさん||阿姨|a-î","👶|寶寶|baby|赤ちゃん|あかちゃん|紅嬰仔|âng-enn-á","🏠|家|home|家|いえ|厝|tshù"]},
+    {k:"others",n:{zh:"身邊的人",ja:"まわりのひと",en:"People around"},c:["🧑‍🤝‍🧑|朋友|friend|友達|ともだち|朋友|pîng-iú","🧑‍🏫|老師|teacher|先生|せんせい|老師|lāu-su","🧑‍⚕️|醫生|doctor|医者|いしゃ|醫生|i-sing","👩‍⚕️|護理師|nurse|看護師|かんごし||","👮|警察|police officer|警察官|けいさつかん|警察|kíng-tshat","🧑‍🍳|廚師|chef|料理人|りょうりにん|總舖師|tsóng-phòo-sai","🧑‍🚒|消防員|firefighter|消防士|しょうぼうし||","🧑‍🌾|農夫|farmer|農家|のうか|做穡人|tsò-sit-lâng","🧑‍✈️|機長|pilot|パイロット|||"]}]}
 ];
-PCATS.forEach(c=>c.c=c.c.map(r=>{const [e,zh,en,ja,jk,tw,tl]=r.split("|");return {e,zh,en,ja,jk:jk||"",tw:tw||"",tl:tl||""}}));
 const PLANGS=[{k:"en",lbl:"English",v:"en-US"},{k:"ja",lbl:"日本語",v:"ja-JP"},{k:"zh",lbl:"中文",v:"zh-TW"},{k:"tw",lbl:"台語",v:"nan-TW"}];
+const mkCard=(r,root,sub)=>{const [e,zh,en,ja,jk,tw,tl]=r.split("|");return {e,zh,en,ja,jk:jk||"",tw:tw||"",tl:tl||"",root,sub}};
+PROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>mkCard(r,R.k,sb.k))));
+// how words connect: same kind, things that go with it, where you find it
+const PRELS=`cat:kin=lion,tiger,leopard;thing=cat litter,cat teaser,feather duster,scratching board,pet food;where=home
+lion:kin=tiger,leopard,cat;where=park
+dog:kin=wolf,fox;thing=bone,leash,pet food;where=home
+wolf:kin=dog,fox;where=mountain
+cow:thing=milk;kin=sheep,horse
+chicken:thing=egg,drumstick;kin=duck,bird
+sheep:kin=cow,horse
+rabbit:thing=carrot
+monkey:thing=banana;where=tree
+panda:thing=bamboo;kin=bear
+bear:kin=panda
+elephant:kin=giraffe
+fish:kin=shark,octopus;where=sea
+whale:kin=dolphin,shark;where=sea
+turtle:where=sea,beach
+bird:kin=penguin,owl,eagle;where=tree
+penguin:where=snow,sea
+owl:thing=moon,star;where=tree
+apple:kin=pear,peach;where=tree
+banana:kin=mango,pineapple;thing=monkey
+strawberry:thing=cake
+orange:kin=lemon
+watermelon:thing=sun
+carrot:thing=rabbit;kin=potato,corn
+tomato:kin=eggplant,cucumber
+flower:kin=rose,sunflower,tulip;where=park
+tree:thing=leaf;kin=bamboo;where=mountain,park
+leaf:thing=wind
+rice:kin=noodles,bread;thing=chopsticks,plate
+noodles:thing=chopsticks
+milk:kin=tea,water
+cake:thing=candy
+bed:thing=sleep
+chair:kin=bed
+book:kin=pencil;thing=read;where=school
+pencil:kin=crayon,ruler;thing=write
+school:thing=school bag,book,teacher
+car:kin=bus,taxi;where=station
+bus:kin=car,taxi;where=station
+train:thing=ticket;where=station
+airplane:kin=helicopter,rocket;thing=passport,suitcase,ticket,pilot;where=airport
+ship:where=sea
+airport:thing=airplane,passport,suitcase
+hotel:thing=suitcase,bed
+beach:thing=sea,sun;kin=park
+hospital:thing=doctor,nurse,ambulance
+restaurant:thing=chef,plate,spoon
+rain:thing=umbrella,cloud,rainbow
+sun:kin=moon,star
+snow:kin=rain;where=mountain
+dad:kin=mom,grandpa,grandma
+mom:kin=dad,grandma,grandpa
+big brother:kin=big sister,little brother,little sister
+teacher:thing=book,pencil;where=school
+doctor:kin=nurse;where=hospital
+firefighter:thing=fire truck
+chef:where=restaurant;thing=noodles,rice
+farmer:thing=cow,corn,rice
+pilot:thing=airplane;where=airport`;
+const REL_BASE={};PRELS.split("\n").forEach(line=>{const [w,rest]=line.split(":");REL_BASE[w]={};rest.split(";").forEach(p=>{const [r,list]=p.split("=");REL_BASE[w][r]=list.split(",")})});
 S.pd=S.pd||{on:true,lang:LANG[S.region]==="en"?"ja":"en",cat:"animal",idx:0,mode:"learn",again:{},known:{},custom:[]};
-const pcats=()=>S.pd.custom&&S.pd.custom.length?[...PCATS,{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},c:S.pd.custom}]:PCATS;
-const pcat=()=>pcats().find(c=>c.k===S.pd.cat)||PCATS[0];
-// a card is usable in a language only when it has that language
-const pcards=(c,lang=S.pd.lang)=>(c||pcat()).c.filter(x=>lang==="tw"?x.tw:lang==="ja"?x.ja:x[lang]);
+S.pd.extra=S.pd.extra||{};S.pd.links=S.pd.links||{};if(S.pd.sub==null)S.pd.sub="";
+if(!PROOTS.some(r=>r.k===S.pd.cat)&&S.pd.cat!=="mine")S.pd.cat="animal";
+const pRootsAll=()=>{const mine=S.pd.custom&&S.pd.custom.length?[{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},subs:[{k:"mine",n:{zh:"全部",ja:"すべて",en:"All"},c:S.pd.custom.map(x=>Object.assign({root:"mine",sub:"mine"},x))}]}]:[];return [...PROOTS,...mine]};
+const pcats=pRootsAll;
+const pcat=()=>pRootsAll().find(c=>c.k===S.pd.cat)||PROOTS[0];
+const pExtraOf=rk=>Object.values(S.pd.extra).filter(x=>x.root===rk);
+// every card in a root (or one group of it), in the language being learnt
+function pcards(c,lang=S.pd.lang){
+  c=c||pcat();const sub=S.pd.sub;
+  let all=sub==="ai"?pExtraOf(c.k):c.subs.filter(s=>!sub||s.k===sub).flatMap(s=>s.c);
+  if(!sub)all=all.concat(pExtraOf(c.k));
+  return all.filter(x=>lang==="tw"?x.tw:lang==="ja"?x.ja:x[lang]);
+}
+let PBANK=null;
+function pFind(en){if(!PBANK){PBANK={};pRootsAll().forEach(r=>r.subs.forEach(s=>s.c.forEach(x=>{if(!PBANK[x.en])PBANK[x.en]=x})))}return PBANK[en]||S.pd.extra[en]||null}
+// links for a card: built-in, the reverse of built-in "kin", and whatever the AI added
+function pLinks(x){
+  const out=[],seen=new Set([x.en]),add=(rel,en)=>{if(seen.has(en))return;const y=pFind(en);if(!y||!pWord(y,S.pd.lang))return;seen.add(en);out.push({rel,y})};
+  const b=REL_BASE[x.en]||{};["kin","thing","where"].forEach(r=>(b[r]||[]).forEach(en=>add(r,en)));
+  Object.entries(REL_BASE).forEach(([w,rs])=>{if((rs.kin||[]).includes(x.en))add("kin",w);if((rs.thing||[]).includes(x.en))add("thing",w)});
+  (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
+  return out;
+}
 const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine";
 const pOpen=c=>pFree(c)?Infinity:OWNER.trialCards;
+let pview=null,ptrail=[];   // a card reached through a link, and the way back
 // romaji for kana, so a Chinese speaker can read Japanese on day one
 const KANA={"きゃ":"kya","きゅ":"kyu","きょ":"kyo","しゃ":"sha","しゅ":"shu","しょ":"sho","ちゃ":"cha","ちゅ":"chu","ちょ":"cho","にゃ":"nya","にゅ":"nyu","にょ":"nyo","ひゃ":"hya","ひゅ":"hyu","ひょ":"hyo","みゃ":"mya","みゅ":"myu","みょ":"myo","りゃ":"rya","りゅ":"ryu","りょ":"ryo","ぎゃ":"gya","ぎゅ":"gyu","ぎょ":"gyo","じゃ":"ja","じゅ":"ju","じょ":"jo","びゃ":"bya","びゅ":"byu","びょ":"byo","ぴゃ":"pya","ぴゅ":"pyu","ぴょ":"pyo","てぃ":"ti","でぃ":"di","ふぁ":"fa","ふぃ":"fi","ふぇ":"fe","ふぉ":"fo","うぃ":"wi","うぇ":"we","うぉ":"wo","しぇ":"she","ちぇ":"che","じぇ":"je"};
 (pairs=>{for(let i=0;i<pairs.length;i+=2)KANA[pairs[i]]=pairs[i+1]})("あ a い i う u え e お o か ka き ki く ku け ke こ ko さ sa し shi す su せ se そ so た ta ち chi つ tsu て te と to な na に ni ぬ nu ね ne の no は ha ひ hi ふ fu へ he ほ ho ま ma み mi む mu め me も mo や ya ゆ yu よ yo ら ra り ri る ru れ re ろ ro わ wa を o ん n が ga ぎ gi ぐ gu げ ge ご go ざ za じ ji ず zu ぜ ze ぞ zo だ da ぢ ji づ zu で de ど do ば ba び bi ぶ bu べ be ぼ bo ぱ pa ぴ pi ぷ pu ぺ pe ぽ po ぁ a ぃ i ぅ u ぇ e ぉ o".split(" "));
@@ -4179,37 +4288,69 @@ function sayIn(text,lk){
 const pSpeakCard=(x,l)=>sayIn(l==="ja"?(x.jk||x.ja):l==="tw"?x.tw:pWord(x,l),l);
 
 function picHTML(){
-  const t=T(),p=PT(),l=S.pd.lang,cats=pcats();
+  const t=T(),p=PT(),l=S.pd.lang,cats=pcats(),root=pcat(),nl=LANG[S.region];
   let h=`<div class="bar"><span class="plbl">${p.learn}</span><div class="seg jelly small plang" role="group">${PLANGS.map(x=>`<button type="button" data-plang="${x.k}" aria-pressed="${l===x.k}">${x.lbl}</button>`).join("")}</div></div>
-<div class="dchips" role="group">${cats.map(c=>`<button type="button" data-pcat="${c.k}" aria-pressed="${c.k===S.pd.cat&&S.pd.mode!=="review"}">${c.e} ${esc(c.n[LANG[S.region]])}${pFree(c)?"":`<i>${t.wPro}</i>`}</button>`).join("")}<button type="button" data-pimp="1">${I.upload}${t.wImport}</button></div>
+<div class="proots" role="group">${cats.map(c=>`<button type="button" class="jelly" data-pcat="${c.k}" aria-pressed="${c.k===S.pd.cat&&S.pd.mode!=="review"}"><span>${c.e}</span>${esc(c.n[nl])}${pFree(c)?"":`<i>${t.wPro}</i>`}</button>`).join("")}</div>
+<div class="dchips psubs" role="group"><button type="button" data-psub="" aria-pressed="${!S.pd.sub}">${p.all}</button>${root.subs.length>1?root.subs.map(s=>`<button type="button" data-psub="${s.k}" aria-pressed="${S.pd.sub===s.k}">${esc(s.n[nl])}</button>`).join(""):""}${pExtraOf(root.k).length?`<button type="button" data-psub="ai" aria-pressed="${S.pd.sub==="ai"}">✨ ${p.aiGroup} ${pExtraOf(root.k).length}</button>`:""}<button type="button" data-pimp="1">${I.upload}${t.wImport}</button></div>
 <div class="bar"><div class="seg jelly small" id="wmode" role="group"><button type="button" data-pmode="learn" aria-pressed="${S.pd.mode==="learn"}">${t.wLearn}</button><button type="button" data-pmode="game" aria-pressed="${S.pd.mode==="game"}">${p.listen}</button><button type="button" data-pmode="review" aria-pressed="${S.pd.mode==="review"}">${t.wReview}${pAgain().length?" "+pAgain().length:""}</button></div></div>`;
   if(S.pd.mode==="game")return h+pGameHTML();
-  const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:pcat(),x}));
-  if(!list.length)return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="emo">🌟</span><span class="note">${S.pd.mode==="review"?t.wReviewEmpty:p.noLang}</span></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
+  const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:root,x}));
+  if(!list.length&&!pview)return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="emo">🌟</span><span class="note">${S.pd.mode==="review"?t.wReviewEmpty:p.noLang}</span></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
   S.pd.idx=Math.max(0,Math.min(S.pd.idx,list.length-1));
-  const cur=list[S.pd.idx],c=cur.c,x=cur.x,open=S.pd.mode==="review"?Infinity:pOpen(c);
-  if(S.pd.idx>=open){
+  const cur=pview?{c:root,x:pview}:list[S.pd.idx],x=cur.x,open=S.pd.mode==="review"||pview?Infinity:pOpen(root);
+  if(!pview&&S.pd.idx>=open){
     return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="lk">${I.lock}</span><b style="font-weight:400">${t.wTrialEnd}</b><small>${t.wUnlock(list.length)}</small>${OWNER.wordStore?`<a class="pill pri jelly" href="${esc(OWNER.wordStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<small>${t.wSoon}</small>`}</div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>${pNavHTML(list.length)}`;
   }
-  // centre: this card; ring: the next eight in the category, tap one to bring it in
-  const cells=Array(9);let j=1;
-  for(const slot of RING){if(list.length<2){cells[slot]=`<div class="wcell jelly blank"></div>`;continue}
-    const n=(S.pd.idx+j++)%list.length,y=list[n].x,lockd=n>=open;
-    cells[slot]=n===S.pd.idx?`<div class="wcell jelly blank"></div>`:`<button class="wcell jelly pcell${lockd?" plock":""}" type="button" data-pgo="${n}" style="--t:var(--c${n%7})">${pPic(y)}<span class="pw">${lockd?"🔒":esc(pWord(y,l))}</span></button>`}
-  const rd=pRead(x,l),k=pKey(c,x);
-  cells[4]=`<div class="wcell jelly wc pcenter" data-psay="1">${pPic(x,"big")}<span class="big pword" lang="${l==="tw"?"nan":l}">${pWordHTML(x,l)}</span>${rd?`<span class="pread">${esc(rd)}</span>`:""}<small>${esc(pNative(x))}</small><button class="say" type="button" data-psay="1" aria-label="${p.hear}">${I.speak}</button></div>`;
-  return h+`<div class="wgrid" id="pgrid">${cells.join("")}</div>
+  // ring: the words linked to this one first (same kind, goes with it, where it lives), then the rest of the group
+  const cells=Array(9),allLinks=pLinks(x),links=allLinks.slice(0,8),more=allLinks.slice(8),used=new Set([x.en]);
+  let slot=0;
+  links.forEach(({rel,y})=>{used.add(y.en);cells[RING[slot++]]=`<button class="wcell jelly pcell plink ${rel}" type="button" data-plink="${esc(y.en)}"><span class="wt">${p.rel[rel]||p.rel.thing}</span>${pPic(y)}<span class="pw">${esc(pWord(y,l))}</span></button>`});
+  if(pview){   // a linked word: fill the rest with its own group, which are links too
+    const R=pRootsAll().find(r=>r.k===pview.root),grp=R?(R.subs.find(g=>g.k===pview.sub)||{c:pExtraOf(R.k)}).c:[];
+    grp.filter(y=>!used.has(y.en)&&pWord(y,l)).slice(0,8-slot).forEach(y=>{used.add(y.en);cells[RING[slot++]]=`<button class="wcell jelly pcell" type="button" data-plink="${esc(y.en)}">${pPic(y)}<span class="pw">${esc(pWord(y,l))}</span></button>`});
+  }
+  for(let j=1;!pview&&slot<8&&j<=list.length;j++){const n=(S.pd.idx+j)%list.length,y=list[n].x;if(used.has(y.en))continue;used.add(y.en);const lockd=n>=open;
+    cells[RING[slot++]]=`<button class="wcell jelly pcell${lockd?" plock":""}" type="button" data-pgo="${n}" style="--t:var(--c${n%7})">${pPic(y)}<span class="pw">${lockd?"🔒":esc(pWord(y,l))}</span></button>`}
+  while(slot<8)cells[RING[slot++]]=`<div class="wcell jelly blank"></div>`;
+  const rd=pRead(x,l),k=pKey(cur.c,x);
+  cells[4]=`<div class="wcell jelly wc pcenter" data-psay="1">${pPic(x,"big")}<span class="big pword${(pWord(x,l)||"").length>7?" long":""}" lang="${l==="tw"?"nan":l}">${pWordHTML(x,l)}</span>${rd?`<span class="pread">${esc(rd)}</span>`:""}<small>${esc(pNative(x))}</small><button class="say" type="button" data-psay="1" aria-label="${p.hear}">${I.speak}</button></div>`;
+  return h+(ptrail.length||pview?`<div class="trail">${ptrail.map((y,i)=>`<button class="expill" type="button" data-ptrail="${i}" style="padding-right:12px">‹ ${esc(pWord(y,l)||y.zh)}</button>`).join("")}${pview?`<button class="expill" type="button" data-ptrail="home" style="padding-right:12px">✕ ${p.backList}</button>`:""}</div>`:"")+`<div class="wgrid" id="pgrid">${cells.join("")}</div>
+${more.length?`<div class="pmore"><small>${p.moreLinks}</small>${more.map(({rel,y})=>`<button type="button" class="skchip" data-plink="${esc(y.en)}">${esc(y.e)} ${esc(pWord(y,l))}<b>${p.rel[rel]||""}</b></button>`).join("")}</div>`:""}
 <div class="plangs">${PLANGS.map(L=>{const w=L.k==="ja"?(x.jk?`${x.ja}（${x.jk}）`:x.ja):pWord(x,L.k);return w?`<button type="button" class="pl${L.k===l?" on":""}" data-psayl="${L.k}"><small>${L.lbl}</small><b>${esc(w)}</b>${L.k==="tw"&&x.tl?`<i>${esc(x.tl)}</i>`:""}</button>`:""}).join("")}</div>
-${pNavHTML(list.length,k)}
-<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-pex="1">${I.sparkle}${p.example}</button></div><div id="pexOut"></div>`;
+${pview?"":pNavHTML(list.length,k)}
+<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-pgrow="1">${I.sparkle}${p.grow}</button><button class="pill jelly" type="button" data-pex="1">${p.example}</button></div><div id="pexOut"></div>`;
 }
-const pKey=(c,x)=>c.k+"\u0001"+x.en;
-function pAgain(){return Object.keys(S.pd.again).map(k=>{const [ck,en]=k.split("\u0001"),c=pcats().find(z=>z.k===ck),x=c&&c.c.find(z=>z.en===en);return x&&pWord(x,S.pd.lang)?{c,x}:null}).filter(Boolean)}
+const pKey=(c,x)=>(x.root||c.k)+"\u0001"+x.en;
+function pAgain(){return Object.keys(S.pd.again).map(k=>{const en=k.split("\u0001")[1],x=pFind(en);return x&&pWord(x,S.pd.lang)?{c:pRootsAll().find(r=>r.k===x.root)||PROOTS[0],x}:null}).filter(Boolean)}
 function pNavHTML(n,k){const t=T();
   return `<div class="wnav"><button class="round jelly" type="button" data-pnav="-1" aria-label="‹">${sv('<path d="M12.5 4.5 7 10l5.5 5.5"/>',2)}</button><span class="cnt2">${Math.min(S.pd.idx+1,n)} / ${n}</span><button class="round jelly" type="button" data-pnav="1" aria-label="›">${sv('<path d="M7.5 4.5 13 10l-5.5 5.5"/>',2)}</button><span class="grow"></span>
 ${k?`<button class="pill jelly" type="button" data-pmark="again"${S.pd.again[k]?` style="box-shadow:0 0 0 2px var(--mid)"`:""}>↺ ${t.wAgain}</button><button class="pill ${S.pd.known[k]?"pri ":""}jelly" type="button" data-pmark="known">✓ ${t.wKnown}</button>`:""}</div>`}
-function pCur(){const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:pcat(),x}));return list[Math.max(0,Math.min(S.pd.idx,list.length-1))]}
+function pCur(){if(pview)return {c:pcat(),x:pview};const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:pcat(),x}));return list[Math.max(0,Math.min(S.pd.idx,list.length-1))]}
+// follow a link: the linked word takes the middle, the way back stays as a pill
+function pFollow(en){const y=pFind(en),cur=pCur();if(!y||!cur)return;ptrail.push(cur.x);if(ptrail.length>6)ptrail.shift();pview=y;render();pSpeakCard(y,S.pd.lang)}
+// AI adds linked words around this card; they join this root under ✨
+async function pGrow(){
+  const p=PT(),t=T(),cur=pCur(),out=$("pexOut");if(!cur||!out)return;const x=cur.x,have=pLinks(x).map(l=>l.y.en);
+  out.innerHTML=`<p class="note" style="text-align:center">${p.growing}</p>`;await aiReady;
+  if(!AI){out.innerHTML=`<p class="note" style="text-align:center">${p.noAIgrow}</p>`;return}
+  try{
+    const r=await AI.json(`You build a picture dictionary for children. The card is "${x.en}" (${x.zh}).
+Suggest 6 more words linked to it that a child meets in real life, in three kinds:
+"kin" = same family or same kind (e.g. cat → lion, tiger), "thing" = things that go with it (e.g. cat → cat litter, feather duster), "where" = where you find it.
+Do not repeat: ${[x.en,...have].join(", ")}.
+Reply with ONLY JSON: {"words":[{"rel":"kin|thing|where","e":"one emoji that pictures it","en":"English","zh":"Traditional Chinese (Taiwan)","ja":"Japanese as normally written","jk":"hiragana reading if ja has kanji, else empty","tw":"Taiwanese Hokkien in Han characters only if you are sure, else empty","tl":"Tâi-lô for tw, else empty"}]}
+Only real, common words; never invent.`,{modelTier:"default",cache:false});
+    const words=(Array.isArray(r.words)?r.words:[]).filter(w=>w&&w.en&&w.zh&&w.e).slice(0,8);
+    if(!words.length)throw new Error("empty");
+    const links=S.pd.links[x.en]=S.pd.links[x.en]||[];let n=0;
+    words.forEach(w=>{const en=String(w.en).trim().toLowerCase().slice(0,40);if(!en||en===x.en)return;
+      if(!pFind(en)){S.pd.extra[en]={e:String(w.e).slice(0,8),zh:String(w.zh).slice(0,20),en,ja:String(w.ja||"").slice(0,20),jk:String(w.jk||"").slice(0,30),tw:String(w.tw||"").slice(0,20),tl:String(w.tl||"").slice(0,40),root:x.root||pcat().k,sub:"ai",ai:1};n++}
+      if(!links.some(l=>l.en===en))links.push({rel:["kin","thing","where"].includes(w.rel)?w.rel:"thing",en})});
+    PBANK=null;save();render();toast(p.grown(n));
+  }catch(e){const o=$("pexOut");if(o)o.innerHTML=`<p class="note" style="text-align:center">${esc(e&&e.code?aiErrText(e):p.noAIgrow)}</p>`}
+}
 function picNav(dir){
+  if(pview){pview=null;ptrail=[];render();return}
   const n=S.pd.mode==="review"?pAgain().length:pcards().length,open=S.pd.mode==="review"?Infinity:pOpen(pcat());
   const max=Math.min(n-1,open===Infinity?n-1:open);const next=Math.max(0,Math.min(max,S.pd.idx+dir));if(next===S.pd.idx)return;
   S.pd.idx=next;save();render();const cur=pCur();if(cur&&S.pd.idx<open)pSpeakCard(cur.x,S.pd.lang);
@@ -4238,8 +4379,8 @@ function pRound(){const q=pg.order[pg.round%pg.order.length],others=pShuffle(pg.
   pg.q=q;pg.opts=pShuffle([q,...others]);pg.done=false;setTimeout(()=>{if(pg&&pg.hear&&S.face===4&&S.pd.mode==="game")pSpeakCard(pg.cards[q],S.pd.lang)},450)}
 const pShuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function pGameHTML(){
-  const p=PT(),l=S.pd.lang;if(!pg||pg.lang!==l+S.pd.cat){pg=null;pNewGame();if(pg)pg.lang=l+S.pd.cat}
-  if(pg.few)return `<p class="note">${p.few}</p>`;
+  const p=PT(),l=S.pd.lang;if(!pg||pg.lang!==l+S.pd.cat+S.pd.sub){pg=null;pNewGame();if(pg)pg.lang=l+S.pd.cat+S.pd.sub}
+  if(pg.few)return `<p class="note">${pFree(pcat())?p.few:T().wTrialEnd+" · "+T().wSoon}</p>`;
   if(pg.round>=pg.total)return `<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc">${mascot(pg.score>=pg.total*.7?"cheer":"wave","pmas")}<b style="font-weight:400">${p.result(pg.score,pg.total)}</b><button class="pill pri jelly" type="button" data-pagain="1">${T().gRestart}</button></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
   const cells=Array(9),x=pg.cards[pg.q];
   pg.opts.forEach((n,i)=>{const y=pg.cards[n];cells[RING[i]]=`<button class="wcell jelly pcell${pg.done&&n===pg.q?" ok":""}" type="button" data-pans="${n}" style="--t:var(--c${i%7})">${pPic(y,"big")}</button>`});
@@ -4262,16 +4403,16 @@ function picImport(){
 }
 function picImportGo(){
   const cards=$("pimpT").value.split(/\n/).map(r=>r.split(/[,\t，]/).map(s=>s.trim())).filter(r=>r.length>=3&&r[0]).map(([e,zh,en,ja,tw])=>{const [j1,j2]=(ja||"").split("|"),[t1,t2]=(tw||"").split("|");return {e:e.slice(0,400),zh:zh||"",en:en||"",ja:j1||"",jk:j2||"",tw:t1||"",tl:t2||""}}).filter(x=>x.en||x.zh);
-  if(!cards.length)return;S.pd.custom=(S.pd.custom||[]).concat(cards).slice(0,3000);S.pd.cat="mine";S.pd.idx=0;S.pd.mode="learn";save();closeLayer();render();toast(T().wImpDone(cards.length));
+  if(!cards.length)return;S.pd.custom=(S.pd.custom||[]).concat(cards).slice(0,3000);PBANK=null;S.pd.sub="";pview=null;ptrail=[];S.pd.cat="mine";S.pd.idx=0;S.pd.mode="learn";save();closeLayer();render();toast(T().wImpDone(cards.length));
 }
 const PT_STR={
-  zh:{kindPic:"圖鑑",kindWord:"詞語延伸",learn:"我要學",listen:"聽音找圖",hear:"聽發音",example:"AI 造一個例句",thinking:"想例句中…",noAI:"現在沒有 AI，先聽單字發音就很好。",noLang:"這一類還沒有這個語言的字卡。",
+  zh:{kindPic:"圖鑑",all:"全部",aiGroup:"AI 擴充",rel:{kin:"同類",thing:"相關",where:"在哪裡"},backList:"回到清單",moreLinks:"更多關聯：",grow:"AI 擴充關聯字",growing:"AI 正在找相關的字…",noAIgrow:"現在沒有 AI；外圈已經有內建的關聯字可以點。",grown:n=>n?`新增了 ${n} 個關聯字，外圈點點看`:"這張卡的關聯字已經很完整了",kindWord:"詞語延伸",learn:"我要學",listen:"聽音找圖",hear:"聽發音",example:"AI 造一個例句",thinking:"想例句中…",noAI:"現在沒有 AI，先聽單字發音就很好。",noLang:"這一類還沒有這個語言的字卡。",
     noVoice:"這台裝置沒有語音功能。",noTaigi:"這台裝置沒有台語語音，先看台羅拼音；之後可以匯入語寶的真人錄音。",few:"這一類的卡片太少，換一類再玩。",which:"是哪一張圖？",byEar:"用聽的",byEye:"用看的",
     result:(s,n)=>`答對 ${s} / ${n}！`,impHelp:"一行一張：圖（emoji 或 https 圖片網址）, 中文, English, 日文|假名, 台語|台羅。例如：🐶,狗,dog,犬|いぬ,狗|káu"},
-  ja:{kindPic:"図鑑",kindWord:"ことば広げ",learn:"学ぶ言語",listen:"聞いてさがす",hear:"発音を聞く",example:"AI で例文",thinking:"例文を作成中…",noAI:"今は AI が使えません。まずは単語の発音を聞いてみましょう。",noLang:"このカテゴリにはこの言語のカードがまだありません。",
+  ja:{kindPic:"図鑑",all:"すべて",aiGroup:"AI で追加",rel:{kin:"なかま",thing:"かんけい",where:"どこ"},backList:"一覧へ",moreLinks:"ほかの関連語：",grow:"AI で関連語を増やす",growing:"AI が関連する言葉を探しています…",noAIgrow:"今は AI が使えません。まわりの関連語をタップしてみてください。",grown:n=>n?`関連語を ${n} 個追加しました`:"関連語はもう十分そろっています",kindWord:"ことば広げ",learn:"学ぶ言語",listen:"聞いてさがす",hear:"発音を聞く",example:"AI で例文",thinking:"例文を作成中…",noAI:"今は AI が使えません。まずは単語の発音を聞いてみましょう。",noLang:"このカテゴリにはこの言語のカードがまだありません。",
     noVoice:"この端末は音声に対応していません。",noTaigi:"この端末には台湾語の音声がありません。台羅ローマ字を見てください。",few:"カードが少ないので、別のカテゴリで遊びましょう。",which:"どの絵かな？",byEar:"耳で",byEye:"目で",
     result:(s,n)=>`${n} 問中 ${s} 問正解！`,impHelp:"1 行 1 枚：絵（絵文字か https 画像 URL）, 中国語, English, 日本語|かな, 台湾語|台羅。例：🐶,狗,dog,犬|いぬ,狗|káu"},
-  en:{kindPic:"Picture cards",kindWord:"Word web",learn:"Learn",listen:"Listen & find",hear:"Hear it",example:"AI example sentence",thinking:"Writing an example…",noAI:"No AI right now. Listening to the word is a great start.",noLang:"No cards in this language for this category yet.",
+  en:{kindPic:"Picture cards",all:"All",aiGroup:"Added by AI",rel:{kin:"Same kind",thing:"Goes with",where:"Where"},backList:"Back to list",moreLinks:"More links:",grow:"AI: add linked words",growing:"AI is finding linked words…",noAIgrow:"No AI right now. Tap the linked words around the card.",grown:n=>n?`Added ${n} linked words`:"This card already has plenty of links",kindWord:"Word web",learn:"Learn",listen:"Listen & find",hear:"Hear it",example:"AI example sentence",thinking:"Writing an example…",noAI:"No AI right now. Listening to the word is a great start.",noLang:"No cards in this language for this category yet.",
     noVoice:"This device can't speak.",noTaigi:"This device has no Taiwanese voice. Read the Tâi-lô spelling for now.",few:"Too few cards here. Try another category.",which:"Which picture?",byEar:"By ear",byEye:"By eye",
     result:(s,n)=>`${s} of ${n} right!`,impHelp:"One card per line: picture (emoji or https image link), Chinese, English, Japanese|kana, Taiwanese|Tâi-lô. e.g. 🐶,狗,dog,犬|いぬ,狗|káu"}
 };
@@ -4346,10 +4487,14 @@ document.addEventListener("click",e=>{
   const skg=el.closest("[data-skgoal]");if(skg){planToGoal(skg);return}
   if(el.closest("[data-sktag]")){tagWithAI();return}
   const wkd=el.closest("[data-wkind]");if(wkd){S.pd.on=wkd.dataset.wkind==="pic";save();render();return}
-  const plg=el.closest("[data-plang]");if(plg){S.pd.lang=plg.dataset.plang;S.pd.idx=0;pg=null;save();render();const c=pCur();if(c&&S.pd.mode==="learn")pSpeakCard(c.x,S.pd.lang);return}
-  const pct=el.closest("[data-pcat]");if(pct){S.pd.cat=pct.dataset.pcat;S.pd.idx=0;if(S.pd.mode==="review")S.pd.mode="learn";pg=null;save();render();return}
-  const pmd=el.closest("[data-pmode]");if(pmd){S.pd.mode=pmd.dataset.pmode;S.pd.idx=0;pg=null;save();render();return}
-  const pgo=el.closest("[data-pgo]");if(pgo){S.pd.idx=+pgo.dataset.pgo;save();render();const c=pCur();if(c&&S.pd.idx<pOpen(c.c))pSpeakCard(c.x,S.pd.lang);return}
+  const plg=el.closest("[data-plang]");if(plg){S.pd.lang=plg.dataset.plang;S.pd.idx=0;pview=null;ptrail=[];pg=null;save();render();const c=pCur();if(c&&S.pd.mode==="learn")pSpeakCard(c.x,S.pd.lang);return}
+  const psb=el.closest("[data-psub]");if(psb){S.pd.sub=psb.dataset.psub;S.pd.idx=0;pview=null;ptrail=[];pg=null;if(S.pd.mode==="review")S.pd.mode="learn";save();render();return}
+  const plk=el.closest("[data-plink]");if(plk){pFollow(plk.dataset.plink);return}
+  const ptr=el.closest("[data-ptrail]");if(ptr){if(ptr.dataset.ptrail==="home"){pview=null;ptrail=[]}else{const i=+ptr.dataset.ptrail;pview=ptrail[i];ptrail=ptrail.slice(0,i);if(!ptrail.length&&pview&&pcards().some(x=>x.en===pview.en)){S.pd.idx=pcards().findIndex(x=>x.en===pview.en);pview=null}}render();return}
+  if(el.closest("[data-pgrow]")){pGrow();return}
+  const pct=el.closest("[data-pcat]");if(pct){S.pd.cat=pct.dataset.pcat;S.pd.sub="";S.pd.idx=0;pview=null;ptrail=[];if(S.pd.mode==="review")S.pd.mode="learn";pg=null;save();render();return}
+  const pmd=el.closest("[data-pmode]");if(pmd){S.pd.mode=pmd.dataset.pmode;S.pd.idx=0;pview=null;ptrail=[];pg=null;save();render();return}
+  const pgo=el.closest("[data-pgo]");if(pgo){S.pd.idx=+pgo.dataset.pgo;pview=null;ptrail=[];save();render();const c=pCur();if(c&&S.pd.idx<pOpen(c.c))pSpeakCard(c.x,S.pd.lang);return}
   if(el.closest("[data-psay]")){const c=pCur();if(c)pSpeakCard(c.x,S.pd.lang);return}
   const psl=el.closest("[data-psayl]");if(psl){const c=pCur();if(c)pSpeakCard(c.x,psl.dataset.psayl);return}
   const psx=el.closest("[data-psayx]");if(psx){sayIn(psx.dataset.psayx,S.pd.lang);return}
