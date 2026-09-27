@@ -1,0 +1,642 @@
+<title>九宮格週計畫</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF;
+  --paper:#F5F6F9;
+  --ink:#1E2230;
+  --muted:#6A7082;
+  --line:#E3E6EC;
+  --grid:#C5CAD6;
+  --accent:#2A57C0;
+  --accent-soft:#E8EEFB;
+  --hi:#D6453D;
+  --mid:#E0A019;
+  --low:#B3B8C4;
+  --hol:#C0372F;
+  --hol-soft:#FCEDEB;
+  --chip:#FFFFFF;
+  --shadow:0 6px 20px rgba(30,34,48,.14);
+  --f-display:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Hiragino Sans",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Hiragino Sans","Noto Sans JP","Microsoft JhengHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#13151B;--paper:#1A1D25;--ink:#E7E9EF;--muted:#9197A8;--line:#2A2F3A;--grid:#3A404D;
+    --accent:#86A7F2;--accent-soft:#1F2A44;--hi:#F06C64;--mid:#F0BE4A;--low:#737A8A;
+    --hol:#F08A82;--hol-soft:#35201F;--chip:#1F232C;--shadow:0 6px 20px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#13151B;--paper:#1A1D25;--ink:#E7E9EF;--muted:#9197A8;--line:#2A2F3A;--grid:#3A404D;
+  --accent:#86A7F2;--accent-soft:#1F2A44;--hi:#F06C64;--mid:#F0BE4A;--low:#737A8A;
+  --hol:#F08A82;--hol-soft:#35201F;--chip:#1F232C;--shadow:0 6px 20px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:14px 40px;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.02em;margin:0;text-wrap:balance}
+.brand small{display:block;font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.tools{display:flex;align-items:center;gap:8px}
+.sel{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;border-radius:8px;padding:7px 28px 7px 10px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ink);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500}
+.toggle:hover{background:var(--ink);color:var(--bg)}
+.toggle svg{width:16px;height:16px;flex:none}
+
+/* nav */
+.nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.arrow{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:16px}
+.arrow:hover{border-color:var(--ink)}
+.navlabel{display:flex;flex-direction:column;min-width:0}
+.navlabel b{font-family:var(--f-display);font-size:19px;font-weight:700;line-height:1.2}
+.navlabel span{font-size:12px;color:var(--muted);font-family:var(--f-num);letter-spacing:.02em}
+.now{margin-left:auto;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:4px 12px}
+.now[hidden]{display:none!important}
+
+/* notices */
+.notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;border-radius:10px;padding:9px 12px}
+.notice.hol{background:var(--hol-soft);color:var(--hol)}
+.notice.hol .hl{display:flex;flex-wrap:wrap;gap:4px 12px}
+.notice.hol .hl span{white-space:nowrap}
+.notice.hol .hl em{font-style:normal;font-family:var(--f-num);font-size:12px;margin-right:4px}
+.notice.plain{background:var(--paper);color:var(--muted)}
+.notice.ex{background:var(--accent-soft);color:var(--ink)}
+.notice .acts{display:flex;gap:8px;margin-left:auto}
+.btn{border-radius:8px;padding:5px 11px;font-size:12px;font-weight:500;border:1px solid var(--line);background:var(--bg)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn.pri{color:#10131A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#10131A}}
+.placing{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:10px;padding:9px 12px;font-size:13px}
+.placing .btn{margin-left:auto;background:transparent;color:var(--bg);border-color:currentColor}
+
+/* nine grid: lines only between cells, like a tic-tac-toe board */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;background:var(--grid)}
+.cell{background:var(--bg);min-height:176px;padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0;transition:background .12s}
+.cell.center{background:var(--paper)}
+.cell.prev{background:repeating-linear-gradient(135deg,var(--bg) 0 9px,var(--paper) 9px 10px)}
+.cell.over{background:var(--accent-soft)}
+.cell.day.pickable{cursor:copy}
+.cell.day.pickable:hover{background:var(--accent-soft)}
+.ch{display:flex;align-items:baseline;gap:6px;min-width:0}
+.dn{font-family:var(--f-display);font-weight:700;font-size:16px}
+.dd{font-family:var(--f-num);font-size:12px;color:var(--muted)}
+.cnt{margin-left:auto;font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.cell.today .dn{color:var(--accent)}
+.cell.today .dd{background:var(--accent);color:#fff;border-radius:4px;padding:0 5px}
+:root[data-theme="dark"] .cell.today .dd{color:#10131A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cell.today .dd{color:#10131A}}
+.cell.hol .dd{color:var(--hol)}
+.htag{align-self:flex-start;font-size:11px;line-height:1.35;color:var(--hol);background:var(--hol-soft);border-radius:4px;padding:1px 6px;max-width:100%}
+.ctitle{font-family:var(--f-display);font-weight:700;font-size:16px}
+.cell.prev .ctitle{color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);line-height:1.45}
+
+.add{display:flex;flex-direction:column;gap:6px}
+.add input{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:7px 9px;font:inherit;font-size:16px}
+.add input::placeholder{color:var(--muted)}
+.addrow{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.pp{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px 8px 3px 6px;font-size:12px;background:var(--bg)}
+.pp i{width:9px;height:9px;border-radius:50%;display:block}
+.pp[aria-pressed="true"]{border-color:var(--ink);font-weight:700}
+.addbtn{margin-left:auto;width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);font-size:18px;line-height:1;display:grid;place-items:center}
+
+/* task chips */
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.chip{display:flex;align-items:flex-start;gap:5px;background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:4px 4px 4px 6px;font-size:13px;line-height:1.4;user-select:none;-webkit-user-select:none;cursor:grab}
+.cell.center .chip{background:var(--bg)}
+.chip.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.chip.dragging{opacity:.35}
+.grip{display:none;flex:none;width:14px;align-self:stretch;touch-action:none;cursor:grab;
+  background:radial-gradient(circle,var(--muted) 1.1px,transparent 1.3px) 0 0/5px 5px;opacity:.7;margin:2px 0}
+.dot{flex:none;width:18px;height:19px;display:grid;place-items:center}
+.dot::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c)}
+.p-high{--c:var(--hi)}.p-mid{--c:var(--mid)}.p-low{--c:var(--low)}
+.chip.p-high{border-left:3px solid var(--hi)}
+.txt{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere;padding-top:0}
+.chip.done .txt{text-decoration:line-through;color:var(--muted)}
+.chip.done .dot::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
+.badge{flex:none;font-size:10px;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 4px;margin-top:1px;white-space:nowrap}
+.x{flex:none;width:20px;height:19px;color:var(--muted);font-size:15px;line-height:1;opacity:0}
+.chip:hover .x,.chip:focus-within .x{opacity:1}
+.x:hover{color:var(--hi)}
+@media (pointer:coarse){
+  .grip{display:block}
+  .x{opacity:.8}
+  .chip{cursor:default}
+}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;box-shadow:var(--shadow);transform-origin:0 0;opacity:.95}
+body.is-dragging{cursor:grabbing}
+
+/* month view */
+.month{overflow-x:auto}
+.mgrid{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));gap:2px;background:var(--grid)}
+.mgrid>*{background:var(--bg)}
+.mh{font-size:12px;color:var(--muted);text-align:center;padding:6px 0;font-weight:500}
+.mh.we{color:var(--hol)}
+.wk{font-family:var(--f-num);font-size:11px;color:var(--muted);display:flex;align-items:flex-start;justify-content:center;padding-top:8px}
+.wk:hover{color:var(--accent);background:var(--accent-soft)}
+.mday{min-height:92px;padding:6px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;min-width:0}
+.mday:hover{background:var(--accent-soft)}
+.mday .num{font-family:var(--f-num);font-size:13px}
+.mday.out{background:var(--paper)}
+.mday.out .num{color:var(--muted);opacity:.6}
+.mday.hol .num{color:var(--hol)}
+.mday.today .num{background:var(--accent);color:#fff;border-radius:4px;padding:0 5px}
+:root[data-theme="dark"] .mday.today .num{color:#10131A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mday.today .num{color:#10131A}}
+.mday .hn{font-size:11px;line-height:1.3;color:var(--hol);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.bars{display:flex;flex-wrap:wrap;gap:3px;margin-top:auto}
+.bars i{width:8px;height:8px;border-radius:50%;background:var(--c);display:block}
+.bars i.d{background:transparent;box-shadow:inset 0 0 0 1.5px var(--c)}
+.bars b{font-family:var(--f-num);font-size:10px;font-weight:500;color:var(--muted);line-height:8px}
+.mlist{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.mlist h2{font-family:var(--f-display);font-size:16px;margin:4px 0 2px}
+.mlist div{display:flex;gap:10px}
+.mlist em{font-style:normal;font-family:var(--f-num);font-size:12px;color:var(--hol);min-width:74px}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+.foot{font-size:12px;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:12px}
+.foot p{margin:0 0 4px}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);font-size:13px;border-radius:10px;padding:10px 14px;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+
+@media (max-width:600px){
+  .brand{font-size:19px}
+  .cell{min-height:150px;padding:7px 6px 9px;gap:5px}
+  .dn,.ctitle{font-size:14px}
+  .dd{font-size:11px}
+  .cnt{display:none}
+  .chip{font-size:12px;padding:3px 2px 3px 3px;gap:2px}
+  .dot{width:14px}
+  .x{width:16px}
+  .badge{display:none}
+  .pp{padding:2px 6px 2px 4px;font-size:11px}
+  .pp .pl{display:none}
+  .mday{min-height:70px;padding:4px 3px}
+  .mday .hn{font-size:10px}
+  .mgrid{grid-template-columns:26px repeat(7,minmax(0,1fr))}
+  .mlist em{min-width:60px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1 class="brand" id="brand">九宮格週計畫<small id="tagline"></small></h1>
+    <div class="tools">
+      <label for="region" hidden>Region</label>
+      <select id="region" class="sel" aria-label="Region">
+        <option value="TW">台灣・繁中</option>
+        <option value="JP">日本・日本語</option>
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+      </select>
+      <button id="viewToggle" class="toggle" type="button"></button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="arrow" id="prevBtn" type="button" aria-label="Previous">‹</button>
+    <div class="navlabel"><b id="navMain"></b><span id="navSub"></span></div>
+    <button class="arrow" id="nextBtn" type="button" aria-label="Next">›</button>
+    <button class="now" id="nowBtn" type="button"></button>
+  </div>
+
+  <div id="notices" style="display:flex;flex-direction:column;gap:8px"></div>
+  <main id="view"></main>
+
+  <div class="legend" id="legend"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- strings ---------- */
+const STR={
+  zh:{
+    title:"九宮格週計畫",tagline:"把這週的事放進九個格子",
+    days:["週一","週二","週三","週四","週五","週六","週日"],short:["一","二","三","四","五","六","日"],
+    inbox:"本週待辦",prev:"上週未完成",placeholder:"輸入一件事，按 Enter",
+    pri:{high:"重要",mid:"中等",low:"一般"},add:"加入",
+    toMonth:"月曆",toWeek:"九宮格",thisWeek:"回到本週",thisMonth:"回到本月",
+    inboxEmpty:"先在上面寫下這週要做的事，再拖到某一天。",dayEmpty:"",prevEmpty:"上週的事都完成了。",
+    holWeek:"本週假日",noHol:"本週沒有國定假日",
+    holOnDrop:(d,h)=>`提醒：${d} 是「${h}」，確定要排工作嗎？`,
+    placing:t=>`點選一天，把「${t}」放進去`,cancel:"取消",
+    exNote:"目前是範例內容，讓你先看看怎麼用。",exClear:"清空範例，開始我的一週",exKeep:"保留",
+    monthHol:"本月假日",monthNone:"這個月沒有國定假日",
+    howto:["拖曳待辦到任一天＝複製過去；在兩天之間拖曳＝移動。手機請按住左側點點拖曳。","點文字：在「本週待辦」裡是選取後再點一天放入；在每一天裡是打勾完成。點圓點切換重要性。"],
+    storage:"資料只存在這支手機（這個瀏覽器）裡，不用註冊，也不會上傳。",
+    holNote:{TW:"台灣國定假日依規則推算，補假與調整放假以行政院人事行政總處公告為準。",JP:"日本の祝日（振替休日・国民の休日を含む）を規則に基づいて計算しています。",US:"美國聯邦假日（遇週末依規則補放）。",GB:"英國假日以英格蘭及威爾斯為準。"},
+    md:(d)=>`${d.getMonth()+1}/${d.getDate()}`,
+    range:(a,b)=>`${a.getMonth()+1}月${a.getDate()}日 – ${b.getMonth()+1}月${b.getDate()}日`,
+    wno:(y,w)=>`${y} 年・第 ${w} 週`,month:(y,m)=>`${y} 年 ${m+1} 月`,
+    del:"刪除",cycle:"切換重要性",grip:"拖曳"
+  },
+  ja:{
+    title:"九マス週間プランナー",tagline:"今週のタスクを九つのマスへ",
+    days:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],short:["月","火","水","木","金","土","日"],
+    inbox:"今週のタスク",prev:"先週の未完了",placeholder:"タスクを入力して Enter",
+    pri:{high:"重要",mid:"普通",low:"低め"},add:"追加",
+    toMonth:"カレンダー",toWeek:"九マス",thisWeek:"今週へ",thisMonth:"今月へ",
+    inboxEmpty:"まず今週やることを書いて、曜日へドラッグ。",dayEmpty:"",prevEmpty:"先週のタスクはすべて完了。",
+    holWeek:"今週の祝日",noHol:"今週は祝日なし",
+    holOnDrop:(d,h)=>`${d} は「${h}」です。予定を入れますか？`,
+    placing:t=>`曜日をタップして「${t}」を入れる`,cancel:"キャンセル",
+    exNote:"いまはサンプルを表示しています。",exClear:"サンプルを消して始める",exKeep:"残す",
+    monthHol:"今月の祝日",monthNone:"今月は祝日なし",
+    howto:["タスクを曜日へドラッグ＝コピー、曜日間のドラッグ＝移動。スマホは左の点をつかんでドラッグ。","文字をタップ：「今週のタスク」では選択→曜日をタップで追加、曜日の中では完了チェック。丸で重要度を切り替え。"],
+    storage:"データはこの端末のブラウザにだけ保存されます。登録不要、送信もしません。",
+    holNote:{TW:"台湾の祝日は規則から計算しています。振替は政府発表をご確認ください。",JP:"日本の祝日（振替休日・国民の休日を含む）を規則に基づいて計算しています。",US:"米国の連邦祝日（週末の振替を含む）。",GB:"英国の祝日はイングランドとウェールズのものです。"},
+    md:(d)=>`${d.getMonth()+1}/${d.getDate()}`,
+    range:(a,b)=>`${a.getMonth()+1}月${a.getDate()}日 – ${b.getMonth()+1}月${b.getDate()}日`,
+    wno:(y,w)=>`${y}年・第${w}週`,month:(y,m)=>`${y}年${m+1}月`,
+    del:"削除",cycle:"重要度を切り替え",grip:"ドラッグ"
+  },
+  en:{
+    title:"Nine-Grid Week",tagline:"Your week in nine squares",
+    days:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],short:["M","T","W","T","F","S","S"],
+    inbox:"This week",prev:"Left from last week",placeholder:"Add a task, press Enter",
+    pri:{high:"Key",mid:"Medium",low:"Normal"},add:"Add",
+    toMonth:"Month",toWeek:"Grid",thisWeek:"This week",thisMonth:"This month",
+    inboxEmpty:"Write down this week's tasks, then drag them onto a day.",dayEmpty:"",prevEmpty:"Nothing left over from last week.",
+    holWeek:"Holidays this week",noHol:"No public holidays this week",
+    holOnDrop:(d,h)=>`Heads up: ${d} is ${h}. Still want to schedule work?`,
+    placing:t=>`Tap a day to add “${t}”`,cancel:"Cancel",
+    exNote:"You're looking at sample tasks.",exClear:"Clear samples and start",exKeep:"Keep",
+    monthHol:"Holidays this month",monthNone:"No public holidays this month",
+    howto:["Drag a task onto a day to copy it there; drag between days to move it. On a phone, hold the dotted handle to drag.","Tap a task's text: in “This week” it selects the task so you can tap a day; inside a day it marks it done. Tap the dot to change priority."],
+    storage:"Your plan is saved only in this browser on this device. No sign-up, nothing uploaded.",
+    holNote:{TW:"Taiwan holidays are calculated from the rules; check official announcements for make-up days.",JP:"Japanese national holidays, including substitute holidays.",US:"US federal holidays, with weekend observance.",GB:"UK bank holidays for England and Wales."},
+    md:(d)=>`${MON[d.getMonth()]} ${d.getDate()}`,
+    range:(a,b)=>`${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}`,
+    wno:(y,w)=>`${y} · Week ${w}`,month:(y,m)=>`${MONL[m]} ${y}`,
+    del:"Delete",cycle:"Change priority",grip:"Drag"
+  }
+};
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const LANG={TW:"zh",JP:"ja",US:"en",GB:"en"};
+
+/* ---------- dates ---------- */
+const pad=n=>String(n).padStart(2,"0");
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const D=(y,m,d)=>new Date(y,m-1,d);
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return D(y,m,d)};
+const addDays=(d,n)=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+n);return x};
+const mondayOf=d=>addDays(d,-((d.getDay()+6)%7));
+function isoWeek(d){const t=addDays(d,3-((d.getDay()+6)%7));const y=t.getFullYear();const f=D(y,1,4);return {y,w:1+Math.round(((t-f)/864e5-3+((f.getDay()+6)%7))/7)}}
+function nth(y,m,wd,n){
+  if(n>0){const f=D(y,m,1);return D(y,m,1+((wd-f.getDay()+7)%7)+7*(n-1))}
+  const l=D(y,m+1,0);return D(y,m,l.getDate()-((l.getDay()-wd+7)%7));
+}
+
+/* ---------- public holidays (computed from each country's rules) ---------- */
+function put(m,d,name){const k=key(d);m[k]=m[k]?m[k]+"・"+name:name}
+const has=(m,d)=>!!m[key(d)];
+
+// Lunar-calendar dates Taiwan needs (Lunar New Year day 1, Dragon Boat, Mid-Autumn) and the Qingming solar term.
+const LUNAR={
+  2024:{lny:"2024-02-10",db:"2024-06-10",ma:"2024-09-17",qm:"2024-04-04"},
+  2025:{lny:"2025-01-29",db:"2025-05-31",ma:"2025-10-06",qm:"2025-04-04"},
+  2026:{lny:"2026-02-17",db:"2026-06-19",ma:"2026-09-25",qm:"2026-04-05"},
+  2027:{lny:"2027-02-06",db:"2027-06-09",ma:"2027-09-15",qm:"2027-04-05"},
+  2028:{lny:"2028-01-26",db:"2028-05-28",ma:"2028-10-03",qm:"2028-04-04"},
+  2029:{lny:"2029-02-13",db:"2029-06-16",ma:"2029-09-22",qm:"2029-04-04"},
+  2030:{lny:"2030-02-03",db:"2030-06-05",ma:"2030-09-12",qm:"2030-04-05"}
+};
+function TW(y,m){
+  const L=LUNAR[y];const singles=[];
+  const one=(d,n)=>{put(m,d,n);singles.push(d)};
+  one(D(y,1,1),"開國紀念日");one(D(y,2,28),"和平紀念日");one(D(y,5,1),"勞動節");one(D(y,10,10),"國慶日");
+  if(y>=2025){one(D(y,9,28),"教師節");one(D(y,10,25),"臺灣光復節");one(D(y,12,25),"行憲紀念日")}
+  if(L){
+    const qm=parse(L.qm);
+    if(qm.getMonth()===3&&qm.getDate()===4){
+      put(m,qm,"兒童節・清明節");
+      // Same day: Children's Day moves to the day before, or the day after when that is a Thursday.
+      put(m,addDays(qm,qm.getDay()===4?1:-1),"兒童節補假");
+    }else{one(D(y,4,4),"兒童節");one(qm,"清明節")}
+    one(parse(L.db),"端午節");one(parse(L.ma),"中秋節");
+    const lny=parse(L.lny);const block=[];
+    if(y>=2026)block.push([addDays(lny,-2),"小年夜"]);
+    block.push([addDays(lny,-1),"除夕"],[lny,"春節"],[addDays(lny,1),"春節"],[addDays(lny,2),"春節"]);
+    let wk=0;for(const [d,n] of block){put(m,d,n);if(d.getDay()%6===0)wk++}
+    let d=addDays(lny,3);while(wk>0){if(d.getDay()%6!==0&&!has(m,d)){put(m,d,"春節補假");wk--}d=addDays(d,1)}
+  }else{one(D(y,4,4),"兒童節")}
+  for(const d of singles){
+    if(d.getDay()===6){const t=addDays(d,-1);if(!has(m,t))put(m,t,"補假")}
+    if(d.getDay()===0){const t=addDays(d,1);if(!has(m,t))put(m,t,"補假")}
+  }
+}
+function JP(y,m){
+  const n=y-1980;
+  const spring=Math.floor(20.8431+0.242194*n-Math.floor(n/4));
+  const autumn=Math.floor(23.2488+0.242194*n-Math.floor(n/4));
+  const base=[[D(y,1,1),"元日"],[nth(y,1,1,2),"成人の日"],[D(y,2,11),"建国記念の日"],[D(y,2,23),"天皇誕生日"],
+    [D(y,3,spring),"春分の日"],[D(y,4,29),"昭和の日"],[D(y,5,3),"憲法記念日"],[D(y,5,4),"みどりの日"],[D(y,5,5),"こどもの日"],
+    [nth(y,7,1,3),"海の日"],[D(y,8,11),"山の日"],[nth(y,9,1,3),"敬老の日"],[D(y,9,autumn),"秋分の日"],
+    [nth(y,10,1,2),"スポーツの日"],[D(y,11,3),"文化の日"],[D(y,11,23),"勤労感謝の日"]];
+  for(const [d,n] of base)put(m,d,n);
+  // A weekday squeezed between two holidays becomes a holiday.
+  for(let d=D(y,1,2);d.getFullYear()===y;d=addDays(d,1)){
+    if(!has(m,d)&&d.getDay()!==0&&has(m,addDays(d,-1))&&has(m,addDays(d,1))&&m[key(addDays(d,-1))]!=="国民の休日")put(m,d,"国民の休日");
+  }
+  // A holiday on Sunday moves to the next day that is not already a holiday.
+  for(const [d] of base){if(d.getDay()===0){let t=addDays(d,1);while(has(m,t))t=addDays(t,1);put(m,t,"振替休日")}}
+}
+function US(y,m){
+  const fixed=[[D(y,1,1),"New Year's Day"],[D(y,6,19),"Juneteenth"],[D(y,7,4),"Independence Day"],[D(y,11,11),"Veterans Day"],[D(y,12,25),"Christmas Day"]];
+  for(const [d,n] of fixed){put(m,d,n);if(d.getDay()===6)put(m,addDays(d,-1),n+" (observed)");if(d.getDay()===0)put(m,addDays(d,1),n+" (observed)")}
+  put(m,nth(y,1,1,3),"Martin Luther King Jr. Day");put(m,nth(y,2,1,3),"Presidents' Day");put(m,nth(y,5,1,-1),"Memorial Day");
+  put(m,nth(y,9,1,1),"Labor Day");put(m,nth(y,10,1,2),"Columbus Day");put(m,nth(y,11,4,4),"Thanksgiving Day");
+}
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,mm=Math.floor((a+11*h+22*l)/451);return D(y,Math.floor((h+l-7*mm+114)/31),((h+l-7*mm+114)%31)+1)}
+function GB(y,m){
+  const ny=D(y,1,1);put(m,ny,"New Year's Day");if(ny.getDay()%6===0)put(m,addDays(ny,ny.getDay()===6?2:1),"New Year's Day (substitute)");
+  const e=easter(y);put(m,addDays(e,-2),"Good Friday");put(m,addDays(e,1),"Easter Monday");
+  put(m,nth(y,5,1,1),"Early May bank holiday");put(m,nth(y,5,1,-1),"Spring bank holiday");put(m,nth(y,8,1,-1),"Summer bank holiday");
+  const x=D(y,12,25),wd=x.getDay();put(m,x,"Christmas Day");put(m,D(y,12,26),"Boxing Day");
+  if(wd===5)put(m,D(y,12,28),"Boxing Day (substitute)");
+  if(wd===6){put(m,D(y,12,27),"Christmas Day (substitute)");put(m,D(y,12,28),"Boxing Day (substitute)")}
+  if(wd===0)put(m,D(y,12,27),"Christmas Day (substitute)");
+}
+const HC={};
+function hmap(r,y){const k=r+y;if(!HC[k]){const m={};({TW,JP,US,GB})[r](y,m);HC[k]=m}return HC[k]}
+function holiday(d){const y=d.getFullYear(),k=key(d);for(const yy of [y,y+1,y-1]){const v=hmap(S.region,yy)[k];if(v)return v}return null}
+
+/* ---------- storage ---------- */
+const SKEY="nine-grid-planner-v1";
+function load(){try{const s=JSON.parse(localStorage.getItem(SKEY));if(s&&s.weeks)return s}catch(e){}return null}
+function save(){try{localStorage.setItem(SKEY,JSON.stringify(S))}catch(e){}}
+const uid=()=>Math.random().toString(36).slice(2,9);
+function W(k){if(!S.weeks[k])S.weeks[k]={inbox:[],days:[[],[],[],[],[],[],[]],dismissed:[]};const w=S.weeks[k];w.dismissed=w.dismissed||[];return w}
+
+function guessRegion(){const l=(navigator.language||"").toLowerCase();if(l.startsWith("ja"))return"JP";if(l==="en-gb")return"GB";if(l.startsWith("en"))return"US";return"TW"}
+const SEED={
+  zh:{inbox:[["寫一篇心流練習的貼文","high"],["整理季度報告","high"],["回覆合作邀約","mid"],["運動 30 分鐘","mid"],["買貓砂","low"]],
+      prev:[["繳信用卡費","high"],["預約牙醫","low"],["讀完《被討厭的勇氣》第三夜","mid"]]},
+  ja:{inbox:[["フロー体験の投稿を書く","high"],["四半期レポートをまとめる","high"],["コラボの返信","mid"],["30分運動する","mid"],["猫砂を買う","low"]],
+      prev:[["カード代を払う","high"],["歯医者を予約","low"],["『嫌われる勇気』第三夜を読む","mid"]]},
+  en:{inbox:[["Write the flow-journal post","high"],["Wrap up the quarterly report","high"],["Reply to the collab invite","mid"],["30-minute workout","mid"],["Buy cat litter","low"]],
+      prev:[["Pay the credit card bill","high"],["Book the dentist","low"],["Finish chapter 3 of The Courage to Be Disliked","mid"]]}
+};
+function seed(){
+  const s={region:guessRegion(),view:"week",weeks:{},example:true};S=s;
+  const sd=SEED[LANG[s.region]];const mon=mondayOf(new Date());const w=W(key(mon));
+  w.inbox=sd.inbox.map(([t,p])=>({id:uid(),text:t,pri:p}));
+  const cp=(i,day,done)=>{const it=w.inbox[i];w.days[day].push({id:uid(),text:it.text,pri:it.pri,done:!!done,src:it.id})};
+  cp(1,0,true);cp(1,1,false);cp(0,2,false);cp(3,0,true);cp(3,3,false);cp(3,5,false);cp(2,1,true);
+  const pw=W(key(addDays(mon,-7)));
+  pw.days[1]=[{id:uid(),text:sd.prev[0][0],pri:sd.prev[0][1],done:false}];
+  pw.days[3]=[{id:uid(),text:sd.prev[1][0],pri:sd.prev[1][1],done:false},{id:uid(),text:sd.prev[2][0],pri:sd.prev[2][1],done:false}];
+  return s;
+}
+
+/* ---------- state ---------- */
+let S=null;
+S=load()||seed();
+S.region=S.region||"TW";S.view=S.view||"week";
+let cur=mondayOf(new Date());
+let curMonth=new Date(addDays(cur,3).getFullYear(),addDays(cur,3).getMonth(),1);
+let newPri="high";
+let pending=null;      // task selected by tap, waiting for a day to be tapped
+let prevItems=[];      // current "left from last week" list
+const T=()=>STR[LANG[S.region]];
+const PRI=["high","mid","low"];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const byPri=a=>a.map((x,i)=>[x,i]).sort((p,q)=>PRI.indexOf(p[0].pri)-PRI.indexOf(q[0].pri)||p[1]-q[1]).map(p=>p[0]);
+const $=id=>document.getElementById(id);
+
+/* ---------- icons ---------- */
+const ICON_CAL='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.7" y="2.7" width="12.6" height="11.6" rx="1.5"/><path d="M1.7 6.3h12.6M5 1.3v2.6M11 1.3v2.6"/></svg>';
+const ICON_GRID='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5.7 1.5v13M10.3 1.5v13M1.5 5.7h13M1.5 10.3h13"/></svg>';
+
+/* ---------- render ---------- */
+function render(){
+  const t=T();
+  document.documentElement.lang={zh:"zh-Hant-TW",ja:"ja",en:"en"}[LANG[S.region]];
+  document.title=t.title;
+  $("brand").firstChild.nodeValue=t.title;$("tagline").textContent=t.tagline;
+  $("region").value=S.region;
+  $("viewToggle").innerHTML=S.view==="week"?ICON_CAL+"<span>"+t.toMonth+"</span>":ICON_GRID+"<span>"+t.toWeek+"</span>";
+  $("legend").innerHTML=PRI.map(p=>`<span class="p-${p}"><i></i>${t.pri[p]}</span>`).join("");
+  $("foot").innerHTML=t.howto.map(h=>`<p>${esc(h)}</p>`).join("")+`<p>${esc(t.storage)}</p><p>${esc(t.holNote[S.region])}</p>`;
+  if(S.view==="week")renderWeek();else renderMonth();
+}
+
+function chip(it,src,day,extra){
+  const t=T();
+  return `<li class="chip p-${it.pri}${it.done?" done":""}${pending&&pending.src===src&&pending.id===it.id?" sel":""}" data-src="${src}" data-id="${it.id}"${day!=null?` data-day="${day}"`:""}>
+<span class="grip" title="${t.grip}"></span><button class="dot" type="button" aria-label="${t.cycle}: ${t.pri[it.pri]}"${src==="prev"?" disabled":""}></button><button class="txt" type="button">${esc(it.text)}</button>${extra||""}<button class="x" type="button" aria-label="${t.del}">×</button></li>`;
+}
+
+function renderWeek(){
+  const t=T(),k=key(cur),w=W(k),sun=addDays(cur,6),today=key(new Date());
+  $("navMain").textContent=t.range(cur,sun);
+  const iw=isoWeek(cur);$("navSub").textContent=t.wno(iw.y,iw.w);
+  $("nowBtn").textContent=t.thisWeek;$("nowBtn").hidden=k===key(mondayOf(new Date()));
+
+  // notices
+  let nt="";
+  if(S.example)nt+=`<div class="notice ex"><span>${esc(t.exNote)}</span><span class="acts"><button class="btn" type="button" data-act="exkeep">${t.exKeep}</button><button class="btn pri" type="button" data-act="exclear">${t.exClear}</button></span></div>`;
+  const hs=[];for(let i=0;i<7;i++){const d=addDays(cur,i),h=holiday(d);if(h)hs.push(`<span><em>${esc(t.md(d))} ${t.short[i]}</em>${esc(h)}</span>`)}
+  nt+=hs.length?`<div class="notice hol"><b>${t.holWeek}</b><span class="hl">${hs.join("")}</span></div>`:`<div class="notice plain">${t.noHol}</div>`;
+  if(pending)nt+=`<div class="placing"><span>${esc(t.placing(pending.text))}</span><button class="btn" type="button" data-act="cancel">${t.cancel}</button></div>`;
+  $("notices").innerHTML=nt;
+
+  // left over from last week: undone tasks, minus ones already brought into this week or dismissed
+  const pw=S.weeks[key(addDays(cur,-7))];
+  const here=new Set([...w.inbox,...w.days.flat()].map(x=>x.text));
+  const seen=new Set();prevItems=[];
+  if(pw){for(const it of [...pw.days.flat(),...pw.inbox.filter(x=>!pw.days.flat().some(y=>y.src===x.id))]){
+    if(it.done||seen.has(it.text)||here.has(it.text)||w.dismissed.includes(it.text))continue;
+    seen.add(it.text);prevItems.push({id:"p"+prevItems.length,text:it.text,pri:it.pri})}}
+
+  const placed={};for(let i=0;i<7;i++)for(const x of w.days[i])if(x.src)(placed[x.src]=placed[x.src]||[]).push(i);
+
+  const cell=i=>{
+    const d=addDays(cur,i),h=holiday(d),items=byPri(w.days[i]),done=items.filter(x=>x.done).length;
+    return `<section class="cell day${key(d)===today?" today":""}${h?" hol":""}${pending?" pickable":""}" data-slot="d${i}" aria-label="${t.days[i]} ${esc(t.md(d))}">
+<div class="ch"><span class="dn">${t.days[i]}</span><span class="dd">${esc(t.md(d))}</span>${items.length?`<span class="cnt">${done}/${items.length}</span>`:""}</div>
+${h?`<div class="htag">${esc(h)}</div>`:""}<ul class="list">${items.map(x=>chip(x,"day",i)).join("")}</ul></section>`;
+  };
+  const center=`<section class="cell center" data-slot="inbox">
+<div class="ctitle">${t.inbox}</div>
+<form class="add" id="addForm" autocomplete="off"><input id="newTask" type="text" maxlength="80" placeholder="${esc(t.placeholder)}" aria-label="${esc(t.placeholder)}">
+<div class="addrow">${PRI.map(p=>`<button type="button" class="pp p-${p}" data-pri="${p}" aria-pressed="${p===newPri}"><i style="background:var(--c)"></i><span class="pl">${t.pri[p]}</span></button>`).join("")}
+<button class="addbtn" type="submit" aria-label="${t.add}">+</button></div></form>
+${w.inbox.length?`<ul class="list">${byPri(w.inbox).map(x=>chip(x,"inbox",null,placed[x.id]?`<span class="badge">${[...new Set(placed[x.id])].sort().map(i=>t.short[i]).join(" ")}</span>`:"")).join("")}</ul>`:`<p class="hint">${esc(t.inboxEmpty)}</p>`}
+</section>`;
+  const prev=`<section class="cell prev" data-slot="prev"><div class="ctitle">${t.prev}</div>
+${prevItems.length?`<ul class="list">${byPri(prevItems).map(x=>chip(x,"prev")).join("")}</ul>`:`<p class="hint">${esc(t.prevEmpty)}</p>`}</section>`;
+
+  const keepFocus=document.activeElement&&document.activeElement.id==="newTask";
+  const draft=$("newTask")?$("newTask").value:"";
+  $("view").innerHTML=`<div class="grid" id="grid">${cell(0)}${cell(1)}${cell(2)}${cell(3)}${center}${cell(4)}${cell(5)}${cell(6)}${prev}</div>`;
+  $("newTask").value=draft;if(keepFocus)$("newTask").focus();
+}
+
+function renderMonth(){
+  const t=T(),y=curMonth.getFullYear(),mo=curMonth.getMonth(),today=key(new Date());
+  $("navMain").textContent=t.month(y,mo);$("navSub").textContent="";
+  $("nowBtn").textContent=t.thisMonth;
+  const n=new Date();$("nowBtn").hidden=n.getFullYear()===y&&n.getMonth()===mo;
+  let nt=S.example?`<div class="notice ex"><span>${esc(t.exNote)}</span><span class="acts"><button class="btn" type="button" data-act="exkeep">${t.exKeep}</button><button class="btn pri" type="button" data-act="exclear">${t.exClear}</button></span></div>`:"";
+  $("notices").innerHTML=nt;
+  const first=D(y,mo+1,1),last=D(y,mo+2,0);
+  let h=`<div class="mgrid"><div class="mh"></div>${t.short.map((s,i)=>`<div class="mh${i>4?" we":""}">${s}</div>`).join("")}`;
+  const hols=[];let row=1;
+  for(let m=mondayOf(first);m<=last;m=addDays(m,7),row++){
+    const w=S.weeks[key(m)];
+    h+=`<button class="wk" type="button" data-week="${key(m)}" aria-label="W${row}">W${row}</button>`;
+    for(let i=0;i<7;i++){
+      const d=addDays(m,i),out=d.getMonth()!==mo,hol=holiday(d),items=w?byPri(w.days[i]):[];
+      if(hol&&!out)hols.push([d,hol,i]);
+      const bars=items.slice(0,5).map(x=>`<i class="p-${x.pri}${x.done?" d":""}"></i>`).join("")+(items.length>5?`<b>+${items.length-5}</b>`:"");
+      h+=`<button class="mday${out?" out":""}${hol?" hol":""}${key(d)===today?" today":""}" type="button" data-week="${key(m)}"><span class="num">${d.getDate()}</span>${hol?`<span class="hn">${esc(hol)}</span>`:""}<span class="bars">${bars}</span></button>`;
+    }
+  }
+  h+="</div>";
+  h+=`<div class="mlist"><h2>${t.monthHol}</h2>${hols.length?hols.map(([d,n,i])=>`<div><em>${esc(t.md(d))} ${t.short[i]}</em><span>${esc(n)}</span></div>`).join(""):`<div>${t.monthNone}</div>`}</div>`;
+  $("view").innerHTML=`<div class="month">${h}</div>`;
+}
+
+/* ---------- actions ---------- */
+function find(src,id,day){
+  const w=W(key(cur));
+  if(src==="inbox")return {list:w.inbox,item:w.inbox.find(x=>x.id===id)};
+  if(src==="day")return {list:w.days[day],item:w.days[day].find(x=>x.id===id)};
+  return {list:null,item:prevItems.find(x=>x.id===id)};
+}
+let toastTimer;
+function toast(msg){const el=$("toast");el.textContent=msg;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.hidden=true,3600)}
+
+function drop(src,id,day,slot){
+  const w=W(key(cur)),{list,item}=find(src,id,day);if(!item)return;
+  if(slot==="prev")return;
+  if(slot==="inbox"){
+    if(src==="day"){list.splice(list.indexOf(item),1);w.inbox.push({id:uid(),text:item.text,pri:item.pri})}
+    else if(src==="prev")w.inbox.push({id:uid(),text:item.text,pri:item.pri});
+    else return;
+  }else{
+    const to=+slot.slice(1);if(src==="day"&&to===day)return;
+    if(src==="day"){list.splice(list.indexOf(item),1);w.days[to].push(item)}
+    else w.days[to].push({id:uid(),text:item.text,pri:item.pri,done:false,src:src==="inbox"?item.id:undefined});
+    const d=addDays(cur,to),h=holiday(d);
+    if(h)toast(T().holOnDrop(`${T().days[to]} ${T().md(d)}`,h));
+  }
+  pending=null;save();render();
+}
+
+document.addEventListener("click",e=>{
+  if(Date.now()<suppressUntil)return;
+  const a=e.target.closest("[data-act]");
+  if(a){
+    const act=a.dataset.act;
+    if(act==="exclear"){S.weeks={};S.example=false}
+    if(act==="exkeep")S.example=false;
+    if(act==="cancel")pending=null;
+    save();render();return;
+  }
+  if(e.target.closest("#viewToggle")){
+    if(S.view==="week"){S.view="month";const th=addDays(cur,3);curMonth=D(th.getFullYear(),th.getMonth()+1,1)}else S.view="week";
+    pending=null;save();render();return;
+  }
+  if(e.target.closest("#prevBtn")||e.target.closest("#nextBtn")){
+    const s=e.target.closest("#prevBtn")?-1:1;
+    if(S.view==="week")cur=addDays(cur,7*s);else curMonth=D(curMonth.getFullYear(),curMonth.getMonth()+1+s,1);
+    pending=null;render();return;
+  }
+  if(e.target.closest("#nowBtn")){cur=mondayOf(new Date());curMonth=D(new Date().getFullYear(),new Date().getMonth()+1,1);render();return}
+  const wb=e.target.closest("[data-week]");
+  if(wb){cur=parse(wb.dataset.week);S.view="week";save();render();window.scrollTo({top:0});return}
+  const pp=e.target.closest(".pp");
+  if(pp){newPri=pp.dataset.pri;document.querySelectorAll(".pp").forEach(b=>b.setAttribute("aria-pressed",b===pp));$("newTask").focus();return}
+
+  const c=e.target.closest(".chip");
+  if(c){
+    const src=c.dataset.src,id=c.dataset.id,day=c.dataset.day!=null?+c.dataset.day:null;
+    const w=W(key(cur)),{list,item}=find(src,id,day);if(!item)return;
+    if(e.target.closest(".x")){
+      if(src==="prev")w.dismissed.push(item.text);else list.splice(list.indexOf(item),1);
+      if(pending&&pending.id===id)pending=null;
+    }else if(e.target.closest(".dot")){
+      if(src!=="prev")item.pri=PRI[(PRI.indexOf(item.pri)+1)%3];
+    }else if(e.target.closest(".txt")){
+      if(src==="day")item.done=!item.done;
+      else pending=pending&&pending.id===id?null:{src,id,text:item.text};
+    }
+    save();render();return;
+  }
+  const cell=e.target.closest(".cell.day");
+  if(cell&&pending){drop(pending.src,pending.id,null,cell.dataset.slot)}
+});
+
+document.addEventListener("submit",e=>{
+  if(e.target.id!=="addForm")return;e.preventDefault();
+  const v=$("newTask").value.trim();if(!v)return;
+  W(key(cur)).inbox.push({id:uid(),text:v,pri:newPri});$("newTask").value="";
+  save();render();$("newTask").focus();
+});
+
+$("region").addEventListener("change",e=>{S.region=e.target.value;save();render()});
+
+/* ---------- drag: pointer events so it works with mouse and touch ---------- */
+let drag=null,suppressUntil=0;
+document.addEventListener("pointerdown",e=>{
+  const c=e.target.closest(".chip");if(!c||e.button!==0)return;
+  if(e.target.closest(".x,.dot"))return;
+  if(e.pointerType!=="mouse"&&!e.target.closest(".grip"))return;
+  drag={c,x:e.clientX,y:e.clientY,on:false};
+});
+window.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  if(!drag.on){
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;
+    drag.on=true;const r=drag.c.getBoundingClientRect();
+    drag.dx=drag.x-r.left;drag.dy=drag.y-r.top;
+    drag.g=drag.c.cloneNode(true);drag.g.classList.add("ghost");drag.g.style.width=r.width+"px";
+    document.body.appendChild(drag.g);drag.c.classList.add("dragging");document.body.classList.add("is-dragging");
+  }
+  e.preventDefault();
+  drag.g.style.transform=`translate(${e.clientX-drag.dx}px,${e.clientY-drag.dy}px) rotate(-1.5deg)`;
+  const el=document.elementFromPoint(e.clientX,e.clientY);const cell=el&&el.closest(".cell");
+  document.querySelectorAll(".cell.over").forEach(x=>{if(x!==cell)x.classList.remove("over")});
+  if(cell&&cell.dataset.slot!=="prev")cell.classList.add("over");
+},{passive:false});
+function endDrag(e,commit){
+  if(!drag)return;const d=drag;drag=null;
+  if(!d.on)return;
+  d.g.remove();d.c.classList.remove("dragging");document.body.classList.remove("is-dragging");
+  document.querySelectorAll(".cell.over").forEach(x=>x.classList.remove("over"));
+  suppressUntil=Date.now()+350;
+  if(!commit)return;
+  const el=document.elementFromPoint(e.clientX,e.clientY);const cell=el&&el.closest(".cell");
+  if(cell)drop(d.c.dataset.src,d.c.dataset.id,d.c.dataset.day!=null?+d.c.dataset.day:null,cell.dataset.slot);
+}
+window.addEventListener("pointerup",e=>endDrag(e,true));
+window.addEventListener("pointercancel",e=>endDrag(e,false));
+
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&pending){pending=null;render()}});
+
+render();
+})();
+</script>
