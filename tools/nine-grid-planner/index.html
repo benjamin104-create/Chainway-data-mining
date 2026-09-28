@@ -361,6 +361,7 @@ body.ranging .gbar{pointer-events:none}
 @keyframes tilespin{from{transform:scale(.3) rotate(-180deg);opacity:0}}
 .gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:320px;border-radius:999px;padding:12px 18px;font-size:15px;background:#fff;color:#1F1F1F;border:1px solid #DADCE0;box-shadow:0 6px 16px -10px var(--shade)}
 .gbtn svg{width:20px;height:20px}
+.gbtn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
 .welcome .pill{width:100%;max-width:320px;justify-content:center;padding:11px 18px;font-size:15px}
 .welcome .note{max-width:34ch}
 .acct{display:flex;align-items:center;gap:10px}
@@ -1381,7 +1382,7 @@ const STR={
     rNew:"新的期間",rEdit:"編輯期間",rTitle:"主題",rNote:"註記",rStart:"開始",rEnd:"結束",rDays:n=>`共 ${n} 天`,rUntitled:"未命名",rColor:"顏色",
     rTip:"按住一個日期不放，往後拉，就能畫出一段期間。",
     wLead:"把待辦清單變成一週的九宮格：寫下來、拖進去、完成它。",wGoogle:"用 Google 登入",wGuest:"先不登入，直接開始",
-    wGoogleNote:"登入後，資料會備份到你自己的 Google 雲端硬碟，換手機也不會不見。",wNoLogin:"Google 登入要在安裝版網址使用，這個預覽頁面沒辦法。",
+    wGoogleNote:"登入後，資料會備份到你自己的 Google 雲端硬碟，換手機也不會不見。",wNoLogin:"Google 登入要在安裝版網址使用，這個預覽頁面沒辦法。",gSoon:"Google 登入準備中，目前資料先存在這支手機。",
     todoTitle:"這週想完成什麼？",todoPh:n=>`第 ${n} 件事`,todoMore:"再加一件",todoGo:"放進九宮格",todoSample:"先看範例",todoPaste:"一行一件事。也可以把備忘錄的清單整段貼上。",todoBtn:"寫清單",todoEmpty:"至少寫下一件事",
     share:"分享",shareTitle:"分享這一面",fmtPost:"貼文 4:5",fmtStory:"限時動態 9:16",shareNow:"分享到 IG／FB",saveImg:"下載圖片",fb:"分享到 Facebook",copyCap:"複製文字",copied:"已複製",
     holdSave:"長按圖片存到手機，再到 IG 或 FB 發佈。",caption:"我的這週九宮格 #九宮格週計畫",shareFail:"這台裝置不能直接分享，改成下載圖片。",
@@ -1501,7 +1502,7 @@ const STR={
     rNew:"新しい期間",rEdit:"期間を編集",rTitle:"タイトル",rNote:"メモ",rStart:"開始",rEnd:"終了",rDays:n=>`${n}日間`,rUntitled:"無題",rColor:"色",
     rTip:"日付を長押ししたままドラッグすると、期間を引けます。",
     wLead:"ToDo リストを一週間の九マスに。書いて、ドラッグして、終わらせる。",wGoogle:"Google でログイン",wGuest:"ログインせずに始める",
-    wGoogleNote:"ログインすると、データは自分の Google ドライブに保存され、機種変更しても残ります。",wNoLogin:"Google ログインはインストール版の URL で使えます。",
+    wGoogleNote:"ログインすると、データは自分の Google ドライブに保存され、機種変更しても残ります。",wNoLogin:"Google ログインはインストール版の URL で使えます。",gSoon:"Google ログインは準備中です。今はデータをこの端末に保存しています。",
     todoTitle:"今週やりたいことは？",todoPh:n=>`${n} つ目`,todoMore:"もう一つ",todoGo:"九マスに入れる",todoSample:"サンプルを見る",todoPaste:"一行に一つ。メモアプリのリストをまとめて貼り付けても OK。",todoBtn:"リスト",todoEmpty:"少なくとも一つ書いてください",
     share:"シェア",shareTitle:"この面をシェア",fmtPost:"投稿 4:5",fmtStory:"ストーリー 9:16",shareNow:"IG／FB にシェア",saveImg:"画像を保存",fb:"Facebook でシェア",copyCap:"テキストをコピー",copied:"コピーしました",
     holdSave:"画像を長押しして保存し、IG や FB に投稿してください。",caption:"今週の九マス #九マス週間プランナー",shareFail:"この端末では直接シェアできないため、画像を保存します。",
@@ -1621,7 +1622,7 @@ const STR={
     rNew:"New span",rEdit:"Edit span",rTitle:"Title",rNote:"Note",rStart:"Start",rEnd:"End",rDays:n=>`${n} ${n>1?"days":"day"}`,rUntitled:"Untitled",rColor:"Colour",
     rTip:"Press and hold a date, then drag to draw a span.",
     wLead:"Turn your to-do list into a nine-square week: write it, drag it, finish it.",wGoogle:"Sign in with Google",wGuest:"Start without signing in",
-    wGoogleNote:"Signed in, your plan is backed up to your own Google Drive and follows you to a new phone.",wNoLogin:"Google sign-in works on the app link, not in this preview.",
+    wGoogleNote:"Signed in, your plan is backed up to your own Google Drive and follows you to a new phone.",wNoLogin:"Google sign-in works on the app link, not in this preview.",gSoon:"Google sign-in is coming soon. For now your plan stays on this device.",
     todoTitle:"What do you want to finish this week?",todoPh:n=>`Task ${n}`,todoMore:"Add another",todoGo:"Put them in the grid",todoSample:"See a sample",todoPaste:"One task per line. You can paste a whole list from your notes app.",todoBtn:"List",todoEmpty:"Write at least one task",
     share:"Share",shareTitle:"Share this side",fmtPost:"Post 4:5",fmtStory:"Story 9:16",shareNow:"Share to IG / FB",saveImg:"Save image",fb:"Share on Facebook",copyCap:"Copy caption",copied:"Copied",
     holdSave:"Press and hold the image to save it, then post it on IG or FB.",caption:"My week in nine squares #NineGridWeek",shareFail:"This device can't share directly, so the image was saved instead.",
@@ -2692,18 +2693,19 @@ function scheduleStep(i,dateStr){
 /* ---------- welcome & sign-in ---------- */
 const GLOGO='<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.3 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 7l7.2 5.6c4.2-3.9 7.1-9.7 7.1-17z"/><path fill="#FBBC05" d="M10.4 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.2-5.6c-2 1.4-4.7 2.3-8.7 2.3-6.3 0-11.7-4.1-13.6-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>';
 const canGoogle=()=>IS_SITE&&!!OWNER.googleClientId;
+const gOff=()=>canGoogle()?"":" disabled",gWhy=()=>IS_SITE?T().gSoon:T().wNoLogin;
 function regionSelect(){return `<select id="region" class="region jelly" aria-label="${T().region}">${[["TW","台灣・繁中"],["JP","日本・日本語"],["US","United States"],["GB","United Kingdom"]].map(([v,l])=>`<option value="${v}"${S.region===v?" selected":""}>${l}</option>`).join("")}</select>`}
 function accountHTML(){
   const t=T(),a=S.account;
   if(a)return `<div class="acct">${a.picture?`<img src="${esc(a.picture)}" alt="" referrerpolicy="no-referrer">`:""}<span>${esc(t.signedAs(a.name||a.email))}</span></div><div class="row"><button class="pill jelly" type="button" data-acc="sync">${t.syncNow}</button><button class="pill jelly" type="button" data-acc="out">${t.signOut}</button></div>`;
-  return `<p class="note">${t.guestNote}</p><div class="row"><button class="gbtn" type="button" data-acc="in" style="max-width:260px">${GLOGO}${t.wGoogle}</button></div>`;
+  return `<p class="note">${t.guestNote}</p><div class="row"><button class="gbtn" type="button" data-acc="in" style="max-width:260px"${gOff()}>${GLOGO}${t.wGoogle}</button></div>${canGoogle()?"":`<p class="note">${gWhy()}</p>`}`;
 }
 function showWelcome(){
   const t=T(),k=skin();
   layer(`<div class="welcome"><div class="wmascot">${mascot("wave")}</div>
 <h2>${t.faces[0]}</h2><p>${t.wLead}</p>
-<button class="gbtn" type="button" data-wel="google">${GLOGO}${t.wGoogle}</button>
-<p class="note">${canGoogle()?t.wGoogleNote:t.wNoLogin}</p>
+<button class="gbtn" type="button" data-wel="google"${gOff()}>${GLOGO}${t.wGoogle}</button>
+<p class="note">${canGoogle()?t.wGoogleNote:gWhy()}</p>
 <button class="pill pri jelly" type="button" data-wel="guest">${t.wGuest}</button>
 <div class="row" style="justify-content:center">${regionSelect()}</div></div>`,true,true);
 }
@@ -2927,7 +2929,7 @@ function gisLoad(){return new Promise((res,rej)=>{if(window.google&&google.accou
 async function gfetch(url,opt){const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({Authorization:"Bearer "+GS.token},(opt&&opt.headers)||{})}));if(!r.ok)throw new Error(r.status);return r}
 function googleToken(yt){
   return new Promise(async(res)=>{
-    if(!canGoogle()){toast(T().wNoLogin);res(false);return}
+    if(!canGoogle()){toast(gWhy());res(false);return}
     try{await gisLoad()}catch(e){toast(T().syncFail);res(false);return}
     const cl=google.accounts.oauth2.initTokenClient({client_id:OWNER.googleClientId,scope:"openid email profile https://www.googleapis.com/auth/drive.appdata"+(yt?" https://www.googleapis.com/auth/youtube.readonly":""),
       callback:r=>{if(!r||r.error){res(false);return}GS.token=r.access_token;GS.exp=Date.now()+((+r.expires_in||3600)-60)*1000;res(true)},
@@ -7696,7 +7698,7 @@ document.addEventListener("click",e=>{
   const wl=el.closest("[data-wel]");
   if(wl){
     const go=()=>{S.welcomed=true;S.face=0;S.mode="week";save();closeLayer();render();openTodo()};
-    if(wl.dataset.wel==="google"){if(!canGoogle()){toast(t.wNoLogin);return}googleSignIn().then(ok=>{if(ok)go()});return}
+    if(wl.dataset.wel==="google"){if(!canGoogle()){toast(gWhy());return}googleSignIn().then(ok=>{if(ok)go()});return}
     go();return;
   }
   const td=el.closest("[data-todo]");
