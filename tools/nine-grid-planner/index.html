@@ -995,7 +995,7 @@ html .knob svg{width:22px;height:22px}
 .stitle{font-weight:400;font-size:16px}
 .sline{display:flex;gap:8px;align-items:flex-start}.sline p{margin:0;font-size:16px;line-height:1.7}.sline small{font-size:12px;color:var(--muted)}
 .say.sm{position:static;width:30px;height:30px;flex:none}.say.sm svg{width:14px;height:14px}
-.sw{display:inline;padding:0 4px;margin:0 1px;border-radius:6px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--ink);font:inherit;border-bottom:2px solid var(--accent)}
+.stw{display:inline;padding:0 4px;margin:0 1px;border-radius:6px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--ink);font:inherit;border-bottom:2px solid var(--accent)}
 .sfact{margin:0;font-size:13px;padding:8px 10px;border-radius:12px;background:var(--chip)}
 .proots{grid-template-columns:repeat(6,minmax(0,1fr))}
 
@@ -1051,6 +1051,8 @@ html .knob svg{width:22px;height:22px}
 .tube.mini{width:200px;left:auto;right:12px;transform:none;padding:6px;gap:4px}.tube.mini .tubevid{width:188px;height:188px;aspect-ratio:auto}.tube.mini .tubevid iframe{width:334px;left:-73px}.tube.mini .tubehead small{display:none}.tube.mini .tubectl .round{width:32px;height:32px}.tube.mini .tubectl small{display:none}
 .stile .tlink{border:0;background:none;padding:0;text-align:left;width:100%;font:inherit}
 .mpsong{border:0;text-align:left;width:100%;font:inherit;cursor:pointer}
+
+.owned{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}.owned li{display:flex;flex-direction:column;padding:8px 10px;border-radius:12px;background:var(--chip)}.owned b{font-weight:400;font-size:14px}.owned small{font-size:11px;color:var(--muted)}
 
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -1183,6 +1185,7 @@ const OWNER={
   proCourses:true,                         // 單字課程第 2 單元起是否為加購；false 就全部免費
   courseStore:"",                          // 單字課程加購頁網址
   voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
+  codes:{},                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -1707,6 +1710,23 @@ S.face=S.face||0;S.seen=S.seen||{};S.ranges=S.ranges||[];S.tags=S.tags||[];S.don
 if(!S.goal)S.goal=seedGoal(LANG[S.region],!!S.example);
 if(!S.songs)S.songs=SEED_SONGS.map(x=>Object.assign({},x));
 if(S.wallAccent&&typeof S.wallAccent==="string")delete S.wallAccent;
+/* ---------- users' data and rights survive every update ----------
+   1. Updates may ADD fields, never delete or overwrite what a user made.
+   2. Before any change of data shape, the old data is backed up.
+   3. What a user got (bought, redeemed, earned, or used while it was free)
+      is recorded in S.owned and always wins over today's OWNER settings. */
+const SCHEMA=2;
+S.owned=S.owned||{};
+(function upgrade(){
+  const v=S.v||1;if(v>=SCHEMA)return;
+  try{localStorage.setItem(SKEY+"-backup-v"+v,JSON.stringify(S))}catch(e){}
+  // v1 → v2: nothing is removed; rights start being recorded from here on
+  S.v=SCHEMA;save();
+})();
+if(window.NG_SITE&&navigator.storage&&navigator.storage.persist){try{navigator.storage.persist()}catch(e){}}
+const owns=k=>!!S.owned[k];
+// grant once; the first reason is kept (a purchase is never downgraded)
+function grant(k,src){if(!S.owned[k]){S.owned[k]={src:src||"free",d:key(new Date())};save()}}
 let cur=mondayOf(new Date());
 let curMonth=new Date(addDays(cur,3).getFullYear(),addDays(cur,3).getMonth(),1);
 let newPri="high",pending=null,prevItems=[],editTime=null;
@@ -2266,6 +2286,8 @@ function openSettings(){
   layer(`<div class="shead"><h2>${t.settings}</h2>${closeBtn(t)}</div>
 <div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}</div>
 <div class="sgroup"><h3>${I.sparkle}${t.aiTitle}</h3>${aiSettingsHTML()}</div>
+<div class="sgroup"><h3>💎 ${SF().rights}</h3>${rightsHTML()}</div>
+<div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
 <div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b style="background:radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}"></b>${t.skins[k]}</button>`}).join("")}</div>
@@ -3247,7 +3269,7 @@ S.wordx=S.wordx||{};
 let wtrail=[],wview=null,game=null;   // wview: a word opened from the outer ring
 const allDecks=()=>[...DECKS,...(S.w.custom||[])];
 const deckOf=id=>allDecks().find(d=>d.id===id)||DECKS[0];
-const isPro=d=>OWNER.proDecks.includes(d.id);
+const isPro=d=>OWNER.proDecks.includes(d.id)&&!owns("deck:"+d.id);
 const openCount=d=>isPro(d)?Math.min(d.cards.length,OWNER.trialCards):d.cards.length;
 // a paid deck lets you step one card past the preview, where the unlock card shows
 const lastIdx=d=>isPro(d)&&openCount(d)<d.cards.length?openCount(d):d.cards.length-1;
@@ -3256,7 +3278,7 @@ function reviewList(){return Object.keys(S.w.review).map(k=>{const [id,w]=k.spli
 function curCard(){
   if(wview)return wview;
   if(S.w.mode==="review"){const r=reviewList();if(!r.length)return null;S.w.idx=Math.min(S.w.idx,r.length-1);return r[S.w.idx]}
-  const d=deckOf(S.w.deck);S.w.idx=Math.max(0,Math.min(S.w.idx,lastIdx(d)));return d.cards.length?{deck:d,card:d.cards[S.w.idx]}:null;
+  const d=deckOf(S.w.deck);if(!isPro(d)&&OWNER.proDecks.length)grant("deck:"+d.id,"free");S.w.idx=Math.max(0,Math.min(S.w.idx,lastIdx(d)));return d.cards.length?{deck:d,card:d.cards[S.w.idx]}:null;
 }
 function ringFor(card){
   const cells=Array(9).fill(null),put=(slots,items)=>{for(const it of items){const i=slots.find(x=>!cells[x]);if(i==null)return items.slice(items.indexOf(it));cells[i]=it}return []};
@@ -4202,7 +4224,7 @@ const FIT=[
 ];
 const FIT_TIER={bw:0,db:1,gym:2};
 S.fit=S.fit||{lv:1,eq:"bw"};
-const fitOpen=g=>!OWNER.proFit||OWNER.fitFree.includes(g.k)||(typeof unlocked==="function"&&unlocked("fit"));
+const fitOpen=g=>!OWNER.proFit||OWNER.fitFree.includes(g.k)||owns("fit:"+g.k)||owns("fit:all")||(typeof unlocked==="function"&&unlocked("fit"));
 function fitYT(ex){const l=LANG[S.region],name=ex.n[l]||ex.n.zh;return yt(name+(l==="zh"?" 教學 正確姿勢":l==="ja"?" やり方 正しいフォーム":" proper form tutorial"))}
 function bodyFigure(sel){
   const hl=k=>k===sel?"var(--accent)":"color-mix(in srgb,var(--ink) 14%,transparent)";
@@ -4229,7 +4251,7 @@ function renderFitFace(){
   $("face").innerHTML=`<div class="coachbar"><span class="note">${t.fitHint}</span></div><div class="fitgrid">${cells.join("")}</div><p class="note">${t.fitSafe}</p>`;
 }
 function openFit(key){
-  const t=T(),g=FIT.find(x=>x.k===key);if(!g)return;fitSel=key;render();
+  const t=T(),g=FIT.find(x=>x.k===key);if(!g)return;fitSel=key;if(fitOpen(g)&&!unlocked("fit"))grant("fit:"+g.k,"free");render();
   const l=LANG[S.region],open=fitOpen(g);
   let list=g.ex.filter(x=>FIT_TIER[x.eq]<=FIT_TIER[S.fit.eq]&&(S.fit.lv>=2||x.lv===1||g.ex.filter(y=>y.lv===1&&FIT_TIER[y.eq]<=FIT_TIER[S.fit.eq]).length<2));
   if(!list.length)list=g.ex.slice(0,2);
@@ -5026,7 +5048,7 @@ function pLinks(x){
   (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
   return out;
 }
-const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||(typeof unlocked==="function"&&unlocked(c.k));
+const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||owns("pic:"+c.k)||owns("pic:all")||(typeof unlocked==="function"&&unlocked(c.k));
 const pOpen=c=>pFree(c)?Infinity:OWNER.trialCards;
 let pview=null,ptrail=[];   // a card reached through a link, and the way back
 // romaji for kana, so a Chinese speaker can read Japanese on day one
@@ -5073,6 +5095,7 @@ function picHTML(){
   const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:root,x}));
   if(!list.length&&!pview)return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="emo">🌟</span><span class="note">${S.pd.mode==="review"?t.wReviewEmpty:p.noLang}</span></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
   S.pd.idx=Math.max(0,Math.min(S.pd.idx,list.length-1));
+  if(pFree(root)&&!owns("pic:"+root.k)&&root.k!=="mine"&&!unlocked(root.k))grant("pic:"+root.k,"free");
   const cur=pview?{c:root,x:pview}:list[S.pd.idx],x=cur.x,open=S.pd.mode==="review"||pview?Infinity:pOpen(root);
   if(!pview&&S.pd.idx>=open){
     return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="lk">${I.lock}</span><b style="font-weight:400">${t.wTrialEnd}</b><small>${t.wUnlock(list.length)}</small>${OWNER.wordStore?`<a class="pill pri jelly" href="${esc(OWNER.wordStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:`<small>${t.wSoon}</small>`}</div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>${pNavHTML(list.length)}`;
@@ -5448,7 +5471,7 @@ const WK_DIRS=[
   {k:"flex",e:"🧘",n:{zh:"伸展放鬆",ja:"ストレッチ",en:"Stretch & relax"},d:{zh:"慢慢伸展、深呼吸",ja:"ゆっくり伸ばして深呼吸",en:"Slow stretches, deep breaths"},tag:"flex",work:40,rest:5}
 ];
 S.fit=S.fit||{lv:1,eq:"bw"};if(!S.fit.min)S.fit.min=10;
-const wkFree=(dir,min)=>!OWNER.proFit||unlocked("fit")||(dir!=="dance"&&min<=10);
+const wkFree=(dir,min)=>!OWNER.proFit||unlocked("fit")||owns("fit:all")||owns(`wk:${dir}-${min}`)||(dir!=="dance"&&min<=10);
 // today's routine: warm-up, the main block for the direction, cool-down
 function wkBuild(dir,min,lv,seed){
   const D=WK_DIRS.find(x=>x.k===dir)||WK_DIRS[0],r=n=>hashStr(seed+":"+n);
@@ -5593,6 +5616,7 @@ function beatStart(bpm){const ctx=ambCtx();if(!ctx)return;beatStop();let n=0;con
   wkBeat=setInterval(()=>{if(wkRun&&wkRun.paused)return;const i=n%8;if(i===0||i===4)hit("k");if(i===2||i===6)hit("c");hit("h");n++},step*1000)}
 let wkBeat=null;const beatStop=()=>{clearInterval(wkBeat);wkBeat=null};
 function wkStart(day){
+  if(wkFree(S.fit.dir,S.fit.min)&&!unlocked("fit"))grant(`wk:${S.fit.dir}-${S.fit.min}`,"free");
   const W=day?Object.assign(wkBuild(S.fit.dir,S.fit.min,S.fit.lv,day),{d:day,make:true}):wkToday();if(!W)return;const wasPlaying=AMB.playing;if(wasPlaying){AMB.userPaused=true;ambPause()}
   wkRun={W,i:0,left:W.seg[0].s,paused:false,voice:S.fit.voice!==false,resume:wasPlaying,lock:null,done:0};
   try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{if(wkRun)wkRun.lock=l},()=>{})}catch(e){}
@@ -5679,7 +5703,7 @@ Reply ONLY JSON {"title":"short title in ${lname}","lines":[{"t":"sentence","tr"
     st={title:"",lines:(F[l]||F.en).map(z=>({t:z,tr:""})),fact:"",offline:true};
   }
   S.pd.lastStory=st;
-  const line=z=>esc(z).replace(/\[\[(.+?)\]\]/g,(m,w)=>`<button type="button" class="sw" data-sw="${w}">${w}</button>`);
+  const line=z=>esc(z).replace(/\[\[(.+?)\]\]/g,(m,w)=>`<button type="button" class="stw" data-sw="${w}">${w}</button>`);
   out.innerHTML=`<div class="story jelly"><div class="row"><b class="stitle">📖 ${esc(st.title||p.story)}</b><span class="grow"></span><button class="pill jelly" type="button" data-sread="1">🔊 ${p.readAll}</button></div>
 ${st.lines.map((z,i)=>`<div class="sline"><button type="button" class="say sm" data-sline="${i}" aria-label="🔊">${I.speak}</button><div><p lang="${l==="tw"?"nan":l}">${line(z.t)}</p>${z.tr&&l!==LANG[S.region]?`<small>${esc(z.tr)}</small>`:""}</div></div>`).join("")}
 ${st.fact?`<p class="sfact">💡 ${esc(st.fact)}</p>`:""}${st.offline?`<p class="note">${p.storyOff}</p>`:""}</div>`;
@@ -5711,7 +5735,7 @@ const VCOURSES=[
 ];
 S.vc=S.vc||{};S.vbook=S.vbook||{};
 const vcOf=k=>{const C=VCOURSES.find(c=>c.k===k);if(!C)return null;const st=S.vc[k]=S.vc[k]||{extra:[],done:{}};return {C,st,units:[...C.units,...st.extra]}};
-const vcOpen=(k,i)=>!OWNER.proCourses||i===0||unlocked("course");
+const vcOpen=(k,i)=>!OWNER.proCourses||i===0||owns("course:"+k)||owns("course:all")||unlocked("course");
 let vcView=null;   // {k} course, {k,u} unit, {k,u,quiz}
 const VT=()=>VC_STR[LANG[S.region]];
 const vName=o=>o[LANG[S.region]]||o.zh;
@@ -5912,7 +5936,7 @@ function tlMark(txt,lang){let h=esc(txt);if(!["zh","ja","tw"].includes(lang))ret
   const words=[...new Set(pRootsAll().flatMap(r=>r.subs.flatMap(s=>s.c)).map(x=>lang==="ja"?x.ja:lang==="tw"?x.tw:x.zh).filter(w=>w&&w.length>=2))].sort((a,b)=>b.length-a.length).slice(0,400);
   const hit=[];words.forEach(w=>{if(h.includes(w)&&!hit.some(x=>x.includes(w)))hit.push(w)});
   hit.slice(0,6).forEach((w,i)=>{h=h.split(w).join(`\u0001${i}\u0002`)});
-  hit.slice(0,6).forEach((w,i)=>{h=h.split(`\u0001${i}\u0002`).join(`<button type="button" class="sw" data-sw="${esc(w)}">${esc(w)}</button>`)});
+  hit.slice(0,6).forEach((w,i)=>{h=h.split(`\u0001${i}\u0002`).join(`<button type="button" class="stw" data-sw="${esc(w)}">${esc(w)}</button>`)});
   return h}
 function recHint(v){const t=TT();return v==="mine"?t.recMine:OWNER.voices&&OWNER.voices[v]?t.recOfficial:t.recOwner}
 // voices: an official recording (OWNER.voices), a recording on this device, or the phone's voice
@@ -6036,6 +6060,44 @@ function tubeAct(a){const s=TUBE.q[TUBE.i];
   if(a==="toggle"&&TUBE.player&&TUBE.player.getPlayerState){const st=TUBE.player.getPlayerState();if(st===1)TUBE.player.pauseVideo();else TUBE.player.playVideo();setTimeout(tubeDraw,250);return}
   if(a==="keep"&&s){if(!S.musicBox.some(x=>songKey(x)===songKey(s))&&!S.songs.some(x=>x&&songKey(x)===songKey(s))){S.musicBox.unshift({title:s.title,artist:s.artist||"",url:s.url,genre:s.genre||"",from:s.from||"",note:s.note||""});save();toast(T().mKept);if(S.face===2)render()}tubeDraw();return}
 }
+/* ---------- rights, redeem codes, backup and restore (settings) ---------- */
+const sha256=async s=>{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
+function ownedLabel(k){const s=SF();const [a,b]=k.split(":");return (s.kinds[a]||a)+(b&&b!=="all"?"・"+b:"・"+s.all)}
+function rightsHTML(){const s=SF(),list=Object.entries(S.owned);
+  return `${list.length?`<ul class="owned">${list.map(([k,o])=>`<li><b>${esc(ownedLabel(k))}</b><small>${esc(s.src[o.src]||o.src)} · ${esc(o.d||"")}</small></li>`).join("")}</ul>`:`<p class="note">${s.none}</p>`}
+<p class="note">${s.keepNote}</p>
+<div class="row" style="flex-wrap:nowrap"><input id="redeemIn" type="text" maxlength="40" placeholder="${esc(s.codePh)}" autocapitalize="characters"><button class="pill pri jelly" type="button" data-redeem="1">${s.redeem}</button></div>`}
+async function redeem(){const s=SF(),v=($("redeemIn").value||"").trim().toUpperCase().replace(/\s+/g,"");if(!v)return;
+  let h="";try{h=await sha256(v)}catch(e){toast(s.bad);return}
+  const c=(OWNER.codes||{})[h];if(!c){toast(s.bad);return}
+  S.usedCodes=S.usedCodes||[];if(S.usedCodes.includes(h)){toast(s.used);return}
+  (c.grants||[]).forEach(k=>grant(k,"code"));S.usedCodes.push(h);save();toast(s.ok);openSettings()}
+function backupHTML(){const s=SF();
+  return `<p class="note">${s.backupWhy}</p><div class="row"><button class="pill jelly" type="button" data-bk="out">⬇️ ${s.exp}</button><label class="pill jelly upload">⬆️ ${s.imp}<input id="bkFile" type="file" accept="application/json,.json"></label></div><div id="bkOut"></div>`}
+function backupOut(){const s=SF(),txt=JSON.stringify(Object.assign({},S,{_backup:new Date().toISOString()}));
+  if(IS_SITE){try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download=`jamie-ninegrid-backup-${key(new Date())}.json`;document.body.appendChild(a);a.click();a.remove();toast(s.saved);return}catch(e){}}
+  $("bkOut").innerHTML=`<p class="note">${s.copyIt}</p><textarea class="impta" readonly style="min-height:90px">${esc(txt)}</textarea>`}
+// restoring never loses rights: owned items are merged, and the current data is kept aside first
+function restoreFrom(txt){const s=SF();let o;try{o=JSON.parse(txt)}catch(e){toast(s.badFile);return}
+  if(!o||typeof o!=="object"||!o.weeks){toast(s.badFile);return}
+  try{localStorage.setItem(SKEY+"-before-restore",JSON.stringify(S))}catch(e){}
+  const owned=Object.assign({},o.owned||{},S.owned),codes=[...new Set([...(o.usedCodes||[]),...(S.usedCodes||[])])];
+  delete o._backup;S=o;S.owned=owned;S.usedCodes=codes;save();toast(s.restored);setTimeout(()=>location.reload(),600)}
+const SF_STR={
+  zh:{rights:"我的權益",backup:"資料備份",kinds:{pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
+    src:{free:"免費時已開始使用，永久保留",code:"兌換碼",buy:"購買",reward:"升級獎勵"},none:"目前沒有加值內容。",
+    keepNote:"曾經買過、兌換過，或在免費時用過的內容，之後網站調整也會一直保留給你。",codePh:"輸入兌換碼",redeem:"兌換",bad:"兌換碼不正確",used:"這組兌換碼已經用過了",ok:"兌換成功！",
+    backupWhy:"資料存在這支手機裡。建議偶爾匯出備份；iPhone 的 Safari 如果很久沒開網站，可能會清掉資料，加到主畫面或登入 Google 同步可以避免。",exp:"匯出備份",imp:"從備份還原",saved:"備份檔已下載",copyIt:"這裡不能下載檔案，請複製下面的文字另外保存：",badFile:"這不是正確的備份檔",restored:"已還原，重新整理中…"},
+  ja:{rights:"わたしの権利",backup:"バックアップ",kinds:{pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
+    src:{free:"無料のときに使い始めたので永久に保持",code:"引換コード",buy:"購入",reward:"レベル特典"},none:"追加コンテンツはまだありません。",
+    keepNote:"購入・引換・無料期間に使ったものは、サイトが変わってもずっと使えます。",codePh:"引換コード",redeem:"引き換える",bad:"コードが正しくありません",used:"このコードは使用済みです",ok:"引き換えました！",
+    backupWhy:"データはこの端末に保存されます。ときどきバックアップを。",exp:"バックアップを書き出す",imp:"バックアップから復元",saved:"ダウンロードしました",copyIt:"ここではダウンロードできません。下の文字をコピーして保存してください：",badFile:"正しいバックアップではありません",restored:"復元しました。再読み込み中…"},
+  en:{rights:"My purchases & rights",backup:"Backup",kinds:{pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
+    src:{free:"started while free, kept for good",code:"redeem code",buy:"purchase",reward:"level reward"},none:"No add-ons yet.",
+    keepNote:"Anything you bought, redeemed, or used while it was free stays yours through every site update.",codePh:"Redeem code",redeem:"Redeem",bad:"That code isn't valid",used:"This code was already used",ok:"Redeemed!",
+    backupWhy:"Your data lives on this device. Export a backup now and then.",exp:"Export backup",imp:"Restore from backup",saved:"Backup downloaded",copyIt:"Downloads aren't allowed here; copy this text and keep it:",badFile:"That isn't a valid backup",restored:"Restored. Reloading…"}
+};
+const SF=()=>SF_STR[LANG[S.region]];
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -6147,7 +6209,7 @@ document.addEventListener("click",e=>{
   const vcc=el.closest("[data-vc]");if(vcc){vcView={k:vcc.dataset.vc};render();scrollTo({top:0});return}
   if(el.closest("[data-vbook]")){vcView={book:1};render();return}
   if(el.closest("[data-vcback]")){if(!vcView||vcView.book)vcView=null;else if(vcView.quiz)vcView={k:vcView.k,u:vcView.u};else if(vcView.u!=null)vcView={k:vcView.k};else vcView=null;render();return}
-  const vcu=el.closest("[data-vu]");if(vcu){const i=+vcu.dataset.vu;if(!vcOpen(vcView.k,i)){toast(VT().proNote);return}vcView={k:vcView.k,u:i};render();scrollTo({top:0});return}
+  const vcu=el.closest("[data-vu]");if(vcu){const i=+vcu.dataset.vu;if(!vcOpen(vcView.k,i)){toast(VT().proNote);return}if(i>0&&!unlocked("course"))grant("course:"+vcView.k,"free");vcView={k:vcView.k,u:i};render();scrollTo({top:0});return}
   if(el.closest("[data-vgen]")){vcGen();return}
   const vsy=el.closest("[data-vsay]");if(vsy){sayIn(vsy.dataset.vsay,"en");return}
   const vss=el.closest("[data-vsays]");if(vss){const u=vcOf(vcView.k).units[vcView.u];sayIn(u.items[+vss.dataset.vsays].s,"en");return}
@@ -6209,6 +6271,8 @@ document.addEventListener("click",e=>{
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
   if(el.closest("[data-mcards]")){openCards("send");return}
+  if(el.closest("[data-redeem]")){redeem();return}
+  const bk=el.closest("[data-bk]");if(bk){backupOut();return}
   const tb=el.closest("[data-tube]");if(tb){tubeAct(tb.dataset.tube);return}
   const tgr=el.closest("[data-tgrid]");if(tgr){const list=S.songs.filter(x=>x&&x.url),s0=S.songs[+tgr.dataset.tgrid];tubePlay(list,Math.max(0,list.indexOf(s0)),"grid");return}
   if(el.closest("[data-tdeck]")){if(deck){const c=deck.cards[deck.i];tubePlay([c],0,"deck")}return}
@@ -6408,6 +6472,7 @@ document.addEventListener("keydown",e=>{
   if(pending){pending=null;render()}
 });
 document.addEventListener("change",e=>{
+  if(e.target.id==="bkFile"){const f=e.target.files&&e.target.files[0];if(f)f.text().then(restoreFrom);return}
   const el=e.target;
   if(el.dataset&&el.dataset.ci!=null){impC[+el.dataset.ci].on=el.checked;const b=$("impApply");if(b)b.textContent=T().impApply(impC.filter(c=>c.on).length);return}
   if(el.id==="impFile"){if(el.files&&el.files.length)importFiles([...el.files]);el.value="";return}
