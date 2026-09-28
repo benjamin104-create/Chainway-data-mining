@@ -1176,6 +1176,12 @@ html .knob svg{width:22px;height:22px}
 .zwc i{font-style:normal;font-size:9px;border-radius:4px;padding:0 3px;margin-left:2px;color:#fff}.zwc i.h0{background:#2E9E6A}.zwc i.h1{background:#2F6FED}.zwc i.h2{background:#8E6BE0}.zwc i.h3{background:#E5484D}
 .zwmid{grid-area:mid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:12px;color:var(--muted)}.zwmid b{font-size:22px;font-weight:400;color:var(--ink)}
 .zwread p{margin:4px 0}.zwread h3{margin:10px 0 4px}.zwai{line-height:1.7;background:var(--chip);border-radius:14px;padding:12px}
+.mhstart{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:4px 0 8px}.mhmas{width:110px;height:110px}.mhstart p{margin:0}
+.mhq{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:16px;padding:10px 14px;text-align:center}
+.mhcard{--r:24px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 14px;text-align:center}.mhcard .mhx{width:84px;height:92px}
+.mhask{color:var(--muted)}.mhgloss{margin:0;color:var(--muted)}.mhbadge{border-radius:999px;padding:3px 14px;font-size:14px;background:var(--chip);color:var(--muted)}.mhbadge.ok{background:var(--accent);color:var(--on-accent)}
+.mhtodo{--r:20px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;text-align:center}.mhtodo p{margin:0}
+.mhhow p{margin:6px 0;line-height:1.7}.mhhow pre{margin:6px 0}
 .mhtop{display:flex;align-items:center;gap:12px}.mhtop>div{flex:1;display:flex;flex-direction:column;gap:2px;text-align:center}.mhname{font-size:26px;font-weight:400}.mhtop span{font-size:12px;color:var(--muted)}.mhtop em{font-style:normal;color:var(--accent)}
 .mhx{width:54px;height:60px;flex:none;color:var(--ink)}.mhtop .mhx:last-child{opacity:.55}
 .mhrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mhk{background:var(--chip);border-radius:12px;padding:8px;text-align:center;display:flex;flex-direction:column;gap:2px}.mhk small{color:var(--muted);font-size:11px}.mhk b{font-weight:400}.mhk span{font-size:11px;color:var(--muted)}
@@ -7320,11 +7326,11 @@ function tiyong(ti,yong){const a=GUA[ti].w,b=GUA[yong].w;
 const TY={zh:{shengti:["大吉","用生體：外面的力量在幫你。","今天主動開口請一個人幫忙，或接受別人的好意。"],tike:["吉","體剋用：事情在你掌握中。","今天先完成清單上最重要的那一件事。"],bihe:["吉","比和：內外同心，順利。","找夥伴一起做一件事，會事半功倍。"],tisheng:["小凶","體生用：付出多、容易累。","量力而為，今天替自己留 30 分鐘休息。"],keti:["凶","用剋體：外在壓力較大。","不硬碰硬，先守住節奏，只做一小步。"]},
  ja:{shengti:["大吉","用が体を生む：外の力が助けてくれる。","今日は誰かに手伝いを頼むか、好意を受け取ってみよう。"],tike:["吉","体が用を剋す：物事は自分の手の中に。","リストの一番大事なことをまず終わらせよう。"],bihe:["吉","比和：内と外が同じ心。順調。","仲間と一緒にやると半分の力でできる。"],tisheng:["小凶","体が用を生む：力を使いすぎて疲れやすい。","無理せず、今日は30分休む時間をとろう。"],keti:["凶","用が体を剋す：外からのプレッシャーが強い。","ぶつからず、ペースを守って小さな一歩だけ。"]},
  en:{shengti:["Very good","The outer force feeds you: help is coming.","Ask someone for help today, or accept a kindness."],tike:["Good","You control the situation.","Finish the most important task on your list first."],bihe:["Good","Inner and outer agree: things flow.","Do one thing with a partner: half the effort."],tisheng:["Careful","You give more than you get: you tire easily.","Pace yourself and keep 30 minutes to rest."],keti:["Caution","Outer pressure is strong.","Don't push against it: keep your rhythm, take one small step."]}};
-const MH_STR={zh:{btn:"☯ 今日一卦（梅花易數）",title:"今日一卦・梅花易數",lead:"「心動而占」：想著一件想問的事，再按起卦。一天只起一卦，用現在的農曆年月日時算出來。",ask:"心裡想問的事（選填）",cast:"起卦",ben:"本卦",hu:"互卦",bian:"變卦",move:n=>`第 ${n} 爻動`,ci:"卦辭",how:"怎麼算的",ty:"體用",todo:"今天可以做",ai:"🤖 AI 用阿德勒的角度幫我解卦",again:"今天已經起過卦了，明天再來。",note:"梅花易數是傳統文化與自我反思的參考，不能取代專業意見。",
+const MH_STR={zh:{btn:"☯ 今日一卦（梅花易數）",title:"今日一卦・梅花易數",lead:"想著一件事，按下起卦。一天一卦。",ask:"心裡想問的事（選填）",cast:"起卦",addToday:"放進今天",more:"看卦辭與算法",ben:"本卦",hu:"互卦",bian:"變卦",move:n=>`第 ${n} 爻動`,ci:"卦辭",how:"怎麼算的",ty:"體用",todo:"今天可以做",ai:"🤖 AI 用阿德勒的角度幫我解卦",again:"今天已經起過卦了，明天再來。",note:"梅花易數是傳統文化與自我反思的參考，不能取代專業意見。",
    calc:(y,m,d,h,Y,M,D,H,u,l,mv)=>`農曆 ${y}年（年支${Y}）${m}月 ${d}日 ${h}時（時支${H}）\n上卦：(${Y}+${M}+${D}) ÷ 8 餘 ${u}\n下卦：(${Y}+${M}+${D}+${H}) ÷ 8 餘 ${l}\n動爻：(${Y}+${M}+${D}+${H}) ÷ 6 餘 ${mv}（餘 0 算 8 或 6）`},
- ja:{btn:"☯ 今日の卦（梅花易数）",title:"今日の卦・梅花易数",lead:"心に一つ問いを思い浮かべて、卦を立てましょう。一日一卦、いまの旧暦の年月日時から出します。",ask:"心の中の問い（任意）",cast:"卦を立てる",ben:"本卦",hu:"互卦",bian:"之卦",move:n=>`第${n}爻が動く`,ci:"卦辞",how:"出し方",ty:"体用",todo:"今日できること",ai:"🤖 AI がアドラーの視点で読み解く",again:"今日はもう卦を立てました。また明日。",note:"梅花易数は伝統文化と自己省察の参考です。",
+ ja:{btn:"☯ 今日の卦（梅花易数）",title:"今日の卦・梅花易数",lead:"一つ問いを思い浮かべて、卦を立てよう。一日一卦。",ask:"心の中の問い（任意）",cast:"卦を立てる",addToday:"今日に入れる",more:"卦辞と出し方",ben:"本卦",hu:"互卦",bian:"之卦",move:n=>`第${n}爻が動く`,ci:"卦辞",how:"出し方",ty:"体用",todo:"今日できること",ai:"🤖 AI がアドラーの視点で読み解く",again:"今日はもう卦を立てました。また明日。",note:"梅花易数は伝統文化と自己省察の参考です。",
    calc:(y,m,d,h,Y,M,D,H,u,l,mv)=>`旧暦 ${y}年（年支${Y}）${m}月${d}日 ${h}刻（時支${H}）\n上卦：(${Y}+${M}+${D})÷8 余り ${u}\n下卦：(${Y}+${M}+${D}+${H})÷8 余り ${l}\n動爻：(${Y}+${M}+${D}+${H})÷6 余り ${mv}`},
- en:{btn:"☯ Today's hexagram (Plum Blossom)",title:"Today's hexagram · Plum Blossom I Ching",lead:"Hold one question in mind, then cast. One cast a day, from the current lunar year, month, day and hour.",ask:"Your question (optional)",cast:"Cast",ben:"Hexagram",hu:"Nuclear",bian:"Changed",move:n=>`line ${n} moves`,ci:"Judgment (Zhou Yi)",how:"How it was cast",ty:"Body & use",todo:"Something to do today",ai:"🤖 AI reading through Adler's lens",again:"You've cast today. Come back tomorrow.",note:"Plum Blossom I Ching is a cultural tradition for reflection, not professional advice.",
+ en:{btn:"☯ Today's hexagram (Plum Blossom)",title:"Today's hexagram · Plum Blossom I Ching",lead:"Think of one question, then cast. One a day.",ask:"Your question (optional)",cast:"Cast",addToday:"Add to today",more:"Judgment & working",ben:"Hexagram",hu:"Nuclear",bian:"Changed",move:n=>`line ${n} moves`,ci:"Judgment (Zhou Yi)",how:"How it was cast",ty:"Body & use",todo:"Something to do today",ai:"🤖 AI reading through Adler's lens",again:"You've cast today. Come back tomorrow.",note:"Plum Blossom I Ching is a cultural tradition for reflection, not professional advice.",
    calc:(y,m,d,h,Y,M,D,H,u,l,mv)=>`Lunar ${y} (branch no. ${Y}), month ${m}, day ${d}, hour ${h} (no. ${H})\nUpper: (${Y}+${M}+${D}) mod 8 = ${u}\nLower: (${Y}+${M}+${D}+${H}) mod 8 = ${l}\nMoving line: sum mod 6 = ${mv}`}};
 const MHT=()=>MH_STR[LANG[S.region]];
 function mhCast(when){
@@ -7342,22 +7348,21 @@ const hexSVG=(lines,mv)=>`<svg class="mhx" viewBox="0 0 60 66" aria-hidden="true
 const hexName=n=>{const h=HEX[n-1];return `${n}. ${h.n}`};
 function openMeihua(){
   const m=MHT(),l=LANG[S.region],today=key(new Date()),c=S.mh&&S.mh.d===today?S.mh:null;
-  layer(`<div class="shead"><h2>☯ ${m.title}</h2>${closeBtn(T())}</div><p class="note">${m.lead}</p>
-${c?"":`<label class="fld">${m.ask}<input id="mhQ" type="text" maxlength="60"></label><div class="row end"><button class="pill pri jelly" type="button" data-mhcast="1">${m.cast}</button></div>`}
-<div id="mhOut">${c?mhHTML(c):""}</div><p class="note">${m.note}</p>`);
-  if(c)bigSheet();
+  layer(`<div class="shead"><h2>☯ ${m.title}</h2>${closeBtn(T())}</div>
+${c?`<div id="mhOut">${mhHTML(c)}</div>`:`<div class="mhstart">${mascot("idle","mhmas")}<p>${m.lead}</p><input id="mhQ" class="mhq" type="text" maxlength="60" placeholder="${esc(m.ask)}"><button class="pill pri jelly" type="button" data-mhcast="1">${m.cast}</button></div>`}`);
 }
 function mhHTML(s){
   const m=MHT(),l=LANG[S.region],c=mhCast(new Date(s.t));if(!c)return "";
-  const h=HEX[c.ben-1],ty=TY[l][c.ty],up=GUA[c.up],lo=GUA[c.lo];
-  const hh=n=>`<div class="mhk"><small>${m[n]}</small><b>${esc(hexName(c[n]))}</b><span>${esc(HEX[c[n]-1][l])}</span></div>`;
-  return `${s.q?`<p class="status">「${esc(s.q)}」</p>`:""}
-<div class="mhtop">${hexSVG(c.lines,c.mv)}<div><b class="mhname">${esc(hexName(c.ben))}</b><span>${up.e}${up.n}（${up.x}）上 ／ ${lo.e}${lo.n}（${lo.x}）下　·　${esc(m.move(c.mv))}</span><em>${esc(h[l])}</em></div>${hexSVG(c.bianL,0)}</div>
-<div class="mhrow">${hh("ben")}${hh("hu")}${hh("bian")}</div>
-<div class="mhci"><small>${m.ci}</small><p>${esc(h.n)}：${esc(h.j)}</p></div>
-<div class="mhty"><small>${m.ty}</small><p><b class="mhlv">${esc(ty[0])}</b>　${esc(ty[1])}</p><p>✅ ${m.todo}：${esc(ty[2])}</p><small class="note">體 ${GUA[c.ti].n}（${GUA[c.ti].w}）・用 ${GUA[c.yong].n}（${GUA[c.yong].w}）</small></div>
-<details class="mhhow"><summary>${m.how}</summary><pre>${esc(m.calc(c.L.y,c.L.m,c.L.d,DZ[c.hIdx],c.Y,c.M,c.D,c.H,c.upR,c.loR,c.mvR))}\n→ ${up.n}${up.e} / ${lo.n}${lo.e}</pre></details>
-<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-mhtodo="1">➕ ${esc(ty[2].slice(0,14))}…</button><button class="pill pri jelly" type="button" data-mhai="1">${m.ai}</button></div><div id="mhAi"></div>`;
+  const h=HEX[c.ben-1],ty=TY[l][c.ty],up=GUA[c.up],lo=GUA[c.lo],good=c.ty==="shengti"||c.ty==="tike"||c.ty==="bihe";
+  return `<div class="mhcard jelly">${s.q?`<small class="mhask">「${esc(s.q)}」</small>`:""}${hexSVG(c.lines,c.mv)}
+<b class="mhname">${esc(h.n)}</b><p class="mhgloss">${esc(h[l])}</p><span class="mhbadge${good?" ok":""}">${esc(ty[0])}</span></div>
+<div class="mhtodo jelly"><p>✅ ${esc(ty[2])}</p><button class="pill pri jelly" type="button" data-mhtodo="1">➕ ${m.addToday}</button></div>
+<details class="mhhow"><summary>${m.more}</summary>
+<p><b>${esc(h.n)}</b>：${esc(h.j)}</p>
+<p class="note">${m.ben} ${esc(hexName(c.ben))} → ${m.hu} ${esc(hexName(c.hu))} → ${m.bian} ${esc(hexName(c.bian))}　·　${esc(m.move(c.mv))}</p>
+<p class="note">${m.ty}：${esc(ty[1])}（體 ${GUA[c.ti].n}${GUA[c.ti].w}・用 ${GUA[c.yong].n}${GUA[c.yong].w}）</p>
+<pre>${esc(m.calc(c.L.y,c.L.m,c.L.d,DZ[c.hIdx],c.Y,c.M,c.D,c.H,c.upR,c.loR,c.mvR))}\n→ ${up.n}${up.e} / ${lo.n}${lo.e}</pre>
+<button class="linkbtn" type="button" data-mhai="1">${m.ai}</button><div id="mhAi"></div><p class="note">${m.note}</p></details>`;
 }
 function mhGo(){const q=(($("mhQ")||{}).value||"").trim(),now=new Date();S.mh={d:key(now),t:now.getTime(),q};save();openMeihua();xpEvent("flow")}
 async function mhAI(){
