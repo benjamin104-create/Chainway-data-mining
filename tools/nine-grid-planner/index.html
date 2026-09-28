@@ -1023,6 +1023,25 @@ html .knob svg{width:22px;height:22px}
 .vpt{flex:1;min-width:0;display:flex;flex-direction:column}.vpt b{font-weight:400;font-size:18px}.vpt i{font-size:11px;color:var(--muted)}.vpt small{font-size:13px}
 .wkind{flex-wrap:wrap}
 
+/* story library */
+.tlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tcard{--r:20px;padding:6px;display:flex;flex-direction:column;gap:6px;text-align:left;overflow:hidden}
+.tscene{width:100%;height:auto;display:block;border-radius:16px}.tscene.sm{border-radius:14px}
+.tact{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.tjelly{animation:mbob 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+.tmeta{display:flex;flex-direction:column;gap:2px;padding:0 6px 6px}.tmeta b{font-weight:400;font-size:14px}.tmeta small{font-size:11px;color:var(--muted)}
+.tnew{align-self:center;margin-top:4px}
+.tlangs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.tlangs::-webkit-scrollbar{display:none}
+.tlangs button{flex:none;font-size:12px;padding:5px 11px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-edge)}
+.tlangs button[aria-pressed="true"],.tvoice button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tpage{position:relative}.tpage .tscene{box-shadow:0 12px 24px -16px var(--shade)}
+.tpn{position:absolute;right:10px;bottom:8px;font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.8);color:#333}
+.ttext{min-height:74px}.ttext p{margin:0;font-size:19px;line-height:1.7}.ttext small{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
+.tctl{display:flex;align-items:center;justify-content:center;gap:8px}
+.tvoice{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.tvoice small{font-size:12px;color:var(--muted)}
+.tvoice button{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-edge)}
+.trec{display:flex;flex-direction:column;gap:4px}.trec small{font-size:11.5px;color:var(--muted)}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1153,6 +1172,7 @@ const OWNER={
   rewards:[{lv:6,name:{zh:"合作夥伴優惠券",ja:"パートナークーポン",en:"Partner coupon"},code:"",url:""}], // 升級獎勵的優惠券：填 code 或領取網址
   proCourses:true,                         // 單字課程第 2 單元起是否為加購；false 就全部免費
   courseStore:"",                          // 單字課程加購頁網址
+  voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -3239,7 +3259,8 @@ function ringFor(card){
   return cells;
 }
 function renderWordFace(){
-  const t=T(),d=deckOf(S.w.deck),rv=reviewList().length,kind=S.pd.kind||(S.pd.on?"pic":"word"),pk=`<div class="mini-seg wkind" role="group"><button type="button" data-wkind="pic" aria-pressed="${kind==="pic"}">🖼 ${PT().kindPic}</button><button type="button" data-wkind="course" aria-pressed="${kind==="course"}">📚 ${VT().courses}</button><button type="button" data-wkind="word" aria-pressed="${kind==="word"}">🌿 ${PT().kindWord}</button></div>`;
+  const t=T(),d=deckOf(S.w.deck),rv=reviewList().length,kind=S.pd.kind||(S.pd.on?"pic":"word"),pk=`<div class="mini-seg wkind" role="group"><button type="button" data-wkind="pic" aria-pressed="${kind==="pic"}">🖼 ${PT().kindPic}</button><button type="button" data-wkind="course" aria-pressed="${kind==="course"}">📚 ${VT().courses}</button><button type="button" data-wkind="story" aria-pressed="${kind==="story"}">📖 ${TT().lib}</button><button type="button" data-wkind="word" aria-pressed="${kind==="word"}">🌿 ${PT().kindWord}</button></div>`;
+  if(kind==="story"){$("face").innerHTML=pk+talesHTML();return}
   if(kind==="course"){$("face").innerHTML=pk+(vcView&&vcView.book?vBookHTML():courseHTML());return}
   if(kind==="pic"){$("face").innerHTML=pk+picHTML();return}
   let h=pk+`<div class="dchips" role="group">${allDecks().map(x=>`<button type="button" data-deck="${x.id}" aria-pressed="${x.id===S.w.deck&&S.w.mode!=="review"}">${esc(x.name)}${isPro(x)?`<i>${t.wPro}</i>`:""}</button>`).join("")}<button type="button" data-wimp="open">${I.upload}${t.wImport}</button></div>
@@ -5779,6 +5800,188 @@ const VC_STR={
     proNote:"Unit 1 is free; later units are an add-on.",noAI:"No AI right now. Learn the built-in units, or import an official list.",genning:"AI is writing the next unit…",genFail:"That didn't work. Try again",
     looking:"Looking it up…",noMeaning:"(connect AI for meanings)",keep:"Save",kept:"Saved",bookEmpty:"Nothing yet. Tap a word in any sentence and press ☆.",savedToast:w=>`Saved “${w}”`}
 };
+
+/* =========================================================
+   故事館: picture books drawn by one scene engine (same pastel style on
+   every page), read in several languages, as an audiobook in a phone
+   voice or in real recorded voices (潔米爸 / 潔米媽 / your own).
+   ========================================================= */
+// scenes: soft gradients and round shapes, the same family as the site
+const SCENE={
+  meadow:`<defs><linearGradient id="skA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFE6FF"/><stop offset="1" stop-color="#EEF9FF"/></linearGradient></defs><rect width="400" height="300" fill="url(#skA)"/><circle cx="340" cy="60" r="30" fill="#FFE08A"/><ellipse cx="90" cy="300" rx="220" ry="110" fill="#A8DB95"/><ellipse cx="330" cy="310" rx="230" ry="120" fill="#8ECF86"/><g fill="#fff" opacity=".85"><circle cx="70" cy="245" r="4"/><circle cx="150" cy="262" r="4"/><circle cx="260" cy="250" r="4"/><circle cx="330" cy="270" r="4"/></g>`,
+  forest:`<rect width="400" height="300" fill="#D9F0E0"/><g fill="#6FB58A"><path d="M40 230l40-110 40 110z"/><path d="M110 240l50-140 50 140z"/><path d="M250 240l45-120 45 120z"/><path d="M320 230l35-95 35 95z"/></g><rect y="225" width="400" height="75" fill="#9CCB84"/>`,
+  desert:`<defs><linearGradient id="skD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD9A0"/><stop offset="1" stop-color="#FFF1D6"/></linearGradient></defs><rect width="400" height="300" fill="url(#skD)"/><circle cx="320" cy="70" r="34" fill="#FFB547"/><ellipse cx="120" cy="300" rx="230" ry="95" fill="#F2C77E"/><ellipse cx="340" cy="305" rx="200" ry="85" fill="#E8B368"/>`,
+  sea:`<rect width="400" height="300" fill="#CDEBFA"/><circle cx="70" cy="60" r="26" fill="#FFE08A"/><rect y="170" width="400" height="90" fill="#6EC6E8"/><path d="M0 180q25-10 50 0t50 0 50 0 50 0 50 0 50 0 50 0 50 0" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/><rect y="255" width="400" height="45" fill="#F6DDA8"/>`,
+  river:`<rect width="400" height="300" fill="#D6F0FF"/><ellipse cx="200" cy="320" rx="330" ry="150" fill="#A8DB95"/><path d="M-10 230q120-40 210 0t220-10v40q-120 30-220 0t-210 10z" fill="#7CCBEA"/>`,
+  night:`<defs><linearGradient id="skN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E3C6E"/><stop offset="1" stop-color="#55679E"/></linearGradient></defs><rect width="400" height="300" fill="url(#skN)"/><circle cx="320" cy="60" r="26" fill="#FFF2B8"/><circle cx="310" cy="52" r="24" fill="#3A4A80"/><g fill="#FFF6C8"><circle cx="60" cy="50" r="2.5"/><circle cx="130" cy="90" r="2"/><circle cx="210" cy="40" r="2.5"/><circle cx="250" cy="110" r="2"/></g><ellipse cx="200" cy="320" rx="320" ry="110" fill="#3E5A6E"/>`,
+  home:`<rect width="400" height="300" fill="#FCE8D6"/><rect x="40" y="40" width="110" height="90" rx="10" fill="#CFEAFB" stroke="#E7C3A2" stroke-width="8"/><path d="M95 40v90M40 85h110" stroke="#E7C3A2" stroke-width="6"/><rect y="220" width="400" height="80" fill="#E9C9A6"/>`,
+  snow:`<rect width="400" height="300" fill="#E3EEF8"/><ellipse cx="200" cy="320" rx="330" ry="130" fill="#fff"/><g fill="#fff"><circle cx="50" cy="60" r="4"/><circle cx="140" cy="30" r="3"/><circle cx="230" cy="80" r="4"/><circle cx="330" cy="40" r="3"/></g>`,
+  city:`<rect width="400" height="300" fill="#DDEFFC"/><g><rect x="20" y="120" width="60" height="120" rx="6" fill="#F6C7B6"/><rect x="90" y="90" width="70" height="150" rx="6" fill="#B9D7F0"/><rect x="250" y="110" width="60" height="130" rx="6" fill="#F8DFA0"/><rect x="320" y="140" width="60" height="100" rx="6" fill="#C9E6C5"/></g><rect y="235" width="400" height="65" fill="#D5D9E0"/>`,
+  village:`<rect width="400" height="300" fill="#D8F1FF"/><ellipse cx="200" cy="330" rx="330" ry="140" fill="#A8DB95"/><g><rect x="60" y="160" width="70" height="60" fill="#FBE3C6"/><path d="M50 165l45-40 45 40z" fill="#E08C6B"/><rect x="270" y="170" width="70" height="55" fill="#FBE3C6"/><path d="M260 175l45-38 45 38z" fill="#8AA6D8"/></g>`
+};
+// a page: scene, actors [emoji, x%, y%, size], jelly [x%, y%, size] (the mascot), text per language
+const P=(bg,actors,jelly,zh,en,ja)=>({bg,actors,jelly,text:{zh,en,ja}});
+const TALES=[
+  {id:"tortoise",f:"🇬🇷",age:1,t:{zh:"龜兔賽跑",en:"The Tortoise and the Hare",ja:"うさぎとかめ"},src:{zh:"伊索寓言",en:"Aesop's Fables",ja:"イソップ物語"},pages:[
+    P("meadow",[["🐢",30,74,58],["🐇",68,72,58]],null,"兔子笑烏龜走得好慢。","The hare laughed at the slow tortoise.","うさぎは のろい かめを わらいました。"),
+    P("meadow",[["🐢",30,74,54],["🐇",48,72,54],["🏁",84,66,52]],null,"他們決定比賽，看誰先到終點。","They decided to race to the finish line.","ふたりは ゴールまで きょうそうする ことに しました。"),
+    P("meadow",[["🐇",78,70,54],["🐢",18,76,48]],null,"兔子一下子就跑得好遠。","The hare ran far ahead in no time.","うさぎは あっというまに とおくまで はしりました。"),
+    P("meadow",[["🌳",70,50,120],["🐇",60,78,48],["💤",76,60,30]],null,"兔子覺得一定會贏，就在樹下睡著了。","Sure he would win, the hare fell asleep under a tree.","うさぎは かつと おもって、きの したで ねむって しまいました。"),
+    P("meadow",[["🐢",52,74,56],["🏁",84,66,52]],null,"烏龜一步一步，一直沒有停。","Step by step, the tortoise never stopped.","かめは いっぽ いっぽ、やすまず すすみました。"),
+    P("meadow",[["🐢",76,72,60],["🏁",88,62,50],["🎉",56,34,48],["🐇",18,78,36]],null,"烏龜贏了！慢慢來，只要不放棄就好。","The tortoise won! Slow and steady wins the race.","かめの かち！ゆっくりでも、あきらめなければ だいじょうぶ。")]},
+  {id:"pigs",f:"🇬🇧",age:1,t:{zh:"三隻小豬",en:"The Three Little Pigs",ja:"三びきのこぶた"},src:{zh:"英國民間故事",en:"English folk tale",ja:"イギリスの昔話"},pages:[
+    P("village",[["🐷",30,76,48],["🐷",48,78,48],["🐷",66,76,48]],null,"三隻小豬要各自蓋房子。","Three little pigs each built a house.","三びきの こぶたが それぞれ いえを たてました。"),
+    P("meadow",[["🐷",28,76,46],["🌾",44,70,50],["🐷",62,76,46],["🪵",78,72,46]],null,"老大用稻草，老二用木頭，很快就蓋好了。","One used straw, one used sticks, and they finished fast.","ひとりは わら、ひとりは きで、すぐに たてました。"),
+    P("village",[["🐷",40,78,48],["🧱",62,74,56]],null,"老三用磚頭，慢慢蓋得很牢固。","The third pig used bricks and built slowly and strongly.","三びきめは レンガで、じっくり じょうぶに たてました。"),
+    P("forest",[["🐺",32,72,60],["💨",54,64,46],["🌾",76,74,40],["🪵",86,78,34]],null,"大野狼來了，一吹就把草屋和木屋吹倒了！","The big bad wolf came and blew down the straw and stick houses!","おおかみが きて、わらの いえと きの いえを ふきとばしました！"),
+    P("home",[["🐷",36,76,44],["🐷",52,78,44],["🐷",68,76,44],["🐺",90,64,34]],null,"小豬們躲進磚頭屋，大野狼怎麼吹都吹不倒。","The pigs hid in the brick house. The wolf huffed and puffed, but it stood.","こぶたたちは レンガの いえへ。おおかみが ふいても びくとも しません。"),
+    P("home",[["🐷",36,76,46],["🐷",52,78,46],["🐷",68,76,46],["🎉",52,34,46]],null,"用心做好一件事，就能保護自己和家人。","Doing a job carefully keeps you and your family safe.","ていねいに つくれば、じぶんも かぞくも まもれるね。")]},
+  {id:"momotaro",f:"🇯🇵",age:1,t:{zh:"桃太郎",en:"Momotaro, the Peach Boy",ja:"ももたろう"},src:{zh:"日本民間故事",en:"Japanese folk tale",ja:"日本の昔話"},pages:[
+    P("river",[["🍑",52,70,70],["👵",26,68,56]],null,"老奶奶在河邊撿到一顆好大的桃子。","An old woman found a huge peach by the river.","おばあさんが かわで おおきな ももを ひろいました。"),
+    P("home",[["👶",50,70,56],["🍑",50,52,40],["👴",24,72,50],["👵",76,72,50]],null,"桃子裡跑出一個男孩，大家叫他桃太郎。","A baby boy came out of it. They named him Momotaro.","ももから おとこのこが うまれ、ももたろうと なづけました。"),
+    P("meadow",[["🧒",40,72,60],["🍡",60,64,40]],null,"長大的桃太郎帶著糯米糰子出發了。","Grown up, Momotaro set off with rice dumplings.","おおきく なった ももたろうは きびだんごを もって しゅっぱつ。"),
+    P("forest",[["🧒",22,74,52],["🐕",42,78,42],["🐒",60,76,42],["🐦",78,62,38]],null,"他把糰子分給小狗、猴子和雉雞，大家成了夥伴。","He shared dumplings with a dog, a monkey and a pheasant, and they became a team.","いぬ、さる、きじに だんごを あげて、なかまに なりました。"),
+    P("sea",[["🏝️",78,60,56],["👹",80,44,40],["🧒",24,56,44],["🐕",36,60,32],["🐒",46,60,32],["🐦",56,48,28]],null,"大家一起到鬼島，同心協力打敗了鬼。","Together they sailed to Ogre Island and won as a team.","みんなで おにがしまへ。ちからを あわせて おにを たおしました。"),
+    P("village",[["🧒",46,76,50],["💰",62,78,36],["👴",24,76,44],["👵",80,76,44],["🎉",50,34,44]],null,"桃太郎帶著寶物回家，大家開心地慶祝。","Momotaro came home with treasure, and everyone celebrated.","ももたろうは たからものを もって かえり、みんなで おいわいしました。")]},
+  {id:"tiger",f:"🇹🇼",age:2,t:{zh:"虎姑婆",en:"Grandaunt Tiger",ja:"トラおばさん"},src:{zh:"台灣民間故事",en:"Taiwanese folk tale",ja:"台湾の昔話"},pages:[
+    P("night",[["🏠",50,64,90],["👧",36,82,40],["👦",62,82,36]],null,"爸媽出門了，姊弟倆留在家裡。","Mom and Dad went out, leaving a sister and brother at home.","おとうさんと おかあさんが でかけて、きょうだいで るすばん。"),
+    P("night",[["🏠",30,64,80],["🐯",70,72,60],["🧣",70,56,30]],null,"半夜，虎姑婆假裝成姑婆來敲門。","At midnight, Grandaunt Tiger knocked, pretending to be their auntie.","よなか、トラおばさんが おばさんの ふりを して やってきました。"),
+    P("home",[["🐯",64,74,60],["👧",30,74,48],["❗",30,54,30]],null,"姊姊發現她有尾巴，知道她是老虎！","The sister spotted a tail and knew it was a tiger!","おねえちゃんは しっぽに きづき、トラだと わかりました！"),
+    P("night",[["🌳",56,54,130],["👧",58,40,34],["🐯",40,80,44]],null,"姊姊說要上廁所，趁機爬到樹上。","Saying she needed the toilet, the sister climbed a tree.","おねえちゃんは トイレと いって、きに のぼりました。"),
+    P("night",[["🌳",56,54,130],["👧",58,40,34],["💦",48,56,30],["🐯",22,80,40],["💨",10,76,30]],null,"她倒下熱水，虎姑婆嚇得逃走了。","She poured down hot water, and the tiger ran off in fright.","あつい おゆを かけると、トラは にげて いきました。"),
+    P("home",[["👧",36,74,44],["👦",50,76,40],["👨",68,72,50],["👩",82,72,50]],null,"爸媽回來了。冷靜又聰明，就能保護自己。","Mom and Dad came home. Staying calm and clever keeps you safe.","りょうしんが かえって きました。おちついて かんがえれば、じぶんを まもれるね。")]},
+  {id:"jelly-egypt",f:"🍮",age:1,adv:1,t:{zh:"小潔米去埃及",en:"Little Jelly in Egypt",ja:"ゼリー、エジプトへ"},src:{zh:"小潔米歷險記",en:"Little Jelly's Adventures",ja:"ゼリーの大冒険"},pages:[
+    P("home",[["🗺️",68,60,60]],[36,72,44],"小潔米打開地圖：「今天去埃及！」","Little Jelly opened a map: “Today, Egypt!”","ゼリーは ちずを ひらいて「きょうは エジプト！」"),
+    P("desert",[["🐪",52,70,78]],[48,48,30],"沙漠好熱，小潔米坐上駱駝。","The desert was hot, so Little Jelly rode a camel.","さばくは あつい。ゼリーは ラクダに のりました。"),
+    P("desert",[["🔺",62,58,110],["🔺",84,64,70]],[26,76,36],"哇！好大的金字塔！","Wow! What a huge pyramid!","わあ！おおきな ピラミッド！"),
+    P("desert",[["🦁",64,64,80]],[28,76,34],"人面獅身像好像在對小潔米微笑。","The Sphinx seemed to smile at Little Jelly.","スフィンクスが ゼリーに ほほえんだ みたい。"),
+    P("river",[["⛵",56,66,60]],[56,58,24],"小潔米坐船遊尼羅河，看夕陽慢慢落下。","Little Jelly sailed on the Nile River and watched the sunset.","ナイル川を ふねで すすみ、ゆうひを ながめました。"),
+    P("night",[["⭐",70,30,36],["🔺",78,70,60]],[36,74,40],"晚安，埃及！下一站要去哪裡呢？","Good night, Egypt! Where shall we go next?","おやすみ、エジプト！つぎは どこへ いこう？")]},
+  {id:"jelly-paris",f:"🍮",age:2,adv:1,t:{zh:"小潔米在巴黎",en:"Little Jelly in Paris",ja:"ゼリー、パリへ"},src:{zh:"小潔米歷險記",en:"Little Jelly's Adventures",ja:"ゼリーの大冒険"},pages:[
+    P("city",[["🗼",66,52,120]],[28,76,36],"小潔米來到法國巴黎，看見艾菲爾鐵塔。","Little Jelly arrived in Paris and saw the Eiffel Tower.","ゼリーは パリで エッフェル塔を みつけました。"),
+    P("home",[["🥖",62,70,60],["🥐",80,74,46]],[32,72,40],"早餐是剛出爐的法國麵包和可頌。","Breakfast was a fresh baguette and a croissant.","あさごはんは やきたての バゲットと クロワッサン。"),
+    P("city",[["🏛️",62,60,110]],[26,78,32],"在羅浮宮裡，大家排隊看蒙娜麗莎。","In the Louvre, everyone lined up to see the Mona Lisa.","ルーブル美術館で、みんなが モナ・リザを みに ならんで います。"),
+    P("home",[["🖼️",60,46,90]],[26,76,34],"她的微笑好神秘，是達文西畫的喔。","Her smile is a mystery. Leonardo da Vinci painted it.","ふしぎな ほほえみ。レオナルド・ダ・ヴィンチが かいたんだよ。"),
+    P("meadow",[["🏰",66,58,100],["🌷",40,82,30],["🌷",84,84,30]],[24,76,34],"小潔米又去了凡爾賽宮，花園大得像迷宮。","Then Little Jelly visited Versailles. The garden was like a maze.","ベルサイユ宮殿へ。おにわは まるで めいろ！"),
+    P("night",[["🗼",64,52,120],["✨",70,24,40]],[26,78,36],"晚上鐵塔閃閃發光。再見，巴黎！","At night the tower sparkled. Goodbye, Paris!","よるの タワーは キラキラ。さようなら、パリ！")]}
+];
+S.tales=S.tales||{};   // AI-made adventures live here too
+const allTales=()=>[...TALES,...(S.tales.mine||[])];
+const TL_LANGS=[{k:"zh",lbl:"中文"},{k:"en",lbl:"English"},{k:"ja",lbl:"日本語"},{k:"tw",lbl:"台語",ai:1},{k:"ko",lbl:"한국어",ai:1},{k:"es",lbl:"Español",ai:1}];
+const TL_VOICE={zh:"zh-TW",en:"en-US",ja:"ja-JP",tw:"nan-TW",ko:"ko-KR",es:"es-ES"};
+function sceneSVG(pg,small){
+  const J=esc(OWNER.mascotImg||JELLY);
+  return `<svg class="tscene${small?" sm":""}" viewBox="0 0 400 300" aria-hidden="true">${SCENE[pg.bg]||SCENE.meadow}
+${pg.actors.map(([e,x,y,s])=>e==="🔺"?`<g transform="translate(${x*4} ${y*3}) scale(${s/100})"><path d="M-50 40L0-45 50 40z" fill="#E9BC66"/><path d="M0-45L50 40H8z" fill="#D39A45"/><path d="M-32 10h40M-18-14h26M-42 28h60" stroke="#C88A3A" stroke-width="2" opacity=".6"/></g>`:`<text x="${x*4}" y="${y*3}" font-size="${s}" text-anchor="middle" dominant-baseline="central" class="tact">${esc(e)}</text>`).join("")}
+${pg.jelly?`<image href="${J}" x="${pg.jelly[0]*4-pg.jelly[2]}" y="${pg.jelly[1]*3-pg.jelly[2]}" width="${pg.jelly[2]*2}" height="${pg.jelly[2]*2}" class="tjelly"/>`:""}</svg>`}
+let tl=null;   // {id, page, lang, playing}
+const TT=()=>TL_STR[LANG[S.region]];
+function talesHTML(){
+  const t=TT(),age=S.pd.age||3,list=allTales().filter(x=>(x.age||1)<=age),nl=LANG[S.region];
+  return `<div class="bar"><span class="note">${t.pick}</span><span class="grow"></span><div class="mini-seg pages" role="group">${[1,2,3].map(a=>`<button type="button" data-page="${a}" aria-pressed="${age===a}">${PT().ages[a-1]}</button>`).join("")}</div></div>
+<div class="tlist">${list.map(x=>`<button type="button" class="tcard jelly" data-tl="${x.id}">${sceneSVG(x.pages[0],1)}<span class="tmeta"><b>${x.f} ${esc(x.t[nl]||x.t.zh)}</b><small>${esc(x.src[nl]||x.src.zh)} · ${PT().ages[(x.age||1)-1]}</small></span></button>`).join("")}</div>
+<button type="button" class="pill pri jelly tnew" data-tlnew="1">✨ ${t.newAdv}</button>`;
+}
+// the reader: one page at a time, in the chosen language and voice
+function tlText(T0,p,lang){if(T0.pages[p].text[lang])return T0.pages[p].text[lang];const tr=(S.tales.tr||{})[T0.id+"|"+lang];return tr&&tr[p]?tr[p]:null}
+function openTale(id,page){
+  const T0=allTales().find(x=>x.id===id);if(!T0)return;const t=TT(),nl=LANG[S.region];
+  tl=tl&&tl.id===id?tl:{id,page:0,lang:S.tales.lang||(S.pd&&["en","ja","zh"].includes(S.pd.lang)?S.pd.lang:nl),voice:S.tales.voice||"tts",playing:false};
+  if(page!=null)tl.page=page;const p=tl.page,pg=T0.pages[p],txt=tlText(T0,p,tl.lang),sub=tl.lang!==nl?(pg.text[nl]||""):"";
+  const vs=[["tts","🤖 "+t.vTTS],["dad","👨 潔米爸"],["mom","👩 潔米媽"],["mine","🎙 "+t.vMine]];
+  layer(`<div class="shead"><h2>${T0.f} ${esc(T0.t[nl]||T0.t.zh)}</h2>${closeBtn(T())}</div>
+<div class="tlangs">${TL_LANGS.map(L=>`<button type="button" data-tllang="${L.k}" aria-pressed="${tl.lang===L.k}">${L.lbl}${L.ai&&!(S.tales.tr||{})[id+"|"+L.k]?" ✨":""}</button>`).join("")}</div>
+<div class="tpage">${sceneSVG(pg)}<div class="tpn">${p+1} / ${T0.pages.length}</div></div>
+<div class="ttext" lang="${tl.lang==="tw"?"nan":tl.lang}">${txt==null?`<p class="note">${t.needTr}</p><button class="pill pri jelly" type="button" data-tltr="1">✨ ${t.translate}</button>`:`<p>${tl.lang==="en"?vSent(txt):tlMark(txt,tl.lang)}</p>${sub?`<small>${esc(sub)}</small>`:""}`}</div>
+<div class="tctl"><button class="round jelly" type="button" data-tlgo="-1"${p?"":" disabled"}>‹</button><button class="pill jelly" type="button" data-tlread="1">🔊 ${t.read}</button><button class="pill pri jelly" type="button" data-tlplay="1">${tl.playing?"❚❚ "+t.stop:"▶ "+t.play}</button><button class="round jelly" type="button" data-tlgo="1"${p<T0.pages.length-1?"":" disabled"}>›</button></div>
+<div class="tvoice"><small>${t.voice}</small>${vs.map(([k,l])=>`<button type="button" data-tlvoice="${k}" aria-pressed="${tl.voice===k}">${l}${k!=="tts"&&tlHasRec(k)?" •":""}</button>`).join("")}</div>
+${tl.voice!=="tts"?`<div class="trec"><button class="pill jelly" type="button" data-tlrec="1">${tlRecording?"⏹ "+t.recStop:"🎙 "+t.rec(vs.find(v=>v[0]===tl.voice)[1])}</button><small>${recHint(tl.voice)}</small></div>`:""}`,true);
+}
+// highlight picture-card words in Chinese / Japanese text so they can be tapped
+function tlMark(txt,lang){let h=esc(txt);if(!["zh","ja","tw"].includes(lang))return h;
+  const words=[...new Set(pRootsAll().flatMap(r=>r.subs.flatMap(s=>s.c)).map(x=>lang==="ja"?x.ja:lang==="tw"?x.tw:x.zh).filter(w=>w&&w.length>=2))].sort((a,b)=>b.length-a.length).slice(0,400);
+  const hit=[];words.forEach(w=>{if(h.includes(w)&&!hit.some(x=>x.includes(w)))hit.push(w)});
+  hit.slice(0,6).forEach((w,i)=>{h=h.split(w).join(`\u0001${i}\u0002`)});
+  hit.slice(0,6).forEach((w,i)=>{h=h.split(`\u0001${i}\u0002`).join(`<button type="button" class="sw" data-sw="${esc(w)}">${esc(w)}</button>`)});
+  return h}
+function recHint(v){const t=TT();return v==="mine"?t.recMine:OWNER.voices&&OWNER.voices[v]?t.recOfficial:t.recOwner}
+// voices: an official recording (OWNER.voices), a recording on this device, or the phone's voice
+const tlKey=(v,p)=>`${tl.id}|${tl.lang}|${p}|${v}`;
+let tlRecs={},tlRecording=null;
+function tlHasRec(v){return !!(tlRecs[tlKey(v,tl.page)]||tlOfficial(v,tl.page))}
+function tlOfficial(v,p){const m=OWNER.voices&&OWNER.voices[v];return m&&m[`${tl.id}/${tl.lang}/${p+1}`]||""}
+function tlSpeak(p,done){
+  const T0=allTales().find(x=>x.id===tl.id),txt=tlText(T0,p,tl.lang);if(!txt){done&&done();return}
+  const url=tl.voice!=="tts"&&(tlOfficial(tl.voice,p)||(tlRecs[tlKey(tl.voice,p)]&&URL.createObjectURL(tlRecs[tlKey(tl.voice,p)])));
+  if(url){const a=new Audio(url);tl.audio=a;a.onended=()=>done&&done();a.onerror=()=>done&&done();a.play().catch(()=>done&&done());return}
+  if(!canSpeak()){done&&done();return}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang=TL_VOICE[tl.lang]||"en-US";u.rate=.9;const vs=speechSynthesis.getVoices(),v=vs.find(x=>x.lang===u.lang)||vs.find(x=>x.lang&&x.lang.slice(0,2)===u.lang.slice(0,2));if(v)u.voice=v;
+    u.onend=()=>done&&done();u.onerror=()=>done&&done();speechSynthesis.speak(u)}catch(e){done&&done()}
+}
+function tlStop(){if(!tl)return;tl.playing=false;try{speechSynthesis.cancel()}catch(e){}if(tl.audio){tl.audio.pause();tl.audio=null}}
+function tlPlay(){const T0=allTales().find(x=>x.id===tl.id);tl.playing=true;openTale(tl.id);
+  const step=()=>{if(!tl||!tl.playing)return;if(!document.querySelector(".tpage")){tlStop();return}tlSpeak(tl.page,()=>{if(!tl||!tl.playing)return;if(tl.page<T0.pages.length-1){setTimeout(()=>{if(!tl||!tl.playing)return;tl.page++;openTale(tl.id);step()},900)}else{tl.playing=false;openTale(tl.id)}})};step()}
+// recordings stay on this device (IndexedDB); official voices are hosted files listed in OWNER.voices
+const idb=()=>new Promise((res,rej)=>{try{const r=indexedDB.open("ng-voice",1);r.onupgradeneeded=()=>r.result.createObjectStore("rec");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
+async function idbPut(k,v){const db=await idb();return new Promise(r=>{const tx=db.transaction("rec","readwrite");tx.objectStore("rec").put(v,k);tx.oncomplete=()=>r(true);tx.onerror=()=>r(false)})}
+async function idbLoadAll(){try{const db=await idb();return await new Promise(r=>{const out={},tx=db.transaction("rec"),st=tx.objectStore("rec"),c=st.openCursor();c.onsuccess=()=>{const cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue()}else r(out)};c.onerror=()=>r(out)})}catch(e){return {}}}
+idbLoadAll().then(r=>{tlRecs=r});
+async function tlRecToggle(){
+  const t=TT();
+  if(tlRecording){tlRecording.stop();return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});const mr=new MediaRecorder(stream),chunks=[],k=tlKey(tl.voice,tl.page);
+    mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=async()=>{stream.getTracks().forEach(x=>x.stop());const blob=new Blob(chunks,{type:mr.mimeType||"audio/webm"});tlRecs[k]=blob;await idbPut(k,blob);tlRecording=null;toast(t.recSaved);openTale(tl.id)};
+    tlRecording=mr;mr.start();openTale(tl.id);
+  }catch(e){toast(t.recNo)}
+}
+// translate a whole book into another language, once, then keep it
+async function tlTranslate(){
+  const t=TT(),T0=allTales().find(x=>x.id===tl.id);await aiReady;if(!AI){toast(t.noAI);return}
+  toast(t.translating);const name={tw:"Taiwanese Hokkien written in Han characters (common everyday words, as read to children in Taiwan)",ko:"Korean",es:"Spanish"}[tl.lang]||tl.lang;
+  try{const r=await AI.json(`Translate each page of this children's story into ${name}. Keep it simple and warm for young children, one or two short sentences per page, same meaning.
+Pages (English): ${JSON.stringify(T0.pages.map(p=>p.text.en))}
+Reply ONLY JSON {"pages":["page 1","page 2", ...]} with exactly ${T0.pages.length} items.`,{modelTier:"default",cache:false});
+    const pages=(Array.isArray(r.pages)?r.pages:[]).map(x=>String(x).slice(0,200));if(pages.length!==T0.pages.length)throw new Error("n");
+    S.tales.tr=S.tales.tr||{};S.tales.tr[T0.id+"|"+tl.lang]=pages;save();openTale(tl.id);
+  }catch(e){toast(e&&e.code?aiErrText(e):t.trFail)}
+}
+// a new Little Jelly adventure, drawn with the same scenes so the style never changes
+function openNewAdv(){const t=TT(),T0=T(),l=LANG[S.region],countries=(PROOTS.find(r=>r.k==="world")||{subs:[]}).subs;
+  layer(`<div class="shead"><h2>✨ ${t.newAdv}</h2>${closeBtn(T0)}</div><p class="note">${t.advHow}</p>
+<div class="qchips">${countries.map(c=>`<button type="button" data-advc="${c.k}" aria-pressed="${S.tales.advc===c.k}">${esc(c.n[l])}</button>`).join("")}</div>
+<label class="fld">${t.advIdea}<input id="advIdea" type="text" maxlength="80" placeholder="${esc(t.advPh)}"></label>
+<div class="row end"><button class="pill pri jelly" type="button" data-advgo="1">${t.advGo}</button></div><div id="advOut"></div>`,true)}
+async function advGo(){
+  const t=TT(),out=$("advOut"),c=(PROOTS.find(r=>r.k==="world")||{subs:[]}).subs.find(x=>x.k===S.tales.advc);if(!c){toast(t.pickCountry);return}
+  await aiReady;if(!AI){out.innerHTML=`<p class="note">${t.noAI}</p>`;return}
+  out.innerHTML=`<div class="crwait">${mascot("wave","crmas")}<span>${t.advMaking}</span></div>`;
+  const words=c.c.filter(x=>(x.lv||1)<=(S.pd.age||3)).map(x=>`${x.e} ${x.en}`).join(", "),idea=$("advIdea").value.trim();
+  try{const r=await AI.json(`Write a 6-page picture-book adventure of "Little Jelly" (小潔米), a cheerful orange jelly with two small arms and four little feet, visiting ${c.n.en}. Audience: ${AGE_NOTE[S.pd.age||3]}. ${idea?"Idea from the reader: "+idea+".":""}
+Use some of these words: ${words}.
+For each page choose a background from exactly: ${Object.keys(SCENE).join(", ")}; up to 3 props as single emoji with position x,y in percent (x 10-90, y 30-85) and size 30-110; and Little Jelly's position [x,y,size 24-44].
+Reply ONLY JSON {"title":{"zh":"","en":"","ja":""},"pages":[{"bg":"desert","actors":[["🐪",60,70,70]],"jelly":[30,75,36],"text":{"zh":"one or two short sentences","en":"","ja":"simple Japanese with kana"}}]}`,{modelTier:"default",cache:false});
+    const pages=(Array.isArray(r.pages)?r.pages:[]).slice(0,8).map(p=>({bg:SCENE[p.bg]?p.bg:"meadow",actors:(Array.isArray(p.actors)?p.actors:[]).slice(0,3).map(a=>[String(a[0]||"⭐").slice(0,4),Math.max(8,Math.min(92,+a[1]||50)),Math.max(25,Math.min(88,+a[2]||70)),Math.max(24,Math.min(120,+a[3]||60))]),jelly:Array.isArray(p.jelly)?[Math.max(8,Math.min(92,+p.jelly[0]||30)),Math.max(30,Math.min(85,+p.jelly[1]||75)),Math.max(20,Math.min(48,+p.jelly[2]||36))]:[30,75,36],text:{zh:String(p.text&&p.text.zh||"").slice(0,120),en:String(p.text&&p.text.en||"").slice(0,160),ja:String(p.text&&p.text.ja||"").slice(0,120)}})).filter(p=>p.text.zh||p.text.en);
+    if(pages.length<3)throw new Error("few");
+    const id="adv-"+uid();S.tales.mine=(S.tales.mine||[]).concat([{id,f:"🍮",age:S.pd.age||1,adv:1,t:{zh:String(r.title&&r.title.zh||"小潔米歷險").slice(0,30),en:String(r.title&&r.title.en||"Little Jelly").slice(0,40),ja:String(r.title&&r.title.ja||"ゼリーの冒険").slice(0,30)},src:{zh:"AI・小潔米歷險記",en:"AI · Little Jelly's Adventures",ja:"AI・ゼリーの大冒険"},pages}]);save();
+    tl=null;openTale(id,0);
+  }catch(e){out.innerHTML=`<p class="note">${esc(e&&e.code?aiErrText(e):t.advFail)}</p>`}
+}
+const TL_STR={
+  zh:{lib:"故事館",pick:"選一本書",newAdv:"AI 編一個小潔米歷險",vTTS:"手機語音",vMine:"我的聲音",voice:"誰來唸：",read:"唸這頁",play:"有聲書",stop:"停止",needTr:"這本書還沒有這個語言的版本。",translate:"AI 翻譯整本",translating:"AI 翻譯中…",trFail:"翻譯沒成功，再試一次",noAI:"現在沒有 AI。",
+    rec:v=>`錄這一頁（${v}）`,recStop:"停止錄音",recSaved:"錄好了！再按「唸這頁」聽聽看",recNo:"這裡不能錄音（預覽頁沒有麥克風權限），請在正式網站或安裝版使用。",
+    recMine:"爸媽可以錄自己的聲音唸給孩子聽，只存在這台手機。",recOwner:"還沒有正式錄音。站長可以在這裡試錄，正式版的錄音檔要放上網站才會給所有人聽。",recOfficial:"這是正式錄音。",
+    advHow:"選一個國家，AI 會寫一本 6 頁的小潔米歷險，圖用同一套畫風自動排好。",advIdea:"想加什麼劇情？（選填）",advPh:"例如：小潔米迷路了，被駱駝救了",advGo:"開始編故事",advMaking:"小潔米正在收行李…",advFail:"這次沒編好，再試一次",pickCountry:"先選一個國家"},
+  ja:{lib:"おはなし館",pick:"本を選ぼう",newAdv:"AI でゼリーの冒険をつくる",vTTS:"端末の声",vMine:"自分の声",voice:"読み手：",read:"このページ",play:"オーディオブック",stop:"停止",needTr:"この言語版はまだありません。",translate:"AI で全ページ翻訳",translating:"翻訳中…",trFail:"翻訳できませんでした",noAI:"今は AI が使えません。",
+    rec:v=>`このページを録音（${v}）`,recStop:"録音停止",recSaved:"録音しました！",recNo:"ここでは録音できません（プレビューにはマイク権限がありません）。",
+    recMine:"親の声で読み聞かせを録音できます。この端末だけに保存。",recOwner:"まだ公式録音はありません。公開版の音声は、サイトに置くと全員が聴けます。",recOfficial:"公式録音です。",
+    advHow:"国を選ぶと、AI が 6 ページのゼリーの冒険を書き、同じ画風で絵を組み立てます。",advIdea:"入れたいお話は？（任意）",advPh:"例：迷子になってラクダに助けられる",advGo:"お話をつくる",advMaking:"ゼリーが荷造り中…",advFail:"うまくできませんでした",pickCountry:"国を選んでね"},
+  en:{lib:"Story library",pick:"Pick a book",newAdv:"AI: a new Little Jelly adventure",vTTS:"Phone voice",vMine:"My voice",voice:"Read by:",read:"Read page",play:"Audiobook",stop:"Stop",needTr:"No version in this language yet.",translate:"Translate the book with AI",translating:"Translating…",trFail:"Translation failed. Try again",noAI:"No AI right now.",
+    rec:v=>`Record this page (${v})`,recStop:"Stop recording",recSaved:"Recorded! Tap Read page to hear it",recNo:"Recording isn't available here (the preview has no microphone). Use the app link.",
+    recMine:"Parents can record their own voice for their child; it stays on this phone.",recOwner:"No official recording yet. Official voice files go on the website for everyone.",recOfficial:"Official recording.",
+    advHow:"Pick a country; AI writes a 6-page Little Jelly adventure, drawn with the same scenes and style.",advIdea:"Any plot idea? (optional)",advPh:"e.g. Little Jelly gets lost and a camel helps",advGo:"Write the story",advMaking:"Little Jelly is packing…",advFail:"That didn't work. Try again",pickCountry:"Pick a country first"}
+};
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -5917,7 +6120,18 @@ document.addEventListener("click",e=>{
     if(S.pd.mode==="review"&&pmk.dataset.pmark==="known")render();else picNav(1)}return}
   const pag=el.closest("[data-page]");if(pag){S.pd.age=+pag.dataset.page;S.pd.idx=0;pview=null;ptrail=[];pg=null;PBANK=null;save();render();return}
   if(el.closest("[data-pstory]")){pStory();return}
-  const psw=el.closest("[data-sw]");if(psw){sayIn(psw.dataset.sw,S.pd.lang);return}
+  const psw=el.closest("[data-sw]");if(psw){sayIn(psw.dataset.sw,(tl&&document.querySelector(".tpage"))?tl.lang:S.pd.lang);return}
+  const tlo=el.closest("[data-tl]");if(tlo){tl=null;openTale(tlo.dataset.tl,0);return}
+  if(el.closest("[data-tlnew]")){openNewAdv();return}
+  const tll=el.closest("[data-tllang]");if(tll){tlStop();tl.lang=tll.dataset.tllang;S.tales.lang=tl.lang;save();openTale(tl.id);return}
+  if(el.closest("[data-tltr]")){tlTranslate();return}
+  const tlg=el.closest("[data-tlgo]");if(tlg){tlStop();tl.page+=+tlg.dataset.tlgo;openTale(tl.id);return}
+  if(el.closest("[data-tlread]")){tlStop();tlSpeak(tl.page);return}
+  if(el.closest("[data-tlplay]")){if(tl.playing){tlStop();openTale(tl.id)}else tlPlay();return}
+  const tlv=el.closest("[data-tlvoice]");if(tlv){tlStop();tl.voice=tlv.dataset.tlvoice;S.tales.voice=tl.voice;save();openTale(tl.id);return}
+  if(el.closest("[data-tlrec]")){tlRecToggle();return}
+  const adc=el.closest("[data-advc]");if(adc){S.tales.advc=adc.dataset.advc;document.querySelectorAll("[data-advc]").forEach(b=>b.setAttribute("aria-pressed",b===adc));save();return}
+  if(el.closest("[data-advgo]")){advGo();return}
   const sln=el.closest("[data-sline]");if(sln&&S.pd.lastStory){sayIn(plain(S.pd.lastStory.lines[+sln.dataset.sline].t),S.pd.lang);return}
   if(el.closest("[data-sread]")&&S.pd.lastStory){sayIn(S.pd.lastStory.lines.map(z=>plain(z.t)).join(" "),S.pd.lang);return}
   if(el.closest("[data-pex]")){picExample();return}
