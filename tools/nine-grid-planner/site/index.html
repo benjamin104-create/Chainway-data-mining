@@ -1112,6 +1112,25 @@ html .knob svg{width:22px;height:22px}
 .phmeta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}.phmeta select{font:inherit;font-size:14px;border-radius:10px;border:1px solid var(--chip-edge);background:var(--card,#fff);color:var(--ink);padding:4px 6px}
 @media (max-width:520px){.center .ctitle>svg:first-child{display:none}.center .ctitle{white-space:nowrap}}
 .ctitle .lbtn+.lbtn{margin-left:4px}.pill[data-photo] svg{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
+/* looks: plain, painting, and two game-window styles */
+:root.sk-plain{--art-op:0;--tint-a:12%}
+.ch .dn{white-space:nowrap}
+:root.sk-art{--art-op:1;--g1:rgba(255,255,255,.66);--g2:rgba(255,255,255,.34)}
+.artcap{position:fixed;top:calc(4px + env(safe-area-inset-top,0px));right:8px;z-index:5;font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.sk-fant{--g1:rgba(56,78,196,.94);--g2:rgba(12,22,100,.96);--edge:#E8ECF8;--hl:rgba(255,255,255,.16);--chip:rgba(255,255,255,.10);--chip-edge:rgba(255,255,255,.24);--line:rgba(255,255,255,.2);--tint-a:0%;--ink:#FFFFFF;--muted:#C9D2F2;--shade:rgba(0,0,20,.6);--art-op:1;--on-accent:#101838}
+:root.sk-fant .jelly,:root.sk-fant .sheet{--g1:rgba(56,78,196,.94);--g2:rgba(12,22,100,.96);border:2px solid #E8ECF8;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(130,150,235,.9),0 8px 18px -8px rgba(0,0,30,.7);text-shadow:1px 1px 0 rgba(0,0,40,.55)}
+:root.sk-quest{--g1:rgba(0,0,0,.93);--g2:rgba(0,0,0,.93);--edge:#FFFFFF;--hl:transparent;--chip:rgba(255,255,255,.07);--chip-edge:rgba(255,255,255,.4);--line:rgba(255,255,255,.3);--tint-a:0%;--ink:#FFFFFF;--muted:#D6D6D6;--shade:rgba(0,0,0,.7);--art-op:1;--on-accent:#000;
+  --f-ui:"DotGothic16","Huninn","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--f-num:"DotGothic16","Nunito",system-ui,sans-serif}
+:root.sk-quest .jelly,:root.sk-quest .sheet{--g1:rgba(0,0,0,.93);--g2:rgba(0,0,0,.93);border:3px solid #FFFFFF;border-radius:8px;box-shadow:0 0 0 2px #000,0 6px 12px -4px rgba(0,0,0,.6)}
+:root.sk-fant .jelly,:root.sk-quest .jelly,:root.sk-fant .sheet,:root.sk-quest .sheet{-webkit-backdrop-filter:none;backdrop-filter:none}
+:root.sk-fant .jelly::before,:root.sk-quest .jelly::before{display:none}
+:root.sk-fant .round.jelly,:root.sk-quest .round.jelly{border-radius:50%}
+:root.sk-fant .pill.jelly,:root.sk-quest .pill.jelly{border-radius:10px}
+:root.sk-fant .pill.pri,:root.sk-quest .pill.pri{background:var(--accent);color:var(--on-accent);text-shadow:none}
+:root.sk-fant .pill.jelly:hover::after,:root.sk-quest .pill.jelly:hover::after,:root.sk-fant .pill.jelly:focus-visible::after,:root.sk-quest .pill.jelly:focus-visible::after{content:"▶";position:absolute;left:-15px;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+:root.sk-fant .chip,:root.sk-quest .chip{box-shadow:none}
+.swwin{border:2px solid #fff;box-shadow:inset 0 0 0 1px #7F93E6}.sw-quest{border:3px solid #fff;box-shadow:0 0 0 1px #000}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1280,7 +1299,7 @@ const STR={
     left:n=>n?`還有 ${n} 件待辦還沒排到哪一天。`:"",
     remTitle:"時間到了",remDone:"完成了",remSnooze:"晚 10 分鐘",
     remSpeak:(t,x)=>`${t}，該做「${x}」了。`,
-    look:"外觀",skins:{jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"外觀",skins:{white:"標準白",black:"標準黑",art:"世界名畫",fant:"奇幻水晶 RPG",quest:"勇者冒險 RPG",jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"上傳桌布",wallRemove:"移除",wallOp:"桌布濃度",
     wallTooBig:"這張照片太大存不下，換一張試試。",wallBad:"請選一張圖片（JPG、PNG）。",wallSaved:"桌布換好了。",
     sound:"聲音",chime:"提示音",voice:"語音",test:"試聽",
@@ -1400,7 +1419,7 @@ const STR={
     left:n=>n?`曜日が決まっていないタスクが${n}件あります。`:"",
     remTitle:"時間です",remDone:"完了",remSnooze:"10分後",
     remSpeak:(t,x)=>`${t}です。「${x}」の時間です。`,
-    look:"見た目",skins:{jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"見た目",skins:{white:"スタンダード白",black:"スタンダード黒",art:"世界の名画",fant:"クリスタル RPG",quest:"勇者の冒険 RPG",jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"壁紙を選ぶ",wallRemove:"外す",wallOp:"壁紙の濃さ",
     wallTooBig:"この写真は大きすぎて保存できません。",wallBad:"画像（JPG・PNG）を選んでください。",wallSaved:"壁紙を変更しました。",
     sound:"サウンド",chime:"通知音",voice:"読み上げ",test:"試聴",
@@ -1520,7 +1539,7 @@ const STR={
     left:n=>n?`${n} more ${n>1?"tasks have":"task has"} no day yet.`:"",
     remTitle:"It's time",remDone:"Done",remSnooze:"In 10 min",
     remSpeak:(t,x)=>`It's ${t}. Time for ${x}.`,
-    look:"Look",skins:{jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
+    look:"Look",skins:{white:"Classic white",black:"Classic black",art:"Masterpieces",fant:"Crystal RPG",quest:"Hero's quest RPG",jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
     upload:"Upload wallpaper",wallRemove:"Remove",wallOp:"Wallpaper",
     wallTooBig:"That photo is too large to save. Try another.",wallBad:"Choose an image (JPG or PNG).",wallSaved:"Wallpaper updated.",
     sound:"Sound",chime:"Chime",voice:"Voice",test:"Test",
@@ -1767,7 +1786,7 @@ function seed(){
 let S=null;
 S=load()||seed();
 S.region=S.region||"TW";S.mode=S.mode||S.view||"week";delete S.view;
-if(!S.skin||!(S.skin in {jelly:1,sakura:1,matcha:1,ocean:1,night:1}))S.skin="jelly";
+if(!S.skin||!(S.skin in {white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}))S.skin="jelly";
 if(S.wallOp==null)S.wallOp=100;if(S.voice==null)S.voice=true;if(S.chime==null)S.chime=true;
 S.face=S.face||0;S.seen=S.seen||{};S.ranges=S.ranges||[];S.tags=S.tags||[];S.donatePlan=S.donatePlan||"month";
 if(!S.goal)S.goal=seedGoal(LANG[S.region],!!S.example);
@@ -1846,6 +1865,11 @@ const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2,I.dumb
 
 /* ---------- skins & background art ---------- */
 const SKINS={
+  white:{bg:"#F6F7F9",accent:"#E8833A",accentD:"#F2A65A",art:[],draw:"plain",sw:"linear-gradient(135deg,#FFFFFF,#EDEFF3)",tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"]},
+  black:{bg:"#0C0D10",accent:"#E8833A",accentD:"#F2A65A",art:[],draw:"plain",sw:"linear-gradient(135deg,#1C1E24,#050506)",tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"],dark:true},
+  art:{bg:"#23283A",accent:"#B8862E",accentD:"#E3B65C",art:["#1B2A5A","#2E4C8C","#F2D56B","#6B8FC4"],draw:"paint",sw:"radial-gradient(circle at 70% 30%,#F2D56B 0 12%,transparent 13%),conic-gradient(from 40deg,#1B2A5A,#2E4C8C,#6B8FC4,#1B2A5A)",tints:["#E3B65C","#6B8FC4","#C98B6B","#8FB3A8","#D98C7A","#9DB8A0","#B49AC8"]},
+  fant:{bg:"#060B2E",accent:"#F2C94C",accentD:"#F2C94C",art:[],draw:"fant",sw:"linear-gradient(180deg,#3448BE,#0E1868)",cls:"sk-fant",tints:["#F2C94C","#6FD3E8","#E9B77E","#8FA8FF","#FF8A8A","#8FE3A8","#D0A8FF"],dark:true},
+  quest:{bg:"#000000",accent:"#FFD23F",accentD:"#FFD23F",art:[],draw:"quest",sw:"linear-gradient(#000,#000) padding-box,linear-gradient(#fff,#fff) border-box",cls:"sk-quest",font:"DotGothic16",tints:["#FFD23F","#5CC8FF","#FF9F43","#7BED9F","#FF6B6B","#A4E86B","#D6A2FF"],dark:true},
   jelly:{bg:"#E7EFF2",accent:"#E8833A",accentD:"#F2A65A",art:["#E8833A","#1F5C66","#E9C39B","#9FB4BA","#F2B84B","#2E7F8A"],tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"]},
   sakura:{bg:"#FBEFF2",accent:"#C2456B",accentD:"#F28CA6",art:["#F4A7B9","#C2456B","#F9D3DC","#E8C9A0","#9E6B84","#F2B5C4"],tints:["#F28CA6","#E7A0C4","#F6B89A","#C9A0DC","#F4978E","#F7C1CF","#D38FB0"]},
   matcha:{bg:"#EEF3E6",accent:"#4B7A2B",accentD:"#A8C686",art:["#7FA35B","#3E5E2A","#D8E3C3","#C9B27C","#A8C686","#5E8A6E"],tints:["#8DB85F","#5E9E6E","#C9B27C","#A3C98B","#E0A458","#7BAE9B","#B7C77A"]},
@@ -1856,6 +1880,8 @@ const skin=()=>SKINS[S.skin]||SKINS.jelly;
 function applySkin(){
   const r=document.documentElement,k=skin(),acc=wall&&S.wallAccent?S.wallAccent:null;
   r.classList.toggle("night",!!k.dark);
+  ["sk-fant","sk-quest","sk-art","sk-plain"].forEach(c=>r.classList.remove(c));if(k.cls)r.classList.add(k.cls);if(k.draw==="paint")r.classList.add("sk-art");if(k.draw==="plain")r.classList.add("sk-plain");
+  if(k.font&&!document.getElementById("skinFont")){const l=document.createElement("link");l.id="skinFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+k.font+"&display=swap";document.head.appendChild(l)}
   r.style.setProperty("--skin-bg",k.bg);
   r.style.setProperty("--skin-accent",acc?acc.l:k.accent);r.style.setProperty("--skin-accent-d",acc?acc.d:k.accentD);
   k.tints.forEach((c,i)=>r.style.setProperty("--c"+i,c));
@@ -1872,7 +1898,70 @@ function drawArt(){
   const dpr=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
   c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
   const x=c.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
-  artShapes(x,w,h,skin().art,Math.max(90,Math.min(150,w/5)));
+  const k=skin(),mode=k.draw||"shapes";artCap(null);
+  if(mode==="plain")return;
+  if(mode==="paint"){artPaint(x,w,h);return}
+  if(mode==="fant"){artFant(x,w,h);return}
+  if(mode==="quest"){artQuest(x,w,h);return}
+  artShapes(x,w,h,k.art,Math.max(90,Math.min(150,w/5)));
+}
+/* 世界名畫: public-domain masterpieces from Wikimedia Commons, one a day (tap the caption for the next);
+   if the picture can't load, brush strokes in the painting's colours stand in */
+const PAINTINGS=[
+  {f:"Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",n:{zh:"梵谷《星夜》1889",ja:"ゴッホ《星月夜》1889",en:"Van Gogh · The Starry Night · 1889"},pal:["#1B2A5A","#2E4C8C","#F2D56B","#6B8FC4","#223355","#E8C547"]},
+  {f:"Tsunami_by_hokusai_19th_century.jpg",n:{zh:"葛飾北齋《神奈川沖浪裏》約1831",ja:"葛飾北斎《神奈川沖浪裏》1831頃",en:"Hokusai · The Great Wave off Kanagawa · c.1831"},pal:["#1F3B5C","#E9E1C9","#5D7F9B","#C8BCA0","#2B4A6B"]},
+  {f:"Claude_Monet_-_Water_Lilies_-_1906,_Ryerson.jpg",n:{zh:"莫內《睡蓮》1906",ja:"モネ《睡蓮》1906",en:"Monet · Water Lilies · 1906"},pal:["#4E7A6B","#9DB8A0","#D9C7D8","#6F8FA8","#C8D8B8"]},
+  {f:"Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg",n:{zh:"達文西《蒙娜麗莎》約1503",ja:"レオナルド・ダ・ヴィンチ《モナ・リザ》1503頃",en:"Leonardo da Vinci · Mona Lisa · c.1503"},pal:["#4B4A2E","#8A7A4A","#C9A86A","#2E2B1E","#6E6A43"]},
+  {f:"1665_Girl_with_a_Pearl_Earring.jpg",n:{zh:"維梅爾《戴珍珠耳環的少女》約1665",ja:"フェルメール《真珠の耳飾りの少女》1665頃",en:"Vermeer · Girl with a Pearl Earring · c.1665"},pal:["#1A1A1F","#2F5C9A","#E2C27A","#C9A77E","#0E0E12"]},
+  {f:"Claude_Monet,_Impression,_soleil_levant.jpg",n:{zh:"莫內《印象・日出》1872",ja:"モネ《印象・日の出》1872",en:"Monet · Impression, Sunrise · 1872"},pal:["#5E7C8A","#E0763A","#8FA3A6","#3E5866","#C9B8A0"]},
+  {f:"Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg",n:{zh:"波提切利《維納斯的誕生》約1485",ja:"ボッティチェリ《ヴィーナスの誕生》1485頃",en:"Botticelli · The Birth of Venus · c.1485"},pal:["#8FB3A8","#E9D7B9","#5E8C84","#C9A27E","#3F6B66"]}
+];
+let paintShift=0;const paintImgs={};
+const paintNow=()=>PAINTINGS[(Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+paintShift)%PAINTINGS.length];
+function artCap(p){let el=$("artCap");if(!p){if(el)el.hidden=true;return}
+  if(!el){el=document.createElement("button");el.type="button";el.id="artCap";el.className="artcap";el.dataset.artnext="1";document.body.appendChild(el)}
+  el.hidden=false;el.textContent="🖼 "+p.n[LANG[S.region]]}
+function artPaint(x,w,h){
+  const p=paintNow(),url="https://commons.wikimedia.org/wiki/Special:FilePath/"+p.f+"?width=1600";
+  let im=paintImgs[p.f];
+  if(!im){im=paintImgs[p.f]=new Image();im.referrerPolicy="no-referrer";im.onload=()=>{if(skin().draw==="paint")drawArt()};im.onerror=()=>{im.bad=true;if(skin().draw==="paint")drawArt()};im.src=url}
+  if(im.complete&&im.naturalWidth&&!im.bad){
+    const k=Math.max(w/im.naturalWidth,h/im.naturalHeight),iw=im.naturalWidth*k,ih=im.naturalHeight*k;
+    x.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih);artCap(p);return;
+  }
+  // stand-in: short curved brush strokes in the painting's palette
+  let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  x.fillStyle=p.pal[0];x.fillRect(0,0,w,h);x.lineCap="round";
+  for(let i=0;i<Math.min(1600,w*h/260);i++){const cx=rnd()*w,cy=rnd()*h,a=Math.sin(cx/90)+Math.cos(cy/70),l=10+rnd()*22;
+    x.strokeStyle=p.pal[1+Math.floor(rnd()*(p.pal.length-1))];x.globalAlpha=.55+rnd()*.4;x.lineWidth=3+rnd()*4;
+    x.beginPath();x.moveTo(cx,cy);x.quadraticCurveTo(cx+Math.cos(a)*l*.6,cy+Math.sin(a)*l*.6+4,cx+Math.cos(a)*l,cy+Math.sin(a)*l);x.stroke()}
+  x.globalAlpha=1;
+}
+// 奇幻水晶: deep blue night, drifting stars, a glowing crystal
+function artFant(x,w,h){
+  const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,"#0A1450");g.addColorStop(1,"#02041A");x.fillStyle=g;x.fillRect(0,0,w,h);
+  let seed=5;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<w*h/2600;i++){const r=rnd()*1.6+.3;x.fillStyle=`rgba(220,230,255,${.3+rnd()*.7})`;x.beginPath();x.arc(rnd()*w,rnd()*h,r,0,Math.PI*2);x.fill()}
+  const cx=w*.78,cy=h*.3,s=Math.min(w,h)*.16;
+  const glow=x.createRadialGradient(cx,cy,0,cx,cy,s*2.4);glow.addColorStop(0,"rgba(120,200,255,.45)");glow.addColorStop(1,"rgba(120,200,255,0)");x.fillStyle=glow;x.fillRect(cx-s*3,cy-s*3,s*6,s*6);
+  const pts=[[0,-1.5],[.55,-.2],[.35,1.1],[-.35,1.1],[-.55,-.2]];
+  const cg=x.createLinearGradient(cx-s,cy-s,cx+s,cy+s);cg.addColorStop(0,"#D8F4FF");cg.addColorStop(.5,"#6FC3F0");cg.addColorStop(1,"#2B5CC8");
+  x.fillStyle=cg;x.beginPath();pts.forEach(([a,b],i)=>{const X=cx+a*s,Y=cy+b*s;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.closePath();x.fill();
+  x.strokeStyle="rgba(255,255,255,.7)";x.lineWidth=1.2;x.beginPath();x.moveTo(cx,cy-1.5*s);x.lineTo(cx,cy+1.1*s);x.moveTo(cx-.55*s,cy-.2*s);x.lineTo(cx+.55*s,cy-.2*s);x.stroke();
+}
+// 勇者冒險: a pixel-art field with sky, clouds, mountains, a castle and grass tiles
+function artQuest(x,w,h){
+  const P=Math.max(6,Math.round(Math.min(w,h)/90));x.imageSmoothingEnabled=false;
+  const px=(X,Y,W,H,c)=>{x.fillStyle=c;x.fillRect(Math.round(X/P)*P,Math.round(Y/P)*P,Math.max(P,Math.round(W/P)*P),Math.max(P,Math.round(H/P)*P))};
+  const sky=h*.55;
+  [["#3A7BD5",0],["#4C8FE6",.2],["#63A4F0",.4],["#8CC0F7",.6]].forEach(([c,f])=>px(0,sky*f,w,sky*.2+P,c));
+  let seed=3;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<5;i++){const cx=rnd()*w,cy=rnd()*sky*.5,cw=P*(6+Math.floor(rnd()*6));px(cx,cy,cw,P*2,"#FFFFFF");px(cx+P*2,cy-P,cw-P*4,P,"#FFFFFF")}
+  for(let X=0;X<w;X+=P){const m=Math.abs(((X/(P*14))%2)-1);px(X,sky-m*P*10-P*2,P,m*P*10+P*2,"#5A6B8C");const m2=Math.abs((((X+P*7)/(P*9))%2)-1);px(X,sky-m2*P*5,P,m2*P*5,"#7B8FAE")}
+  const cx=w*.68,by=sky;px(cx,by-P*12,P*14,P*12,"#C9C3B8");for(let i=0;i<7;i++)px(cx+i*P*2,by-P*13,P,P,"#C9C3B8");px(cx-P*3,by-P*16,P*4,P*16,"#B7B0A4");px(cx+P*13,by-P*16,P*4,P*16,"#B7B0A4");
+  px(cx-P*3,by-P*18,P*4,P*2,"#D24B4B");px(cx+P*13,by-P*18,P*4,P*2,"#D24B4B");px(cx+P*5,by-P*5,P*4,P*5,"#3A2A1A");
+  for(let Y=sky;Y<h;Y+=P*2)for(let X=0;X<w;X+=P*2){px(X,Y,P*2,P*2,((X+Y)/(P*2))%2?"#3E9B3E":"#48A848");if(rnd()<.05)px(X+P/2,Y,P,P,"#2F7A2F")}
+  for(let i=0;i<9;i++){const tx=rnd()*w,ty=sky+P*4+rnd()*(h-sky-P*8);px(tx,ty,P*3,P*3,"#1F6B2A");px(tx+P,ty+P*3,P,P*2,"#6B4A2A")}
 }
 function artShapes(x,w,h,pal,cell){
   let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
@@ -2354,7 +2443,7 @@ function openSettings(){
 <div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
-<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b style="background:radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}"></b>${t.skins[k]}</button>`}).join("")}</div>
+<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b class="${k==="fant"||k==="quest"?"swwin sw-"+k:""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
 <div class="row"><label class="pill jelly upload">${I.upload}${t.upload}<input id="wallFile" type="file" accept="image/*"></label>${wall?`<button class="pill jelly" type="button" data-set="wallrm">${t.wallRemove}</button>`:""}</div>
 ${wall?`<label class="rng" for="opRange">${t.wallOp}<input id="opRange" type="range" min="25" max="100" value="${S.wallOp}"></label>`:""}</div>
 <div class="sgroup"><h3>${I.bell}${t.sound}</h3>
@@ -5456,10 +5545,10 @@ function openAllFaces(){
 /* ---------- background music made in the browser, so it plays anywhere ---------- */
 S.music=S.music||{on:true,track:"piano",vol:.5};
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
-const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
-const MP_STR={zh:{names:{piano:"輕鋼琴",rain:"雨聲",ocean:"海浪"},notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
-  ja:{names:{piano:"ピアノ",rain:"雨の音",ocean:"波の音"},notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
-  en:{names:{piano:"Soft piano",rain:"Rain",ocean:"Waves"},notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
+const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
+const MP_STR={zh:{names:{piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
+  ja:{names:{piano:"ピアノ",night:"夜のジャズ",classic:"オルゴール",crystal:"クリスタルハープ",chip:"8ビット冒険",rain:"雨の音",ocean:"波の音"},themed:n=>`BGM とプレイリストを「${n}」のおすすめにしました（自分で入れた曲はそのまま）`,notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
+  en:{names:{piano:"Soft piano",night:"Late-night jazz",classic:"Music box",crystal:"Crystal harp",chip:"8-bit adventure",rain:"Rain",ocean:"Waves"},themed:n=>`Music now matches “${n}” (songs you added are kept)`,notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
 const MPT=()=>MP_STR[LANG[S.region]];
 function ambCtx(){if(!AMB.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AMB.ctx=new C();AMB.master=AMB.ctx.createGain();AMB.master.gain.value=0;AMB.master.connect(AMB.ctx.destination)}return AMB.ctx}
 function noiseBuf(ctx,brown){const n=ctx.sampleRate*4,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5}else d[i]=w}return b}
@@ -5475,6 +5564,7 @@ function ambStart(track){
     const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,true);s.loop=true;const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=700;const g=ctx.createGain();g.gain.value=.35;
     const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.09;lg.gain.value=.25;lfo.connect(lg).connect(g.gain);
     s.connect(lp).connect(g).connect(out);s.start();lfo.start();AMB.nodes.push(s,lp,g,lfo,lg);
+  }else if(track==="night"||track==="classic"||track==="crystal"||track==="chip"){ambTheme(ctx,out,track)
   }else{   // soft piano: pentatonic notes over slow chords, with a gentle echo
     const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=.42;fb.gain.value=.32;wet.gain.value=.35;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
     const scale=[261.6,293.7,329.6,392,440,523.3,587.3,659.3,784];const chords=[[130.8,196,261.6],[110,164.8,220],[87.3,130.8,174.6],[98,146.8,196]];let beat=0;
@@ -6371,6 +6461,50 @@ function photoSave(){
   if(/^\d$/.test(String(job.dest)))openDay(+job.dest);else closeLayer();
   render();
 }
+
+/* ---------- theme music: an original generative track per look, plus YouTube picks ---------- */
+function ambTheme(ctx,out,track){
+  const now=()=>ctx.currentTime,hz=m=>440*Math.pow(2,(m-69)/12);
+  const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=track==="chip"?.24:.38;fb.gain.value=track==="chip"?.18:.3;wet.gain.value=track==="chip"?.15:.3;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
+  const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=track==="chip"?2600:5200;lp.connect(out);lp.connect(dl);AMB.nodes.push(lp);
+  const tone=(m,vol,len,type,harm)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type=type;o.frequency.value=hz(m);
+    e.gain.setValueAtTime(0,now());e.gain.linearRampToValueAtTime(vol,now()+(type==="square"?.005:.01));e.gain.exponentialRampToValueAtTime(.0001,now()+len);o.connect(e);e.connect(lp);o.start();o.stop(now()+len+.05);
+    if(harm){const o2=ctx.createOscillator(),e2=ctx.createGain();o2.type="sine";o2.frequency.value=hz(m)*harm;e2.gain.value=.25;o2.connect(e2).connect(e);o2.start();o2.stop(now()+len+.05)}};
+  const pick=a=>a[Math.floor(Math.random()*a.length)];let beat=0;
+  if(track==="night"){   // soft electric-piano 7th chords, a sparse melody, vinyl crackle
+    const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,false);s.loop=true;const bp=ctx.createBiquadFilter();bp.type="highpass";bp.frequency.value=3000;const g=ctx.createGain();g.gain.value=.012;s.connect(bp).connect(g).connect(out);s.start();AMB.nodes.push(s,bp,g);
+    const prog=[[50,53,57,60,64],[43,53,55,59,62],[48,52,55,59,64],[45,52,55,60,64]];const mel=[64,67,69,71,72,74,76];
+    AMB.timer=setInterval(()=>{if(beat%8===0)prog[(beat/8)%4].forEach((m,i)=>setTimeout(()=>tone(m,.04,3.6,"sine",2),i*40));if(beat%2===1&&Math.random()<.45)tone(pick(mel),.05,1.6,"triangle",3);beat++},430);
+  }else if(track==="classic"){   // music box: broken chords under a simple tune, I–vi–IV–V
+    const prog=[[48,55,64,60],[45,52,60,57],[41,48,57,53],[43,50,59,55]],mel=[[72,76,79],[72,76,81],[72,77,81],[71,74,79]];
+    AMB.timer=setInterval(()=>{const c=Math.floor(beat/8)%4,st=beat%8;tone(prog[c][st%4]+12,.035,1.2,"sine",3);if(st%2===0&&Math.random()<.7)tone(pick(mel[c])+(Math.random()<.2?12:0),.05,1.8,"sine",4.01);beat++},300);
+  }else if(track==="crystal"){   // harp: rising broken chords (root, fifth, octave, tenth) over Dm–B♭–F–C
+    const roots=[50,46,53,48],minor=[true,false,false,false];
+    AMB.timer=setInterval(()=>{const c=Math.floor(beat/16)%4,r=roots[c],pat=[0,7,12,minor[c]?15:16],st=beat%16;tone(r+pat[st%4]+12*Math.floor(st/4),.045,2.4,"triangle",2);if(st===0)tone(r-12,.05,4,"sine");beat++},190);
+  }else{   // 8-bit march: a two-bar motif that repeats with small changes, square lead and triangle bass
+    const scale=[60,62,64,67,69,72,74,76],roots=[48,53,55,48];let motif=Array.from({length:8},()=>Math.random()<.8?pick(scale):null);
+    AMB.timer=setInterval(()=>{const bar=Math.floor(beat/8),st=beat%8;if(st===0&&bar%4===0&&bar)motif=motif.map(m=>Math.random()<.3?pick(scale):m);
+      if(motif[st]!=null)tone(motif[st]+(bar%4===3?2:0),.022,.22,"square");if(st%2===0)tone(roots[bar%4]+(st===4?7:0),.06,.2,"triangle");beat++},165);
+  }
+}
+const THEME_MUSIC={
+  white:{track:"piano",songs:[["Nuvole Bianche","Ludovico Einaudi"],["Comptine d'un autre été","Yann Tiersen"],["Summer","Joe Hisaishi"],["Kiss the Rain","Yiruma"],["","","morning cafe acoustic playlist"],["Una Mattina","Ludovico Einaudi"],["Merry-Go-Round of Life","Joe Hisaishi"],["Gymnopédie No.1","Erik Satie"],["River Flows in You","Yiruma"]]},
+  black:{track:"night",songs:[["Blue in Green","Miles Davis"],["Take Five","Dave Brubeck"],["Waltz for Debby","Bill Evans"],["'Round Midnight","Thelonious Monk"],["","","late night jazz lofi playlist"],["Nocturne Op.9 No.2","Frédéric Chopin"],["Moonlight Sonata","Ludwig van Beethoven"],["Autumn Leaves","Bill Evans"],["Weightless","Marconi Union"]]},
+  art:{track:"classic",songs:[["Pictures at an Exhibition","Modest Mussorgsky"],["Clair de Lune","Claude Debussy"],["Spring (The Four Seasons)","Antonio Vivaldi"],["Air on the G String","J.S. Bach"],["","","classical music for art museum"],["The Moldau","Bedřich Smetana"],["Arabesque No.1","Claude Debussy"],["Swan Lake","Tchaikovsky"],["Canon in D","Johann Pachelbel"]]},
+  fant:{track:"crystal",songs:[["Prelude","Nobuo Uematsu","Final Fantasy Prelude Nobuo Uematsu"],["Aerith's Theme","Nobuo Uematsu","Aerith's Theme Final Fantasy VII"],["To Zanarkand","Nobuo Uematsu","To Zanarkand Final Fantasy X"],["Eyes on Me","Faye Wong","Eyes on Me Faye Wong Final Fantasy VIII"],["","","Final Fantasy relaxing music playlist"],["Melodies of Life","Emiko Shiratori","Melodies of Life Final Fantasy IX"],["Terra's Theme","Nobuo Uematsu","Terra's Theme Final Fantasy VI"],["Suteki da ne","Rikki","Suteki da ne Final Fantasy X"],["Main Theme","Nobuo Uematsu","Final Fantasy Main Theme Nobuo Uematsu"]]},
+  quest:{track:"chip",songs:[["Overture","Koichi Sugiyama","Dragon Quest Overture Koichi Sugiyama"],["Adventure","Koichi Sugiyama","Dragon Quest III Adventure Sugiyama"],["Into the Legend","Koichi Sugiyama","Dragon Quest III Into the Legend"],["Heavenly Flight","Koichi Sugiyama","Dragon Quest III Heavenly Flight"],["","","Dragon Quest symphonic suite playlist"],["Wedding Waltz","Koichi Sugiyama","Dragon Quest V Wedding Waltz"],["Town","Koichi Sugiyama","Dragon Quest town theme Sugiyama"],["Love Song Searching for You","Koichi Sugiyama","Dragon Quest Love Song Searching for You"],["Castle","Koichi Sugiyama","Dragon Quest castle theme Sugiyama"]]}
+};
+const themeSongs=k=>THEME_MUSIC[k].songs.map(([title,artist,q])=>({title,artist,url:yt(q||title+" "+artist)}));
+// switch the ambient track and swap in the look's YouTube picks, but only into tiles that still hold a
+// built-in pick (or are empty): songs the user added or edited are never touched
+function themeMusic(k){
+  const tm=THEME_MUSIC[k];if(!tm)return;
+  S.music.track=tm.track;if(AMB.playing)ambStart(tm.track);
+  const sig=x=>x.url+"|"+(x.title||"")+"|"+(x.artist||""),builtIn=new Set([...SEED_SONGS,...Object.keys(THEME_MUSIC).flatMap(themeSongs)].map(sig));
+  const picks=themeSongs(k);
+  S.songs=S.songs.map((x,i)=>!x||!x.url||builtIn.has(sig(x))?Object.assign({},picks[i]):x);
+  toast(MPT().themed(T().skins[k]));
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -6403,7 +6537,8 @@ document.addEventListener("click",e=>{
     if(a==="install"&&installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;openSettings()})}
     return;
   }
-  const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;save();applySkin();render();openSettings();return}
+  const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;themeMusic(S.skin);save();applySkin();render();openSettings();return}
+  if(el.closest("[data-artnext]")){paintShift++;drawArt();return}
 
   const co=el.closest("[data-coach]");
   if(co){const a=co.dataset.coach;
