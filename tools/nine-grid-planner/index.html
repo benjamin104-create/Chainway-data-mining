@@ -999,6 +999,30 @@ html .knob svg{width:22px;height:22px}
 .sfact{margin:0;font-size:13px;padding:8px 10px;border-radius:12px;background:var(--chip)}
 .proots{grid-template-columns:repeat(6,minmax(0,1fr))}
 
+/* word courses */
+.vclist{display:flex;flex-direction:column;gap:10px}
+.vcard{--r:22px;display:flex;align-items:center;gap:12px;padding:14px;text-align:left;position:relative}
+.vce{font-size:32px;flex:none}.vct{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.vct b{font-weight:400;font-size:16px}.vct small{font-size:12px;color:var(--muted)}
+.vbar{height:6px;border-radius:3px;background:var(--chip);overflow:hidden}.vbar i{display:block;height:100%;background:var(--accent)}
+.vunits{display:flex;flex-direction:column;gap:8px}
+.vunit{--r:18px;display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left}
+.vun{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-num);font-weight:800;background:var(--chip)}
+.vunit.done .vun{background:var(--accent);color:var(--on-accent)}.vunit.locked{opacity:.6}.vunit.new .vun{border:2px dashed var(--accent);background:none;color:var(--accent)}
+.vut{flex:1;min-width:0;display:flex;flex-direction:column}.vut b{font-weight:400;font-size:15px}.vut small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsc{color:#F5B83D}.vunit svg{width:16px;height:16px}
+.vwords{display:flex;flex-direction:column;gap:10px}
+.vword{--r:20px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.vwh{display:flex;align-items:center;gap:8px}.vwh b{font-weight:400;font-size:20px}.vwh i{font-size:12px;color:var(--muted)}.vwh span{flex:1;font-size:14px}
+.vstar{font-size:22px;color:color-mix(in srgb,var(--muted) 40%,transparent)}.vstar.on{color:#F5B83D}
+.vs{margin:0;display:flex;gap:6px;align-items:flex-start;font-size:15px;line-height:1.7}.vs.center{justify-content:center;text-align:center}
+.vword>small{font-size:12px;color:var(--muted);padding-left:36px}
+.vw{font:inherit;padding:0 1px;border-radius:5px;color:var(--ink)}.vw:hover{background:var(--chip)}.vw.hl{color:var(--accent);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.vq{--r:22px;padding:20px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.vqw{font-weight:400;font-size:30px}.vqs{margin:0;font-size:18px;line-height:1.6}.vq small{font-size:12px;color:var(--muted)}.vq .say.big{position:static;width:64px;height:64px}
+.vpeek{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:60;width:min(520px,calc(100% - 24px));--r:20px;display:flex;align-items:center;gap:8px;padding:10px 12px;animation:rise .25s var(--ease)}
+.vpt{flex:1;min-width:0;display:flex;flex-direction:column}.vpt b{font-weight:400;font-size:18px}.vpt i{font-size:11px;color:var(--muted)}.vpt small{font-size:13px}
+.wkind{flex-wrap:wrap}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1127,6 +1151,8 @@ const OWNER={
   proPics:true,                            // 圖鑑分類是否有加購；false 就全部免費
   picFree:["animal","plant","life","world"],       // 免費開放的圖鑑大類（動物、植物、生活），其餘可試看 trialCards 張
   rewards:[{lv:6,name:{zh:"合作夥伴優惠券",ja:"パートナークーポン",en:"Partner coupon"},code:"",url:""}], // 升級獎勵的優惠券：填 code 或領取網址
+  proCourses:true,                         // 單字課程第 2 單元起是否為加購；false 就全部免費
+  courseStore:"",                          // 單字課程加購頁網址
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
@@ -3213,8 +3239,9 @@ function ringFor(card){
   return cells;
 }
 function renderWordFace(){
-  const t=T(),d=deckOf(S.w.deck),rv=reviewList().length,pk=`<div class="mini-seg wkind" role="group"><button type="button" data-wkind="pic" aria-pressed="${!!S.pd.on}">🖼 ${PT().kindPic}</button><button type="button" data-wkind="word" aria-pressed="${!S.pd.on}">🌿 ${PT().kindWord}</button></div>`;
-  if(S.pd.on){$("face").innerHTML=pk+picHTML();return}
+  const t=T(),d=deckOf(S.w.deck),rv=reviewList().length,kind=S.pd.kind||(S.pd.on?"pic":"word"),pk=`<div class="mini-seg wkind" role="group"><button type="button" data-wkind="pic" aria-pressed="${kind==="pic"}">🖼 ${PT().kindPic}</button><button type="button" data-wkind="course" aria-pressed="${kind==="course"}">📚 ${VT().courses}</button><button type="button" data-wkind="word" aria-pressed="${kind==="word"}">🌿 ${PT().kindWord}</button></div>`;
+  if(kind==="course"){$("face").innerHTML=pk+(vcView&&vcView.book?vBookHTML():courseHTML());return}
+  if(kind==="pic"){$("face").innerHTML=pk+picHTML();return}
   let h=pk+`<div class="dchips" role="group">${allDecks().map(x=>`<button type="button" data-deck="${x.id}" aria-pressed="${x.id===S.w.deck&&S.w.mode!=="review"}">${esc(x.name)}${isPro(x)?`<i>${t.wPro}</i>`:""}</button>`).join("")}<button type="button" data-wimp="open">${I.upload}${t.wImport}</button></div>
 <div class="bar"><div class="seg jelly small" id="wmode" role="group"><button type="button" data-wmode="learn" aria-pressed="${S.w.mode==="learn"}">${t.wLearn}</button><button type="button" data-wmode="game" aria-pressed="${S.w.mode==="game"}">${t.wGame}</button><button type="button" data-wmode="review" aria-pressed="${S.w.mode==="review"}">${t.wReview}${rv?` ${rv}`:""}</button></div></div>`;
   if(wtrail.length)h+=`<div class="trail">${wtrail.map((x,i)=>`<button class="expill" type="button" data-trail="${i}" style="padding-right:12px">‹ ${esc(x.card.w)}</button>`).join("")}</div>`;
@@ -4346,7 +4373,7 @@ const unlocked=k=>{const d=todayKey();return (S.unl[k]&&S.unl[k]>=d)||(S.unl.all
 // what each level brings; OWNER.rewards adds partner coupons on top
 function rewardsFor(L){
   const out=[{kind:"title"}];
-  const U={3:"travel",4:"fit",5:"people"};if(U[L])out.push({kind:"unlock",key:U[L],days:7});
+  const U={3:["travel"],4:["fit"],5:["people","course"]};(U[L]||[]).forEach(k=>out.push({kind:"unlock",key:k,days:7}));
   if(L>=6&&L%2===0)out.push({kind:"unlock",key:"all",days:7});
   (OWNER.rewards||[]).filter(r=>r.lv===L).forEach(r=>out.push(Object.assign({kind:"coupon"},r)));
   return out;
@@ -4484,7 +4511,7 @@ ${ev.length?`<ul class="skev">${ev.slice(0,full?8:3).map(e=>`<li><span>${{cal:"�
 const QT_STR={
   zh:{today:"今日任務",reroll:"換一組",autoHint:"做完會自動打勾",bonusHint:n=>`三個都完成再加 ${n} EXP`,streak:n=>`連續 ${n} 天`,
     toNext:(n,L)=>`再 ${n} EXP 升到 Lv${L}`,titles:["果凍寶寶","小小探險家","認真學徒","行動派","心流玩家","技能達人","發光導師","傳奇果凍"],
-    titleIs:s=>`新稱號「${s}」`,unlockName:{travel:"語寶「旅行」字卡免費",people:"語寶「稱謂」字卡免費",fit:"健身教練全部部位免費",all:"所有加購內容免費"},days:n=>`${n} 天`,
+    titleIs:s=>`新稱號「${s}」`,unlockName:{course:"單字課程全部單元免費",travel:"語寶「旅行」字卡免費",people:"語寶「稱謂」字卡免費",fit:"健身教練全部部位免費",all:"所有加購內容免費"},days:n=>`${n} 天`,
     coupon:"合作夥伴優惠券",couponSoon:"合作夥伴優惠券（招募中）",code:"序號",claim:"領取",gotIt:"收下",
     praise:(s,n)=>`你最近練了 ${n} 次「${s}」，是真的在長大。`,praise0:"每一個小行動都算數，繼續保持！",
     auto:{fit:"完成今天的運動功課",task:"完成行事曆上的一件事",pic:"玩一局語寶「聽音找圖」",game:"在九宮遊戲桌下完一局",flow:"做一次心流回想"},
@@ -4501,7 +4528,7 @@ const QT_STR={
     rules:`<p><b>EXP（經驗值）</b>是你的行動量，用來升級：</p><ul><li>☀️ 今日任務：練習任務 +30（附心得或作品再 +10），自動任務 +20，三個都完成 +30</li><li>📅 完成行事曆的事 +10（每天最多 5 次）</li><li>🎮 下完一局遊戲、玩完一局聽音找圖 +10（每天各 3 次）</li><li>✨ 心流回想 +20；🤝 記錄一次認可 +20</li></ul><p>每天有上限，是為了讓 EXP 代表「持續行動」，不是刷分。</p><p><b>星星</b>是能力的證據，和 EXP 分開算：</p><ul><li>⭐ 做過：有完成的紀錄</li><li>⭐⭐ 有作品：附上連結或心得</li><li>⭐⭐⭐ 有人認可：看過的人確認</li></ul><p>我們不做排行榜，只跟昨天的自己比。</p>`},
   ja:{today:"今日のクエスト",reroll:"入れ替える",autoHint:"終わると自動でチェック",bonusHint:n=>`3 つ全部で +${n} EXP`,streak:n=>`${n} 日連続`,
     toNext:(n,L)=>`あと ${n} EXP で Lv${L}`,titles:["ぷるぷる見習い","ちいさな探検家","まじめな弟子","行動派","フロープレイヤー","スキルの達人","光る先生","伝説のゼリー"],
-    titleIs:s=>`新しい称号「${s}」`,unlockName:{travel:"語宝「旅行」カード無料",people:"語宝「呼び方」カード無料",fit:"筋トレコーチ全部位無料",all:"追加コンテンツすべて無料"},days:n=>`${n} 日間`,
+    titleIs:s=>`新しい称号「${s}」`,unlockName:{course:"単語コース全ユニット無料",travel:"語宝「旅行」カード無料",people:"語宝「呼び方」カード無料",fit:"筋トレコーチ全部位無料",all:"追加コンテンツすべて無料"},days:n=>`${n} 日間`,
     coupon:"パートナークーポン",couponSoon:"パートナークーポン（募集中）",code:"コード",claim:"受け取る",gotIt:"受け取る",
     praise:(s,n)=>`最近「${s}」を ${n} 回練習しました。ちゃんと育っています。`,praise0:"小さな一歩がちゃんと積み重なっています！",
     auto:{fit:"今日の運動メニューを終える",task:"予定を 1 つ完了する",pic:"語宝「聞いてさがす」を 1 回",game:"ゲームテーブルで 1 局遊ぶ",flow:"フロー体験を思い出す"},
@@ -4518,7 +4545,7 @@ const QT_STR={
     rules:`<p><b>EXP</b>は行動の量で、レベルアップに使います：</p><ul><li>☀️ 今日のクエスト：練習 +30（感想・作品で +10）、自動クエスト +20、3 つ全部で +30</li><li>📅 予定を完了 +10（1 日 5 回まで）</li><li>🎮 ゲーム 1 局、聞いてさがす 1 回 +10（各 1 日 3 回まで）</li><li>✨ フロー +20、🤝 承認の記録 +20</li></ul><p>上限は「続けること」を表すためで、稼ぐためではありません。</p><p><b>星</b>は力の証拠で、EXP とは別です：</p><ul><li>⭐ やった</li><li>⭐⭐ 作品がある</li><li>⭐⭐⭐ 見ていた人が認めた</li></ul><p>ランキングはありません。比べるのは昨日の自分だけ。</p>`},
   en:{today:"Today's quests",reroll:"Swap",autoHint:"Ticks itself when you do it",bonusHint:n=>`All three: +${n} EXP`,streak:n=>`${n}-day streak`,
     toNext:(n,L)=>`${n} EXP to Lv${L}`,titles:["Jelly Sprout","Little Explorer","Keen Apprentice","Doer","Flow Player","Skill Master","Glowing Mentor","Legendary Jelly"],
-    titleIs:s=>`New title: ${s}`,unlockName:{travel:"Travel word cards free",people:"People word cards free",fit:"All fitness groups free",all:"Every add-on free"},days:n=>`${n} days`,
+    titleIs:s=>`New title: ${s}`,unlockName:{course:"All word-course units free",travel:"Travel word cards free",people:"People word cards free",fit:"All fitness groups free",all:"Every add-on free"},days:n=>`${n} days`,
     coupon:"Partner coupon",couponSoon:"Partner coupon (coming soon)",code:"Code",claim:"Claim",gotIt:"Nice!",
     praise:(s,n)=>`You practised ${s} ${n} times lately. That's real growth.`,praise0:"Every small step counts. Keep going!",
     auto:{fit:"Finish today's workout",task:"Finish one thing on your calendar",pic:"Play one round of Listen & find",game:"Finish a game at the Game Table",flow:"Recall a flow moment"},
@@ -5627,6 +5654,131 @@ ${st.lines.map((z,i)=>`<div class="sline"><button type="button" class="say sm" d
 ${st.fact?`<p class="sfact">💡 ${esc(st.fact)}</p>`:""}${st.offline?`<p class="note">${p.storyOff}</p>`:""}</div>`;
 }
 const plain=t=>t.replace(/\[\[(.+?)\]\]/g,"$1");
+
+/* =========================================================
+   單字課程: course → units of words with example sentences → quiz.
+   Every word in a sentence can be tapped, heard and saved as a card.
+   ========================================================= */
+const V=(w,pos,zh,s,st)=>({w,pos,zh,s,st});
+const VCOURSES=[
+  {k:"k1000",e:"🧒",n:{zh:"1000 個必學英文單字",ja:"必須英単語 1000",en:"1000 must-know words"},lvl:{zh:"國小・入門",ja:"小学生・入門",en:"Beginner"},target:1000,size:10,
+   desc:"the 1000 most useful English words for young beginners (everyday nouns, verbs, adjectives)",
+   units:[{t:{zh:"日常生活 1",ja:"くらし 1",en:"Everyday 1"},items:[V("apple","n.","蘋果","I eat an apple every day.","我每天吃一顆蘋果。"),V("book","n.","書","This book is about cats.","這本書是關於貓的。"),V("happy","adj.","開心的","The dog looks happy.","那隻狗看起來很開心。"),V("run","v.","跑","I run to school.","我跑步去學校。"),V("friend","n.","朋友","She is my best friend.","她是我最好的朋友。"),V("water","n.","水","Please drink some water.","請喝點水。"),V("big","adj.","大的","That elephant is big.","那隻大象很大。"),V("eat","v.","吃","We eat lunch at noon.","我們中午吃午餐。"),V("school","n.","學校","My school is near my home.","我的學校離我家很近。"),V("play","v.","玩","Let's play in the park.","我們去公園玩吧。")]},
+     {t:{zh:"日常生活 2",ja:"くらし 2",en:"Everyday 2"},items:[V("mother","n.","媽媽","My mother cooks dinner.","我媽媽煮晚餐。"),V("red","adj.","紅色的","I have a red bag.","我有一個紅色的包包。"),V("sleep","v.","睡覺","The baby is sleeping.","寶寶正在睡覺。"),V("car","n.","汽車","Dad drives a blue car.","爸爸開一台藍色的車。"),V("cold","adj.","冷的","It is cold today.","今天很冷。"),V("help","v.","幫忙","Can you help me?","你可以幫我嗎？"),V("morning","n.","早上","Good morning, teacher!","老師早安！"),V("small","adj.","小的","The cat is small.","那隻貓很小。"),V("love","v.","愛","I love my family.","我愛我的家人。"),V("read","v.","讀","I read a story before bed.","我睡前讀一個故事。")]}]},
+  {k:"hs3000",e:"🎒",n:{zh:"高中必學 3000 單字",ja:"高校必須 3000 語",en:"High-school 3000"},lvl:{zh:"國高中・學測",ja:"中高生",en:"Teens"},target:3000,size:12,
+   desc:"the core 3000 English words Taiwanese high-school students need for the college entrance exam (roughly levels 2-4 of the CEEC word list)",
+   units:[{t:{zh:"核心動詞與名詞 1",ja:"コア語彙 1",en:"Core words 1"},items:[V("ability","n.","能力","She has the ability to learn fast.","她有快速學習的能力。"),V("achieve","v.","達成","Hard work helps you achieve your goals.","努力能幫你達成目標。"),V("avoid","v.","避免","Try to avoid junk food.","盡量避免垃圾食物。"),V("benefit","n.","好處","Exercise has many benefits.","運動有很多好處。"),V("challenge","n.","挑戰","Learning a language is a fun challenge.","學一種語言是有趣的挑戰。"),V("decide","v.","決定","I can't decide what to wear.","我無法決定要穿什麼。"),V("environment","n.","環境","We should protect the environment.","我們應該保護環境。"),V("experience","n.","經驗","Traveling is a great experience.","旅行是很棒的經驗。"),V("improve","v.","改善、提升","Reading every day improves your English.","每天閱讀能提升你的英文。"),V("opportunity","n.","機會","This job is a good opportunity.","這份工作是個好機會。"),V("responsible","adj.","負責任的","You are responsible for your choices.","你要為自己的選擇負責。"),V("suggest","v.","建議","I suggest we leave early.","我建議我們早點出發。")]},
+     {t:{zh:"核心動詞與名詞 2",ja:"コア語彙 2",en:"Core words 2"},items:[V("accurate","adj.","精確的","The report is accurate.","這份報告很精確。"),V("confident","adj.","有自信的","She feels confident about the test.","她對考試很有信心。"),V("community","n.","社區","Our community has a new library.","我們社區有一間新圖書館。"),V("efficient","adj.","有效率的","This is an efficient way to study.","這是有效率的讀書方法。"),V("encourage","v.","鼓勵","My teacher encourages me to ask questions.","老師鼓勵我發問。"),V("generation","n.","世代","Each generation has its own music.","每個世代都有自己的音樂。"),V("influence","v.","影響","Friends can influence your habits.","朋友會影響你的習慣。"),V("maintain","v.","維持","It is hard to maintain a healthy diet.","維持健康的飲食很難。"),V("patient","adj.","有耐心的","Please be patient with your little brother.","對弟弟要有耐心。"),V("recognize","v.","認出","I didn't recognize you with glasses.","你戴眼鏡我沒認出來。"),V("solution","n.","解決方法","We need a solution to this problem.","我們需要這個問題的解決方法。"),V("tradition","n.","傳統","Eating mooncakes is a Mid-Autumn tradition.","吃月餅是中秋節的傳統。")]}]},
+  {k:"travel",e:"✈️",n:{zh:"出國旅遊開口說 5000",ja:"旅行英会話 5000",en:"Travel talk 5000"},lvl:{zh:"旅遊・生活會話",ja:"旅行・会話",en:"Travel & daily talk"},target:5000,size:12,
+   desc:"words and short phrases travellers actually say abroad, one situation per unit",
+   themes:["airport","hotel & restaurant","shopping","getting around","asking the way","at the doctor","sightseeing","making friends","emergencies","café & street food"],
+   units:[{t:{zh:"機場",ja:"空港",en:"At the airport"},items:[V("passport","n.","護照","May I see your passport, please?","請給我看您的護照。"),V("boarding pass","n.","登機證","Here is your boarding pass.","這是您的登機證。"),V("check in","v.","報到、辦理登機","Where can I check in?","我可以在哪裡辦理登機？"),V("aisle seat","n.","走道座位","Could I have an aisle seat?","可以給我走道的位子嗎？"),V("luggage","n.","行李","My luggage is missing.","我的行李不見了。"),V("gate","n.","登機門","Which gate does this flight leave from?","這班飛機從幾號登機門出發？"),V("delay","v.","延誤","The flight is delayed by one hour.","班機延誤一小時。"),V("customs","n.","海關","I have nothing to declare at customs.","我在海關沒有東西要申報。"),V("exchange","v.","兌換","Where can I exchange money?","哪裡可以換錢？"),V("taxi","n.","計程車","Could you call a taxi for me?","可以幫我叫計程車嗎？"),V("ticket","n.","票","One ticket to the city center, please.","一張到市中心的票，謝謝。"),V("transfer","v.","轉機","I need to transfer in Tokyo.","我需要在東京轉機。")]},
+     {t:{zh:"飯店與餐廳",ja:"ホテルとレストラン",en:"Hotel & restaurant"},items:[V("reservation","n.","預約","I have a reservation under Chen.","我有用陳的名字預約。"),V("check out","v.","退房","What time is check out?","幾點退房？"),V("menu","n.","菜單","Could I see the menu, please?","可以給我看菜單嗎？"),V("recommend","v.","推薦","What do you recommend?","你推薦什麼？"),V("bill","n.","帳單","Can I have the bill, please?","請給我帳單。"),V("allergic","adj.","過敏的","I'm allergic to peanuts.","我對花生過敏。"),V("receipt","n.","收據","May I have a receipt?","可以給我收據嗎？"),V("towel","n.","毛巾","Could I get some extra towels?","可以多給我幾條毛巾嗎？"),V("password","n.","密碼","What's the Wi-Fi password?","無線網路密碼是什麼？"),V("directions","n.","路線指引","Could you give me directions to the museum?","可以告訴我怎麼去博物館嗎？"),V("nearby","adv.","附近","Is there a pharmacy nearby?","附近有藥局嗎？"),V("souvenir","n.","紀念品","I'm looking for souvenirs.","我在找紀念品。")]}]},
+  {k:"exam",e:"🎓",n:{zh:"留學考試英文（托福・雅思）",ja:"留学試験英語（TOEFL・IELTS）",en:"Study-abroad exams (TOEFL / IELTS)"},lvl:{zh:"大學・留學",ja:"大学・留学",en:"University"},target:3000,size:12,
+   desc:"academic words that appear most in TOEFL and IELTS reading and listening",
+   units:[{t:{zh:"學術核心 1",ja:"アカデミック 1",en:"Academic core 1"},items:[V("analyze","v.","分析","Researchers analyze the data carefully.","研究人員仔細分析資料。"),V("assume","v.","假設","Don't assume the answer is simple.","別假設答案很簡單。"),V("consequence","n.","後果","Climate change has serious consequences.","氣候變遷有嚴重的後果。"),V("contrast","n.","對比","In contrast, the second theory is simpler.","相對地，第二個理論比較簡單。"),V("demonstrate","v.","證明、展示","The study demonstrates a clear link.","這項研究證明了明確的關聯。"),V("distinguish","v.","區分","It is hard to distinguish the twins.","很難分辨這對雙胞胎。"),V("evidence","n.","證據","There is little evidence for this claim.","這個說法幾乎沒有證據。"),V("hypothesis","n.","假說","The scientist tested her hypothesis.","那位科學家驗證了她的假說。"),V("significant","adj.","顯著的","There was a significant increase in sales.","銷售有顯著的成長。"),V("sufficient","adj.","足夠的","We do not have sufficient time.","我們沒有足夠的時間。"),V("interpret","v.","詮釋、解讀","Students must interpret the chart.","學生必須解讀這張圖表。"),V("phenomenon","n.","現象","Rainbows are a natural phenomenon.","彩虹是一種自然現象。")]}]}
+];
+S.vc=S.vc||{};S.vbook=S.vbook||{};
+const vcOf=k=>{const C=VCOURSES.find(c=>c.k===k);if(!C)return null;const st=S.vc[k]=S.vc[k]||{extra:[],done:{}};return {C,st,units:[...C.units,...st.extra]}};
+const vcOpen=(k,i)=>!OWNER.proCourses||i===0||unlocked("course");
+let vcView=null;   // {k} course, {k,u} unit, {k,u,quiz}
+const VT=()=>VC_STR[LANG[S.region]];
+const vName=o=>o[LANG[S.region]]||o.zh;
+function vcLearned(){const s=new Set();VCOURSES.forEach(C=>{const o=vcOf(C.k);o.units.forEach((u,i)=>{if(o.st.done[i]!=null)u.items.forEach(x=>s.add(x.w))})});return s}
+// sentence → tappable words
+const vSent=(s,hl)=>esc(s).replace(/[A-Za-z][A-Za-z'’-]*/g,m=>`<button type="button" class="vw${hl&&m.toLowerCase().startsWith(hl.toLowerCase().split(" ")[0])?" hl":""}" data-vw="${m}">${m}</button>`);
+function courseHTML(){
+  const v=VT(),t=T();
+  if(!vcView){   // all courses
+    const book=Object.keys(S.vbook).length;
+    return `<div class="vclist">${VCOURSES.map(C=>{const o=vcOf(C.k),done=Object.keys(o.st.done).length*C.size,pct=Math.min(100,Math.round(done/C.target*100));
+      return `<button type="button" class="vcard jelly" data-vc="${C.k}"><span class="vce">${C.e}</span><span class="vct"><b>${esc(vName(C.n))}</b><small>${esc(vName(C.lvl))} · ${v.learned(done,C.target)}</small><span class="vbar"><i style="width:${Math.max(pct,2)}%"></i></span></span>${OWNER.proCourses&&!unlocked("course")?`<span class="fpro2">${t.wPro}</span>`:""}</button>`}).join("")}
+<button type="button" class="vcard jelly book" data-vbook="1"><span class="vce">⭐</span><span class="vct"><b>${v.book}</b><small>${v.bookN(book)}</small></span></button></div>
+<p class="note">${v.tapHint}</p>`}
+  const o=vcOf(vcView.k);if(!o)return "";const {C,st,units}=o;
+  if(vcView.u==null){   // one course: its units as a path
+    return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${v.courses}</button><b class="pgname">${C.e} ${esc(vName(C.n))}</b></div>
+<div class="vunits">${units.map((u,i)=>{const d=st.done[i],open=vcOpen(C.k,i);return `<button type="button" class="vunit jelly${d!=null?" done":""}${open?"":" locked"}" data-vu="${i}"><span class="vun">${d!=null?"✓":i+1}</span><span class="vut"><b>${esc(vName(u.t))}</b><small>${u.items.slice(0,4).map(x=>esc(x.w)).join(" · ")}…</small></span>${d!=null?`<span class="vsc">${"★".repeat(d>=90?3:d>=70?2:1)}</span>`:open?"":`<span>${I.lock}</span>`}</button>`}).join("")}
+<button type="button" class="vunit jelly new" data-vgen="1"><span class="vun">＋</span><span class="vut"><b>${v.nextUnit(units.length+1)}</b><small>${v.genHint}</small></span></button></div>
+${OWNER.proCourses&&!unlocked("course")?`<p class="note">${v.proNote}${OWNER.courseStore?` <a class="linkbtn" href="${esc(OWNER.courseStore)}" target="_blank" rel="noopener">${t.wPro}</a>`:""}</p>`:""}`}
+  const u=units[vcView.u];if(!u)return "";
+  if(vcView.quiz)return vqHTML(C,u);
+  return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${esc(vName(C.n))}</button><b class="pgname">${esc(vName(u.t))}</b></div>
+<div class="vwords">${u.items.map((x,i)=>`<div class="vword jelly"><div class="vwh"><button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button><b>${esc(x.w)}</b><i>${esc(x.pos)}</i><span>${esc(x.zh)}</span><button type="button" class="vstar${S.vbook[x.w]?" on":""}" data-vsave="${i}" aria-label="⭐">★</button></div>
+<p class="vs"><button type="button" class="say sm" data-vsays="${i}">${I.speak}</button><span>${vSent(x.s,x.w)}</span></p><small>${esc(x.st)}</small></div>`).join("")}</div>
+<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-vquiz="1">📝 ${v.startQuiz}</button></div>`;
+}
+// the quiz: English → meaning, meaning → English, listening, and the example sentence with a blank
+function vqNew(u){const items=pShuffle(u.items),types=["en2zh","zh2en","listen","cloze"];vcView.quiz={i:0,score:0,qs:items.map((x,i)=>({x,type:types[i%4],opts:pShuffle([x,...pShuffle(u.items.filter(y=>y!==x)).slice(0,3)])})),done:false}}
+function vqHTML(C,u){
+  const v=VT(),Q=vcView.quiz;
+  if(Q.i>=Q.qs.length){const pct=Math.round(Q.score/Q.qs.length*100);
+    return `<div class="lvup">${mascot(pct>=70?"cheer":"wave","lvmas")}<h2>${Q.score} / ${Q.qs.length}</h2><p>${"★".repeat(pct>=90?3:pct>=70?2:1)}</p><div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-vquiz="1">${T().gRestart}</button><button class="pill pri jelly" type="button" data-vcback="1">${v.backUnits}</button></div></div>`}
+  const q=Q.qs[Q.i],x=q.x;
+  const prompt=q.type==="en2zh"?`<b class="vqw">${esc(x.w)}</b><button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button>`
+    :q.type==="zh2en"?`<b class="vqw">${esc(x.zh)}</b><small>${esc(x.pos)}</small>`
+    :q.type==="listen"?`<button type="button" class="say big" data-vsay="${esc(x.w)}">${I.speak}</button><small>${v.listenQ}</small>`
+    :`<p class="vqs">${esc(x.s.replace(new RegExp(x.w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\w*","i"),"＿＿＿"))}</p><small>${esc(x.st)}</small>`;
+  return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${esc(vName(u.t))}</button><span class="grow"></span><span class="cnt2">${Q.i+1}/${Q.qs.length} · ⭐ ${Q.score}</span></div>
+<div class="vq jelly">${prompt}</div>
+<div class="copts">${q.opts.map((y,i)=>`<button type="button" class="copt jelly${Q.done&&y===x?" ok":""}" data-vqa="${i}"><b>${esc(q.type==="en2zh"?y.zh:y.w)}</b></button>`).join("")}</div>
+${Q.done?`<p class="vs center"><span>${vSent(x.s,x.w)}</span></p>`:""}`;
+}
+function vqAnswer(i,btn){const Q=vcView.quiz;if(!Q||Q.done)return;const q=Q.qs[Q.i],y=q.opts[i];
+  if(y===q.x){if(!Q.miss)Q.score++;Q.done=true;render();sayIn(q.x.s,"en");setTimeout(()=>{if(vcView&&vcView.quiz===Q){Q.i++;Q.done=false;Q.miss=0;if(Q.i>=Q.qs.length)vqFinish();render()}},1800)}
+  else{Q.miss=1;btn.classList.remove("bad");void btn.offsetWidth;btn.classList.add("bad")}}
+function vqFinish(){const Q=vcView.quiz,o=vcOf(vcView.k),pct=Math.round(Q.score/Q.qs.length*100),prev=o.st.done[vcView.u];o.st.done[vcView.u]=Math.max(prev||0,pct);save();if(prev==null)xpEvent("pic")}
+// the next unit, written by AI for the course level and skipping learnt words
+async function vcGen(){
+  const v=VT(),t=T(),o=vcOf(vcView.k);if(!o)return;const {C,st,units}=o;
+  if(!vcOpen(C.k,units.length)){toast(v.proNote);return}
+  await aiReady;if(!AI){toast(v.noAI);return}
+  toast(v.genning);
+  const known=[...new Set(units.flatMap(u=>u.items.map(x=>x.w)))].slice(-400),n=units.length,theme=C.themes?C.themes[n%C.themes.length]:"";
+  try{
+    const r=await AI.json(`You are writing unit ${n+1} of an English vocabulary course: "${C.n.en}" — ${C.desc}. ${theme?`This unit's situation: ${theme}.`:""}
+Give exactly ${C.size} new words or short phrases at the right level, NOT in this list: ${known.join(", ")}.
+For each: the word, part of speech (n./v./adj./adv./phr.), a short Traditional Chinese (Taiwan) meaning, one natural example sentence (max 14 words) that uses the word, and its Traditional Chinese translation.
+Reply ONLY JSON {"title":{"zh":"unit title in Chinese","ja":"in Japanese","en":"in English"},"items":[{"w":"","pos":"","zh":"","s":"","st":""}]}`,{modelTier:"default",cache:false});
+    const items=(Array.isArray(r.items)?r.items:[]).filter(x=>x&&x.w&&x.s&&!known.includes(x.w)).slice(0,C.size).map(x=>V(String(x.w).slice(0,30),String(x.pos||"").slice(0,6),String(x.zh||"").slice(0,20),String(x.s).slice(0,140),String(x.st||"").slice(0,80)));
+    if(items.length<4)throw new Error("few");
+    st.extra.push({t:r.title&&r.title.zh?{zh:String(r.title.zh).slice(0,20),ja:String(r.title.ja||r.title.zh).slice(0,20),en:String(r.title.en||r.title.zh).slice(0,30)}:{zh:v.unitN(n+1),ja:v.unitN(n+1),en:v.unitN(n+1)},items,ai:1});save();render();
+  }catch(e){toast(e&&e.code?aiErrText(e):v.genFail)}
+}
+// tap a word in any sentence: hear it, see its meaning, keep it
+let vPeek=null;
+async function vPeekOpen(word,sentence){
+  const v=VT(),w=word.replace(/[’']s$/,"");vPeek={w,s:sentence||""};
+  const known=VCOURSES.flatMap(C=>vcOf(C.k).units.flatMap(u=>u.items)).find(x=>x.w.toLowerCase()===w.toLowerCase())||S.vbook[w.toLowerCase()];
+  if(known)vPeek.zh=known.zh,vPeek.pos=known.pos;
+  vPeekDraw();sayIn(w,"en");
+  if(!known){await aiReady;if(AI){try{const r=await AI.json(`In the sentence "${vPeek.s}", what does the English word "${w}" mean? Reply ONLY JSON {"base":"dictionary form","pos":"n./v./adj./adv./prep./etc.","zh":"short Traditional Chinese (Taiwan) meaning in this sentence"}`,{modelTier:"quick"});if(vPeek&&vPeek.w===w){vPeek.zh=String(r.zh||"").slice(0,30);vPeek.pos=String(r.pos||"").slice(0,8);vPeek.base=String(r.base||"").slice(0,30);vPeekDraw()}}catch(e){}}else{vPeek.zh="";vPeekDraw()}}
+}
+function vPeekDraw(){const v=VT();let el=$("vpeek");if(!el){el=document.createElement("div");el.id="vpeek";el.className="vpeek jelly";document.body.appendChild(el)}
+  if(!vPeek){el.remove();return}
+  const saved=!!S.vbook[(vPeek.base||vPeek.w).toLowerCase()];
+  el.innerHTML=`<button type="button" class="say sm" data-vsay="${esc(vPeek.w)}">${I.speak}</button><div class="vpt"><b>${esc(vPeek.base||vPeek.w)}</b> <i>${esc(vPeek.pos||"")}</i><small>${vPeek.zh==null?v.looking:esc(vPeek.zh||v.noMeaning)}</small></div><button type="button" class="pill ${saved?"":"pri "}jelly" data-vkeep="1">${saved?"★ "+v.kept:"☆ "+v.keep}</button><button type="button" class="round" data-vpeekx="1" aria-label="×">${I.x}</button>`}
+function vKeep(item){const k=item.w.toLowerCase();if(S.vbook[k])return false;
+  S.vbook[k]={w:item.w,pos:item.pos||"",zh:item.zh||"",s:item.s||"",st:item.st||"",d:todayKey()};
+  // also a picture card, so it joins My cards and the games
+  S.pd.custom=(S.pd.custom||[]).concat([{e:"📝",zh:item.zh||item.w,en:item.w,ja:"",jk:"",tw:"",tl:""}]);PBANK=null;save();return true}
+function vBookHTML(){const v=VT(),list=Object.values(S.vbook).sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+  return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${v.courses}</button><b class="pgname">⭐ ${v.book}</b></div>
+${list.length?`<div class="vwords">${list.map(x=>`<div class="vword jelly"><div class="vwh"><button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button><b>${esc(x.w)}</b><i>${esc(x.pos)}</i><span>${esc(x.zh)}</span><button type="button" class="vstar on" data-vdrop="${esc(x.w.toLowerCase())}" aria-label="×">★</button></div>${x.s?`<p class="vs"><span>${vSent(x.s,x.w)}</span></p>`:""}</div>`).join("")}</div>`:`<p class="note">${v.bookEmpty}</p>`}`}
+const VC_STR={
+  zh:{courses:"單字課程",learned:(a,b)=>`已學 ${a} / ${b}`,book:"我的單字本",bookN:n=>`收藏了 ${n} 個字`,tapHint:"💡 例句裡的每個字都能點：聽發音、看意思，按 ☆ 收藏成字卡。",
+    nextUnit:n=>`第 ${n} 單元`,genHint:"AI 依課程程度出新的一組字",unitN:n=>`第 ${n} 單元`,startQuiz:"開始測驗",listenQ:"聽聽看，是哪個字？",backUnits:"回到單元",
+    proNote:"第 1 單元免費，其餘單元是加購內容。",noAI:"現在沒有 AI；可以先學內建單元，或由站長匯入官方字表。",genning:"AI 正在出下一個單元…",genFail:"這次沒出好，再試一次",
+    looking:"查詢中…",noMeaning:"（接上 AI 可以查意思）",keep:"收藏",kept:"已收藏",bookEmpty:"還沒有收藏。在任何例句點一個字，按 ☆ 就會出現在這裡。",savedToast:w=>`已收藏「${w}」`},
+  ja:{courses:"単語コース",learned:(a,b)=>`${a} / ${b} 語`,book:"マイ単語帳",bookN:n=>`${n} 語`,tapHint:"💡 例文の単語はタップできます：発音・意味、☆ でカードに保存。",
+    nextUnit:n=>`ユニット ${n}`,genHint:"AI がレベルに合わせて出題",unitN:n=>`ユニット ${n}`,startQuiz:"テスト",listenQ:"聞いて選ぼう",backUnits:"ユニットへ",
+    proNote:"ユニット 1 は無料、以降は追加購入です。",noAI:"今は AI が使えません。内蔵ユニットで学べます。",genning:"AI が次のユニットを作成中…",genFail:"うまくいきませんでした。もう一度",
+    looking:"調べています…",noMeaning:"（AI につなぐと意味を表示）",keep:"保存",kept:"保存済み",bookEmpty:"まだありません。例文の単語をタップして ☆ で保存。",savedToast:w=>`「${w}」を保存`},
+  en:{courses:"Word courses",learned:(a,b)=>`${a} / ${b} learnt`,book:"My word book",bookN:n=>`${n} saved`,tapHint:"💡 Every word in an example sentence is tappable: hear it, see the meaning, ☆ to save it as a card.",
+    nextUnit:n=>`Unit ${n}`,genHint:"AI writes the next set at this level",unitN:n=>`Unit ${n}`,startQuiz:"Start the quiz",listenQ:"Listen: which word?",backUnits:"Back to units",
+    proNote:"Unit 1 is free; later units are an add-on.",noAI:"No AI right now. Learn the built-in units, or import an official list.",genning:"AI is writing the next unit…",genFail:"That didn't work. Try again",
+    looking:"Looking it up…",noMeaning:"(connect AI for meanings)",keep:"Save",kept:"Saved",bookEmpty:"Nothing yet. Tap a word in any sentence and press ☆.",savedToast:w=>`Saved “${w}”`}
+};
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -5734,7 +5886,21 @@ document.addEventListener("click",e=>{
   if(el.closest("[data-skcal]")){planToCal();render();return}
   const skg=el.closest("[data-skgoal]");if(skg){planToGoal(skg);return}
   if(el.closest("[data-sktag]")){tagWithAI();return}
-  const wkd=el.closest("[data-wkind]");if(wkd){S.pd.on=wkd.dataset.wkind==="pic";save();render();return}
+  const wkd=el.closest("[data-wkind]");if(wkd){S.pd.kind=wkd.dataset.wkind;S.pd.on=S.pd.kind==="pic";save();render();return}
+  const vcc=el.closest("[data-vc]");if(vcc){vcView={k:vcc.dataset.vc};render();scrollTo({top:0});return}
+  if(el.closest("[data-vbook]")){vcView={book:1};render();return}
+  if(el.closest("[data-vcback]")){if(!vcView||vcView.book)vcView=null;else if(vcView.quiz)vcView={k:vcView.k,u:vcView.u};else if(vcView.u!=null)vcView={k:vcView.k};else vcView=null;render();return}
+  const vcu=el.closest("[data-vu]");if(vcu){const i=+vcu.dataset.vu;if(!vcOpen(vcView.k,i)){toast(VT().proNote);return}vcView={k:vcView.k,u:i};render();scrollTo({top:0});return}
+  if(el.closest("[data-vgen]")){vcGen();return}
+  const vsy=el.closest("[data-vsay]");if(vsy){sayIn(vsy.dataset.vsay,"en");return}
+  const vss=el.closest("[data-vsays]");if(vss){const u=vcOf(vcView.k).units[vcView.u];sayIn(u.items[+vss.dataset.vsays].s,"en");return}
+  const vsv=el.closest("[data-vsave]");if(vsv){const u=vcOf(vcView.k).units[vcView.u],x=u.items[+vsv.dataset.vsave];if(S.vbook[x.w.toLowerCase()]){delete S.vbook[x.w.toLowerCase()];save()}else{vKeep(x);toast(VT().savedToast(x.w))}render();return}
+  if(el.closest("[data-vquiz]")){const u=vcOf(vcView.k).units[vcView.u];vqNew(u);render();return}
+  const vqa=el.closest("[data-vqa]");if(vqa){vqAnswer(+vqa.dataset.vqa,vqa);return}
+  const vww=el.closest("[data-vw]");if(vww){const sent=(vww.closest(".vs,.vqs,p")||{}).textContent||"";vPeekOpen(vww.dataset.vw,sent.trim());return}
+  if(el.closest("[data-vkeep]")){if(vPeek){const it={w:vPeek.base||vPeek.w,pos:vPeek.pos,zh:vPeek.zh,s:vPeek.s};if(vKeep(it))toast(VT().savedToast(it.w));vPeekDraw();if(S.face===4)render()}return}
+  if(el.closest("[data-vpeekx]")){vPeek=null;vPeekDraw();return}
+  const vdr=el.closest("[data-vdrop]");if(vdr){delete S.vbook[vdr.dataset.vdrop];save();render();return}
   const plg=el.closest("[data-plang]");if(plg){S.pd.lang=plg.dataset.plang;S.pd.idx=0;pview=null;ptrail=[];pg=null;save();render();const c=pCur();if(c&&S.pd.mode==="learn")pSpeakCard(c.x,S.pd.lang);return}
   const psb=el.closest("[data-psub]");if(psb){S.pd.sub=psb.dataset.psub;S.pd.idx=0;pview=null;ptrail=[];pg=null;if(S.pd.mode==="review")S.pd.mode="learn";save();render();return}
   const plk=el.closest("[data-plink]");if(plk){pFollow(plk.dataset.plink);return}
