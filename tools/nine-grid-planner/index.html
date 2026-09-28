@@ -1151,6 +1151,16 @@ html .knob svg{width:22px;height:22px}
 .jtop b{display:block;font-size:17px;font-weight:400}.jtop small{color:var(--muted);font-size:11px}.jtop i{display:block;font-style:normal;font-size:12px;color:var(--jc)}
 .job p{margin:0;font-size:13px}.jsk{display:flex;flex-direction:column;gap:3px}.jsk small,.jhow small{color:var(--muted);font-size:11px}.jsk span{font-size:12px}.jsk span b{color:var(--jc);margin-right:6px;font-weight:400}
 .jhow{display:flex;flex-direction:column;gap:3px}.jgot{color:var(--jc);font-size:13px}
+.swlock{opacity:.5;position:relative}.swl{position:absolute;top:2px;right:4px;font-style:normal;font-size:12px}
+.jperk{font-size:12px;color:var(--jc)}
+.zwball{font-size:64px;line-height:1;display:block;text-align:center}.zwsel{font:inherit;font-size:16px;padding:9px 10px;border-radius:14px;border:1px solid var(--chip-edge);background:var(--chip);color:var(--ink)}
+.zwgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-areas:"si wu wi sn" "cn mid mid yo" "mo mid mid xu" "yn ch zi ha";gap:3px;margin-top:8px}
+.zwc{border:1px solid var(--chip-edge);background:var(--chip);border-radius:8px;padding:4px;min-height:92px;display:flex;flex-direction:column;gap:2px;font-size:11px;min-width:0}
+.zwc.ming{box-shadow:0 0 0 2px var(--accent)}.zwc small{color:var(--muted);font-size:10px}.zwc b{font-size:12px;font-weight:400;color:var(--accent)}
+.zws span{display:block;font-size:13px;color:var(--ink)}.zwa{font-size:10px;color:var(--muted)}
+.zwc i{font-style:normal;font-size:9px;border-radius:4px;padding:0 3px;margin-left:2px;color:#fff}.zwc i.h0{background:#2E9E6A}.zwc i.h1{background:#2F6FED}.zwc i.h2{background:#8E6BE0}.zwc i.h3{background:#E5484D}
+.zwmid{grid-area:mid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:12px;color:var(--muted)}.zwmid b{font-size:22px;font-weight:400;color:var(--ink)}
+.zwread p{margin:4px 0}.zwread h3{margin:10px 0 4px}.zwai{line-height:1.7;background:var(--chip);border-radius:14px;padding:12px}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1282,14 +1292,15 @@ const OWNER={
   proCourses:true,                         // 單字課程第 2 單元起是否為加購；false 就全部免費
   courseStore:"",                          // 單字課程加購頁網址
   voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
-  codes:{},                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
+  codes:{"189544e81c6dc6fa9aa0082748771885a0cb542ba1cb6af2500c71640541e2ff":{grants:["owner"]}},   // 主帳號                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
   aiProxy:"/.netlify/functions/ai",        // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
   wip:[3,6,7],                             // 建構中、先不開放的面（3 友善連結、6 創作工作台、7 AI 健身教練）；要開放就從這裡拿掉
   taleArt:{},                              // 故事插畫：{"aesop-tortoise":"tales/aesop-tortoise/"}，放 1.webp、2.webp…（見「故事插畫提示詞.md」）；沒放就用內建畫面
   aiFreeDaily:20,                          // 網站的免費 AI：每位使用者每天幾次（接上自己金鑰的人不受限）
   aiPlusDaily:200,                         // 「AI 加值包」（權益 ai:plus）每天幾次
   aiStore:"",
-  studioStore:"",                          // AI 工作室（AI 造型師＋AI 設計背景，單次購買，權益 studio:ai）的購買頁網址                              // AI 加值包的購買頁網址；空白就只能用兌換碼
+  studioStore:"",
+  ziweiStore:"",                           // 紫微斗數館（權益 ziwei）的購買頁網址；Lv10 也會自動開放                          // AI 工作室（AI 造型師＋AI 設計背景，單次購買，權益 studio:ai）的購買頁網址                              // AI 加值包的購買頁網址；空白就只能用兌換碼
   salesOpen:false,                         // 開賣了沒？false＝公測期：所有加購內容免費開放、不顯示「加購」；接好付款、準備好內容再改成 true
   betaKeep:true                            // 開賣後，公測期間用過的內容是否讓那位使用者繼續免費用（true＝保留）
 };
@@ -1324,7 +1335,7 @@ const STR={
     left:n=>n?`還有 ${n} 件待辦還沒排到哪一天。`:"",
     remTitle:"時間到了",remDone:"完成了",remSnooze:"晚 10 分鐘",
     remSpeak:(t,x)=>`${t}，該做「${x}」了。`,
-    look:"外觀",skins:{epic:"史詩戰記 RPG",white:"標準白",black:"標準黑",art:"世界名畫",fant:"奇幻水晶 RPG",quest:"勇者冒險 RPG",jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"外觀",skins:{stars:"星夜",lantern:"天燈夜",epic:"史詩戰記 RPG",white:"標準白",black:"標準黑",art:"世界名畫",fant:"奇幻水晶 RPG",quest:"勇者冒險 RPG",jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"上傳桌布",wallRemove:"移除",wallOp:"桌布濃度",
     wallTooBig:"這張照片太大存不下，換一張試試。",wallBad:"請選一張圖片（JPG、PNG）。",wallSaved:"桌布換好了。",
     sound:"聲音",chime:"提示音",voice:"語音",test:"試聽",
@@ -1444,7 +1455,7 @@ const STR={
     left:n=>n?`曜日が決まっていないタスクが${n}件あります。`:"",
     remTitle:"時間です",remDone:"完了",remSnooze:"10分後",
     remSpeak:(t,x)=>`${t}です。「${x}」の時間です。`,
-    look:"見た目",skins:{epic:"エピック戦記 RPG",white:"スタンダード白",black:"スタンダード黒",art:"世界の名画",fant:"クリスタル RPG",quest:"勇者の冒険 RPG",jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"見た目",skins:{stars:"星の夜",lantern:"天灯の夜",epic:"エピック戦記 RPG",white:"スタンダード白",black:"スタンダード黒",art:"世界の名画",fant:"クリスタル RPG",quest:"勇者の冒険 RPG",jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"壁紙を選ぶ",wallRemove:"外す",wallOp:"壁紙の濃さ",
     wallTooBig:"この写真は大きすぎて保存できません。",wallBad:"画像（JPG・PNG）を選んでください。",wallSaved:"壁紙を変更しました。",
     sound:"サウンド",chime:"通知音",voice:"読み上げ",test:"試聴",
@@ -1564,7 +1575,7 @@ const STR={
     left:n=>n?`${n} more ${n>1?"tasks have":"task has"} no day yet.`:"",
     remTitle:"It's time",remDone:"Done",remSnooze:"In 10 min",
     remSpeak:(t,x)=>`It's ${t}. Time for ${x}.`,
-    look:"Look",skins:{epic:"Epic saga RPG",white:"Classic white",black:"Classic black",art:"Masterpieces",fant:"Crystal RPG",quest:"Hero's quest RPG",jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
+    look:"Look",skins:{stars:"Starry night",lantern:"Lantern night",epic:"Epic saga RPG",white:"Classic white",black:"Classic black",art:"Masterpieces",fant:"Crystal RPG",quest:"Hero's quest RPG",jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
     upload:"Upload wallpaper",wallRemove:"Remove",wallOp:"Wallpaper",
     wallTooBig:"That photo is too large to save. Try another.",wallBad:"Choose an image (JPG or PNG).",wallSaved:"Wallpaper updated.",
     sound:"Sound",chime:"Chime",voice:"Voice",test:"Test",
@@ -1811,7 +1822,7 @@ function seed(){
 let S=null;
 S=load()||seed();
 S.region=S.region||"TW";S.mode=S.mode||S.view||"week";delete S.view;
-if(!S.skin||!(S.skin in {epic:1,white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="jelly";
+if(!S.skin||!(S.skin in {stars:1,lantern:1,epic:1,white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="jelly";
 if(S.wallOp==null)S.wallOp=100;if(S.voice==null)S.voice=true;if(S.chime==null)S.chime=true;
 S.face=S.face||0;S.seen=S.seen||{};S.ranges=S.ranges||[];S.tags=S.tags||[];S.donatePlan=S.donatePlan||"month";
 if(!S.goal)S.goal=seedGoal(LANG[S.region],!!S.example);
@@ -1831,7 +1842,8 @@ S.owned=S.owned||{};
   S.v=SCHEMA;save();
 })();
 if(window.NG_SITE&&navigator.storage&&navigator.storage.persist){try{navigator.storage.persist()}catch(e){}}
-const owns=k=>!!S.owned[k]||(!!OWNER.betaKeep&&!!(S.beta||{})[k]);
+function isOwner(){return !!(S&&S.owned&&S.owned.owner)}
+const owns=k=>isOwner()||!!S.owned[k]||(!!OWNER.betaKeep&&!!(S.beta||{})[k]);
 // grant once; the first reason is kept (a purchase is never downgraded)
 function grant(k,src){if(!OWNER.salesOpen&&(src||"free")==="free"){S.beta=S.beta||{};if(!S.beta[k]){S.beta[k]=key(new Date());save()}return}   // 公測期間用過的，另外記下
   if(!S.owned[k]){S.owned[k]={src:src||"free",d:key(new Date())};save()}}
@@ -1897,6 +1909,8 @@ const SKINS={
   fant:{bg:"#060B2E",accent:"#F2C94C",accentD:"#F2C94C",art:[],draw:"fant",sw:"linear-gradient(180deg,#3448BE,#0E1868)",cls:"sk-fant",tints:["#F2C94C","#6FD3E8","#E9B77E","#8FA8FF","#FF8A8A","#8FE3A8","#D0A8FF"],dark:true},
   quest:{bg:"#000000",accent:"#FFD23F",accentD:"#FFD23F",art:[],draw:"quest",sw:"linear-gradient(#000,#000) padding-box,linear-gradient(#fff,#fff) border-box",cls:"sk-quest",font:"DotGothic16",tints:["#FFD23F","#5CC8FF","#FF9F43","#7BED9F","#FF6B6B","#A4E86B","#D6A2FF"],dark:true},
   epic:{bg:"#15111A",accent:"#B3261E",accentD:"#F2B84B",art:[],draw:"epic",sw:"linear-gradient(180deg,#2E241A,#15111A) padding-box,linear-gradient(#C9A04A,#6B4A1A) border-box",cls:"sk-epic",font:"Cinzel",tints:["#C9A04A","#8FB3D9","#C0392B","#7FBF8E","#B48BD1","#E9C46A","#D98C5F"],dark:true},
+  stars:{bg:"#0F1638",bg2:"#2B2360",accent:"#F2C94C",accentD:"#F2C94C",art:[],draw:"motif",motifs:["✨","⭐","🌙","🌟"],sw:"radial-gradient(circle at 70% 30%,#FFF6C8 0 6%,transparent 7%),linear-gradient(135deg,#0F1638,#2B2360)",tints:["#F2C94C","#8FA8FF","#C4AEF5","#6FD3E8","#F4A7B9","#9FE3C0","#FFD6A0"],dark:true},
+  lantern:{bg:"#2A0F14",bg2:"#5A1A1A",accent:"#F2994A",accentD:"#F7B267",art:[],draw:"motif",motifs:["🏮","🏮","✨","🎐"],sw:"radial-gradient(circle at 35% 40%,#F2994A 0 14%,transparent 15%),linear-gradient(135deg,#2A0F14,#5A1A1A)",tints:["#F2994A","#E5484D","#F2C94C","#E9B77E","#F4A7B9","#C9A27E","#FFD6A0"],dark:true},
   jelly:{bg:"#E7EFF2",accent:"#E8833A",accentD:"#F2A65A",art:["#E8833A","#1F5C66","#E9C39B","#9FB4BA","#F2B84B","#2E7F8A"],tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"]},
   sakura:{bg:"#FBEFF2",accent:"#C2456B",accentD:"#F28CA6",art:["#F4A7B9","#C2456B","#F9D3DC","#E8C9A0","#9E6B84","#F2B5C4"],tints:["#F28CA6","#E7A0C4","#F6B89A","#C9A0DC","#F4978E","#F7C1CF","#D38FB0"]},
   matcha:{bg:"#EEF3E6",accent:"#4B7A2B",accentD:"#A8C686",art:["#7FA35B","#3E5E2A","#D8E3C3","#C9B27C","#A8C686","#5E8A6E"],tints:["#8DB85F","#5E9E6E","#C9B27C","#A3C98B","#E0A458","#7BAE9B","#B7C77A"]},
@@ -2463,7 +2477,7 @@ function goFace(n,dir){
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
-  const swap=()=>{S.face=n;S.use=S.use||{};S.use[n]=(S.use[n]||0)+1;save();setTimeout(jobCheck,1200);try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
+  const swap=()=>{S.face=n;S.use=S.use||{};S.use[n]=(S.use[n]||0)+1;save();setTimeout(jobCheck,1200);setTimeout(perkCheck,1300);try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
   if(reduced()||!f.animate){swap();return}
   rotating=true;
 
@@ -2494,7 +2508,7 @@ function openSettings(){
 <div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
-<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b class="${k==="fant"||k==="quest"?"swwin sw-"+k:k==="epic"?"sw-epic":""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
+<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k],op=lookOpen(k);return `<button type="button" class="sw${op?"":" swlock"}" data-skin="${k}" aria-pressed="${S.skin===k}"${op?"":` title="${esc(lookLock(k))}"`}>${op?"":`<em class="swl">🔒</em>`}<b class="${k==="fant"||k==="quest"?"swwin sw-"+k:k==="epic"?"sw-epic":""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
 ${(S.mySkins||[]).length?`<small class="note">${STT().mine}</small><div class="swatches">${S.mySkins.map(m=>`<button type="button" class="sw" data-skin="${m.id}" aria-pressed="${S.skin===m.id}"><b style="background:linear-gradient(135deg,${m.bg},${m.bg2||m.bg})"><i class="swm">${esc((m.motifs||[])[0]||"")}</i></b>${esc(m.name[LANG[S.region]]||m.name.zh)}</button>`).join("")}</div>`:""}
 <div class="row"><button class="pill jelly" type="button" data-wardrobe="1">👕 ${WRT().title}</button><button class="pill jelly" type="button" data-skinai="1">✨ ${STT().skinTitle}${studioOpen()?"":" 🔒"}</button></div>
 <div class="row"><button class="pill jelly tgl pxbtn" type="button" data-set="pixel" aria-pressed="${!!S.pixel}">▦ ${PXT()}</button></div>
@@ -4677,7 +4691,7 @@ function levelUp(L){
   save();
   layer(`<div class="lvup">${mascot("cheer","lvmas")}<div class="lvbig">Lv ${L}</div><h2>${esc(lvTitle(L))}</h2>
 <p>${fav?esc(q.praise(skName(fav),recent.filter(x=>x===fav).length)):esc(q.praise0)}</p>
-<ul class="lvrw">${ofNewAt(L).length?`<li>${esc(WRT().unlockNew(ofNewAt(L).join("、")))}</li>`:""}${rs.map(r=>`<li>${r.kind==="title"?`🏅 ${esc(q.titleIs(lvTitle(L)))}`:r.kind==="coupon"&&!(r.code||r.url)?`🎟️ ${q.couponSoon}`:esc(rewardText(r))}${r.kind==="coupon"&&r.url?` <a class="linkbtn" href="${esc(r.url)}" target="_blank" rel="noopener">${q.claim}</a>`:""}</li>`).join("")}</ul>
+<ul class="lvrw">${Object.entries(SERIES).filter(([k,v])=>v===L).map(([k])=>`<li>🗝️ ${esc(skinName(k))}</li>`).join("")}${L===ZW_OPEN_LV?`<li>🔮 ${esc(ZWT().title)}</li>`:""}${ofNewAt(L).length?`<li>${esc(WRT().unlockNew(ofNewAt(L).join("、")))}</li>`:""}${rs.map(r=>`<li>${r.kind==="title"?`🏅 ${esc(q.titleIs(lvTitle(L)))}`:r.kind==="coupon"&&!(r.code||r.url)?`🎟️ ${q.couponSoon}`:esc(rewardText(r))}${r.kind==="coupon"&&r.url?` <a class="linkbtn" href="${esc(r.url)}" target="_blank" rel="noopener">${q.claim}</a>`:""}</li>`).join("")}</ul>
 <div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-close="1">${q.gotIt}</button></div></div>`,true);
 }
 
@@ -5250,7 +5264,7 @@ PROOTS.filter(R=>R.k==="world").forEach(R=>R.subs.forEach(sb=>{const [c,...rest]
 S.pd=S.pd||{on:true,lang:LANG[S.region]==="en"?"ja":"en",cat:"animal",idx:0,mode:"learn",again:{},known:{},custom:[]};
 S.pd.extra=S.pd.extra||{};S.pd.links=S.pd.links||{};if(S.pd.sub==null)S.pd.sub="";
 if(!PROOTS.some(r=>r.k===S.pd.cat)&&S.pd.cat!=="mine")S.pd.cat="animal";
-const pRootsAll=()=>{const mine=S.pd.custom&&S.pd.custom.length?[{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},subs:[{k:"mine",n:{zh:"全部",ja:"すべて",en:"All"},c:S.pd.custom.map(x=>Object.assign({root:"mine",sub:"mine"},x))}]}]:[];return [...PROOTS,...RPG_ROOTS.filter(r=>r.skin===S.skin),...mine]};
+const pRootsAll=()=>{const mine=S.pd.custom&&S.pd.custom.length?[{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},subs:[{k:"mine",n:{zh:"全部",ja:"すべて",en:"All"},c:S.pd.custom.map(x=>Object.assign({root:"mine",sub:"mine"},x))}]}]:[];return [...PROOTS,...PERK_ROOTS.filter(r=>jobHas(r.job)),...RPG_ROOTS.filter(r=>r.skin===S.skin),...mine]};
 const pcats=pRootsAll;
 const pcat=()=>pRootsAll().find(c=>c.k===S.pd.cat)||PROOTS[0];
 const pExtraOf=rk=>Object.values(S.pd.extra).filter(x=>x.root===rk);
@@ -5271,7 +5285,7 @@ function pLinks(x){
   (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
   return out;
 }
-const pFree=c=>c.rpg||!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||owns("pic:"+c.k)||owns("pic:all")||(typeof unlocked==="function"&&unlocked(c.k));
+const pFree=c=>c.rpg||c.perk||!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||owns("pic:"+c.k)||owns("pic:all")||(typeof unlocked==="function"&&unlocked(c.k));
 const pOpen=c=>pFree(c)?Infinity:OWNER.trialCards;
 let pview=null,ptrail=[];   // a card reached through a link, and the way back
 // romaji for kana, so a Chinese speaker can read Japanese on day one
@@ -5596,7 +5610,7 @@ function renderDial(){
 // every side as a nine-grid menu; the pin puts one on the bar
 function openAllFaces(){
   const t=T(),n=NT(),cells=[0,1,2,3,4,5,6,7,8].map(i=>isWip(i)?`<div class="aftile jelly wip" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afwip="1" aria-disabled="true">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>🚧 ${esc(n.wip)}</small></button></div>`:`<div class="aftile jelly${i===S.face?" on":""}" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afgo="${i}">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>${esc(t.subs[i])}</small></button><button type="button" class="afpin${S.favs.includes(i)?" on":""}" data-afpin="${i}" aria-label="📌">📌</button></div>`);
-  layer(`<div class="shead"><h2>${n.allTitle}</h2>${closeBtn(t)}</div><div class="afgrid">${cells.join("")}</div><p class="note">${n.pinHint}</p>`,true);
+  layer(`<div class="shead"><h2>${n.allTitle}</h2>${closeBtn(t)}</div><div class="afgrid">${cells.join("")}</div><div class="row" style="justify-content:center"><button class="pill jelly${zwOpen()?"":" swlock"}" type="button" data-zwopen="1">${zwOpen()?"🔮":"🔒"} ${esc(ZWT().title)}${zwOpen()?"":` · Lv${ZW_OPEN_LV}`}</button><button class="pill jelly" type="button" data-zwdaily="1">${esc(ZWT().daily)}</button></div><p class="note">${n.pinHint}</p>`,true);
 }
 
 /* ---------- background music made in the browser, so it plays anywhere ---------- */
@@ -5604,10 +5618,10 @@ S.music=S.music||{on:true,track:"piano",vol:.5};
 if(isWip(S.face))S.face=0;
 S.visit=S.visit||{n:0,last:""};if(S.visit.last!==key(new Date())){S.visit.n++;S.visit.last=key(new Date())}
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
-const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"epic",e:"🛡️"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
-const MP_STR={zh:{names:{epic:"史詩戰鼓",piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
-  ja:{names:{epic:"いくさの太鼓",piano:"ピアノ",night:"夜のジャズ",classic:"オルゴール",crystal:"クリスタルハープ",chip:"8ビット冒険",rain:"雨の音",ocean:"波の音"},themed:n=>`BGM とプレイリストを「${n}」のおすすめにしました（自分で入れた曲はそのまま）`,notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
-  en:{names:{epic:"War drums",piano:"Soft piano",night:"Late-night jazz",classic:"Music box",crystal:"Crystal harp",chip:"8-bit adventure",rain:"Rain",ocean:"Waves"},themed:n=>`Music now matches “${n}” (songs you added are kept)`,notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
+const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"starlight",e:"🌟"},{k:"lanternz",e:"🏮"},{k:"epic",e:"🛡️"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
+const MP_STR={zh:{names:{starlight:"星光",lanternz:"燈籠古箏",epic:"史詩戰鼓",piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
+  ja:{names:{starlight:"星あかり",lanternz:"灯籠と古箏",epic:"いくさの太鼓",piano:"ピアノ",night:"夜のジャズ",classic:"オルゴール",crystal:"クリスタルハープ",chip:"8ビット冒険",rain:"雨の音",ocean:"波の音"},themed:n=>`BGM とプレイリストを「${n}」のおすすめにしました（自分で入れた曲はそのまま）`,notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
+  en:{names:{starlight:"Starlight",lanternz:"Lantern zither",epic:"War drums",piano:"Soft piano",night:"Late-night jazz",classic:"Music box",crystal:"Crystal harp",chip:"8-bit adventure",rain:"Rain",ocean:"Waves"},themed:n=>`Music now matches “${n}” (songs you added are kept)`,notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
 const MPT=()=>MP_STR[LANG[S.region]];
 function ambCtx(){if(!AMB.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AMB.ctx=new C();AMB.master=AMB.ctx.createGain();AMB.master.gain.value=0;AMB.master.connect(AMB.ctx.destination)}return AMB.ctx}
 function noiseBuf(ctx,brown){const n=ctx.sampleRate*4,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5}else d[i]=w}return b}
@@ -5623,7 +5637,7 @@ function ambStart(track){
     const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,true);s.loop=true;const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=700;const g=ctx.createGain();g.gain.value=.35;
     const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.09;lg.gain.value=.25;lfo.connect(lg).connect(g.gain);
     s.connect(lp).connect(g).connect(out);s.start();lfo.start();AMB.nodes.push(s,lp,g,lfo,lg);
-  }else if(track==="night"||track==="classic"||track==="crystal"||track==="chip"||track==="epic"){ambTheme(ctx,out,track)
+  }else if(track==="night"||track==="classic"||track==="crystal"||track==="chip"||track==="epic"||track==="starlight"||track==="lanternz"){ambTheme(ctx,out,track)
   }else{   // soft piano: pentatonic notes over slow chords, with a gentle echo
     const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=.42;fb.gain.value=.32;wet.gain.value=.35;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
     const scale=[261.6,293.7,329.6,392,440,523.3,587.3,659.3,784];const chords=[[130.8,196,261.6],[110,164.8,220],[87.3,130.8,174.6],[98,146.8,196]];let beat=0;
@@ -5645,7 +5659,7 @@ function mpRender(){
 function openMusicSheet(){
   const t=T(),m=MPT(),songs=(S.songs||[]).filter(s=>s&&s.url).slice(0,8);
   layer(`<div class="shead"><h2>🎵 ${m.title}</h2>${closeBtn(t)}</div>
-<h3>${m.here}</h3><div class="mptracks">${MP_TRACKS.map(x=>`<button type="button" class="mptr jelly${AMB.playing&&AMB.cur===x.k?" on":""}" data-mptrack="${x.k}"><span>${x.e}</span>${esc(m.names[x.k])}</button>`).join("")}</div>
+<h3>${m.here}</h3><div class="mptracks">${MP_TRACKS.map(x=>{const op=trackOpen(x.k);return `<button type="button" class="mptr jelly${AMB.playing&&AMB.cur===x.k?" on":""}${op?"":" swlock"}" data-mptrack="${x.k}"><span>${op?x.e:"🔒"}</span>${esc(m.names[x.k])}</button>`}).join("")}</div>
 <label class="fld">${m.vol}<input id="mpVol" type="range" min="0" max="1" step="0.05" value="${S.music.vol}"></label>
 ${songs.length?`<h3>${m.mine}</h3><div class="mpsongs">${songs.map((s,k)=>`<button type="button" class="mpsong" data-tlist="${k}">${I.play}<b>${esc(s.title||"YouTube")}</b><small>${esc(s.artist||"")}</small></button>`).join("")}</div>`:""}
 <div class="row"><button class="pill pri jelly" type="button" data-mpgo="1">${m.edit}</button><button class="linkbtn" type="button" data-mpoff="1">${m.off}</button></div>`,true);
@@ -6438,7 +6452,7 @@ function tubeAct(a){const s=TUBE.q[TUBE.i];
 const sha256=async s=>{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 function ownedLabel(k){const s=SF();const [a,b]=k.split(":");return (s.kinds[a]||a)+(b&&b!=="all"?"・"+b:"・"+s.all)}
 function rightsHTML(){const s=SF(),list=Object.entries(S.owned);
-  return `${OWNER.salesOpen?"":`<p class="status">🎁 ${s.beta}</p>`}${list.length?`<ul class="owned">${list.map(([k,o])=>`<li><b>${esc(ownedLabel(k))}</b><small>${esc(s.src[o.src]||o.src)} · ${esc(o.d||"")}</small></li>`).join("")}</ul>`:`<p class="note">${s.none}</p>`}
+  return `${isOwner()?`<p class="status">${PK().owner}</p>`:""}${OWNER.salesOpen?"":`<p class="status">🎁 ${s.beta}</p>`}${list.length?`<ul class="owned">${list.map(([k,o])=>`<li><b>${esc(ownedLabel(k))}</b><small>${esc(s.src[o.src]||o.src)} · ${esc(o.d||"")}</small></li>`).join("")}</ul>`:`<p class="note">${s.none}</p>`}
 <p class="note">${s.keepNote}</p>
 <div class="row" style="flex-wrap:nowrap"><input id="redeemIn" type="text" maxlength="40" placeholder="${esc(s.codePh)}" autocapitalize="characters"><button class="pill pri jelly" type="button" data-redeem="1">${s.redeem}</button></div>`}
 async function redeem(){const s=SF(),v=($("redeemIn").value||"").trim().toUpperCase().replace(/\s+/g,"");if(!v)return;
@@ -6460,15 +6474,15 @@ function restoreFrom(txt){const s=SF();let o;try{o=JSON.parse(txt)}catch(e){toas
   const owned=Object.assign({},o.owned||{},S.owned),codes=[...new Set([...(o.usedCodes||[]),...(S.usedCodes||[])])];
   delete o._backup;S=o;S.owned=owned;S.usedCodes=codes;save();toast(s.restored);setTimeout(()=>location.reload(),600)}
 const SF_STR={
-  zh:{beta:"公測期間，所有內容都免費體驗。",rights:"我的權益",backup:"資料備份",kinds:{ai:"AI 加值包",pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
+  zh:{beta:"公測期間，所有內容都免費體驗。",rights:"我的權益",backup:"資料備份",kinds:{owner:"主帳號",ziwei:"紫微斗數館",studio:"AI 工作室",outfit:"衣櫃",ai:"AI 加值包",pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
     src:{free:"免費時已開始使用，永久保留",code:"兌換碼",buy:"購買",reward:"升級獎勵"},none:"目前沒有加值內容。",
     keepNote:"曾經買過、兌換過，或在免費時用過的內容，之後網站調整也會一直保留給你。",codePh:"輸入兌換碼",redeem:"兌換",bad:"兌換碼不正確",used:"這組兌換碼已經用過了",ok:"兌換成功！",
     backupWhy:"資料存在這支手機裡。建議偶爾匯出備份；iPhone 的 Safari 如果很久沒開網站，可能會清掉資料，加到主畫面或登入 Google 同步可以避免。",exp:"匯出備份",imp:"從備份還原",saved:"備份檔已下載",copyIt:"這裡不能下載檔案，請複製下面的文字另外保存：",badFile:"這不是正確的備份檔",restored:"已還原，重新整理中…"},
-  ja:{beta:"ベータ期間中は、すべて無料で使えます。",rights:"わたしの権利",backup:"バックアップ",kinds:{ai:"AI プラス",pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
+  ja:{beta:"ベータ期間中は、すべて無料で使えます。",rights:"わたしの権利",backup:"バックアップ",kinds:{owner:"オーナー",ziwei:"紫微斗数館",studio:"AI スタジオ",outfit:"クローゼット",ai:"AI プラス",pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
     src:{free:"無料のときに使い始めたので永久に保持",code:"引換コード",buy:"購入",reward:"レベル特典"},none:"追加コンテンツはまだありません。",
     keepNote:"購入・引換・無料期間に使ったものは、サイトが変わってもずっと使えます。",codePh:"引換コード",redeem:"引き換える",bad:"コードが正しくありません",used:"このコードは使用済みです",ok:"引き換えました！",
     backupWhy:"データはこの端末に保存されます。ときどきバックアップを。",exp:"バックアップを書き出す",imp:"バックアップから復元",saved:"ダウンロードしました",copyIt:"ここではダウンロードできません。下の文字をコピーして保存してください：",badFile:"正しいバックアップではありません",restored:"復元しました。再読み込み中…"},
-  en:{beta:"During the open beta, everything is free to use.",rights:"My purchases & rights",backup:"Backup",kinds:{ai:"AI pack",pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
+  en:{beta:"During the open beta, everything is free to use.",rights:"My purchases & rights",backup:"Backup",kinds:{owner:"Owner",ziwei:"Zi Wei Dou Shu",studio:"AI Studio",outfit:"Wardrobe",ai:"AI pack",pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
     src:{free:"started while free, kept for good",code:"redeem code",buy:"purchase",reward:"level reward"},none:"No add-ons yet.",
     keepNote:"Anything you bought, redeemed, or used while it was free stays yours through every site update.",codePh:"Redeem code",redeem:"Redeem",bad:"That code isn't valid",used:"This code was already used",ok:"Redeemed!",
     backupWhy:"Your data lives on this device. Export a backup now and then.",exp:"Export backup",imp:"Restore from backup",saved:"Backup downloaded",copyIt:"Downloads aren't allowed here; copy this text and keep it:",badFile:"That isn't a valid backup",restored:"Restored. Reloading…"}
@@ -6687,6 +6701,12 @@ function ambTheme(ctx,out,track){
   }else if(track==="crystal"){   // harp: rising broken chords (root, fifth, octave, tenth) over Dm–B♭–F–C
     const roots=[50,46,53,48],minor=[true,false,false,false];
     AMB.timer=setInterval(()=>{const c=Math.floor(beat/16)%4,r=roots[c],pat=[0,7,12,minor[c]?15:16],st=beat%16;tone(r+pat[st%4]+12*Math.floor(st/4),.045,2.4,"triangle",2);if(st===0)tone(r-12,.05,4,"sine");beat++},190);
+  }else if(track==="starlight"){   // celesta twinkles on a wide echo over a slow pad
+    const sc=[72,74,76,79,81,84,86,88,91],pads=[[48,55,64],[45,52,60],[41,48,57],[43,50,59]];
+    AMB.timer=setInterval(()=>{if(beat%12===0)pads[(beat/12)%4].forEach(m=>tone(m,.022,6,"sine",2));if(Math.random()<.5)tone(pick(sc),.04,2.6,"sine",4.02);beat++},360);
+  }else if(track==="lanternz"){   // guzheng-like pentatonic plucks with little glides (宮商角徵羽)
+    const sc=[62,64,66,69,71,74,76,78,81],pluck=(m,v)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type="triangle";o.frequency.setValueAtTime(hz(m)*.985,now());o.frequency.linearRampToValueAtTime(hz(m),now()+.06);e.gain.setValueAtTime(0,now());e.gain.linearRampToValueAtTime(v,now()+.006);e.gain.exponentialRampToValueAtTime(.0001,now()+1.6);o.connect(e);e.connect(lp);o.start();o.stop(now()+1.7)};
+    AMB.timer=setInterval(()=>{const st=beat%16;if(st===0)[50,57].forEach(m=>pluck(m,.05));if(Math.random()<.62){const m=pick(sc);pluck(m,.05);if(Math.random()<.25)setTimeout(()=>pluck(m+(Math.random()<.5?2:3),.035),110)}beat++},300);
   }else if(track==="epic"){   // war drums, low strings and a horn call in D minor
     const drum=v=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type="sine";o.frequency.setValueAtTime(120,now());o.frequency.exponentialRampToValueAtTime(40,now()+.3);e.gain.setValueAtTime(v,now());e.gain.exponentialRampToValueAtTime(.0001,now()+.5);o.connect(e);e.connect(out);o.start();o.stop(now()+.55)};
     const prog=[[38,50,53,57],[34,46,50,53],[36,48,52,55],[33,45,48,52]],horn=[62,65,69,67];
@@ -6706,6 +6726,8 @@ const THEME_MUSIC={
   black:{track:"night",songs:[["Blue in Green","Miles Davis"],["Take Five","Dave Brubeck"],["Waltz for Debby","Bill Evans"],["'Round Midnight","Thelonious Monk"],["","","late night jazz lofi playlist"],["Nocturne Op.9 No.2","Frédéric Chopin"],["Moonlight Sonata","Ludwig van Beethoven"],["Autumn Leaves","Bill Evans"],["Weightless","Marconi Union"]]},
   art:{track:"classic",songs:[["Pictures at an Exhibition","Modest Mussorgsky"],["Clair de Lune","Claude Debussy"],["Spring (The Four Seasons)","Antonio Vivaldi"],["Air on the G String","J.S. Bach"],["","","classical music for art museum"],["The Moldau","Bedřich Smetana"],["Arabesque No.1","Claude Debussy"],["Swan Lake","Tchaikovsky"],["Canon in D","Johann Pachelbel"]]},
   fant:{track:"crystal",songs:[["Prelude","Nobuo Uematsu","Final Fantasy Prelude Nobuo Uematsu"],["Aerith's Theme","Nobuo Uematsu","Aerith's Theme Final Fantasy VII"],["To Zanarkand","Nobuo Uematsu","To Zanarkand Final Fantasy X"],["Eyes on Me","Faye Wong","Eyes on Me Faye Wong Final Fantasy VIII"],["","","Final Fantasy relaxing music playlist"],["Melodies of Life","Emiko Shiratori","Melodies of Life Final Fantasy IX"],["Terra's Theme","Nobuo Uematsu","Terra's Theme Final Fantasy VI"],["Suteki da ne","Rikki","Suteki da ne Final Fantasy X"],["Main Theme","Nobuo Uematsu","Final Fantasy Main Theme Nobuo Uematsu"]]},
+  stars:{track:"starlight",songs:[["Clair de Lune","Claude Debussy"],["Moon River","Audrey Hepburn"],["Fly Me to the Moon","Frank Sinatra"],["Starry Starry Night (Vincent)","Don McLean"],["","","starry night calm piano playlist"],["Twinkle Twinkle Little Star","Mozart variations"],["A Sky Full of Stars","Coldplay"],["Gymnopédie No.1","Erik Satie"],["Nocturne Op.9 No.2","Frédéric Chopin"]]},
+  lantern:{track:"lanternz",songs:[["高山流水","古箏","高山流水 古箏"],["春江花月夜","民樂","春江花月夜 民樂"],["漁舟唱晚","古箏","漁舟唱晚 古箏"],["茉莉花","民謠","茉莉花 古箏"],["","","guzheng relaxing music playlist"],["梁祝","小提琴協奏曲","梁祝 小提琴協奏曲"],["月亮代表我的心","鄧麗君"],["夜來香","鄧麗君"],["小城故事","鄧麗君"]]},
   epic:{track:"epic",songs:[["Legends of Azeroth","World of Warcraft OST","World of Warcraft Legends of Azeroth"],["Stormwind","World of Warcraft OST","World of Warcraft Stormwind music"],["Elwynn Forest","World of Warcraft OST","World of Warcraft Elwynn Forest music"],["Lament of the Highborne","World of Warcraft OST","Lament of the Highborne"],["","","World of Warcraft ambience music"],["Invincible","World of Warcraft OST","World of Warcraft Invincible"],["Seasons of War","World of Warcraft OST","World of Warcraft Seasons of War"],["Wrath of the Lich King","World of Warcraft OST","Wrath of the Lich King main theme"],["Mists of Pandaria","World of Warcraft OST","Mists of Pandaria main theme"]]},
   quest:{track:"chip",songs:[["Overture","Koichi Sugiyama","Dragon Quest Overture Koichi Sugiyama"],["Adventure","Koichi Sugiyama","Dragon Quest III Adventure Sugiyama"],["Into the Legend","Koichi Sugiyama","Dragon Quest III Into the Legend"],["Heavenly Flight","Koichi Sugiyama","Dragon Quest III Heavenly Flight"],["","","Dragon Quest symphonic suite playlist"],["Wedding Waltz","Koichi Sugiyama","Dragon Quest V Wedding Waltz"],["Town","Koichi Sugiyama","Dragon Quest town theme Sugiyama"],["Love Song Searching for You","Koichi Sugiyama","Dragon Quest Love Song Searching for You"],["Castle","Koichi Sugiyama","Dragon Quest castle theme Sugiyama"]]}
 };
@@ -7013,7 +7035,7 @@ const JOBS=[
     {zh:"自己不強，但帶的夥伴很強，還能把敵人變成自己人。",ja:"自分は強くないけど、なかまがとても強い。",en:"Not strong alone, but the companions are, and foes become friends."},
     [[{zh:"哨音",ja:"呼び笛",en:"Whistle"},{zh:"一聲哨音震開周圍的敵人。",ja:"笛の音でまわりの敵をはじきとばす。",en:"A sharp whistle knocks back the foes around you."}],[{zh:"獸骨樁",ja:"獣骨の杭",en:"Bone Totem"},{zh:"架起一座友方獸骨塔，守住陣地。",ja:"味方の獣骨の塔を建てて陣地を守る。",en:"Raise a friendly bone tower to hold your ground."}]],{hat:"wolf",hand:"horn"},{zh:"在單字本收藏 10 個字",ja:"単語帳に 10 語ほぞん",en:"Save 10 words to your word book"},()=>Object.keys(S.vbook||{}).length,10)
 ];
-const jobHas=k=>{const j=JOBS.find(x=>x.k===k);return !!j&&j.prog()>=j.need};
+const jobHas=k=>{const j=JOBS.find(x=>x.k===k);return !!j&&(isOwner()||j.prog()>=j.need)};
 const JB_STR={zh:{title:"小潔米職業圖鑑",open:n=>`🏅 職業圖鑑 ${n}/7`,from:"來自《通天塔》的七種職業。用網站就能收集，收集到就能穿上職業裝。",wear:"穿上職業裝",skills:"招牌技能",how:"收集方式",got:"已收集",jobLock:"收集職業後解鎖",newJob:n=>`🏅 收集到新職業：${n}！去衣櫃換上職業裝吧`,rpgCards:n=>`🗡️ 限定字卡出現了：字卡 → 圖鑑 →「${n}」`},
  ja:{title:"ゼリーのしょくぎょう図鑑",open:n=>`🏅 しょくぎょう ${n}/7`,from:"『通天塔』の7つのしょくぎょう。サイトを使うと集まり、しょくぎょうの服が着られます。",wear:"しょくぎょうの服を着る",skills:"とくいわざ",how:"あつめかた",got:"ゲット",jobLock:"しょくぎょうを集めると解放",newJob:n=>`🏅 新しいしょくぎょう：${n}！`,rpgCards:n=>`🗡️ 限定カード登場：単語 → 図鑑 →「${n}」`},
  en:{title:"Little Jelly's jobs",open:n=>`🏅 Jobs ${n}/7`,from:"The seven classes of Tower of Babel. Collect them by using the site, then wear their outfits.",wear:"Wear this job",skills:"Signature skills",how:"How to collect",got:"Collected",jobLock:"Unlocks with a job",newJob:n=>`🏅 New job collected: ${n}! Try the outfit in the wardrobe`,rpgCards:n=>`🗡️ Limited cards unlocked: Words → Picture cards → “${n}”`}};
@@ -7023,7 +7045,7 @@ function openJobs(){
   layer(`<div class="shead"><h2>🏅 ${b.title} · ${n}/7</h2>${closeBtn(T())}</div><p class="note">${b.from}</p>
 <div class="jobs">${JOBS.map(j=>{const have=jobHas(j.k),p=Math.min(j.prog(),j.need),o=Object.assign({col:j.outfit.col||{}},j.outfit);
   return `<div class="job jelly${have?"":" no"}" style="--jc:${j.c}"><div class="jtop">${miniJelly(o,"jmas")}<div><b>${esc(j.name[l])}</b><small>${esc(j.name.en)}</small><i>「${esc(j.tag[l])}」</i></div></div>
-<p>${esc(j.type[l])}</p><div class="jsk"><small>${b.skills}</small>${j.skills.map(([a,d])=>`<span><b>${esc(a[l]||a.zh)}</b>${esc(d[l]||d.zh)}</span>`).join("")}</div>
+<p>${esc(j.type[l])}</p><p class="jperk">${PK().perk}：${esc(JOB_PERKS[j.k][l])}</p><div class="jsk"><small>${b.skills}</small>${j.skills.map(([a,d])=>`<span><b>${esc(a[l]||a.zh)}</b>${esc(d[l]||d.zh)}</span>`).join("")}</div>
 ${have?`<div class="row"><span class="jgot">✓ ${b.got}</span><button class="pill pri jelly" type="button" data-jwear="${j.k}">${b.wear}</button></div>`:`<div class="jhow"><small>${b.how}：${esc(j.goal[l])}</small><span class="vbar"><i style="width:${Math.max(4,Math.round(p/j.need*100))}%"></i></span><small>${p} / ${j.need}</small></div>`}</div>`}).join("")}</div>`);
 }
 function jobWear(k){const j=JOBS.find(x=>x.k===k);if(!j||!jobHas(k))return;OF_SLOTS.forEach(s=>{S.outfit[s]=j.outfit[s]||"";delete S.outfit.col[s]});Object.assign(S.outfit.col,j.outfit.col||{});save();refreshLogo();toast(WRT().saved);openJobs()}
@@ -7059,6 +7081,147 @@ RPG_ROOTS.push({k:"epicx",skin:"epic",rpg:1,e:"🛡️",n:{zh:"史詩戰記圖�
     {k:"slang",n:{zh:"玩家術語",ja:"ゲーマー用語",en:"Gamer talk"},c:[RC("❗","任務","quest","クエスト"),RC("🏰","地城副本","dungeon","ダンジョン"),RC("👥","團隊副本","raid","レイド",2),RC("🛡️","公會","guild","ギルド"),RC("💰","戰利品","loot","ルート",2),RC("🟣","史詩裝備","epic","エピック"),RC("🟠","傳說裝備","legendary","レジェンダリー",2),RC("🛡️","坦克（擋怪的人）","tank","タンク"),RC("💚","補師","healer","ヒーラー"),RC("⚔️","輸出（DPS）","damage dealer","アタッカー",2),RC("😡","仇恨","aggro","ヘイト",2),RC("💧","法力","mana","マナ"),RC("⏳","冷卻時間","cooldown","クールダウン",2),RC("👑","首領","boss","ボス"),RC("🔁","重生","respawn","リスポーン",2),RC("💤","暫離（AFK）","away from keyboard","離席","りせき",2),RC("🐣","新手","noob","初心者","しょしんしゃ")]}]});
 RPG_ROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>typeof r==="string"?mkCard(r,R.k,sb.k):r)));
 
+
+/* ---------- 主帳號 (owner code) opens everything; players unlock by learning and levelling up ---------- */
+
+// the three game series open with level; anyone already using one keeps it
+const SERIES={fant:4,quest:6,epic:8};
+const PERK_LOOKS={stars:"shadowbinder",lantern:"lampwarden"};
+S.keep=S.keep||{};
+const lookOpen=k=>isOwner()||!!S.keep[k]||(SERIES[k]?myLv()>=SERIES[k]:PERK_LOOKS[k]?jobHas(PERK_LOOKS[k]):true);
+const lookLock=k=>SERIES[k]?WRT().lock(SERIES[k]):PERK_LOOKS[k]?PK().byJob(JOBS.find(j=>j.k===PERK_LOOKS[k]).name[LANG[S.region]]):"";
+if(!lookOpen(S.skin))S.keep[S.skin]=1;
+// music tracks follow their look (or a job)
+const TRACK_GATE={crystal:"fant",chip:"quest",epic:"epic",starlight:"stars",lanternz:"lantern"};
+const trackOpen=k=>isOwner()||S.music.track===k&&!!S.keep["t:"+k]||(k==="epic"&&jobHas("gladiator"))||(TRACK_GATE[k]?lookOpen(TRACK_GATE[k]):true);
+if(!trackOpen(S.music.track))S.keep["t:"+S.music.track]=1;
+const PK_STR={zh:{byJob:n=>`收集「${n}」解鎖`,perk:"🎁 職業福利",perkNew:(j,p)=>`🎁 ${j} 的福利解鎖：${p}`,owner:"👑 主帳號：全部內容已開放"},
+ ja:{byJob:n=>`「${n}」を集めると解放`,perk:"🎁 しょくぎょう特典",perkNew:(j,p)=>`🎁 ${j} の特典：${p}`,owner:"👑 オーナー：すべて開放中"},
+ en:{byJob:n=>`Collect ${n} to unlock`,perk:"🎁 Job reward",perkNew:(j,p)=>`🎁 ${j} reward unlocked: ${p}`,owner:"👑 Owner: everything is open"}};
+const PK=()=>PK_STR[LANG[S.region]];
+// what each job gives: a look, cards or music
+const JOB_PERKS={delver:{zh:"字卡「礦石與寶石」",ja:"カード「鉱石と宝石」",en:"Cards: Gems & minerals"},
+  stonespeaker:{zh:"字卡「神話與傳說」",ja:"カード「神話と伝説」",en:"Cards: Myths & legends"},
+  shadowbinder:{zh:"背景「星夜」＋音樂「星光」",ja:"背景「星の夜」＋音楽「星あかり」",en:"Look: Starry night + music: Starlight"},
+  lampwarden:{zh:"背景「天燈夜」＋音樂「燈籠古箏」",ja:"背景「天灯の夜」＋音楽「灯籠と古箏」",en:"Look: Lantern night + music: Lantern zither"},
+  oracle:{zh:"字卡「夜空與星座」",ja:"カード「星空と星座」",en:"Cards: Night sky & stars"},
+  gladiator:{zh:"音樂「史詩戰鼓」（任何背景都能用）",ja:"音楽「いくさの太鼓」（どの背景でも）",en:"Music: War drums (with any look)"},
+  beastbinder:{zh:"字卡「幻獸圖鑑」",ja:"カード「幻獣図鑑」",en:"Cards: Mythical beasts"}};
+const PERK_ROOTS=[
+  {k:"gems",job:"delver",e:"💎",n:{zh:"礦石與寶石",ja:"鉱石と宝石",en:"Gems & minerals"},subs:[{k:"gems",n:{zh:"全部",ja:"すべて",en:"All"},c:[RC("💎","鑽石","diamond","ダイヤモンド"),RC("🔴","紅寶石","ruby","ルビー"),RC("🟢","祖母綠","emerald","エメラルド"),RC("🔵","藍寶石","sapphire","サファイア"),RC("🟣","紫水晶","amethyst","アメジスト",2),RC("🪙","黃金","gold","金","きん"),RC("🥈","銀","silver","銀","ぎん"),RC("⚪","珍珠","pearl","真珠","しんじゅ"),RC("🟠","琥珀","amber","琥珀","こはく",2),RC("🦴","化石","fossil","化石","かせき"),RC("🧲","磁鐵","magnet","磁石","じしゃく"),RC("🌋","火山","volcano","火山","かざん"),RC("⛏️","十字鎬","pickaxe","つるはし"),RC("🕳️","洞穴","cave","洞窟","どうくつ")]}]},
+  {k:"myths",job:"stonespeaker",e:"⚡",n:{zh:"神話與傳說",ja:"神話と伝説",en:"Myths & legends"},subs:[{k:"greek",n:{zh:"希臘・北歐",ja:"ギリシャ・北欧",en:"Greek & Norse"},c:[RC("⚡","宙斯（眾神之王）","Zeus","ゼウス"),RC("🦉","雅典娜（智慧女神）","Athena","アテナ"),RC("🔱","波賽頓（海神）","Poseidon","ポセイドン"),RC("🐍","梅杜莎","Medusa","メドゥーサ",2),RC("💪","海克力斯","Hercules","ヘラクレス"),RC("📦","潘朵拉的盒子","Pandora's box","パンドラの箱","パンドラのはこ",2),RC("🔨","索爾（雷神）","Thor","トール")]},{k:"east",n:{zh:"東方與埃及",ja:"東洋とエジプト",en:"East & Egypt"},c:[RC("🐒","孫悟空","Sun Wukong","孫悟空","そんごくう"),RC("🌕","嫦娥奔月","Chang'e","嫦娥","じょうが"),RC("🌈","女媧補天","Nüwa","女媧","じょか",2),RC("☀️","天照大神","Amaterasu","天照大神","あまてらす",2),RC("🐺","阿努比斯","Anubis","アヌビス"),RC("🐉","龍王","Dragon King","竜王","りゅうおう")]}]},
+  {k:"sky",job:"oracle",e:"🌌",n:{zh:"夜空與星座",ja:"星空と星座",en:"Night sky & stars"},subs:[{k:"sky",n:{zh:"全部",ja:"すべて",en:"All"},c:[RC("🌙","月亮","moon","月","つき"),RC("⭐","星星","star","星","ほし"),RC("☄️","彗星","comet","彗星","すいせい"),RC("🌠","流星雨","meteor shower","流星群","りゅうせいぐん",2),RC("🌌","銀河","galaxy","銀河","ぎんが"),RC("🪐","行星","planet","惑星","わくせい"),RC("✨","星座","constellation","星座","せいざ"),RC("🥄","北斗七星","Big Dipper","北斗七星","ほくとしちせい",2),RC("🏹","獵戶座","Orion","オリオン座","オリオンざ",2),RC("🔭","望遠鏡","telescope","望遠鏡","ぼうえんきょう"),RC("🌒","月蝕","eclipse","食","しょく",2),RC("🧑‍🚀","太空人","astronaut","宇宙飛行士","うちゅうひこうし")]}]},
+  {k:"beasts",job:"beastbinder",e:"🦄",n:{zh:"幻獸圖鑑",ja:"幻獣図鑑",en:"Mythical beasts"},subs:[{k:"beasts",n:{zh:"全部",ja:"すべて",en:"All"},c:[RC("🦄","獨角獸","unicorn","ユニコーン"),RC("🐴","天馬","pegasus","ペガサス"),RC("🦅","獅鷲","griffin","グリフィン"),RC("🐙","北海巨妖","kraken","クラーケン",2),RC("🦊","九尾狐","nine-tailed fox","九尾の狐","きゅうびのきつね"),RC("🦌","麒麟","qilin","麒麟","きりん",2),RC("🐢","河童","kappa","河童","かっぱ"),RC("❄️","雪怪","yeti","雪男","ゆきおとこ"),RC("🧜","人魚","mermaid","人魚","にんぎょ"),RC("🐲","中國龍","Chinese dragon","中国の竜","ちゅうごくのりゅう")]}]}
+];
+PERK_ROOTS.forEach(R=>{R.perk=1;R.subs.forEach(sb=>sb.c=sb.c.map(r=>typeof r==="string"?mkCard(r,R.k,sb.k):r))});
+function perkCheck(){S.perksSeen=S.perksSeen||[];const l=LANG[S.region],fresh=JOBS.filter(j=>jobHas(j.k)&&!S.perksSeen.includes(j.k));if(!fresh.length)return;
+  S.perksSeen=S.perksSeen.concat(fresh.map(j=>j.k));save();setTimeout(()=>toast(fresh.map(j=>PK().perkNew(j.name[l],JOB_PERKS[j.k][l])).join("　")),3200)}
+
+/* ---------- 紫微斗數館: a real chart from the birth date and hour (lunar dates from the browser's Chinese calendar) ---------- */
+const ZW_OPEN_LV=10;
+const zwOpen=()=>isOwner()||owns("ziwei")||myLv()>=ZW_OPEN_LV;
+const TG="甲乙丙丁戊己庚辛壬癸",DZ="子丑寅卯辰巳午未申酉戌亥";
+const NAYIN="金火木土金火水土金木水土火木水金火木土金火水土金木水土火木水";   // 納音 by pair of the 60 甲子
+const JU={水:2,木:3,金:4,土:5,火:6};
+const PAL={zh:["命宮","兄弟","夫妻","子女","財帛","疾厄","遷移","交友","官祿","田宅","福德","父母"],ja:["命宮","兄弟","夫妻","子女","財帛","疾厄","遷移","奴僕","官禄","田宅","福徳","父母"],en:["Self","Siblings","Partner","Children","Wealth","Health","Travel","Friends","Career","Home","Mind","Parents"]};
+const SIHUA={甲:["廉貞","破軍","武曲","太陽"],乙:["天機","天梁","紫微","太陰"],丙:["天同","天機","文昌","廉貞"],丁:["太陰","天同","天機","巨門"],戊:["貪狼","太陰","右弼","天機"],己:["武曲","貪狼","天梁","文曲"],庚:["太陽","武曲","太陰","天同"],辛:["巨門","太陽","文曲","文昌"],壬:["天梁","紫微","左輔","武曲"],癸:["破軍","巨門","太陰","貪狼"]};
+const HUA=["祿","權","科","忌"];
+function lunarOf(dateStr){
+  const d=new Date(dateStr+"T12:00:00");if(isNaN(d))return null;
+  try{const p=new Intl.DateTimeFormat("en-u-ca-chinese",{year:"numeric",month:"numeric",day:"numeric"}).formatToParts(d);
+    const g=t=>(p.find(x=>x.type===t)||{}).value||"";const m=g("month");
+    return {y:+g("relatedYear")||+g("year"),m:parseInt(m,10),leap:/bis/.test(m),d:+g("day")}}catch(e){return null}
+}
+// the chart: palaces from month and hour, the element 局 from the 命宮's 納音, then the 14 main stars
+function zwChart(dateStr,hourIdx){
+  const L=lunarOf(dateStr);if(!L||!L.m||!L.d)return null;
+  const ys=((L.y-4)%10+10)%10,yb=((L.y-4)%12+12)%12,m=L.leap&&L.d>15?L.m%12+1:L.m;
+  const ming=((2+(m-1)-hourIdx)%12+12)%12,shen=(2+(m-1)+hourIdx)%12;
+  const yinStem=[2,4,6,8,0][ys%5],stemOf=b=>(yinStem+((b-2+12)%12))%10;
+  const ms=stemOf(ming),idx60=((6*ms-5*ming)%60+60)%60,el=NAYIN[Math.floor(idx60/2)],ju=JU[el];
+  let x=0;while((L.d+x)%ju)x++;const q=(L.d+x)/ju;let zi=2+q-1;zi=x%2?zi-x:zi+x;zi=((zi%12)+12)%12;
+  const tf=((4-zi)%12+12)%12,stars={};
+  const put=(n,p)=>{p=((p%12)+12)%12;(stars[p]=stars[p]||[]).push(n)};
+  [["紫微",0],["天機",-1],["太陽",-3],["武曲",-4],["天同",-5],["廉貞",-8]].forEach(([n,o])=>put(n,zi+o));
+  [["天府",0],["太陰",1],["貪狼",2],["巨門",3],["天相",4],["天梁",5],["七殺",6],["破軍",10]].forEach(([n,o])=>put(n,tf+o));
+  const aux={};const pa=(n,p)=>{p=((p%12)+12)%12;(aux[p]=aux[p]||[]).push(n)};
+  pa("文昌",10-hourIdx);pa("文曲",4+hourIdx);pa("左輔",4+(m-1));pa("右弼",10-(m-1));
+  const hua={};SIHUA[TG[ys]].forEach((n,i)=>hua[n]=HUA[i]);
+  const pal={};for(let i=0;i<12;i++)pal[((ming-i)%12+12)%12]=i;
+  return {L,ys,yb,ming,shen,ju,el,zi,stars,aux,hua,pal,stemOf,m};
+}
+const STAR_TXT={
+  紫微:{zh:"領導、自尊心強、想把事情做好，也需要被尊重",ja:"リーダー気質。誇り高く、物事をきちんと仕上げたい",en:"A leader who wants things done well and needs respect"},
+  天機:{zh:"聰明、善於思考與規劃，點子多、容易想太多",ja:"頭の回転が速く計画上手。考えすぎに注意",en:"Clever planner full of ideas; watch out for overthinking"},
+  太陽:{zh:"熱情、樂於付出與照顧人，像太陽一樣發光",ja:"情熱的で面倒見がよく、太陽のように明るい",en:"Warm and generous, shines like the sun for others"},
+  武曲:{zh:"務實、執行力強、重視成果與金錢管理",ja:"実務的で行動力があり、成果とお金の管理が得意",en:"Practical doer who values results and handles money well"},
+  天同:{zh:"溫和、重視快樂與人際和諧，是團隊的潤滑劑",ja:"おだやかで楽しさと調和を大切にする",en:"Gentle, values joy and harmony; the team's peacemaker"},
+  廉貞:{zh:"有原則、有魅力，情感豐富，追求完美",ja:"筋が通っていて魅力的、情が深く完璧主義",en:"Principled and charismatic, deep feelings, a perfectionist"},
+  天府:{zh:"穩重、包容、善於守成與累積",ja:"落ち着いていて包容力があり、積み上げ上手",en:"Steady and generous, good at building and keeping"},
+  太陰:{zh:"細膩、有美感、重視家與內在的安全感",ja:"繊細で美的センスがあり、家と安心感を大切にする",en:"Sensitive with an eye for beauty; values home and security"},
+  貪狼:{zh:"多才多藝、好奇心強、人緣好、喜歡新鮮事",ja:"多才で好奇心旺盛、人気者で新しいことが好き",en:"Talented and curious, popular, loves new things"},
+  巨門:{zh:"口才好、善於分析與發問，適合教學與研究",ja:"話し上手で分析と質問が得意。教える・研究する道に",en:"Good talker and analyst; suits teaching and research"},
+  天相:{zh:"公正、體貼、善於協調，是可靠的好幫手",ja:"公正で思いやりがあり、調整役として頼れる",en:"Fair and caring, a reliable coordinator"},
+  天梁:{zh:"有長者風範、樂於照顧與保護別人，重視道理",ja:"年長者のような包容力で人を守り、道理を重んじる",en:"Wise protector who looks after others and values fairness"},
+  七殺:{zh:"勇敢、獨立、行動快，喜歡挑戰與開創",ja:"勇敢で独立心が強く、挑戦と開拓が好き",en:"Brave and independent, quick to act, loves a challenge"},
+  破軍:{zh:"敢於改變與破舊立新，是天生的開拓者",ja:"変化を恐れず古いものを壊して新しくする開拓者",en:"Unafraid of change; a born pioneer who remakes things"}};
+const HOURS={zh:["子 23–1","丑 1–3","寅 3–5","卯 5–7","辰 7–9","巳 9–11","午 11–13","未 13–15","申 15–17","酉 17–19","戌 19–21","亥 21–23"]};
+const ZW_STR={zh:{title:"紫微斗數館",lockT:"🔮 紫微斗數館",lockD:n=>`升到 Lv ${n} 就會開放，或單次購買解鎖。`,prog:(a,b)=>`你現在 Lv ${a}，還差 ${b} 級`,buy:"購買紫微斗數館",
+   lead:"輸入出生的陽曆日期和時辰，排出你的紫微命盤。命盤不是命運，是一張了解自己的地圖，要往哪裡走，還是你決定。",date:"出生日期（陽曆）",hour:"出生時辰",go:"排盤",privacy:"生日只存在這支手機，不會上傳。",
+   ming:"命宮",shen:"身宮",ju:j=>({2:"水二局",3:"木三局",4:"金四局",5:"土五局",6:"火六局"}[j]),lunar:(L)=>`農曆 ${L.y} 年 ${L.leap?"閏":""}${L.m} 月 ${L.d} 日`,
+   you:"你的命宮主星",empty:"命宮沒有主星（借對宮的星來看）：",borrow:"對宮",hua:"四化",ai:"🤖 AI 用阿德勒的角度解讀我的命盤",aiWait:"AI 正在看你的命盤…",daily:"🎋 今日一籤",note:"紫微斗數是傳統文化與自我探索的參考，不能取代專業意見。",bad:"日期不對，請再選一次"},
+ ja:{title:"紫微斗数館",lockT:"🔮 紫微斗数館",lockD:n=>`Lv ${n} で開放。または一度の購入で解放。`,prog:(a,b)=>`いま Lv ${a}、あと ${b}`,buy:"紫微斗数館を購入",
+   lead:"生年月日（新暦）と生まれた時刻から、紫微斗数の命盤を作ります。命盤は運命ではなく、自分を知る地図。どこへ進むかはあなた次第。",date:"生年月日（新暦）",hour:"生まれた時刻",go:"命盤を出す",privacy:"生年月日はこの端末だけに保存されます。",
+   ming:"命宮",shen:"身宮",ju:j=>({2:"水二局",3:"木三局",4:"金四局",5:"土五局",6:"火六局"}[j]),lunar:L=>`旧暦 ${L.y}年${L.leap?"閏":""}${L.m}月${L.d}日`,
+   you:"命宮の主星",empty:"命宮に主星なし（向かいの宮の星で見ます）：",borrow:"対宮",hua:"四化",ai:"🤖 AI がアドラー心理学の視点で読み解く",aiWait:"AI が命盤を読んでいます…",daily:"🎋 今日のおみくじ",note:"紫微斗数は伝統文化と自己探求の参考です。専門的な助言の代わりにはなりません。",bad:"日付を確認してください"},
+ en:{title:"Zi Wei Dou Shu",lockT:"🔮 Zi Wei Dou Shu (Purple Star astrology)",lockD:n=>`Opens at Lv ${n}, or unlock with a one-time purchase.`,prog:(a,b)=>`You're Lv ${a}: ${b} to go`,buy:"Buy Zi Wei Dou Shu",
+   lead:"Enter your birth date and hour to draw your Purple Star chart. A chart isn't fate; it's a map for knowing yourself. Where you go is still up to you.",date:"Birth date",hour:"Birth hour",go:"Draw my chart",privacy:"Your birthday stays on this device.",
+   ming:"Self palace",shen:"Body palace",ju:j=>({2:"Water 2",3:"Wood 3",4:"Metal 4",5:"Earth 5",6:"Fire 6"}[j]),lunar:L=>`Lunar ${L.y}/${L.leap?"leap ":""}${L.m}/${L.d}`,
+   you:"Main stars in your Self palace",empty:"No main star in your Self palace (read from the opposite palace):",borrow:"opposite",hua:"Four transformations",ai:"🤖 AI reading through Adler's lens",aiWait:"AI is reading your chart…",daily:"🎋 Today's fortune",note:"Zi Wei Dou Shu is a cultural tradition for self-reflection, not professional advice.",bad:"Please check the date"}};
+const ZWT=()=>ZW_STR[LANG[S.region]];
+S.zw=S.zw||{};
+function openZiwei(){
+  const z=ZWT(),t=T();
+  if(!zwOpen()){const lv=myLv();layer(`<div class="shead"><h2>${z.lockT}</h2>${closeBtn(t)}</div><div class="wrstage"><span class="zwball">🔮</span></div><p>${z.lockD(ZW_OPEN_LV)}</p><p class="note">${z.prog(lv,Math.max(0,ZW_OPEN_LV-lv))}</p><span class="vbar"><i style="width:${Math.min(100,Math.round(lv/ZW_OPEN_LV*100))}%"></i></span>${OWNER.ziweiStore?`<a class="pill pri jelly" href="${esc(OWNER.ziweiStore)}" target="_blank" rel="noopener">${z.buy}</a>`:""}<p class="note">${STT().code}</p>`);return}
+  const hrs=HOURS.zh;
+  layer(`<div class="shead"><h2>🔮 ${z.title}</h2>${closeBtn(t)}</div><p class="note">${z.lead}</p>
+<div class="row" style="flex-wrap:nowrap"><label class="fld" style="flex:1">${z.date}<input id="zwDate" type="date" value="${esc(S.zw.date||"")}" max="${key(new Date())}"></label>
+<label class="fld" style="flex:1">${z.hour}<select id="zwHour" class="zwsel">${hrs.map((h,i)=>`<option value="${i}"${+S.zw.hour===i?" selected":""}>${h}</option>`).join("")}</select></label></div>
+<div class="row end"><button class="pill jelly" type="button" data-zwdaily="1">${z.daily}</button><button class="pill pri jelly" type="button" data-zwgo="1">${z.go}</button></div>
+<p class="note">${z.privacy}</p><div id="zwOut">${S.zw.date?zwHTML():""}</div><p class="note">${z.note}</p>`);
+  bigSheet();
+}
+function zwHTML(){
+  const z=ZWT(),l=LANG[S.region],c=zwChart(S.zw.date,+S.zw.hour||0);if(!c)return `<p class="note">${z.bad}</p>`;
+  const cell=b=>{const pi=c.pal[b],st=(c.stars[b]||[]),ax=(c.aux[b]||[]);
+    return `<div class="zwc${b===c.ming?" ming":""}" style="grid-area:${"zi,ch,yn,mo,cn,si,wu,wi,sn,yo,xu,ha".split(",")[b]}"><small>${TG[c.stemOf(b)]}${DZ[b]}${b===c.shen?` · ${z.shen}`:""}</small><b>${esc(PAL[l][pi])}</b>
+<div class="zws">${st.map(n=>`<span>${n}${c.hua[n]?`<i class="h${HUA.indexOf(c.hua[n])}">${c.hua[n]}</i>`:""}</span>`).join("")}</div><div class="zwa">${ax.map(n=>`${n}${c.hua[n]?`<i class="h${HUA.indexOf(c.hua[n])}">${c.hua[n]}</i>`:""}`).join(" ")}</div></div>`};
+  const main=c.stars[c.ming]||[],opp=(c.ming+6)%12,use=main.length?main:(c.stars[opp]||[]);
+  return `<div class="zwgrid">${Array.from({length:12},(_,b)=>cell(b)).join("")}<div class="zwmid"><b>${TG[c.ys]}${DZ[c.yb]}</b><span>${esc(z.lunar(c.L))}</span><span>${esc(z.ju(c.ju))}</span><span>${z.ming}：${DZ[c.ming]}　${z.shen}：${DZ[c.shen]}</span></div></div>
+<div class="zwread"><h3>${main.length?z.you:z.empty}</h3>${use.map(n=>`<p><b>${n}</b>　${esc(STAR_TXT[n][l])}</p>`).join("")}
+<p class="note">${z.hua}：${SIHUA[TG[c.ys]].map((n,i)=>`${n}化${HUA[i]}`).join("、")}</p></div>
+<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-zwai="1">${z.ai}</button></div><div id="zwAi"></div>`;
+}
+function zwGo(){const d=($("zwDate")||{}).value,h=+(($("zwHour")||{}).value||0);if(!d||!lunarOf(d)){toast(ZWT().bad);return}S.zw={date:d,hour:h};save();$("zwOut").innerHTML=zwHTML()}
+async function zwAI(){
+  const z=ZWT(),l=LANG[S.region],c=zwChart(S.zw.date,+S.zw.hour||0),out=$("zwAi");if(!c||!out)return;
+  await aiReady;if(!AI){toast(TT().noAI);return}
+  out.innerHTML=`<p class="note">${z.aiWait}</p>`;
+  const lines=Array.from({length:12},(_,b)=>`${PAL.zh[c.pal[b]]}（${TG[c.stemOf(b)]}${DZ[b]}）：${(c.stars[b]||[]).map(n=>n+(c.hua[n]?"化"+c.hua[n]:"")).join("、")||"無主星"}${(c.aux[b]||[]).length?"；"+c.aux[b].join("、"):""}`).join("\n");
+  try{const r=await AI(`You read Zi Wei Dou Shu charts through the lens of Alfred Adler's individual psychology (courage, contribution, lifestyle, "you are not determined by your past"). Write in ${{zh:"Traditional Chinese (Taiwan)",ja:"Japanese",en:"English"}[l]}.
+Chart: ${TG[c.ys]}${DZ[c.yb]} year, ${ZW_STR.zh.ju(c.ju)}, 命宮 in ${DZ[c.ming]}, 身宮 in ${DZ[c.shen]}.
+${lines}
+Give: 1) three strengths from the 命宮 stars, 2) one growth task framed as a choice, not fate, 3) two small actions for this week the reader could put in their weekly planner, 4) one warm sentence of encouragement. Under 260 words, friendly, no fear, no medical, legal or financial predictions.`,{cache:false});
+    out.innerHTML=`<div class="zwai">${esc(r.text).replace(/\n/g,"<br>")}</div>`;
+  }catch(e){out.innerHTML=`<p class="note">${esc(aiErrText(e))}</p>`}
+}
+// today's fortune: the same all day for the same person, always ending with something to do
+const LOTS={zh:[["上上籤","心想的事有好時機，先踏出第一步。","今天完成清單上最想做的一件事。"],["上籤","貴人就在身邊，開口請教會有收穫。","找一位朋友聊聊你的目標。"],["中上籤","慢慢來比較快，專注比速度重要。","選一件事，專心做 25 分鐘。"],["中籤","平穩的一天，適合整理與收尾。","清掉三件拖了很久的小事。"],["中籤","休息也是前進的一部分。","今晚早點睡，給自己一首喜歡的歌。"],["小吉","一句感謝能讓關係更靠近。","傳一則謝謝給今天幫過你的人。"],["吉","學新東西會特別順。","學 5 個新單字，或讀一本故事。"],["大吉","勇氣是今天的關鍵字，你比你想的更能幹。","做一件平常會猶豫的小挑戰。"]],
+ ja:[["大大吉","思いがかなうタイミング。まず一歩を。","リストでいちばんやりたいことを一つ。"],["吉","力になってくれる人がそばに。聞いてみよう。","友だちに目標を話してみる。"],["中吉","急がば回れ。集中が大事。","一つのことに 25 分集中。"],["中吉","おだやかな日。片づけ日和。","のばしていた小さなこと三つを片づける。"],["小吉","休むことも前進の一部。","今夜は早めに寝て、好きな曲を一曲。"],["小吉","ありがとうの一言で距離が近づく。","助けてくれた人にお礼のメッセージを。"],["吉","新しいことがすっと入る日。","新しい単語を5つ、またはおはなしを一冊。"],["大吉","今日のキーワードは勇気。","いつもためらう小さな挑戦を一つ。"]],
+ en:[["Best of luck","The timing is right: take the first step.","Finish the task you most want to do today."],["Great","Help is close by. Ask and you'll learn something.","Talk to a friend about your goal."],["Good","Slow is smooth; focus beats speed.","Pick one thing and focus for 25 minutes."],["Fair","A steady day for tidying up and finishing.","Clear three small things you've been putting off."],["Fair","Rest is part of moving forward.","Sleep early tonight and play a favourite song."],["Small luck","A thank-you brings people closer.","Send thanks to someone who helped you today."],["Lucky","New things stick easily today.","Learn 5 new words or read one story."],["Very lucky","Courage is today's word: you can do more than you think.","Try one small challenge you usually avoid."]]};
+function zwDaily(){const l=LANG[S.region],n=hashStr(key(new Date())+"|"+(S.zw.date||"")+"|"+((S.member&&S.member.id)||""))%8,[a,b,c]=LOTS[l][n];
+  layer(`<div class="lvup"><div class="zwball">🎋</div><div class="lvbig" style="font-size:34px">${esc(a)}</div><p>${esc(b)}</p><p class="status">✅ ${esc(c)}</p><div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-close="1">OK</button><button class="pill pri jelly" type="button" data-zwopen="1">🔮 ${ZWT().title}</button></div></div>`)}
+
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -7074,7 +7237,8 @@ document.addEventListener("click",e=>{
   const afg=el.closest("[data-afgo]");if(afg){closeLayer();goFace(+afg.dataset.afgo);return}
   const afp=el.closest("[data-afpin]");if(afp){const f=+afp.dataset.afpin;if(S.favs.includes(f)){if(S.favs.length>1)S.favs=S.favs.filter(x=>x!==f)}else{S.favs=S.favs.concat(f).slice(-4)}save();renderDial();openAllFaces();return}
   const mp=el.closest("[data-mp]");if(mp){if(mp.dataset.mp==="toggle"){if(AMB.playing){AMB.userPaused=true;ambPause()}else{AMB.userPaused=false;S.music.on=true;save();ambStart(S.music.track)}}else openMusicSheet();return}
-  const mpt=el.closest("[data-mptrack]");if(mpt){S.music.track=mpt.dataset.mptrack;S.music.on=true;AMB.userPaused=false;save();ambStart(S.music.track);openMusicSheet();return}
+  const mpt=el.closest("[data-mptrack]");if(mpt&&!trackOpen(mpt.dataset.mptrack)){const k=mpt.dataset.mptrack;toast(k==="epic"&&!lookOpen("epic")?PK().byJob(JOBS.find(j=>j.k==="gladiator").name[LANG[S.region]])+" / "+lookLock("epic"):lookLock(TRACK_GATE[k]));return}
+  if(mpt){S.music.track=mpt.dataset.mptrack;S.music.on=true;AMB.userPaused=false;save();ambStart(S.music.track);openMusicSheet();return}
   if(el.closest("[data-mpgo]")){closeLayer();goFace(2);return}
   if(el.closest("[data-mpoff]")){S.music.on=false;AMB.userPaused=true;save();ambPause();closeLayer();mpRender();return}
   if(el.closest("#helpBtn")){startGuide();return}
@@ -7093,7 +7257,8 @@ document.addEventListener("click",e=>{
     if(a==="install"&&installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;openSettings()})}
     return;
   }
-  const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;PBANK=null;themeMusic(S.skin);const rr=RPG_ROOTS.find(r=>r.skin===S.skin);if(rr)setTimeout(()=>toast(JBT().rpgCards(rr.n[LANG[S.region]])),2800);save();applySkin();render();openSettings();return}
+  const sw=el.closest(".sw");if(sw&&!lookOpen(sw.dataset.skin)){toast(lookLock(sw.dataset.skin));return}
+  if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;PBANK=null;themeMusic(S.skin);const rr=RPG_ROOTS.find(r=>r.skin===S.skin);if(rr)setTimeout(()=>toast(JBT().rpgCards(rr.n[LANG[S.region]])),2800);save();applySkin();render();openSettings();return}
   if(el.closest("[data-artnext]")){paintShift++;drawArt();return}
 
   const co=el.closest("[data-coach]");
@@ -7243,6 +7408,10 @@ document.addEventListener("click",e=>{
   const wst=el.closest("[data-wrset]");if(wst){wrSet(wst.dataset.wrset);return}
   if(el.closest("[data-wrrand]")){wrRandom();return}
   if(el.closest("[data-jobs]")){openJobs();return}
+  if(el.closest("[data-zwopen]")){openZiwei();return}
+  if(el.closest("[data-zwgo]")){zwGo();return}
+  if(el.closest("[data-zwai]")){zwAI();return}
+  if(el.closest("[data-zwdaily]")){zwDaily();return}
   const jw=el.closest("[data-jwear]");if(jw){jobWear(jw.dataset.jwear);return}
   if(el.closest("[data-wrai]")){openStylist();return}
   if(el.closest("[data-wraigo]")){stylistGo();return}
@@ -7556,6 +7725,6 @@ render();
 checkReminders();
 boot();
 ysShared();
-memSync();memInvite();setTimeout(jobCheck,2500);
+memSync();memInvite();setTimeout(jobCheck,2500);setTimeout(perkCheck,2600);
 })();
 </script>
