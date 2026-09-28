@@ -878,6 +878,8 @@ html .knob svg{width:22px;height:22px}
 .gcarea span{font-size:28px;line-height:1}.gcarea b{font-weight:400;font-size:13px}
 .gcarea.center{--t:var(--accent)}
 .gccards{display:flex;flex-direction:column;gap:8px}
+.gcdeep{display:flex;flex-direction:column;gap:14px}.gcdeep h3{margin:0;font-size:15px;font-weight:400;color:var(--ink)}.gcdeep input{font:inherit;font-size:16px;color:var(--ink);background:var(--chip);border:1px solid var(--chip-edge);border-radius:14px;padding:8px 12px;width:100%}
+.gcwarn b{font-weight:400;color:var(--accent)}
 .gccard{--r:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;text-align:left}
 .gccard b{font-weight:400;font-size:15px;line-height:1.4}
 .gccard span,.gccard em{font-size:13px;color:var(--muted);line-height:1.5;font-style:normal}
@@ -1339,7 +1341,7 @@ const OWNER={
   courseStore:"",                          // 單字課程加購頁網址
   voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
   codes:{"189544e81c6dc6fa9aa0082748771885a0cb542ba1cb6af2500c71640541e2ff":{grants:["owner"]}},   // 主帳號                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
-  aiProxy:"/.netlify/functions/ai",        // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
+  aiProxy:"/.netlify/functions/ai",        // 網站內建 AI：Netlify 環境變數 ANTHROPIC_API_KEY（Claude）或 GEMINI_API_KEY，見 AI設定.md
   wip:[3,6,7],                             // 建構中、先不開放的面（3 友善連結、6 創作工作台、7 AI 健身教練）；要開放就從這裡拿掉
   taleArt:{},                              // 故事插畫：{"aesop-tortoise":"tales/aesop-tortoise/"}，放 1.webp、2.webp…（見「故事插畫提示詞.md」）；沒放就用內建畫面
   aiFreeDaily:20,                          // 網站的免費 AI：每位使用者每天幾次（接上自己金鑰的人不受限）
@@ -1411,7 +1413,7 @@ const STR={
     coachPh:"輸入你的想法…",send:"送出",stop:"停止",makePlan:"產生九宮格計畫",planning:"正在幫你排出八個步驟",
     planWeek:"這週先做",importPlan:"放進未來九宮格",keepTalk:"再聊聊",imported:"計畫已經放進九宮格和行事曆",
     aiOff:"AI 教練要在 Claude 裡打開這個頁面才能用。先用引導問答幫你想清楚：",
-    aiErr:{quota:"今天的免費 AI 次數用完了。",site_busy:"今天網站的免費 AI 太多人用，已經到上限了。接上自己的免費 Gemini 就能繼續用。",bad_key:"AI 金鑰無效或沒有權限，請到「外觀與提醒」檢查一下。",rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
+    aiErr:{not_configured:"網站的 AI 還沒接上（站長還沒設定 AI 金鑰），所以現在沒辦法幫你量身規劃。",upstream_error:"AI 這次沒有回應，請再試一次。",quota:"今天的免費 AI 次數用完了。",site_busy:"今天網站的免費 AI 太多人用，已經到上限了。接上自己的免費 Gemini 就能繼續用。",bad_key:"AI 金鑰無效或沒有權限，請到「外觀與提醒」檢查一下。",rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
     fQs:["為什麼這件事對你重要？完成之後，你會變成什麼樣的人？","你現在的起點在哪？手上有哪些資源，最大的限制是什麼？","每週大概能投入多少時間在這件事上？"],
     fDone:"寫得很好！我先把目標放進九宮格中間，周圍八格請你拆成八個小步驟，每一步都寫下「做到什麼算完成」。",
     firstLbl:"第一個小行動",
@@ -1434,7 +1436,7 @@ const STR={
     mSend:"送出音樂卡",mRecv:"收到的音樂卡",mPick:"選一首歌",mNote:"推薦一句話",mNotePh:"例如：下雨天寫作業時聽",mMake:"做成音樂卡",
     mShareLine:(f,t)=>`${f?f+" ":""}推薦你一首歌：「${t}」。貼到九宮格的「音樂卡」就能收藏`,mRecvHow:"把朋友傳來的音樂卡整段貼上，可以一次貼好幾張。",mOpen:"打開",mBad:"沒有讀到音樂卡",
     mFrom:n=>`${n} 推薦`,mToGrid:"放進九格的哪一格？",mPut:"放進九格了",
-    aiTitle:"AI 助手",aiNow:n=>`目前使用：${n}`,aiNames:{claude:"Claude（你的 Claude 帳號）",gemini:"Gemini 免費版",openai:"你的 ChatGPT（OpenAI）金鑰",anthropic:"你的 Claude（Anthropic）金鑰",none:"沒有 AI，改用引導問答"},
+    aiTitle:"AI 助手",aiNow:n=>`目前使用：${n}`,aiNames:{site:"網站內建 AI（Claude）",claude:"Claude（你的 Claude 帳號）",gemini:"Gemini 免費版",openai:"你的 ChatGPT（OpenAI）金鑰",anthropic:"你的 Claude（Anthropic）金鑰",none:"沒有 AI，改用引導問答"},
     aiAuto:"自動（預設）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API 金鑰",aiModel:"模型",aiTest:"測試連線",aiOk:"連線成功",aiGetKey:"申請金鑰",aiSave:"儲存",aiClear:"改回自動",
     aiKeyNote:"金鑰只存在這台裝置，直接連到你選的 AI 公司，不會經過我們的伺服器。費用依各家方案計算，Gemini 有免費額度。",aiSiteOnly:"自備金鑰要在安裝版網址使用；在 Claude 裡打開時會用你的 Claude。",
     crAI:"AI 幫你寫",crDrop:"把 prompt 拖到這裡",crPrompts:"Prompt 卡",crHint:"拖到中間讓 AI 寫；拖到 App 會帶著 prompt 打開它",crAdd:"新增 prompt",crTopic:"主題",crTopicPh:"例如：帶孩子第一次露營",crGen:"開始生成",
@@ -1531,7 +1533,7 @@ const STR={
     coachPh:"思っていることを入力…",send:"送信",stop:"停止",makePlan:"九マス計画を作る",planning:"八つのステップを組み立てています",
     planWeek:"今週やること",importPlan:"未来の九マスに入れる",keepTalk:"もう少し話す",imported:"計画を九マスとカレンダーに入れました",
     aiOff:"AI コーチは Claude の中でこのページを開いたときに使えます。代わりに質問に答えて整理しましょう：",
-    aiErr:{quota:"今日の無料 AI 回数を使い切りました。",site_busy:"今日はサイトの無料 AI が上限に達しました。自分の無料 Gemini キーをつなぐと続けられます。",bad_key:"AI キーが無効か、権限がありません。設定を確認してください。",rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
+    aiErr:{not_configured:"サイトの AI がまだつながっていません（管理者がキーを設定していません）。今はあなた向けの計画を作れません。",upstream_error:"AI から返事がありませんでした。もう一度どうぞ。",quota:"今日の無料 AI 回数を使い切りました。",site_busy:"今日はサイトの無料 AI が上限に達しました。自分の無料 Gemini キーをつなぐと続けられます。",bad_key:"AI キーが無効か、権限がありません。設定を確認してください。",rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
     fQs:["なぜそれが大切ですか？叶えたとき、どんな自分になっていたいですか？","今の出発点は？使える資源と、いちばんの制約は？","毎週どれくらい時間を使えますか？"],
     fDone:"いいですね。目標を九マスの真ん中に入れました。まわりの八つに、完了の基準がわかる小さなステップを書いてみてください。",
     firstLbl:"最初の小さな行動",
@@ -1554,7 +1556,7 @@ const STR={
     mSend:"カードを送る",mRecv:"届いたカード",mPick:"曲を選ぶ",mNote:"おすすめの一言",mNotePh:"例：雨の日の勉強に",mMake:"カードを作る",
     mShareLine:(f,t)=>`${f?f+" から":""}おすすめの一曲「${t}」。九マスの「ミュージックカード」に貼ると保存できます`,mRecvHow:"友だちから届いたカードをそのまま貼り付けてください。複数でも OK。",mOpen:"開く",mBad:"カードが見つかりません",
     mFrom:n=>`${n} のおすすめ`,mToGrid:"九マスのどこに入れますか？",mPut:"九マスに入れました",
-    aiTitle:"AI アシスタント",aiNow:n=>`使用中：${n}`,aiNames:{claude:"Claude（あなたの Claude アカウント）",gemini:"Gemini 無料版",openai:"あなたの ChatGPT（OpenAI）キー",anthropic:"あなたの Claude（Anthropic）キー",none:"AI なし（質問形式で進めます）"},
+    aiTitle:"AI アシスタント",aiNow:n=>`使用中：${n}`,aiNames:{site:"サイトの AI（Claude）",claude:"Claude（あなたの Claude アカウント）",gemini:"Gemini 無料版",openai:"あなたの ChatGPT（OpenAI）キー",anthropic:"あなたの Claude（Anthropic）キー",none:"AI なし（質問形式で進めます）"},
     aiAuto:"自動（おすすめ）",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API キー",aiModel:"モデル",aiTest:"接続テスト",aiOk:"接続できました",aiGetKey:"キーを取得",aiSave:"保存",aiClear:"自動に戻す",
     aiKeyNote:"キーはこの端末だけに保存され、選んだ AI 会社へ直接つながります。料金は各社のプラン次第で、Gemini には無料枠があります。",aiSiteOnly:"自分のキーはインストール版の URL で使えます。Claude の中では Claude を使います。",
     crAI:"AI が書く",crDrop:"ここにプロンプトをドラッグ",crPrompts:"プロンプトカード",crHint:"真ん中へドラッグで AI が作成、アプリへドラッグでプロンプト付きで開きます",crAdd:"プロンプトを追加",crTopic:"テーマ",crTopicPh:"例：子どもと初めてのキャンプ",crGen:"生成する",
@@ -1651,7 +1653,7 @@ const STR={
     coachPh:"Type your thoughts…",send:"Send",stop:"Stop",makePlan:"Make my grid plan",planning:"Laying out your eight steps",
     planWeek:"Start this week",importPlan:"Put it in the Future Grid",keepTalk:"Keep talking",imported:"Your plan is in the grid and the calendar",
     aiOff:"The AI coach works when this page is opened inside Claude. Let's think it through with a few questions instead:",
-    aiErr:{quota:"You've used today's free AI.",site_busy:"The site's free AI hit today's limit. Connect your own free Gemini key to keep going.",bad_key:"That AI key didn't work. Check it under Look & reminders.",rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
+    aiErr:{not_configured:"The site's AI isn't connected yet (the owner hasn't added an AI key), so it can't plan for you right now.",upstream_error:"The AI didn't answer this time. Please try again.",quota:"You've used today's free AI.",site_busy:"The site's free AI hit today's limit. Connect your own free Gemini key to keep going.",bad_key:"That AI key didn't work. Check it under Look & reminders.",rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
     fQs:["Why does this matter to you? Who do you want to become by doing it?","Where are you starting from? What resources do you have, and what's your biggest limit?","How much time can you give it each week?"],
     fDone:"Nice work. Your goal is now in the middle of the grid. Fill the eight squares around it with small steps, each with a clear finish line.",
     firstLbl:"First small action",
@@ -1674,7 +1676,7 @@ const STR={
     mSend:"Send a card",mRecv:"Cards you got",mPick:"Pick a song",mNote:"One line on why",mNotePh:"e.g. for rainy-day homework",mMake:"Make the card",
     mShareLine:(f,t)=>`${f?f+" ":""}recommends “${t}”. Paste this into Music cards in Nine-Grid Week to save it`,mRecvHow:"Paste the card your friend sent. Several at once is fine.",mOpen:"Open",mBad:"No music card found",
     mFrom:n=>`From ${n}`,mToGrid:"Which square should it go in?",mPut:"Added to the grid",
-    aiTitle:"AI helper",aiNow:n=>`Using: ${n}`,aiNames:{claude:"Claude (your Claude account)",gemini:"Gemini free tier",openai:"Your ChatGPT (OpenAI) key",anthropic:"Your Claude (Anthropic) key",none:"No AI — guided questions instead"},
+    aiTitle:"AI helper",aiNow:n=>`Using: ${n}`,aiNames:{site:"The site's AI (Claude)",claude:"Claude (your Claude account)",gemini:"Gemini free tier",openai:"Your ChatGPT (OpenAI) key",anthropic:"Your Claude (Anthropic) key",none:"No AI — guided questions instead"},
     aiAuto:"Automatic (default)",aiProv:{gemini:"Gemini",openai:"ChatGPT",anthropic:"Claude"},aiKey:"API key",aiModel:"Model",aiTest:"Test",aiOk:"Connected",aiGetKey:"Get a key",aiSave:"Save",aiClear:"Back to automatic",
     aiKeyNote:"Your key stays on this device and goes straight to the AI company you pick, never through our server. Costs follow their plans; Gemini has a free tier.",aiSiteOnly:"Your own key works on the app link. Inside Claude, your Claude is used.",
     crAI:"AI writes it",crDrop:"Drop a prompt here",crPrompts:"Prompt cards",crHint:"Drag to the middle for AI; drag onto an app to open it with the prompt",crAdd:"Add prompt",crTopic:"Topic",crTopicPh:"e.g. our first family camping trip",crGen:"Generate",
@@ -3006,7 +3008,7 @@ const AIKEY="nine-grid-ai-v1";   // kept apart from the plan so Drive backups ne
 const PROVIDERS={
   gemini:{model:"gemini-2.5-flash",keyUrl:"https://aistudio.google.com/apikey"},
   openai:{model:"gpt-4o-mini",keyUrl:"https://platform.openai.com/api-keys"},
-  anthropic:{model:"claude-haiku-4-5-20251001",keyUrl:"https://console.anthropic.com/settings/keys"}
+  anthropic:{model:"claude-opus-5",keyUrl:"https://console.anthropic.com/settings/keys"}
 };
 function aiCfg(){try{return JSON.parse(localStorage.getItem(AIKEY))||{}}catch(e){return {}}}
 function setAiCfg(c){try{localStorage.setItem(AIKEY,JSON.stringify(c))}catch(e){}}
@@ -3030,8 +3032,8 @@ function parseJSONLoose(text){
   if(a<b)try{return JSON.parse(text.slice(a,b+1))}catch(e){}
   throw aiFail("invalid_json");
 }
-async function callProvider(p,key,model,turns,wantJson,signal,images){
-  let r,j;const imgs=images||[],lastU=turns.length-1;
+async function callProvider(p,key,model,turns,wantJson,signal,images,tier,onText){
+  let r,j,streamed=null;const imgs=images||[],lastU=turns.length-1;
   if(p==="proxy"&&aiLeft()<=0){aiQuotaSheet("daily_limit");throw aiFail("quota")}
   try{
     if(p==="gemini"){
@@ -3042,13 +3044,22 @@ async function callProvider(p,key,model,turns,wantJson,signal,images){
         body:JSON.stringify(Object.assign({model,messages:imgs.length?turns.map((m,i)=>i===lastU?{role:m.role,content:[{type:"text",text:m.content},...imgs.map(g=>({type:"image_url",image_url:{url:`data:${g.mime};base64,${g.data}`}}))]}:m):turns},wantJson?{response_format:{type:"json_object"}}:{}))});
     }else if(p==="anthropic"){
       r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model,max_tokens:2000,messages:imgs.length?turns.map((m,i)=>i===lastU?{role:m.role,content:[...imgs.map(g=>({type:"image",source:{type:"base64",media_type:g.mime,data:g.data}})),{type:"text",text:m.content}]}:m):turns})});
+        body:JSON.stringify({model,max_tokens:16000,output_config:{effort:"medium"},messages:imgs.length?turns.map((m,i)=>i===lastU?{role:m.role,content:[...imgs.map(g=>({type:"image",source:{type:"base64",media_type:g.mime,data:g.data}})),{type:"text",text:m.content}]}:m):turns})});
     }else if(p==="proxy"){
-      r=await fetch(OWNER.aiProxy,{method:"POST",signal,headers:Object.assign({"content-type":"application/json"},(S.aiPass||[]).length?{"x-ng-pass":S.aiPass[S.aiPass.length-1]}:{}),body:JSON.stringify(Object.assign({messages:turns,json:!!wantJson},imgs.length?{images:imgs}:{}))});
+      r=await fetch(OWNER.aiProxy,{method:"POST",signal,headers:Object.assign({"content-type":"application/json"},(S.aiPass||[]).length?{"x-ng-pass":S.aiPass[S.aiPass.length-1]}:{}),body:JSON.stringify(Object.assign({messages:turns,json:!!wantJson,tier:tier||"default"},imgs.length?{images:imgs}:{}))});
+      // Claude on the site streams plain text; a failure mid-way arrives as \u0000ERR:code
+      if(r.ok&&/^text\/plain/.test(r.headers.get("content-type")||"")){
+        const rd=r.body.getReader(),dec=new TextDecoder();let acc="";
+        for(;;){const {done,value}=await rd.read();if(done)break;acc+=dec.decode(value,{stream:true});const cut=acc.indexOf("\u0000");if(onText&&acc)onText({text:cut<0?acc:acc.slice(0,cut)})}
+        acc+=dec.decode();const cut=acc.indexOf("\u0000");
+        if(cut>=0){const code=acc.slice(cut).replace("\u0000ERR:","").trim();throw aiFail(code==="refusal"?"refused":code==="rate_limited"?"rate_limited":code==="server_key"?"not_configured":"upstream_error")}
+        streamed=acc;AI_ENGINE="claude";
+      }
     }
-    j=await r.json().catch(()=>({}));
-  }catch(e){if(e&&e.name==="AbortError")throw aiFail("cancelled");throw aiFail("upstream_error",String(e))}
-  if(p==="proxy"&&(r.status===404||r.status===503))throw aiFail("not_declared");
+    j=streamed!=null?{text:streamed}:await r.json().catch(()=>({}));
+  }catch(e){if(e&&e.name==="AbortError")throw aiFail("cancelled");if(e&&e.code)throw e;throw aiFail("upstream_error",String(e))}
+  if(p==="proxy"&&(r.status===404||r.status===503))throw aiFail("not_configured");
+  if(p==="proxy"&&j&&j.engine)AI_ENGINE=j.engine;
   if(r.status===401||r.status===403)throw aiFail("bad_key");
   if(p==="proxy"&&r.status===429&&j){
     if(j.error==="daily_limit"||j.error==="hourly_limit"){aiQuotaSheet(j.error);throw aiFail("quota")}
@@ -3065,9 +3076,9 @@ async function callProvider(p,key,model,turns,wantJson,signal,images){
 }
 // same shape as the sample capability: f(input, {onText, signal}) -> {text}, and f.json(...)
 function makeEngine(p,key,model){
-  const f=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),false,opts.signal);if(opts.onText)opts.onText({text,delta:text});return {text,truncated:false}};
-  f.json=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),true,opts.signal);return parseJSONLoose(text)};
-  f.vision=async(input,images,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),true,opts.signal,images);return parseJSONLoose(text)};
+  const f=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),false,opts.signal,null,opts.modelTier,opts.onText);if(opts.onText)opts.onText({text,delta:text});return {text,truncated:false}};
+  f.json=async(input,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),true,opts.signal,null,opts.modelTier);return parseJSONLoose(text)};
+  f.vision=async(input,images,opts)=>{opts=opts||{};const text=await callProvider(p,key,model,toTurns(input),true,opts.signal,images,opts.modelTier);return parseJSONLoose(text)};
   f.label=p;return f;
 }
 function pickAI(){
@@ -3077,12 +3088,13 @@ function pickAI(){
   if(IS_SITE&&OWNER.aiProxy)return makeEngine("proxy","","");
   return null;
 }
+let AI_ENGINE="";   // which AI the site used last: "claude" or "gemini"
 const aiWhy=()=>IS_SITE?T().aiWhySite:T().aiWhyPrev;
 function aiLabel(){
   const t=T(),c=aiCfg();
   if(!AI)return t.aiNames.none;
   if(AI===SAMPLE)return t.aiNames.claude;
-  if(AI.label==="proxy")return t.aiNames.gemini;
+  if(AI.label==="proxy")return AI_ENGINE==="gemini"?t.aiNames.gemini:t.aiNames.site;
   return t.aiNames[c.provider]||c.provider;
 }
 const aiReady=((window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").then(f=>(SAMPLE=f||null),()=>(SAMPLE=null)):Promise.resolve(null)).then(()=>(AI=pickAI()));
@@ -3091,12 +3103,19 @@ const SEND_ICON='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stro
 function coachRules(){
   const t=T(),d=new Date();
   return `You are the goal coach inside "Nine-Grid Week", a planner that turns one big goal into 8 milestone steps around it on a 3x3 grid.
-Speak warmly, concretely and casually. Always reply in ${t.replyLang}.
-Blend three lenses quietly, without lecturing or jargon:
-- Adler: focus on purpose (who they want to become), separate their own tasks from others', encourage effort rather than praise results.
-- Flow: tune the goal so it is a stretch but reachable, with clear finish lines and quick feedback for each step.
-- Maslow: notice which need the goal serves (safety, belonging, esteem, self-actualisation); gently make sure basics are covered.
-Rules: ask exactly ONE question per reply, at most 80 words (or 80 Chinese/Japanese characters). Ask at most 4 questions in total, in this order as needed: 1) what exactly and by when; 2) why it matters to them; 3) their starting point, resources and biggest constraint; 4) how many hours per week they can give. If the goal is unrealistic (for example a very large amount of money in a short time), kindly help reshape it into something measurable and within their control; never promise outcomes and give no investment, legal or medical advice. When you know enough, summarise the goal in one sentence and invite them to press the "${t.makePlan}" button.
+You are an experienced, warm and honest coach, talking like a thoughtful friend, not a form. Always reply in ${t.replyLang}.
+Quietly draw on three lenses, never naming them or lecturing:
+- Adler: what they are really aiming for and who they want to become; separate what is theirs to change from what belongs to others; encourage effort and courage rather than praising results.
+- Flow: shape a challenge just above their current skill, with clear finish lines and quick feedback.
+- Maslow: notice which need is underneath (safety, belonging, esteem, growth) and check the basics (sleep, money, safety) are not the real blocker.
+How to talk:
+- Start each reply by showing you understood: reflect one specific thing they said, in your own words. Never reply with a generic compliment or a template phrase.
+- Then ask ONE sharp question that you genuinely need answered to help THEM (their numbers, what exactly happens, what they tried before and where it broke, what it would change for them). Offer 2-3 short example answers in brackets when it helps them answer quickly.
+- If you notice something they may not see (a pattern, an unrealistic target, a hidden need), say it kindly and honestly, even if it is not what they hoped to hear.
+- Keep each reply under 120 Chinese/Japanese characters or 70 words.
+- You need, over the conversation: what exactly they want and by when; why it matters; where they are now and what they tried; the time they can give each week. Do not ask for what they already told you.
+- If a target is unrealistic (for example a large sum of money in a very short time), help reshape it into something measurable and within their control. Never promise outcomes; give no investment, legal or medical advice.
+- When you know enough, summarise the goal in one concrete sentence using their own details, and invite them to press the "${t.makePlan}" button.
 Today is ${key(d)}.`;
 }
 function coachHTML(){
@@ -3175,12 +3194,12 @@ async function coachPlan(){
   const prompt=`From the coaching conversation below, build a nine-grid goal plan. Write every text value in ${t.replyLang}.
 Reply with ONLY one JSON object of this shape:
 {"goal":"measurable goal with a deadline, max 24 characters/words","why":"one sentence on why it matters to them","steps":[{"text":"milestone starting with a verb, max 16 characters/words","date":"YYYY-MM-DD","first":"a first action that takes 15 minutes or less, max 20 characters/words"}],"week":[{"text":"small task for this week, max 16 characters/words","day":0,"pri":"high"}],"note":"one sentence of encouragement"}
-Rules: exactly 8 steps in time order, each with a clear finish line, dated between today (${key(d)}) and the deadline. "week" has 3 to 5 small tasks for this week; "day" is 0 for Monday to 6 for Sunday; today is day ${dow}, so use days ${dow} to 6; "pri" is high, mid or low. Keep it realistic for the time they said they have.
+Rules: exactly 8 steps in time order, each with a clear finish line you can check (a number, a thing made, a habit done N times), dated between today (${key(d)}) and the deadline. Every step must use this person’s own details from the conversation (their numbers, context, what failed before); no filler steps that could fit anyone. "week" has 3 to 5 small tasks for this week; "day" is 0 for Monday to 6 for Sunday; today is day ${dow}, so use days ${dow} to 6; "pri" is high, mid or low. Keep it realistic for the time they said they have.
 
 Conversation:
 ${convo}`;
   try{
-    const r=await AI.json(prompt,{modelTier:"default",signal:coach.ctl.signal,cache:false});
+    const r=await AI.json(prompt,{modelTier:"complex",signal:coach.ctl.signal,cache:false});
     coach.turns.pop();coach.plan=cleanPlan(r);
     if(!coach.plan)coach.turns.push({role:"assistant",content:t.aiErr.invalid_json});
   }catch(e){
@@ -3244,31 +3263,38 @@ const GC_TPL={   // three sizes of goal, built from the area when there's no AI
     {level:"stretch",goal:`Within 6 months, really solve “${a}”`,perWeek:"4–5× a week, 45 min",story:"In six months the people around you will notice the change."}]
 };
 let gc=null;
-function openCoach(){endGuide(true);gc={step:1,area:null,probs:null,prob:null,goals:null,goal:null,want:0,sure:0,obs:null,ifthen:"",hours:"",busy:false,plan:null};drawGC()}
+function openCoach(){endGuide(true);gc={step:1,area:null,probs:null,prob:null,qs:null,ans:[],insight:"",fail:null,probNote:"",goals:null,goal:null,want:0,sure:0,obs:null,ifthen:"",hours:"",busy:false,plan:null};drawGC()}
 function gcSheet(body){const t=T(),g=GCT();
-  const dots=[1,2,3,4,5].map(i=>`<i class="${i<gc.step?"done":i===gc.step?"on":""}"></i>`).join("");
+  const dots=[1,2,3,4,5,6].map(i=>`<i class="${i<gc.step?"done":i===gc.step?"on":""}"></i>`).join("");
   layer(`<div class="shead">${gc.step>1&&!gc.busy?`<button class="round jelly" type="button" data-gcback="1" aria-label="${g.back}">‹</button>`:""}<h2>${t.coachTitle}</h2>${closeBtn(t)}</div>
 <div class="gcprog">${dots}<small>${g.stepName[gc.step-1]}</small></div>${body}`,true)}
 function gcSay(text,pose){return `<div class="coachme">${mascot(pose||"idle")}<div class="msg ai">${esc(text)}</div></div>`}
 function drawGC(){
   const g=GCT(),l=LANG[S.region];
   if(gc.busy){gcSheet(`${gcSay(gc.busy,"wave")}<div class="gcwait"><i></i><i></i><i></i></div>`);return}
+  if(gc.fail){   // the AI failed: say so, and let the person retry or knowingly take the generic version
+    const e=gc.fail.err,why=e&&e.code==="none"?aiWhy():aiErrText(e);
+    gcSheet(`${gcSay(g.aiDown,"idle")}<p class="note">${esc(why)}</p><div class="row end"><button class="pill jelly" type="button" data-gctpl="1">${g.useTpl}</button><button class="pill pri jelly" type="button" data-gcretry="1">${g.retry}</button></div>`);return}
   if(gc.step===1){
     const cells=Array(9);GC_AREAS.forEach((a,i)=>cells[RING[i]]=`<button type="button" class="gcarea jelly" data-gcarea="${a.k}" style="--t:var(--c${i%7})"><span>${a.e}</span><b>${esc(a.n[l])}</b></button>`);
     cells[4]=`<button type="button" class="gcarea jelly center" data-gcown="1"><span>✍️</span><b>${g.own}</b></button>`;
     gcSheet(`${gcSay(g.q1,"wave")}<div class="gcgrid">${cells.join("")}</div><p class="note">${g.q1hint}</p>`);return}
   if(gc.step===2){
     const a=gcArea();
-    gcSheet(`${gcSay(g.q2(a.n[l]))}<div class="gccards">${(gc.probs||[]).map((p,i)=>`<button type="button" class="gccard jelly" data-gcprob="${i}"><b>${esc(p.title)}</b><span>${esc(p.story)}</span></button>`).join("")}</div>
+    gcSheet(`${gcSay(g.q2(a.n[l]))}${gc.probNote?`<p class="note">${esc(gc.probNote)}</p>`:""}<div class="gccards">${(gc.probs||[]).map((p,i)=>`<button type="button" class="gccard jelly" data-gcprob="${i}"><b>${esc(p.title)}</b><span>${esc(p.story)}</span></button>`).join("")}</div>
 <label class="fld">${g.notLike}<div class="row" style="flex-wrap:nowrap"><input id="gcOwn" type="text" maxlength="120" placeholder="${esc(g.ownPh)}"><button class="pill pri jelly" type="button" data-gcownprob="1">${g.next}</button></div></label>`);return}
   if(gc.step===3){
-    gcSheet(`${gcSay(g.q3(gc.prob.title),"wave")}<div class="gccards">${(gc.goals||[]).map((o,i)=>`<button type="button" class="gccard goal jelly lv-${o.level}" data-gcgoal="${i}"><span class="gclv">${g.levels[o.level]||""}</span><b>${esc(o.goal)}</b><em>⏱ ${esc(o.perWeek)}</em><span>📖 ${esc(o.story)}</span>${o.why?`<small>💡 ${esc(o.why)}</small>`:""}</button>`).join("")}</div>
-<label class="fld">${g.noneFit}<div class="row" style="flex-wrap:nowrap"><input id="gcFix" type="text" maxlength="120" placeholder="${esc(g.fixPh)}"><button class="pill jelly" type="button" data-gcredo="1">${g.redo}</button></div></label>`);return}
+    const qs=gc.qs||[];
+    gcSheet(`${gcSay(g.q3deep,"wave")}${gc.deepNote?`<p class="note">${g.deepNote}</p>`:""}<div class="gcdeep">${qs.map((q,i)=>`<div class="fld"><h3>${esc(q.q)}</h3>${q.options&&q.options.length?`<div class="qchips">${q.options.map(o=>`<button type="button" data-gcans="${i}" data-v="${esc(o)}" aria-pressed="${gc.ans[i]===o}">${esc(o)}</button>`).join("")}</div>`:""}<input id="gcA${i}" type="text" maxlength="160" placeholder="${esc(g.deepOwnPh)}" value="${esc(gc.ans[i]||"")}"></div>`).join("")}</div>
+<div class="row end"><button class="pill pri jelly" type="button" data-gcdeepok="1">${g.next}</button></div>`);return}
   if(gc.step===4){
+    gcSheet(`${gcSay(g.q3(gc.prob.title),"wave")}${gc.insight?`<div class="gcwarn"><b>${g.insight}</b>${esc(gc.insight)}</div>`:""}${gc.tplGoals?`<p class="note">${g.tplNote}</p>`:""}<div class="gccards">${(gc.goals||[]).map((o,i)=>`<button type="button" class="gccard goal jelly lv-${o.level}" data-gcgoal="${i}"><span class="gclv">${g.levels[o.level]||""}</span><b>${esc(o.goal)}</b><em>⏱ ${esc(o.perWeek)}</em><span>📖 ${esc(o.story)}</span>${o.why?`<small>💡 ${esc(o.why)}</small>`:""}</button>`).join("")}</div>
+<label class="fld">${g.noneFit}<div class="row" style="flex-wrap:nowrap"><input id="gcFix" type="text" maxlength="120" placeholder="${esc(g.fixPh)}"><button class="pill jelly" type="button" data-gcredo="1">${g.redo}</button></div></label>`);return}
+  if(gc.step===5){
     const o=gc.goal,obs=o.obstacles&&o.obstacles.length?o.obstacles:g.obsDefault;
     const scale=(k,v)=>`<div class="gcscale" data-gcscale="${k}">${[1,2,3,4,5].map(n=>`<button type="button" data-gcv="${n}" aria-pressed="${v===n}">${["😶","🙂","😊","😄","🤩"][n-1]}<small>${n}</small></button>`).join("")}</div>`;
     let warn="";
-    if(gc.want&&gc.want<=2)warn=`<div class="gcwarn">${g.lowWant}<div class="row"><button class="pill jelly" type="button" data-gcto="3">${g.pickOther}</button><button class="pill jelly" type="button" data-gcto="2">${g.backProb}</button></div></div>`;
+    if(gc.want&&gc.want<=2)warn=`<div class="gcwarn">${g.lowWant}<div class="row"><button class="pill jelly" type="button" data-gcto="4">${g.pickOther}</button><button class="pill jelly" type="button" data-gcto="2">${g.backProb}</button></div></div>`;
     else if(gc.sure&&gc.sure<=2)warn=`<div class="gcwarn">${g.lowSure}<div class="row"><button class="pill pri jelly" type="button" data-gcsmaller="1">${g.smaller}</button><button class="pill jelly" type="button" data-gcanyway="1">${g.anyway}</button></div></div>`;
     const ok=gc.want>=3&&(gc.sure>=3||gc.anyway)&&gc.obs!=null;
     gcSheet(`${gcSay(g.q4,"idle")}<div class="gcgoal jelly"><span class="gclv">${g.levels[o.level]||""}</span><b>${esc(o.goal)}</b><em>⏱ ${esc(o.perWeek)}</em></div>
@@ -3276,54 +3302,82 @@ function drawGC(){
 <h3>${g.obsQ}</h3><div class="qchips">${obs.map((x,i)=>`<button type="button" data-gcobs="${i}" aria-pressed="${gc.obs===i}">${esc(typeof x==="string"?x:x.o)}</button>`).join("")}</div>
 ${gc.obs!=null?`<label class="fld">${g.ifThen}<input id="gcIf" type="text" maxlength="100" value="${esc(gc.ifthen)}"></label>`:""}
 <div class="row end"><button class="pill pri jelly" type="button" data-gcok="1"${ok?"":" disabled"}>✅ ${g.confirm}</button></div>`);return}
-  if(gc.step===5){
+  if(gc.step===6){
     const P=gc.plan,t=T();
-    gcSheet(`${gcSay(g.q5,"cheer")}<div class="plan"><h4>${esc(P.goal)}</h4>${P.why?`<p class="why">${esc(P.why)}</p>`:""}
+    gcSheet(`${gcSay(g.q5,"cheer")}${P.tpl?`<p class="note">${g.tplNote}</p>`:""}<div class="plan"><h4>${esc(P.goal)}</h4>${P.why?`<p class="why">${esc(P.why)}</p>`:""}
 <ol>${P.steps.map((st,i)=>`<li><b>${i+1}</b><span>${esc(st.text)}</span><em>${st.date?esc(t.md(parse(st.date))):""}</em>${st.first?`<small>${esc(t.firstLbl)}：${esc(st.first)}</small>`:""}</li>`).join("")}</ol>
 ${P.week.length?`<div><div class="note" style="margin-bottom:6px">${t.planWeek}</div><div class="wk">${P.week.map(w=>`<span>${t.short[w.day]}・${esc(w.text)}</span>`).join("")}</div></div>`:""}
 ${P.note?`<p class="why">${esc(P.note)}</p>`:""}</div>
-<div class="row end"><button class="pill jelly" type="button" data-gcto="4">${g.adjust}</button><button class="pill pri jelly" type="button" data-gcimport="1">${t.importPlan}</button></div>`);return}
+<div class="row end"><button class="pill jelly" type="button" data-gcto="5">${g.adjust}</button><button class="pill pri jelly" type="button" data-gcimport="1">${t.importPlan}</button></div>`);return}
 }
 const gcArea=()=>GC_AREAS.find(a=>a.k===gc.area)||{k:"own",e:"✍️",n:{zh:"我的狀況",ja:"わたしの状況",en:"my situation"}};
-async function gcAI(prompt){await aiReady;if(!AI)return null;try{return await AI.json(prompt,{modelTier:"default",cache:false})}catch(e){return null}}
+// {r} on success, {err} when there is no AI or it failed: failures are shown, never hidden behind a template
+async function gcAI(prompt,tier){await aiReady;if(!AI)return {err:{code:"none"}};try{return {r:await AI.json(prompt,{modelTier:tier||"default",cache:false})}}catch(e){return {err:e}}}
+const GC_COACH=()=>`You are an experienced, warm and honest life coach. You quietly draw on Adlerian psychology (purpose, courage, separating one's own tasks from others', encouragement over praise), flow theory (a challenge just above current skill, clear goals, fast feedback) and Maslow's needs (make sure safety and basics are covered first). Never use jargon or lecture. Be concrete: use the person's own facts and numbers, and never give advice so generic it could apply to anyone. Do not give investment, legal or medical advice; do not promise outcomes. Write every text value in ${T().replyLang}.`;
+// what we know about the person so far, for the goal and plan prompts
+function gcCtx(){const a=gcArea();return `Life area: ${a.n.en}.\nTheir situation: "${gc.prob.title}${gc.prob.story?" — "+gc.prob.story:""}".\n`+(gc.qs||[]).map((q,i)=>gc.ans[i]?`Q: ${q.q}\nA: ${gc.ans[i]}`:"").filter(Boolean).join("\n")}
 // step 1 → 2: situations in that area
 async function gcPickArea(k){
   const g=GCT(),t=T(),l=LANG[S.region];gc.area=k;const a=gcArea();gc.busy=g.thinking;drawGC();
-  const r=await gcAI(`List 4 common, specific situations where people feel stuck in the life area "${a.n.en}". Each: a short title (max 18 characters/6 words) and a one-sentence first-person mini story (max 40 characters/16 words) that makes someone say "that's me". Mix ages (young adults, parents, working adults). Write in ${t.replyLang}.
+  const {r,err}=await gcAI(`List 4 common, specific situations where people feel stuck in the life area "${a.n.en}". Each: a short title (max 18 characters/6 words) and a one-sentence first-person mini story (max 40 characters/16 words) that makes someone say "that's me". Mix ages (young adults, parents, working adults). Write in ${t.replyLang}.
 Reply ONLY JSON {"items":[{"title":"...","story":"..."}]}`);
   let items=r&&Array.isArray(r.items)?r.items.filter(x=>x&&x.title).slice(0,4).map(x=>({title:String(x.title).slice(0,30),story:String(x.story||"").slice(0,80)})):null;
-  if(!items||!items.length)items=l==="zh"&&GC_PROB[k]?GC_PROB[k].map(([title,story])=>({title,story})):[];
+  gc.probNote="";
+  if(!items||!items.length){items=l==="zh"&&GC_PROB[k]?GC_PROB[k].map(([title,story])=>({title,story})):[];gc.probNote=err&&err.code==="none"?aiWhy():aiErrText(err)}
   gc.probs=items;gc.busy=false;gc.step=2;drawGC();
+}
+// step 2 → 3: questions this person actually needs to answer before any goal makes sense
+async function gcDeep(){
+  const g=GCT();gc.busy=g.thinkingDeep;gc.ans=[];gc.deepNote=false;drawGC();
+  const {r}=await gcAI(`${GC_COACH()}
+Someone wants to change something. ${gcCtx()}
+Before suggesting any goal, ask exactly 3 questions you genuinely need answered to give THIS person specific advice:
+1) the concrete facts of where they are now (amounts, how often, how long; ask for numbers when they matter),
+2) what they have already tried and exactly where it broke down,
+3) why this matters to them now and who they want to become (purpose).
+Each question at most 30 characters (or 14 words), friendly, about their situation, not generic. For each give 4 short, realistic answer options (at most 14 characters or 6 words) covering different kinds of people.
+Reply ONLY JSON {"questions":[{"q":"","options":["","","",""]}]}`,"default");
+  let qs=r&&Array.isArray(r.questions)?r.questions.filter(x=>x&&x.q).slice(0,3).map(x=>({q:String(x.q).slice(0,60),options:(Array.isArray(x.options)?x.options:[]).map(o=>String(o).slice(0,30)).filter(Boolean).slice(0,4)})):null;
+  if(!qs||!qs.length){qs=g.deepQs.map(q=>({q,options:[]}));gc.deepNote=true}
+  qs.push({q:g.timeQ,options:g.timeOpts,time:true});
+  gc.qs=qs;gc.busy=false;gc.step=3;drawGC();
 }
 // step 2 → 3: three goals of different sizes, each with a short story
 async function gcGoals(fix){
-  const g=GCT(),t=T(),a=gcArea(),d=new Date();gc.busy=g.thinking2;drawGC();
-  const r=await gcAI(`You are a warm goal coach. Life area: ${a.n.en}. The person's situation: "${gc.prob.title}${gc.prob.story?" — "+gc.prob.story:""}".${fix?` They rejected earlier options because: "${fix}".`:""}
-Offer exactly 3 goal options sized by flow theory: "easy" (a gentle start, about 1 month), "fit" (a real stretch but reachable, about 3 months), "stretch" (ambitious, about 6 months).
-Each option: "goal" = specific and measurable with a deadline (max 28 characters/12 words); "perWeek" = time needed per week; "story" = a 2-sentence scene of their life when it's done, in second person (max 60 characters/28 words); "why" = which need it serves in Adler/Maslow terms, one short line; "obstacles" = 3 likely obstacles, each {"o":"the obstacle","plan":"an if-then plan: If ..., then I ..."}.
-Today is ${key(d)}. Write in ${t.replyLang}. Reply ONLY JSON {"options":[{"level":"easy","goal":"","perWeek":"","story":"","why":"","obstacles":[{"o":"","plan":""}]}]}`);
+  const g=GCT(),t=T(),a=gcArea(),d=new Date();gc.busy=g.thinking2;gc.fail=null;gc.tplGoals=false;drawGC();
+  const {r,err}=await gcAI(`${GC_COACH()}
+${gcCtx()}${fix?`\nThey rejected earlier options because: "${fix}".`:""}
+First write "insight": one honest, caring observation about their situation that they may not have noticed (a pattern, a hidden need, or why past attempts broke down), based on their answers, at most 70 characters (or 30 words).
+Then offer exactly 3 goal options sized by flow theory, all fitting the weekly time they said they have: "easy" (about 1 month), "fit" (a real stretch but reachable, about 3 months), "stretch" (ambitious, about 6 months).
+Each option must be built from THEIR answers (their numbers, their context, what failed before), not something that could fit anyone. Avoid vague verbs like "improve", "make progress", "work on".
+Fields: "goal" = a measurable result with a number and a deadline (at most 30 characters or 14 words); "perWeek" = concrete time and rhythm; "story" = two sentences in second person describing a specific scene of their life when it's done (at most 70 characters or 30 words); "why" = the need and purpose it serves for them, tied to what they said (one short line); "obstacles" = 3 obstacles likely for THIS person, each {"o":"obstacle, at most 14 characters","plan":"If ..., then I ... (specific)"}.
+Today is ${key(d)}. Reply ONLY JSON {"insight":"","options":[{"level":"easy","goal":"","perWeek":"","story":"","why":"","obstacles":[{"o":"","plan":""}]}]}`,"default");
   let opts=r&&Array.isArray(r.options)?r.options.filter(x=>x&&x.goal).slice(0,3).map(x=>({level:["easy","fit","stretch"].includes(x.level)?x.level:"fit",goal:String(x.goal).slice(0,60),perWeek:String(x.perWeek||"").slice(0,40),story:String(x.story||"").slice(0,120),why:String(x.why||"").slice(0,80),obstacles:(Array.isArray(x.obstacles)?x.obstacles:[]).slice(0,3).map(o=>({o:String(o&&o.o||"").slice(0,30),plan:String(o&&o.plan||"").slice(0,80)})).filter(o=>o.o)})):null;
-  if(!opts||!opts.length)opts=GC_TPL[LANG[S.region]](gc.prob.title||a.n[LANG[S.region]]);
-  gc.goals=opts;gc.busy=false;gc.step=3;drawGC();
+  gc.busy=false;
+  if(!opts||!opts.length){gc.fail={what:"goals",err:err||{code:"invalid_json"},fix};drawGC();return}
+  gc.insight=String(r.insight||"").slice(0,140);gc.goals=opts;gc.step=4;drawGC();
 }
 // step 4 → 5: the plan, built from everything agreed
 async function gcPlan(){
-  const g=GCT(),t=T(),d=new Date(),dow=(d.getDay()+6)%7,o=gc.goal;gc.busy=g.thinking3;drawGC();
+  const g=GCT(),t=T(),d=new Date(),dow=(d.getDay()+6)%7,o=gc.goal;gc.busy=g.thinking3;gc.fail=null;drawGC();
   const obs=gc.obs!=null?(o.obstacles&&o.obstacles[gc.obs]?o.obstacles[gc.obs].o:g.obsDefault[gc.obs]):"";
-  const r=await gcAI(`Build a nine-grid goal plan. Write every text value in ${t.replyLang}.
-Agreed goal: "${o.goal}". Time per week: ${o.perWeek}. Situation: "${gc.prob.title}". Wants it: ${gc.want}/5. Confidence: ${gc.sure}/5. Main obstacle: "${obs}". Their if-then plan: "${gc.ifthen}".
-Reply ONLY JSON {"goal":"the goal, max 24 characters/words","why":"one sentence on why it matters to them","steps":[{"text":"milestone starting with a verb, max 16 characters/words","date":"YYYY-MM-DD","first":"first action of 15 minutes or less"}],"week":[{"text":"small task","day":0,"pri":"high"}],"note":"one encouraging line that mentions their if-then plan"}
-Rules: exactly 8 steps in time order dated from today (${key(d)}) to the deadline; the first step is very easy (confidence ${gc.sure}/5). "week": 3 tasks for this week, day ${dow} to 6 (0 = Monday), sized to ${o.perWeek}.`);
+  const {r,err}=await gcAI(`${GC_COACH()}
+Build a nine-grid plan: 8 milestones around one goal.
+${gcCtx()}
+Agreed goal: "${o.goal}". Time per week: ${o.perWeek}. How much they want it: ${gc.want}/5. Confidence: ${gc.sure}/5. Most likely reason to quit: "${obs}". Their if-then plan: "${gc.ifthen}".
+Reply ONLY JSON {"goal":"the goal, at most 24 characters or 12 words","why":"one sentence on why it matters to them, in their terms","steps":[{"text":"milestone with a clear finish line, starting with a verb, at most 18 characters or 9 words","date":"YYYY-MM-DD","first":"the exact first action for this milestone, 15 minutes or less, concrete enough to start without thinking"}],"week":[{"text":"task for this week","day":0,"pri":"high"}],"note":"one honest, encouraging line that mentions their if-then plan"}
+Rules: exactly 8 steps in time order, dated from today (${key(d)}) to the deadline. Each milestone must be specific to this person: use their numbers and context, and build on or avoid what failed before; each has a finish line you can check (a number, a thing made, a habit done N times). Never write filler milestones like "prepare tools", "find a buddy", "review", "celebrate" unless tied to something concrete in their situation. Step 1 must be easy to win (confidence ${gc.sure}/5). "week": 3 tasks for this week, days ${dow} to 6 (0 = Monday), sized to ${o.perWeek}.`,"complex");
   let P=r?cleanPlan(r):null;
-  if(!P){   // no AI: eight honest, generic milestones spread to the deadline
+  if(!P&&!gc.useTpl){gc.busy=false;gc.fail={what:"plan",err:err||{code:"invalid_json"}};drawGC();return}
+  if(!P){   // the person chose the generic template: eight generic milestones spread to the deadline, clearly labelled
     const months=o.level==="easy"?1:o.level==="stretch"?6:3,end=addDays(d,months*30),st=g.stepsTpl;
-    P={goal:o.goal,why:gc.prob.title,note:gc.ifthen,steps:st.map((x,i)=>({text:x,date:key(addDays(d,Math.round((i+1)*(end-d)/86400000/8))),first:i===0?g.firstTpl:""})),week:[{text:st[0],day:Math.min(6,dow),pri:"high"},{text:g.firstTpl,day:Math.min(6,dow+1),pri:"mid"}]};
+    P={goal:o.goal,why:gc.prob.title,note:gc.ifthen,steps:st.map((x,i)=>({text:x,date:key(addDays(d,Math.round((i+1)*(end-d)/86400000/8))),first:i===0?g.firstTpl:""})),week:[{text:st[0],day:Math.min(6,dow),pri:"high"},{text:g.firstTpl,day:Math.min(6,dow+1),pri:"mid"}],tpl:true};
   }
   if(gc.ifthen&&!P.note)P.note=gc.ifthen;
-  gc.plan=P;gc.busy=false;gc.step=5;drawGC();
+  gc.useTpl=false;gc.plan=P;gc.busy=false;gc.step=6;drawGC();
 }
 const GC_STR={
-  zh:{stepName:["選一個方向","找到卡住的地方","挑一個目標","確認真的想做","變成步驟"],back:"上一步",
+  zh:{stepName:["選一個方向","找到卡住的地方","多了解你一點","挑一個目標","確認真的想做","變成步驟"],q3deep:"為了給你具體、不是套公式的建議，我想先多了解你一點。用選的或自己寫都可以，寫得越具體，計畫越貼近你。",deepOwnPh:"或寫你自己的答案",timeQ:"每週大概能投入多少時間？",timeOpts:["1 小時以內","2–3 小時","4–6 小時","7 小時以上"],thinkingDeep:"我在想要多了解你哪些事…",deepQs:["現在的狀況具體是怎樣？（有數字更好）","之前試過什麼？卡在哪裡？","為什麼是現在想改變？你希望變成什麼樣的人？"],deepNote:"（AI 沒有接上，先用固定的問題）",insight:"💬 我觀察到",aiDown:"AI 這次沒有幫上忙",retry:"再試一次",useTpl:"先用通用範本繼續",tplNote:"⚠️ 這是通用範本，不是針對你量身做的。AI 接上之後回到這一步重新產生，就會是你專屬的內容。",back:"上一步",
     q1:"我們用選的就好，不用想很久。你最近最想改變的是哪一塊？",q1hint:"選不出來？挑最常讓你嘆氣的那一個。",own:"我自己說",
     q2:a=>`在「${a}」裡，哪一個最像你現在的狀況？`,notLike:"都不像？用一句話說你的狀況：",ownPh:"例如：想轉職當設計師，但沒作品",next:"下一步",
     q3:p=>`針對「${p}」，我幫你想了三個大小不同的目標。每個都附上完成後的樣子，挑一個最讓你心動的。`,
@@ -3336,7 +3390,7 @@ const GC_STR={
     confirm:"確定，就是這個目標",q5:"這是你的八步計畫，第一步刻意排得很簡單，先讓自己贏一次。",adjust:"再調整",
     thinking:"我在想這一塊常見的狀況…",thinking2:"我在幫你想三個不同大小的目標…",thinking3:"正在把目標拆成八個步驟…",
     stepsTpl:["寫下成功長什麼樣子","準備需要的工具和時間","第一次小小試做","固定時間做滿兩週","找一個夥伴或見證人","回頭檢查、調整難度","挑戰一次加強版","慶祝，設定下一步"],firstTpl:"花 10 分鐘寫下為什麼想做"},
-  ja:{stepName:["方向を選ぶ","つまずきを見つける","目標を選ぶ","本当にやりたいか確認","ステップにする"],back:"戻る",
+  ja:{stepName:["方向を選ぶ","つまずきを見つける","もう少し教えて","目標を選ぶ","本当にやりたいか確認","ステップにする"],q3deep:"型どおりではない、あなた向けの提案をするために、もう少し教えてください。選んでも書いても OK。具体的なほど計画があなたに合います。",deepOwnPh:"または自分の言葉で",timeQ:"1 週間にどのくらい時間を使える？",timeOpts:["1 時間以内","2〜3 時間","4〜6 時間","7 時間以上"],thinkingDeep:"何を聞けばいいか考えています…",deepQs:["今の状況を具体的に（数字があると◎）","これまで何を試して、どこでつまずいた？","なぜ今変えたい？どんな自分になりたい？"],deepNote:"（AI につながっていないので、決まった質問です）",insight:"💬 気づいたこと",aiDown:"今回は AI がうまく答えられませんでした",retry:"もう一度",useTpl:"汎用テンプレートで続ける",tplNote:"⚠️ これは汎用テンプレートで、あなた向けではありません。AI がつながったらこのステップで作り直すと、あなた専用になります。",back:"戻る",
     q1:"選ぶだけで大丈夫。いちばん変えたいのはどれ？",q1hint:"迷ったら、いちばんため息が出るものを。",own:"自分で書く",
     q2:a=>`「${a}」の中で、今のあなたにいちばん近いのは？`,notLike:"どれも違う？ひとことで：",ownPh:"例：デザイナーに転職したいけど作品がない",next:"次へ",
     q3:p=>`「${p}」について、大きさの違う目標を 3 つ考えました。いちばんワクワクするものを。`,
@@ -3349,7 +3403,7 @@ const GC_STR={
     confirm:"これでいく",q5:"8 ステップの計画です。最初の一歩はわざと簡単にしてあります。",adjust:"調整する",
     thinking:"よくある状況を考えています…",thinking2:"大きさの違う目標を考えています…",thinking3:"8 ステップに分けています…",
     stepsTpl:["成功の姿を書く","道具と時間を用意","小さく試す","決まった時間で 2 週間","仲間か見届け人を探す","振り返って難しさを調整","強化版に挑戦","お祝いして次へ"],firstTpl:"10 分でやりたい理由を書く"},
-  en:{stepName:["Pick a direction","Find where you're stuck","Choose a goal","Check you really want it","Turn it into steps"],back:"Back",
+  en:{stepName:["Pick a direction","Find where you're stuck","Tell me more","Choose a goal","Check you really want it","Turn it into steps"],q3deep:"To give you advice that fits you, not a formula, I need to know you a bit better. Pick or write your own; the more specific, the better the plan.",deepOwnPh:"Or write your own answer",timeQ:"How much time can you give it each week?",timeOpts:["Under 1 hour","2–3 hours","4–6 hours","7+ hours"],thinkingDeep:"Working out what to ask you…",deepQs:["What does your situation look like exactly? (numbers help)","What have you tried, and where did it break down?","Why change now? Who do you want to become?"],deepNote:"(The AI isn't connected, so these are fixed questions)",insight:"💬 What I notice",aiDown:"The AI couldn't help this time",retry:"Try again",useTpl:"Continue with a generic template",tplNote:"⚠️ This is a generic template, not made for you. Once the AI is connected, come back to this step and it will be yours.",back:"Back",
     q1:"Just pick, no need to think hard. Which part of life do you most want to change?",q1hint:"Can't decide? Pick the one that makes you sigh most.",own:"In my words",
     q2:a=>`In ${a}, which sounds most like you right now?`,notLike:"None of these? Say it in one line:",ownPh:"e.g. I want to become a designer but have no portfolio",next:"Next",
     q3:p=>`For “${p}”, here are three goals of different sizes, each with what life looks like after. Pick the one that excites you.`,
@@ -3364,21 +3418,27 @@ const GC_STR={
     stepsTpl:["Write what success looks like","Get the tools and time ready","Try a tiny first version","Keep a fixed slot for two weeks","Find a buddy or witness","Review and adjust the difficulty","Try a stronger version","Celebrate and set the next step"],firstTpl:"Spend 10 minutes writing why you want it"}
 };
 const GCT=()=>GC_STR[LANG[S.region]];
+function gcKeepAns(){(gc.qs||[]).forEach((q,i)=>{const el=$("gcA"+i);if(el)gc.ans[i]=el.value.trim()})}
 function gcClick(el){
   const g=GCT();
   const ar=el.closest("[data-gcarea]");if(ar){gcPickArea(ar.dataset.gcarea);return true}
   if(el.closest("[data-gcown]")){gc.area="own";gc.probs=[];gc.step=2;drawGC();setTimeout(()=>{const i=$("gcOwn");if(i)i.focus()},80);return true}
-  const pr=el.closest("[data-gcprob]");if(pr){gc.prob=gc.probs[+pr.dataset.gcprob];gcGoals();return true}
-  if(el.closest("[data-gcownprob]")){const v=$("gcOwn").value.trim();if(!v){$("gcOwn").focus();return true}gc.prob={title:v,story:""};gcGoals();return true}
-  const go=el.closest("[data-gcgoal]");if(go){gc.goal=gc.goals[+go.dataset.gcgoal];gc.want=0;gc.sure=0;gc.obs=null;gc.ifthen="";gc.anyway=false;gc.step=4;drawGC();return true}
+  const pr=el.closest("[data-gcprob]");if(pr){gc.prob=gc.probs[+pr.dataset.gcprob];gcDeep();return true}
+  if(el.closest("[data-gcownprob]")){const v=$("gcOwn").value.trim();if(!v){$("gcOwn").focus();return true}gc.prob={title:v,story:""};gcDeep();return true}
+  const go=el.closest("[data-gcgoal]");if(go){gc.goal=gc.goals[+go.dataset.gcgoal];gc.want=0;gc.sure=0;gc.obs=null;gc.ifthen="";gc.anyway=false;gc.step=5;drawGC();return true}
   if(el.closest("[data-gcredo]")){gcGoals($("gcFix").value.trim());return true}
+  const an=el.closest("[data-gcans]");if(an){const i=+an.dataset.gcans;gcKeepAns();gc.ans[i]=an.dataset.v;drawGC();return true}
+  if(el.closest("[data-gcdeepok]")){gcKeepAns();gcGoals();return true}
+  if(el.closest("[data-gcretry]")){const f=gc.fail;gc.fail=null;if(f.what==="plan")gcPlan();else gcGoals(f.fix);return true}
+  if(el.closest("[data-gctpl]")){const f=gc.fail;gc.fail=null;
+    if(f.what==="plan"){gc.useTpl=true;gcPlan()}else{gc.goals=GC_TPL[LANG[S.region]](gc.prob.title||gcArea().n[LANG[S.region]]);gc.insight="";gc.tplGoals=true;gc.step=4;drawGC()}return true}
   const sv=el.closest("[data-gcv]");if(sv){const k=sv.closest("[data-gcscale]").dataset.gcscale;gc[k]=+sv.dataset.gcv;if($("gcIf"))gc.ifthen=$("gcIf").value;drawGC();return true}
   const ob=el.closest("[data-gcobs]");if(ob){gc.obs=+ob.dataset.gcobs;const o=gc.goal.obstacles&&gc.goal.obstacles[gc.obs];gc.ifthen=o&&o.plan?o.plan:(g.ifDefault[gc.obs]||"");drawGC();return true}
   if(el.closest("[data-gcsmaller]")){const i=gc.goals.indexOf(gc.goal),easy=gc.goals.find(x=>x.level==="easy");if(easy&&easy!==gc.goal){gc.goal=easy;gc.sure=0;drawGC()}else gcGoals(g.smaller);return true}
   if(el.closest("[data-gcanyway]")){gc.anyway=true;drawGC();return true}
   if(el.closest("[data-gcok]")){if($("gcIf"))gc.ifthen=$("gcIf").value.trim();gcPlan();return true}
   const to=el.closest("[data-gcto]");if(to){gc.step=+to.dataset.gcto;drawGC();return true}
-  if(el.closest("[data-gcback]")){gc.step=Math.max(1,gc.step-1);drawGC();return true}
+  if(el.closest("[data-gcback]")){if(gc.step===3)gcKeepAns();gc.fail=null;gc.step=Math.max(1,gc.step-1);drawGC();return true}
   if(el.closest("[data-gcimport]")){coach.plan=gc.plan;gc=null;coachImport();return true}
   return false;
 }

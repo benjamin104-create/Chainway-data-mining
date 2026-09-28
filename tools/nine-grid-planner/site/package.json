@@ -4,6 +4,7 @@
   "type": "module",
   "description": "九宮格週計畫網站：Netlify functions 用到的套件（AI 使用次數記在 Netlify Blobs）",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@netlify/blobs": "^10.0.0"
   }
 }
