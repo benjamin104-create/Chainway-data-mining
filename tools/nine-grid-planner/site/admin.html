@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>會員後台</title>
+<style>
+:root{--bg:#F4F6F8;--card:#fff;--ink:#1B2735;--muted:#5B6878;--line:#E1E6EC;--accent:#E8833A;--ok:#2E9E6A;--chip:#EEF2F6}
+@media (prefers-color-scheme:dark){:root{--bg:#0E131B;--card:#18202B;--ink:#EAF0F6;--muted:#9AA7B6;--line:#2A3442;--chip:#223042}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+input,button,select{font:inherit}
+input[type=text],input[type=password],input[type=search]{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-width:0}
+button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat b{display:block;font-size:26px}.stat span{color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border-radius:999px;padding:3px 10px;background:var(--chip);border:1px solid transparent;font-size:13px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);color:#fff}
+.chip small{opacity:.7;margin-left:4px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:400;font-size:13px}
+.tg{display:inline-block;background:var(--chip);border-radius:6px;padding:0 6px;margin:2px 3px 0 0;font-size:12px}
+.tg.o{background:color-mix(in srgb,var(--accent) 20%,transparent)}
+.yes{color:var(--ok)}.no{color:var(--muted)}
+.note{color:var(--muted);font-size:13px}
+.wrap{overflow-x:auto}
+@media (max-width:700px){table,thead,tbody,tr,td{display:block}thead{display:none}tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:6px}td{border:0;padding:4px 6px}td::before{content:attr(data-l);color:var(--muted);font-size:12px;display:block}}
+</style>
+</head>
+<body>
+<main>
+<h1>🍮 會員後台</h1>
+<div class="card" id="login">
+  <p class="note">只有站長能看。請輸入在 Netlify 設定的後台密碼（環境變數 ADMIN_KEY）。密碼只存在這個分頁，關掉就要重新輸入。</p>
+  <form class="row" id="lf"><input id="key" type="password" placeholder="後台密碼" autocomplete="current-password" style="flex:1"><button class="pri" type="submit">進入</button></form>
+  <p class="note" id="lmsg"></p>
+</div>
+<div id="app" hidden>
+  <div class="stats" id="stats"></div>
+  <div class="card">
+    <div class="row"><input id="q" type="search" placeholder="搜尋暱稱、Email、LINE" style="flex:1"><label class="row" style="gap:4px"><input id="onlyOk" type="checkbox" checked>只看同意接收通知的</label>
+    <button id="csv" class="pri" type="button">匯出 CSV</button><button id="reload" type="button">重新整理</button></div>
+    <div class="chips" id="chips"></div>
+    <p class="note">點標籤可以篩選（可以選多個，要全部符合）。「我的標籤」可以在每一列按 ✏️ 自己加，例如「講座來賓」「VIP」。</p>
+  </div>
+  <div class="card wrap"><table><thead><tr><th>暱稱</th><th>聯絡方式</th><th>通知</th><th>標籤</th><th>加入／最近</th><th></th></tr></thead><tbody id="rows"></tbody></table><p class="note" id="empty" hidden>沒有符合的會員。</p></div>
+</div>
+</main>
+<script>
+(()=>{
+const API="/.netlify/functions/members";let KEY="",ALL=[],SEL=new Set();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const tagsOf=m=>[...((m.auto&&m.auto.tags)||[]),...(m.otags||[]).map(t=>"★"+t)];
+try{KEY=sessionStorage.getItem("ng-admin")||""}catch(e){}
+async function load(){
+  const r=await fetch(API,{headers:{"x-admin-key":KEY}});
+  if(r.status===401){$("lmsg").textContent="密碼不對，或 Netlify 還沒設定 ADMIN_KEY（至少 12 個字）。";$("login").hidden=false;$("app").hidden=true;return}
+  if(!r.ok){$("lmsg").textContent="讀取失敗（"+r.status+"）";return}
+  ALL=(await r.json()).members||[];$("login").hidden=true;$("app").hidden=false;draw();
+}
+function list(){const q=$("q").value.trim().toLowerCase(),ok=$("onlyOk").checked;
+  return ALL.filter(m=>(!ok||(m.consent&&m.consent.mkt))&&(!q||[m.name,m.email,m.line].join(" ").toLowerCase().includes(q))&&[...SEL].every(t=>tagsOf(m).includes(t)))}
+function draw(){
+  const L=list(),ok=ALL.filter(m=>m.consent&&m.consent.mkt).length,wk=ALL.filter(m=>Date.now()-new Date(m.updated)<7*864e5).length,paid=ALL.filter(m=>tagsOf(m).includes("付費會員")).length;
+  $("stats").innerHTML=[["會員",ALL.length],["同意接收通知",ok],["7 天內有來",wk],["付費會員",paid],["目前篩選",L.length]].map(([a,b])=>`<div class="card stat"><b>${b}</b><span>${a}</span></div>`).join("");
+  const cnt={};ALL.forEach(m=>tagsOf(m).forEach(t=>cnt[t]=(cnt[t]||0)+1));
+  const groups=Object.keys(cnt).sort((a,b)=>a.localeCompare(b,"zh-Hant"));
+  $("chips").innerHTML=groups.map(t=>`<button type="button" class="chip" data-t="${esc(t)}" aria-pressed="${SEL.has(t)}">${esc(t)}<small>${cnt[t]}</small></button>`).join("");
+  $("rows").innerHTML=L.map(m=>`<tr><td data-l="暱稱"><b>${esc(m.name)}</b><div class="note">${esc(m.country||"")} ${esc(m.auto&&m.auto.lang||"")}</div></td>
+<td data-l="聯絡方式">${m.email?`<a href="mailto:${esc(m.email)}">${esc(m.email)}</a>`:""}${m.line?`<div>LINE：${esc(m.line)}</div>`:""}</td>
+<td data-l="通知">${m.consent&&m.consent.mkt?`<span class="yes">✓ 同意</span><div class="note">${esc((m.consent.at||"").slice(0,10))}</div>`:`<span class="no">未同意</span>`}</td>
+<td data-l="標籤">${(m.auto&&m.auto.tags||[]).map(t=>`<span class="tg">${esc(t)}</span>`).join("")}${(m.otags||[]).map(t=>`<span class="tg o">★${esc(t)}</span>`).join("")}</td>
+<td data-l="加入／最近">${esc((m.created||"").slice(0,10))}<div class="note">${esc((m.updated||"").slice(0,10))}・來過 ${esc(m.auto&&m.auto.visits||"?")} 天</div></td>
+<td><button type="button" data-ed="${esc(m.id)}" title="我的標籤">✏️</button></td></tr>`).join("");
+  $("empty").hidden=!!L.length;
+}
+function csv(){const L=list(),q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const out=[["暱稱","Email","LINE","同意通知","同意日期","標籤","我的標籤","國家","語言","等級","來訪天數","加入日","最近"].map(q).join(",")]
+    .concat(L.map(m=>[m.name,m.email,m.line,m.consent&&m.consent.mkt?"是":"否",(m.consent&&m.consent.at||"").slice(0,10),(m.auto&&m.auto.tags||[]).join(" / "),(m.otags||[]).join(" / "),m.country,m.auto&&m.auto.lang,m.auto&&m.auto.level,m.auto&&m.auto.visits,(m.created||"").slice(0,10),(m.updated||"").slice(0,10)].map(q).join(",")));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+out.join("\r\n")],{type:"text/csv"}));a.download="members-"+new Date().toISOString().slice(0,10)+".csv";a.click()}
+async function edit(id){const m=ALL.find(x=>x.id===id);if(!m)return;const v=prompt("「"+m.name+"」的標籤（用逗號分開）",(m.otags||[]).join(", "));if(v==null)return;
+  const otags=v.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+  const r=await fetch(API,{method:"POST",headers:{"content-type":"application/json","x-admin-key":KEY},body:JSON.stringify({action:"otags",id,otags})});
+  if(r.ok){m.otags=otags;draw()}else alert("儲存失敗（"+r.status+"）")}
+$("lf").addEventListener("submit",e=>{e.preventDefault();KEY=$("key").value.trim();try{sessionStorage.setItem("ng-admin",KEY)}catch(x){}load()});
+$("q").addEventListener("input",draw);$("onlyOk").addEventListener("change",draw);$("csv").addEventListener("click",csv);$("reload").addEventListener("click",load);
+document.addEventListener("click",e=>{const c=e.target.closest("[data-t]");if(c){const t=c.dataset.t;SEL.has(t)?SEL.delete(t):SEL.add(t);draw();return}const ed=e.target.closest("[data-ed]");if(ed)edit(ed.dataset.ed)});
+if(KEY)load();
+})();
+</script>
+</body>
+</html>

@@ -1140,6 +1140,7 @@ html .knob svg{width:22px;height:22px}
 .aftile.wip{opacity:.55;filter:saturate(.35)}.aftile.wip b{color:var(--muted);font-weight:400}.aftile.wip small{color:var(--muted);opacity:.85}.aftile.wip svg{color:var(--muted)}
 .vchead{margin:10px 2px 0;font-size:15px;font-weight:400;color:var(--muted)}
 .vword.phr .vwh b{font-size:16px;line-height:1.35}.vword.phr .vwh span{flex-basis:100%;font-size:14px;color:var(--muted)}.vword.phr .vwh{flex-wrap:wrap}
+.mbok{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5}.mbok input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--accent)}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1279,8 +1280,12 @@ const OWNER={
   taleArt:{},                              // 故事插畫：{"aesop-tortoise":"tales/aesop-tortoise/"}，放 1.webp、2.webp…（見「故事插畫提示詞.md」）；沒放就用內建畫面
   aiFreeDaily:20,                          // 網站的免費 AI：每位使用者每天幾次（接上自己金鑰的人不受限）
   aiPlusDaily:200,                         // 「AI 加值包」（權益 ai:plus）每天幾次
-  aiStore:""                               // AI 加值包的購買頁網址；空白就只能用兌換碼
+  aiStore:"",                              // AI 加值包的購買頁網址；空白就只能用兌換碼
+  salesOpen:false,                         // 開賣了沒？false＝公測期：所有加購內容免費開放、不顯示「加購」；接好付款、準備好內容再改成 true
+  betaKeep:true                            // 開賣後，公測期間用過的內容是否讓那位使用者繼續免費用（true＝保留）
 };
+// 公測期：把每一道加購關卡都打開（兌換碼照樣可用）
+if(!OWNER.salesOpen){OWNER.proFit=false;OWNER.proPics=false;OWNER.proCourses=false;OWNER.proDecks=[]}
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
 const SPONSORS=[
   {tags:["kids"]},{tags:["edu"]},{tags:["read"]},{tags:["mind"]},
@@ -1817,9 +1822,10 @@ S.owned=S.owned||{};
   S.v=SCHEMA;save();
 })();
 if(window.NG_SITE&&navigator.storage&&navigator.storage.persist){try{navigator.storage.persist()}catch(e){}}
-const owns=k=>!!S.owned[k];
+const owns=k=>!!S.owned[k]||(!!OWNER.betaKeep&&!!(S.beta||{})[k]);
 // grant once; the first reason is kept (a purchase is never downgraded)
-function grant(k,src){if(!S.owned[k]){S.owned[k]={src:src||"free",d:key(new Date())};save()}}
+function grant(k,src){if(!OWNER.salesOpen&&(src||"free")==="free"){S.beta=S.beta||{};if(!S.beta[k]){S.beta[k]=key(new Date());save()}return}   // 公測期間用過的，另外記下
+  if(!S.owned[k]){S.owned[k]={src:src||"free",d:key(new Date())};save()}}
 let cur=mondayOf(new Date());
 let curMonth=new Date(addDays(cur,3).getFullYear(),addDays(cur,3).getMonth(),1);
 let newPri="high",pending=null,prevItems=[],editTime=null;
@@ -2428,7 +2434,7 @@ function goFace(n,dir){
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
-  const swap=()=>{S.face=n;save();try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
+  const swap=()=>{S.face=n;S.use=S.use||{};S.use[n]=(S.use[n]||0)+1;save();try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
   if(reduced()||!f.animate){swap();return}
   rotating=true;
 
@@ -2453,7 +2459,7 @@ function openSettings(){
   if(IS_SITE)inst=standalone()?`<span class="status">${t.installed}</span>`:(installEvt?`<button class="pill pri jelly" type="button" data-set="install">${I.phone}${t.installBtn}</button>`:"");
   else inst=SITE_URL?`<a class="pill pri jelly" href="${esc(SITE_URL)}" target="_blank" rel="noopener">${I.phone}${t.installPreview}</a>`:`<span class="note">${t.installNoSite}</span>`;
   layer(`<div class="shead"><h2>${t.settings}</h2>${closeBtn(t)}</div>
-<div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}</div>
+<div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}${memberHTML()}</div>
 <div class="sgroup"><h3>${I.sparkle}${t.aiTitle}</h3>${aiSettingsHTML()}</div>
 <div class="sgroup"><h3>💎 ${SF().rights}</h3>${rightsHTML()}</div>
 <div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
@@ -5563,6 +5569,7 @@ function openAllFaces(){
 /* ---------- background music made in the browser, so it plays anywhere ---------- */
 S.music=S.music||{on:true,track:"piano",vol:.5};
 if(isWip(S.face))S.face=0;
+S.visit=S.visit||{n:0,last:""};if(S.visit.last!==key(new Date())){S.visit.n++;S.visit.last=key(new Date())}
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
 const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
 const MP_STR={zh:{names:{piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
@@ -6230,6 +6237,7 @@ function talesHTML(){
 // the reader: one page at a time, in the chosen language and voice
 function tlText(T0,p,lang){if(T0.pages[p].text[lang])return T0.pages[p].text[lang];const tr=(S.tales.tr||{})[T0.id+"|"+lang];return tr&&tr[p]?tr[p]:null}
 function openTale(id,page){
+  if(page==null){S.use=S.use||{};S.use.tale=(S.use.tale||0)+1}
   const T0=allTales().find(x=>x.id===id);if(!T0)return;const t=TT(),nl=LANG[S.region];
   tl=tl&&tl.id===id?tl:{id,page:0,lang:S.tales.lang||(S.pd&&["en","ja","zh"].includes(S.pd.lang)?S.pd.lang:nl),voice:S.tales.voice||"tts",playing:false};
   if(page!=null)tl.page=page;const p=tl.page,pg=T0.pages[p],txt=tlText(T0,p,tl.lang),sub=tl.lang!==nl?(pg.text[nl]||""):"";
@@ -6377,7 +6385,7 @@ function tubeAct(a){const s=TUBE.q[TUBE.i];
 const sha256=async s=>{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 function ownedLabel(k){const s=SF();const [a,b]=k.split(":");return (s.kinds[a]||a)+(b&&b!=="all"?"・"+b:"・"+s.all)}
 function rightsHTML(){const s=SF(),list=Object.entries(S.owned);
-  return `${list.length?`<ul class="owned">${list.map(([k,o])=>`<li><b>${esc(ownedLabel(k))}</b><small>${esc(s.src[o.src]||o.src)} · ${esc(o.d||"")}</small></li>`).join("")}</ul>`:`<p class="note">${s.none}</p>`}
+  return `${OWNER.salesOpen?"":`<p class="status">🎁 ${s.beta}</p>`}${list.length?`<ul class="owned">${list.map(([k,o])=>`<li><b>${esc(ownedLabel(k))}</b><small>${esc(s.src[o.src]||o.src)} · ${esc(o.d||"")}</small></li>`).join("")}</ul>`:`<p class="note">${s.none}</p>`}
 <p class="note">${s.keepNote}</p>
 <div class="row" style="flex-wrap:nowrap"><input id="redeemIn" type="text" maxlength="40" placeholder="${esc(s.codePh)}" autocapitalize="characters"><button class="pill pri jelly" type="button" data-redeem="1">${s.redeem}</button></div>`}
 async function redeem(){const s=SF(),v=($("redeemIn").value||"").trim().toUpperCase().replace(/\s+/g,"");if(!v)return;
@@ -6399,15 +6407,15 @@ function restoreFrom(txt){const s=SF();let o;try{o=JSON.parse(txt)}catch(e){toas
   const owned=Object.assign({},o.owned||{},S.owned),codes=[...new Set([...(o.usedCodes||[]),...(S.usedCodes||[])])];
   delete o._backup;S=o;S.owned=owned;S.usedCodes=codes;save();toast(s.restored);setTimeout(()=>location.reload(),600)}
 const SF_STR={
-  zh:{rights:"我的權益",backup:"資料備份",kinds:{ai:"AI 加值包",pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
+  zh:{beta:"公測期間，所有內容都免費體驗。",rights:"我的權益",backup:"資料備份",kinds:{ai:"AI 加值包",pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
     src:{free:"免費時已開始使用，永久保留",code:"兌換碼",buy:"購買",reward:"升級獎勵"},none:"目前沒有加值內容。",
     keepNote:"曾經買過、兌換過，或在免費時用過的內容，之後網站調整也會一直保留給你。",codePh:"輸入兌換碼",redeem:"兌換",bad:"兌換碼不正確",used:"這組兌換碼已經用過了",ok:"兌換成功！",
     backupWhy:"資料存在這支手機裡。建議偶爾匯出備份；iPhone 的 Safari 如果很久沒開網站，可能會清掉資料，加到主畫面或登入 Google 同步可以避免。",exp:"匯出備份",imp:"從備份還原",saved:"備份檔已下載",copyIt:"這裡不能下載檔案，請複製下面的文字另外保存：",badFile:"這不是正確的備份檔",restored:"已還原，重新整理中…"},
-  ja:{rights:"わたしの権利",backup:"バックアップ",kinds:{ai:"AI プラス",pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
+  ja:{beta:"ベータ期間中は、すべて無料で使えます。",rights:"わたしの権利",backup:"バックアップ",kinds:{ai:"AI プラス",pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
     src:{free:"無料のときに使い始めたので永久に保持",code:"引換コード",buy:"購入",reward:"レベル特典"},none:"追加コンテンツはまだありません。",
     keepNote:"購入・引換・無料期間に使ったものは、サイトが変わってもずっと使えます。",codePh:"引換コード",redeem:"引き換える",bad:"コードが正しくありません",used:"このコードは使用済みです",ok:"引き換えました！",
     backupWhy:"データはこの端末に保存されます。ときどきバックアップを。",exp:"バックアップを書き出す",imp:"バックアップから復元",saved:"ダウンロードしました",copyIt:"ここではダウンロードできません。下の文字をコピーして保存してください：",badFile:"正しいバックアップではありません",restored:"復元しました。再読み込み中…"},
-  en:{rights:"My purchases & rights",backup:"Backup",kinds:{ai:"AI pack",pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
+  en:{beta:"During the open beta, everything is free to use.",rights:"My purchases & rights",backup:"Backup",kinds:{ai:"AI pack",pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
     src:{free:"started while free, kept for good",code:"redeem code",buy:"purchase",reward:"level reward"},none:"No add-ons yet.",
     keepNote:"Anything you bought, redeemed, or used while it was free stays yours through every site update.",codePh:"Redeem code",redeem:"Redeem",bad:"That code isn't valid",used:"This code was already used",ok:"Redeemed!",
     backupWhy:"Your data lives on this device. Export a backup now and then.",exp:"Export backup",imp:"Restore from backup",saved:"Backup downloaded",copyIt:"Downloads aren't allowed here; copy this text and keep it:",badFile:"That isn't a valid backup",restored:"Restored. Reloading…"}
@@ -6650,6 +6658,90 @@ function themeMusic(k){
   S.songs=S.songs.map((x,i)=>!x||!x.url||builtIn.has(sig(x))?Object.assign({},picks[i]):x);
   toast(MPT().themed(T().skins[k]));
 }
+
+/* ---------- members: people who choose to leave a way to reach them (opt-in), with tags for the owner ---------- */
+const MB_STR={zh:{title:"加入會員",lead:"留下聯絡方式，就能收到新功能、活動、講座和合作優惠的通知。",join:"加入會員",later:"之後再說",name:"暱稱",email:"Email",line:"LINE ID（選填）",likes:"你對哪些有興趣？（可複選）",
+  consent:"我同意潔米爸用上面的聯絡方式，寄送新功能、活動與合作優惠的通知。隨時可以取消。",privacy:"我們會保存你填的資料，以及你在網站的使用類型（例如常用功能、學習程度、興趣），只用來寄你可能有興趣的通知，不會賣給別人。可以隨時在「設定」修改或刪除。",
+  save:"送出",saved:"加入成功，謝謝你！",updated:"已更新",need:"請填暱稱，以及 Email 或 LINE 其中一個。",badEmail:"Email 格式好像不對",fail:"沒有送出成功，稍後再試一次",siteOnly:"加入會員要在正式網站上。",
+  me:(n,c)=>`會員：${n}（${c}）`,notifOn:"接收通知：開",notifOff:"接收通知：關",edit:"修改",del:"刪除我的會員資料",delAsk:"確定要刪除會員資料嗎？站長那邊也會一起刪除。",deleted:"已刪除會員資料"},
+ ja:{title:"会員登録",lead:"連絡先を残すと、新機能・イベント・講座・特典のお知らせが届きます。",join:"会員になる",later:"あとで",name:"ニックネーム",email:"メール",line:"LINE ID（任意）",likes:"興味のあること（複数可）",
+  consent:"上の連絡先に、新機能・イベント・特典のお知らせを受け取ることに同意します。いつでも解除できます。",privacy:"入力した情報と、サイトの使い方の傾向（よく使う機能・学習レベル・興味）を保存し、あなたに合うお知らせだけに使います。販売はしません。設定からいつでも変更・削除できます。",
+  save:"送信",saved:"登録しました。ありがとう！",updated:"更新しました",need:"ニックネームと、メールか LINE のどちらかを入力してください。",badEmail:"メールの形式を確認してください",fail:"送信できませんでした",siteOnly:"会員登録は公開サイトで行えます。",
+  me:(n,c)=>`会員：${n}（${c}）`,notifOn:"お知らせ：受け取る",notifOff:"お知らせ：停止中",edit:"変更",del:"会員情報を削除",delAsk:"会員情報を削除しますか？運営側からも削除されます。",deleted:"削除しました"},
+ en:{title:"Join as a member",lead:"Leave a way to reach you and get news about new features, events, talks and partner offers.",join:"Join",later:"Maybe later",name:"Nickname",email:"Email",line:"LINE ID (optional)",likes:"What are you into? (pick any)",
+  consent:"I agree to receive news about features, events and partner offers at the contact above. I can stop any time.",privacy:"We keep what you enter plus how you use the site (favourite features, learning level, interests), only to send news you'd like. We never sell it. Change or delete it any time in Settings.",
+  save:"Send",saved:"You're in. Thank you!",updated:"Updated",need:"Enter a nickname and an email or LINE ID.",badEmail:"That email doesn't look right",fail:"Couldn't send. Try again later",siteOnly:"Joining works on the live site.",
+  me:(n,c)=>`Member: ${n} (${c})`,notifOn:"News: on",notifOff:"News: off",edit:"Edit",del:"Delete my member data",delAsk:"Delete your member data? It is removed on our side too.",deleted:"Member data deleted"}};
+const MBT=()=>MB_STR[LANG[S.region]];
+const TAG_ZH={kids:"親子",edu:"教育",read:"閱讀",mind:"心理",sport:"運動",music:"音樂",career:"職涯",life:"生活"};
+const FACE_ZH=["週曆","目標","音樂","夥伴","字卡","遊戲","創作","健身","任務"];
+function memberHTML(){
+  const m=S.member,b=MBT();
+  if(!m)return `<p class="note">${b.lead}</p><div class="row"><button class="pill pri jelly" type="button" data-mem="open">🎟 ${b.join}</button></div>`;
+  return `<p class="status">${esc(b.me(m.name,m.email||("LINE "+m.line)))}・${m.mkt?b.notifOn:b.notifOff}</p><div class="row"><button class="pill jelly" type="button" data-mem="open">${b.edit}</button><button class="linkbtn" type="button" data-mem="del">${b.del}</button></div>`;
+}
+function openMember(){
+  const b=MBT(),m=S.member||{},t=T(),likes=new Set(m.likes||[]);
+  layer(`<div class="shead"><h2>🎟 ${b.title}</h2>${closeBtn(t)}</div><p class="note">${b.lead}</p>
+${IS_SITE?"":`<p class="status">${b.siteOnly}</p>`}
+<label class="fld">${b.name}<input id="mbName" type="text" maxlength="40" value="${esc(m.name||"")}" autocomplete="nickname"></label>
+<label class="fld">${b.email}<input id="mbEmail" type="email" maxlength="120" value="${esc(m.email||"")}" autocomplete="email"></label>
+<label class="fld">${b.line}<input id="mbLine" type="text" maxlength="60" value="${esc(m.line||"")}"></label>
+<div class="fld">${b.likes}<div class="qchips" id="mbLikes">${TAGS.map(k=>`<button type="button" data-mblike="${k}" aria-pressed="${likes.has(k)}">${esc(t.tagNames[k])}</button>`).join("")}</div></div>
+<label class="mbok"><input id="mbOk" type="checkbox"${m.mkt?" checked":""}> <span>${b.consent}</span></label>
+<p class="note">${b.privacy}</p>
+<div class="row end"><button class="pill pri jelly" type="button" data-mem="save">${b.save}</button></div>`,true);
+}
+const rid=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,"0")).join("")};
+// tags the owner can filter by, computed on this device from how the site is used
+function autoTags(m){m=m||S.member;
+  const out=[],L=LANG[S.region],use=S.use||{};
+  out.push("語言:"+({zh:"中文",ja:"日文",en:"英文"}[L]||L));
+  if(S.pd&&S.pd.age)out.push(["","年齡:3-6歲","年齡:7-12歲","年齡:青少年成人"][S.pd.age]||"");
+  ((m&&m.likes)||[]).forEach(k=>out.push("興趣:"+(TAG_ZH[k]||k)));
+  Object.entries(use).filter(([k,v])=>/^\d$/.test(k)&&v>=3).sort((a,b)=>b[1]-a[1]).slice(0,3).forEach(([k])=>out.push("常用:"+FACE_ZH[+k]));
+  if((use.tale||0)>=2)out.push("常用:故事館");
+  const paid=Object.entries(S.owned||{}).filter(([k,o])=>o&&(o.src==="code"||o.src==="buy"));
+  const KZ={pic:"圖鑑",deck:"字卡組",course:"課程",fit:"健身",wk:"每日功課",ai:"AI加值包"};
+  const kz=k=>{const [a,c]=k.split(":"),C=a==="course"&&VCOURSES.find(x=>x.k===c);return C?C.n.zh:(KZ[a]||a)+(c&&c!=="all"&&c!=="plus"?"・"+c:c==="all"?"・全部":"")};
+  if(paid.length)out.push("付費會員");paid.forEach(([k])=>out.push("已購:"+kz(k)));
+  Object.entries(S.vc||{}).forEach(([k,v])=>{if(v&&v.done&&Object.keys(v.done).length)out.push("課程:"+k)});
+  if(aiCfg().provider)out.push("AI:自備金鑰");else if(aiUsed()>=Math.min(15,aiLimit()))out.push("AI:用量大");
+  const lv=lvInfo((S.xp&&S.xp.total)||0).L;out.push(lv>=6?"等級:6以上":lv>=3?"等級:3-5":"等級:新手");
+  const v=(S.visit&&S.visit.n)||0;out.push(v>=14?"活躍:常客":v>=4?"活躍:回訪":"活躍:新朋友");
+  if(standalone())out.push("已安裝App");
+  out.push("背景:"+((T().skins||{})[S.skin]||S.skin));
+  return [...new Set(out.filter(Boolean))];
+}
+async function memPost(body){try{const r=await fetch("/.netlify/functions/members",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});return r}catch(e){return null}}
+const memBody=m=>({action:"save",id:m.id,tok:m.tok,name:m.name,email:m.email,line:m.line,consent:{mkt:!!m.mkt},
+  auto:{tags:autoTags(m),lang:LANG[S.region],region:S.region,level:"Lv"+lvInfo((S.xp&&S.xp.total)||0).L,visits:(S.visit&&S.visit.n)||0,lastSeen:key(new Date()),skin:S.skin}});
+async function memSave(){
+  const b=MBT(),v=id=>(($(id)||{}).value||"").trim();
+  const name=v("mbName"),email=v("mbEmail"),line=v("mbLine");
+  if(!name||(!email&&!line)){toast(b.need);return}
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast(b.badEmail);return}
+  if(!IS_SITE){toast(b.siteOnly);return}
+  const likes=[...document.querySelectorAll("[data-mblike][aria-pressed=true]")].map(x=>x.dataset.mblike);
+  const old=S.member,m=Object.assign({id:(old&&old.id)||"m-"+rid(10),tok:(old&&old.tok)||rid(16)},{name,email,line,likes,mkt:!!($("mbOk")||{}).checked});
+  const r=await memPost(memBody(m));
+  if(!r||!r.ok){toast(b.fail);return}
+  m.synced=key(new Date());S.member=m;save();toast(old?b.updated:b.saved);openSettings();
+}
+async function memDelete(){
+  const b=MBT(),m=S.member;if(!m||!confirm(b.delAsk))return;
+  const r=await memPost({action:"delete",id:m.id,tok:m.tok});
+  if(!r||!r.ok){toast(b.fail);return}
+  S.member=null;save();toast(b.deleted);openSettings();
+}
+// once a day, members' tags follow how they use the site
+function memSync(){const m=S.member;if(!IS_SITE||!m||m.synced===key(new Date()))return;memPost(memBody(m)).then(r=>{if(r&&r.ok){m.synced=key(new Date());save()}})}
+// a gentle, one-time invitation after a few visits
+function memInvite(){
+  if(!IS_SITE||S.member||S.memberAsked||((S.visit&&S.visit.n)||0)<3)return;
+  setTimeout(()=>{if($("layer").innerHTML||S.member)return;S.memberAsked=key(new Date());save();const b=MBT();
+    layer(`<div class="welcome"><div class="wmascot">${mascot("wave")}</div><h2>${b.title}</h2><p>${b.lead}</p><div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-close="1">${b.later}</button><button class="pill pri jelly" type="button" data-mem="open">🎟 ${b.join}</button></div></div>`,true)},6000);
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -6827,6 +6919,8 @@ document.addEventListener("click",e=>{
   if(el.closest("[data-mshuf]")){openShuffle();return}
   if(el.closest("[data-ysopen]")){openYtSearch();return}
   if(el.closest("[data-aq]")){aqConnect();return}
+  const mbb=el.closest("[data-mem]");if(mbb){const a=mbb.dataset.mem;if(a==="open")openMember();else if(a==="save")memSave();else if(a==="del")memDelete();return}
+  const mbl=el.closest("[data-mblike]");if(mbl){mbl.setAttribute("aria-pressed",mbl.getAttribute("aria-pressed")!=="true");return}
   const dpb=el.closest("[data-dp]");if(dpb){dpAct(dpb);return}
   const dpn=el.closest("[data-dpnav]");if(dpn&&dayPg){openDay((dayPg.i+ +dpn.dataset.dpnav+7)%7);return}
   const phb=el.closest("[data-photo]");if(phb){const v=phb.dataset.photo;photoPick(/^\d$/.test(v)?+v:v);return}
@@ -7133,6 +7227,7 @@ render();
 checkReminders();
 boot();
 ysShared();
+memSync();memInvite();
 })();
 </script>
 

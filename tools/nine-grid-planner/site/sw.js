@@ -1,5 +1,5 @@
 // 離線可用：先用快取畫面，背景再抓新版。字型抓不到時退回系統字型。
-const CACHE = "nine-grid-v28";
+const CACHE = "nine-grid-v29";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-180.png"];
 
 self.addEventListener("install", e => {
@@ -10,6 +10,8 @@ self.addEventListener("activate", e => {
 });
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  const u = new URL(e.request.url);
+  if (u.pathname.startsWith("/.netlify/functions/") || u.pathname.endsWith("admin.html")) return;   // live data and the back office are never cached
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(e.request);
     const net = fetch(e.request).then(r => {
