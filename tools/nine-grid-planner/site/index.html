@@ -1123,6 +1123,11 @@ html .knob svg{width:22px;height:22px}
 :root.px{--f-ui:"Cubic 11","DotGothic16","Huninn","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--f-num:"Cubic 11","DotGothic16","Nunito",system-ui,sans-serif}
 :root.sk-plain{--art-op:0;--tint-a:12%}
 .ch .dn{white-space:nowrap}
+:root.sk-art #face,:root.sk-art .artcap{text-shadow:0 0 3px rgba(255,255,255,.95),0 0 8px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.7)}
+:root.sk-art #face .jelly,:root.sk-art #face .sheet,:root.sk-art #face .chip{text-shadow:none}
+:root.sk-art .navlabel b,:root.sk-art .navlabel span{color:#1B2735}
+:root.sk-art .expill,:root.sk-art .hpill{background:rgba(255,255,255,.88);text-shadow:none}
+:root.sk-quest #face{text-shadow:0 1px 0 #000,0 0 3px #000,0 0 6px rgba(0,0,0,.8)}:root.sk-quest #face .jelly,:root.sk-quest #face .sheet{text-shadow:none}
 :root.sk-art{--art-op:1;--g1:rgba(255,255,255,.66);--g2:rgba(255,255,255,.34)}
 .artcap{position:fixed;top:calc(4px + env(safe-area-inset-top,0px));right:8px;z-index:5;font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :root.sk-fant{--g1:rgba(56,78,196,.94);--g2:rgba(12,22,100,.96);--edge:#E8ECF8;--hl:rgba(255,255,255,.16);--chip:rgba(255,255,255,.10);--chip-edge:rgba(255,255,255,.24);--line:rgba(255,255,255,.2);--tint-a:0%;--ink:#FFFFFF;--muted:#C9D2F2;--shade:rgba(0,0,20,.6);--art-op:1;--on-accent:#101838}
@@ -1933,7 +1938,7 @@ const FACE_ICONS=[I.grid,I.target,I.music,I.heart,I.cards,I.game,I.spark2,I.dumb
 const SKINS={
   white:{bg:"#F6F7F9",accent:"#E8833A",accentD:"#F2A65A",art:[],draw:"plain",sw:"linear-gradient(135deg,#FFFFFF,#EDEFF3)",tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"]},
   black:{bg:"#0C0D10",accent:"#E8833A",accentD:"#F2A65A",art:[],draw:"plain",sw:"linear-gradient(135deg,#1C1E24,#050506)",tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"],dark:true},
-  art:{bg:"#23283A",accent:"#B8862E",accentD:"#E3B65C",art:["#1B2A5A","#2E4C8C","#F2D56B","#6B8FC4"],draw:"paint",sw:"radial-gradient(circle at 70% 30%,#F2D56B 0 12%,transparent 13%),conic-gradient(from 40deg,#1B2A5A,#2E4C8C,#6B8FC4,#1B2A5A)",tints:["#E3B65C","#6B8FC4","#C98B6B","#8FB3A8","#D98C7A","#9DB8A0","#B49AC8"]},
+  art:{bg:"#EFE8DA",accent:"#B8862E",accentD:"#E3B65C",art:["#1B2A5A","#2E4C8C","#F2D56B","#6B8FC4"],draw:"paint",sw:"radial-gradient(circle at 70% 30%,#F2D56B 0 12%,transparent 13%),conic-gradient(from 40deg,#1B2A5A,#2E4C8C,#6B8FC4,#1B2A5A)",tints:["#E3B65C","#6B8FC4","#C98B6B","#8FB3A8","#D98C7A","#9DB8A0","#B49AC8"]},
   fant:{bg:"#060B2E",accent:"#F2C94C",accentD:"#F2C94C",art:[],draw:"fant",sw:"linear-gradient(180deg,#3448BE,#0E1868)",cls:"sk-fant",tints:["#F2C94C","#6FD3E8","#E9B77E","#8FA8FF","#FF8A8A","#8FE3A8","#D0A8FF"],dark:true},
   quest:{bg:"#000000",accent:"#FFD23F",accentD:"#FFD23F",art:[],draw:"quest",sw:"linear-gradient(#000,#000) padding-box,linear-gradient(#fff,#fff) border-box",cls:"sk-quest",font:"DotGothic16",tints:["#FFD23F","#5CC8FF","#FF9F43","#7BED9F","#FF6B6B","#A4E86B","#D6A2FF"],dark:true},
   epic:{bg:"#15111A",accent:"#B3261E",accentD:"#F2B84B",art:[],draw:"epic",sw:"linear-gradient(180deg,#2E241A,#15111A) padding-box,linear-gradient(#C9A04A,#6B4A1A) border-box",cls:"sk-epic",font:"Cinzel",tints:["#C9A04A","#8FB3D9","#C0392B","#7FBF8E","#B48BD1","#E9C46A","#D98C5F"],dark:true},
@@ -1950,7 +1955,8 @@ const skinName=k=>{const m=(S.mySkins||[]).find(x=>x.id===k);return m?(m.name[LA
 const PXT=()=>({zh:"點陣字（每種背景都能用）",ja:"ドット文字（どの背景でも）",en:"Pixel font (any look)"})[LANG[S.region]];
 function applySkin(){
   const r=document.documentElement,k=skin(),acc=wall&&S.wallAccent?S.wallAccent:null;
-  r.classList.toggle("night",!!k.dark);
+  const lum=h=>{const m=/^#([0-9a-f]{6})$/i.exec(h||"");if(!m)return 1;const n=parseInt(m[1],16);return (.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))/255};
+  r.classList.toggle("night",!!k.dark||(k.draw==="motif"&&lum(k.bg)<.35&&lum(k.bg2||k.bg)<.45));
   ["sk-fant","sk-quest","sk-epic","sk-art","sk-plain"].forEach(c=>r.classList.remove(c));if(k.cls)r.classList.add(k.cls);if(k.draw==="paint")r.classList.add("sk-art");if(k.draw==="plain")r.classList.add("sk-plain");
   r.classList.toggle("px",!!S.pixel);
   const needFont=f=>{if(document.getElementById("font-"+f))return;const l=document.createElement("link");l.id="font-"+f;l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+f+"&display=swap";document.head.appendChild(l)};
@@ -1991,6 +1997,7 @@ const PAINTINGS=[
   {f:"Claude_Monet,_Impression,_soleil_levant.jpg",n:{zh:"莫內《印象・日出》1872",ja:"モネ《印象・日の出》1872",en:"Monet · Impression, Sunrise · 1872"},pal:["#5E7C8A","#E0763A","#8FA3A6","#3E5866","#C9B8A0"]},
   {f:"Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg",n:{zh:"波提切利《維納斯的誕生》約1485",ja:"ボッティチェリ《ヴィーナスの誕生》1485頃",en:"Botticelli · The Birth of Venus · c.1485"},pal:["#8FB3A8","#E9D7B9","#5E8C84","#C9A27E","#3F6B66"]}
 ];
+const artWash=(x,w,h)=>{x.fillStyle="rgba(255,255,255,.32)";x.fillRect(0,0,w,h)};
 let paintShift=0;const paintImgs={};
 const paintNow=()=>PAINTINGS[(Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+paintShift)%PAINTINGS.length];
 function artCap(p){let el=$("artCap");if(!p){if(el)el.hidden=true;return}
@@ -2002,7 +2009,7 @@ function artPaint(x,w,h){
   if(!im){im=paintImgs[p.f]=new Image();im.referrerPolicy="no-referrer";im.onload=()=>{if(skin().draw==="paint")drawArt()};im.onerror=()=>{im.bad=true;if(skin().draw==="paint")drawArt()};im.src=url}
   if(im.complete&&im.naturalWidth&&!im.bad){
     const k=Math.max(w/im.naturalWidth,h/im.naturalHeight),iw=im.naturalWidth*k,ih=im.naturalHeight*k;
-    x.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih);artCap(p);return;
+    x.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih);artWash(x,w,h);artCap(p);return;
   }
   // stand-in: short curved brush strokes in the painting's palette
   let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
@@ -2010,7 +2017,7 @@ function artPaint(x,w,h){
   for(let i=0;i<Math.min(1600,w*h/260);i++){const cx=rnd()*w,cy=rnd()*h,a=Math.sin(cx/90)+Math.cos(cy/70),l=10+rnd()*22;
     x.strokeStyle=p.pal[1+Math.floor(rnd()*(p.pal.length-1))];x.globalAlpha=.55+rnd()*.4;x.lineWidth=3+rnd()*4;
     x.beginPath();x.moveTo(cx,cy);x.quadraticCurveTo(cx+Math.cos(a)*l*.6,cy+Math.sin(a)*l*.6+4,cx+Math.cos(a)*l,cy+Math.sin(a)*l);x.stroke()}
-  x.globalAlpha=1;
+  x.globalAlpha=1;artWash(x,w,h);
 }
 // 奇幻水晶: deep blue night, drifting stars, a glowing crystal
 function artFant(x,w,h){
