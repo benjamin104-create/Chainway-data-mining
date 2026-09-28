@@ -989,6 +989,16 @@ html .knob svg{width:22px;height:22px}
 .mkcard{--r:22px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}.mkcard .pimg.big,.mkcard .pemo.big{width:140px;height:140px;font-size:96px;display:grid;place-items:center}
 .pgmenu .pmas{width:64px;height:64px}
 
+/* age levels and stories */
+.pages button{padding:2px 7px;font-size:11px}
+.story{--r:22px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.stitle{font-weight:400;font-size:16px}
+.sline{display:flex;gap:8px;align-items:flex-start}.sline p{margin:0;font-size:16px;line-height:1.7}.sline small{font-size:12px;color:var(--muted)}
+.say.sm{position:static;width:30px;height:30px;flex:none}.say.sm svg{width:14px;height:14px}
+.sw{display:inline;padding:0 4px;margin:0 1px;border-radius:6px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--ink);font:inherit;border-bottom:2px solid var(--accent)}
+.sfact{margin:0;font-size:13px;padding:8px 10px;border-radius:12px;background:var(--chip)}
+.proots{grid-template-columns:repeat(6,minmax(0,1fr))}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1115,7 +1125,7 @@ const OWNER={
   fitStore:"",                             // 健身加購頁網址；空白時顯示「即將推出」
   mascotImg:"",                            // 小潔米果凍官方圖（https 網址或 data:），空白時用內建插畫
   proPics:true,                            // 圖鑑分類是否有加購；false 就全部免費
-  picFree:["animal","plant","life"],       // 免費開放的圖鑑大類（動物、植物、生活），其餘可試看 trialCards 張
+  picFree:["animal","plant","life","world"],       // 免費開放的圖鑑大類（動物、植物、生活），其餘可試看 trialCards 張
   rewards:[{lv:6,name:{zh:"合作夥伴優惠券",ja:"パートナークーポン",en:"Partner coupon"},code:"",url:""}], // 升級獎勵的優惠券：填 code 或領取網址
   aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
 };
@@ -4760,12 +4770,21 @@ const PROOTS=[
     {k:"place",n:{zh:"地點",ja:"ばしょ",en:"Places"},c:["🛫|機場|airport|空港|くうこう|機場|ki-tiûnn","🚉|車站|station|駅|えき|車頭|tshia-thâu","🏨|飯店|hotel|ホテル||飯店|pn̄g-tiàm","🏞️|公園|park|公園|こうえん|公園|kong-hn̂g","🏥|醫院|hospital|病院|びょういん|病院|pēnn-īnn","🍴|餐廳|restaurant|レストラン||餐廳|tshan-thiann","🏖️|海灘|beach|砂浜|すなはま||","🏛️|博物館|museum|博物館|はくぶつかん||","🦓|動物園|zoo|動物園|どうぶつえん|動物園|tōng-bu̍t-hn̂g","🛒|超市|supermarket|スーパー|||","🏬|寵物店|pet shop|ペットショップ|||"]},
     {k:"bag",n:{zh:"行李",ja:"にもつ",en:"Packing"},c:["🧳|行李箱|suitcase|スーツケース||行李|hîng-lí","🛂|護照|passport|パスポート||護照|hōo-tsiàu","🎫|票|ticket|切符|きっぷ|票|phiò","🗺️|地圖|map|地図|ちず|地圖|tē-tôo","📷|相機|camera|カメラ||相機|siòng-ki","☂️|雨傘|umbrella|傘|かさ|雨傘|hōo-suànn"]},
     {k:"nature",n:{zh:"天氣自然",ja:"てんきとしぜん",en:"Weather & nature"},c:["☀️|太陽|sun|太陽|たいよう|日頭|ji̍t-thâu","🌙|月亮|moon|月|つき|月娘|gue̍h-niû","⭐|星星|star|星|ほし|星|tshenn","☁️|雲|cloud|雲|くも|雲|hûn","🌧️|下雨|rain|雨|あめ|落雨|lo̍h-hōo","🌈|彩虹|rainbow|虹|にじ|虹|khīng","⛰️|山|mountain|山|やま|山|suann","🌊|海|sea|海|うみ|海|hái","❄️|雪|snow|雪|ゆき|雪|seh","🍃|風|wind|風|かぜ|風|hong"]}]},
+  {k:"world",e:"🌍",n:{zh:"世界之旅",ja:"せかい旅行",en:"World trip"},subs:[
+    {k:"egypt",n:{"zh": "🇪🇬 埃及", "ja": "🇪🇬 エジプト", "en": "🇪🇬 Egypt"},c:["🇪🇬|埃及|Egypt|エジプト||埃及|Ai-ki̍p|1", "🔺|金字塔|pyramid|ピラミッド|||1", "🐪|駱駝|camel|ラクダ||駱駝|lo̍k-tô|1", "🏜️|沙漠|desert|砂漠|さばく|沙漠|sua-bo̍k|1", "🧟|木乃伊|mummy|ミイラ|||2", "👑|法老|pharaoh|ファラオ|||2", "🦁|人面獅身像|Sphinx|スフィンクス|||2", "🌊|尼羅河|Nile River|ナイル川|ナイルがわ||2", "📜|象形文字|hieroglyphs|ヒエログリフ|||3", "🔄|復活|rebirth|復活|ふっかつ|||3"]},
+    {k:"russia",n:{"zh": "🇷🇺 俄羅斯", "ja": "🇷🇺 ロシア", "en": "🇷🇺 Russia"},c:["🇷🇺|俄羅斯|Russia|ロシア||俄羅斯|Ngô-lô-su|1", "🥶|寒冷|cold|寒い|さむい|寒|kuânn|1", "🏰|城堡|castle|城|しろ|||1", "🪆|俄羅斯娃娃|matryoshka doll|マトリョーシカ|||1", "🧣|毛皮帽|fur hat|毛皮の帽子|けがわのぼうし|||2", "🩰|芭蕾舞|ballet|バレエ|||2", "⛪|洋蔥頂教堂|onion-dome church|たまねぎ屋根の教会|たまねぎやねのきょうかい||2", "🚂|西伯利亞鐵路|Trans-Siberian Railway|シベリア鉄道|シベリアてつどう||3", "🏯|克里姆林宮|Kremlin|クレムリン|||3"]},
+    {k:"italy",n:{"zh": "🇮🇹 義大利", "ja": "🇮🇹 イタリア", "en": "🇮🇹 Italy"},c:["🇮🇹|義大利|Italy|イタリア||義大利|Gī-tāi-lī|1", "🍕|披薩|pizza|ピザ|||1", "🍝|義大利麵|pasta|パスタ|||1", "🫒|橄欖|olive|オリーブ|||1", "🍨|義式冰淇淋|gelato|ジェラート|||1", "🗼|比薩斜塔|Leaning Tower of Pisa|ピサの斜塔|ピサのしゃとう||1", "🎨|藝術|art|芸術|げいじゅつ|藝術|gē-su̍t|2", "🖼️|油畫|oil painting|油絵|あぶらえ|||2", "🏙️|米蘭|Milan|ミラノ|||2", "🛶|威尼斯|Venice|ヴェネツィア|||2", "🏟️|羅馬競技場|Colosseum|コロッセオ|||2", "👨‍🎨|達文西|Leonardo da Vinci|レオナルド・ダ・ヴィンチ|||3", "🌅|文藝復興|Renaissance|ルネサンス|||3"]},
+    {k:"france",n:{"zh": "🇫🇷 法國", "ja": "🇫🇷 フランス", "en": "🇫🇷 France"},c:["🇫🇷|法國|France|フランス||法國|Huat-kok|1", "🥖|法國麵包|baguette|バゲット|||1", "🥐|可頌|croissant|クロワッサン|||1", "🗼|艾菲爾鐵塔|Eiffel Tower|エッフェル塔|エッフェルとう||1", "🧑‍🎨|貝雷帽|beret|ベレー帽|ベレーぼう||1", "🏛️|羅浮宮|Louvre|ルーブル美術館|ルーブルびじゅつかん||2", "🖼️|蒙娜麗莎|Mona Lisa|モナ・リザ|||2", "👗|時尚|fashion|ファッション|||2", "🏰|凡爾賽宮|Palace of Versailles|ベルサイユ宮殿|ベルサイユきゅうでん||3"]},
+    {k:"japan",n:{"zh": "🇯🇵 日本", "ja": "🇯🇵 日本", "en": "🇯🇵 Japan"},c:["🇯🇵|日本|Japan|日本|にほん|日本|Ji̍t-pún|1", "🗻|富士山|Mount Fuji|富士山|ふじさん|富士山|Hù-sū-san|1", "🍣|壽司|sushi|寿司|すし|||1", "🌸|櫻花|cherry blossom|桜|さくら|櫻花|ing-hue|1", "👘|和服|kimono|着物|きもの|||1", "🥷|忍者|ninja|忍者|にんじゃ|||1", "⛩️|鳥居|torii gate|鳥居|とりい|||2", "🍵|抹茶|matcha|抹茶|まっちゃ|||2", "🏯|大阪城|Osaka Castle|大阪城|おおさかじょう|||2", "🎎|女兒節|Girls' Day|ひな祭り|ひなまつり||3"]},
+    {k:"uk",n:{"zh": "🇬🇧 英國", "ja": "🇬🇧 イギリス", "en": "🇬🇧 the UK"},c:["🇬🇧|英國|United Kingdom|イギリス||英國|Ing-kok|1", "💂|衛兵|royal guard|衛兵|えいへい|||1", "🕰️|大笨鐘|Big Ben|ビッグ・ベン|||1", "🚍|雙層巴士|double-decker bus|二階建てバス|にかいだてバス||1", "🤴|國王|king|王様|おうさま|國王|kok-ông|1", "🫖|下午茶|afternoon tea|アフタヌーンティー|||2", "🔍|福爾摩斯|Sherlock Holmes|シャーロック・ホームズ|||2", "🌫️|倫敦霧|London fog|ロンドンの霧|ロンドンのきり||3"]},
+    {k:"usa",n:{"zh": "🇺🇸 美國", "ja": "🇺🇸 アメリカ", "en": "🇺🇸 the USA"},c:["🇺🇸|美國|United States|アメリカ||美國|Bí-kok|1", "🗽|自由女神|Statue of Liberty|自由の女神|じゆうのめがみ||1", "🍔|漢堡|hamburger|ハンバーガー|||1", "🤠|牛仔|cowboy|カウボーイ|||1", "🎃|萬聖節|Halloween|ハロウィン|||1", "🏈|美式足球|American football|アメフト|||2", "🏞️|大峽谷|Grand Canyon|グランドキャニオン|||2", "🌕|登月|Moon landing|月面着陸|げつめんちゃくりく||3"]},
+    {k:"taiwan",n:{"zh": "🇹🇼 台灣", "ja": "🇹🇼 台湾", "en": "🇹🇼 Taiwan"},c:["🇹🇼|台灣|Taiwan|台湾|たいわん|台灣|Tâi-uân|1", "🧋|珍珠奶茶|bubble tea|タピオカミルクティー||珍珠奶茶|tsin-tsu-ling-tê|1", "🥟|小籠包|soup dumplings|小籠包|ショーロンポー|小籠包|sió-lâng-pau|1", "🏮|夜市|night market|夜市|よいち|夜市仔|iā-tshī-á|1", "🍍|鳳梨酥|pineapple cake|パイナップルケーキ||王梨酥|ông-lâi-soo|1", "🏙️|台北101|Taipei 101|台北101|タイペイいちまるいち|||1", "⛰️|玉山|Jade Mountain|玉山|ぎょくざん|玉山|Gio̍k-san|2", "🐉|龍舟|dragon boat|ドラゴンボート||龍船|liông-tsûn|2", "🪔|天燈|sky lantern|天灯|てんとう|天燈|thian-ting|2"]}]},
   {k:"people",e:"👪",n:{zh:"稱謂",ja:"よびかた",en:"People"},subs:[
     {k:"family",n:{zh:"家人",ja:"かぞく",en:"Family"},c:["👨|爸爸|dad|お父さん|おとうさん|阿爸|a-pah","👩|媽媽|mom|お母さん|おかあさん|阿母|a-bú","👴|爺爺|grandpa|おじいさん||阿公|a-kong","👵|奶奶|grandma|おばあさん||阿媽|a-má","👦|哥哥|big brother|お兄さん|おにいさん|阿兄|a-hiann","👧|姊姊|big sister|お姉さん|おねえさん|阿姊|a-tsí","🧒|弟弟|little brother|弟|おとうと|小弟|sió-tī","👧🏻|妹妹|little sister|妹|いもうと|小妹|sió-muē","🧔|叔叔|uncle|おじさん||阿叔|a-tsik","👩‍🦱|阿姨|aunt|おばさん||阿姨|a-î","👶|寶寶|baby|赤ちゃん|あかちゃん|紅嬰仔|âng-enn-á","🏠|家|home|家|いえ|厝|tshù"]},
     {k:"others",n:{zh:"身邊的人",ja:"まわりのひと",en:"People around"},c:["🧑‍🤝‍🧑|朋友|friend|友達|ともだち|朋友|pîng-iú","🧑‍🏫|老師|teacher|先生|せんせい|老師|lāu-su","🧑‍⚕️|醫生|doctor|医者|いしゃ|醫生|i-sing","👩‍⚕️|護理師|nurse|看護師|かんごし||","👮|警察|police officer|警察官|けいさつかん|警察|kíng-tshat","🧑‍🍳|廚師|chef|料理人|りょうりにん|總舖師|tsóng-phòo-sai","🧑‍🚒|消防員|firefighter|消防士|しょうぼうし||","🧑‍🌾|農夫|farmer|農家|のうか|做穡人|tsò-sit-lâng","🩺|獸醫|vet|獣医|じゅうい||","🧑‍✈️|機長|pilot|パイロット|||"]}]}
 ];
 const PLANGS=[{k:"en",lbl:"English",v:"en-US"},{k:"ja",lbl:"日本語",v:"ja-JP"},{k:"zh",lbl:"中文",v:"zh-TW"},{k:"tw",lbl:"台語",v:"nan-TW"}];
-const mkCard=(r,root,sub)=>{const [e,zh,en,ja,jk,tw,tl]=r.split("|");return {e,zh,en,ja,jk:jk||"",tw:tw||"",tl:tl||"",root,sub}};
+const mkCard=(r,root,sub)=>{let f=r.split("|");if(f.length===7&&/^\d$/.test(f[6]))f=[...f.slice(0,6),"",f[6]];const [e,zh,en,ja,jk,tw,tl,lv]=f;return {e,zh,en,ja,jk:jk||"",tw:tw||"",tl:tl||"",root,sub,lv:+lv||1}};
 PROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>mkCard(r,R.k,sb.k))));
 // how words connect: same kind, things that go with it, where you find it
 const PRELS=`cat:kin=kitten,lion,tiger,leopard;thing=cat litter,litter box,cat teaser,feather duster,scratching board,cat tree,canned cat food,pet food,pet treats,food bowl,collar,pet brush,nail clipper,pet carrier,mouse;where=home,pet shop,vet
@@ -4875,8 +4894,56 @@ fork:kin=spoon,chopsticks,knife
 cup:thing=milk,tea,water
 fridge:thing=milk,ice cream,cheese
 cheese:kin=milk,bread
-honey:thing=bee,bread`;
+honey:thing=bee,bread
+pyramid:kin=Sphinx,mummy;thing=pharaoh,desert,camel,hieroglyphs
+mummy:kin=pharaoh;thing=pyramid,rebirth
+pharaoh:thing=pyramid,mummy,hieroglyphs;kin=king
+rebirth:thing=mummy,pharaoh
+camel:where=desert;kin=horse
+desert:thing=camel,pyramid;kin=beach
+Nile River:thing=Egypt;kin=sea
+cold:kin=snow;thing=fur hat,Russia
+fur hat:thing=cold,snow
+castle:kin=Kremlin,Palace of Versailles,Osaka Castle
+matryoshka doll:kin=toy
+ballet:kin=dance
+Trans-Siberian Railway:kin=train
+pizza:thing=cheese,olive,tomato;kin=pasta
+pasta:thing=tomato,cheese
+olive:kin=grapes
+gelato:kin=ice cream
+art:thing=oil painting,Mona Lisa,drawing;kin=Renaissance
+oil painting:kin=art;thing=Mona Lisa
+Leonardo da Vinci:thing=Mona Lisa,Renaissance,art
+Mona Lisa:thing=Leonardo da Vinci,Louvre,oil painting
+Renaissance:thing=Leonardo da Vinci,art,Milan
+Milan:kin=Venice,fashion
+Venice:thing=ship
+baguette:kin=bread,croissant
+croissant:kin=bread
+Louvre:thing=Mona Lisa,museum,pyramid
+Palace of Versailles:kin=castle;thing=king
+Eiffel Tower:kin=Taipei 101,Big Ben
+sushi:thing=fish,rice
+cherry blossom:kin=flower,tree
+Mount Fuji:kin=mountain,Jade Mountain
+matcha:kin=tea
+ninja:where=Osaka Castle
+kimono:kin=clothes
+afternoon tea:kin=tea,cake
+Big Ben:kin=clock
+double-decker bus:kin=bus
+king:kin=pharaoh,royal guard
+hamburger:kin=bread
+Halloween:thing=candy
+Moon landing:thing=moon,rocket
+bubble tea:kin=tea,milk
+dragon boat:kin=ship
+sky lantern:thing=night market
+soup dumplings:kin=dumplings`;
 const REL_BASE={};PRELS.split("\n").forEach(line=>{const [w,rest]=line.split(":");REL_BASE[w]={};rest.split(";").forEach(p=>{const [r,list]=p.split("=");REL_BASE[w][r]=list.split(",")})});
+PROOTS.filter(R=>R.k==="world").forEach(R=>R.subs.forEach(sb=>{const [c,...rest]=sb.c;const b=REL_BASE[c.en]=REL_BASE[c.en]||{};b.thing=(b.thing||[]).concat(rest.map(x=>x.en));
+  rest.forEach(x=>{const r=REL_BASE[x.en]=REL_BASE[x.en]||{};r.where=[c.en].concat(r.where||[])})}));
 S.pd=S.pd||{on:true,lang:LANG[S.region]==="en"?"ja":"en",cat:"animal",idx:0,mode:"learn",again:{},known:{},custom:[]};
 S.pd.extra=S.pd.extra||{};S.pd.links=S.pd.links||{};if(S.pd.sub==null)S.pd.sub="";
 if(!PROOTS.some(r=>r.k===S.pd.cat)&&S.pd.cat!=="mine")S.pd.cat="animal";
@@ -4889,13 +4956,13 @@ function pcards(c,lang=S.pd.lang){
   c=c||pcat();const sub=S.pd.sub;
   let all=sub==="ai"?pExtraOf(c.k):c.subs.filter(s=>!sub||s.k===sub).flatMap(s=>s.c);
   if(!sub)all=all.concat(pExtraOf(c.k));
-  return all.filter(x=>lang==="tw"?x.tw:lang==="ja"?x.ja:x[lang]);
+  const age=S.pd.age||3;return all.filter(x=>(x.lv||1)<=age&&(lang==="tw"?x.tw:lang==="ja"?x.ja:x[lang]));
 }
 let PBANK=null;
 function pFind(en){if(!PBANK){PBANK={};pRootsAll().forEach(r=>r.subs.forEach(s=>s.c.forEach(x=>{if(!PBANK[x.en])PBANK[x.en]=x})))}return PBANK[en]||S.pd.extra[en]||null}
 // links for a card: built-in, the reverse of built-in "kin", and whatever the AI added
 function pLinks(x){
-  const out=[],seen=new Set([x.en]),add=(rel,en)=>{if(seen.has(en))return;const y=pFind(en);if(!y||!pWord(y,S.pd.lang))return;seen.add(en);out.push({rel,y})};
+  const out=[],seen=new Set([x.en]),add=(rel,en)=>{if(seen.has(en))return;const y=pFind(en);if(!y||!pWord(y,S.pd.lang)||(y.lv||1)>(S.pd.age||3))return;seen.add(en);out.push({rel,y})};
   const b=REL_BASE[x.en]||{};["kin","thing","where"].forEach(r=>(b[r]||[]).forEach(en=>add(r,en)));
   Object.entries(REL_BASE).forEach(([w,rs])=>{if((rs.kin||[]).includes(x.en))add("kin",w);if((rs.thing||[]).includes(x.en))add("thing",w)});
   (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
@@ -4943,7 +5010,7 @@ function picHTML(){
   let h=`<div class="bar"><span class="plbl">${p.learn}</span><div class="seg jelly small plang" role="group">${PLANGS.map(x=>`<button type="button" data-plang="${x.k}" aria-pressed="${l===x.k}">${x.lbl}</button>`).join("")}</div></div>
 <div class="proots" role="group">${cats.map(c=>`<button type="button" class="jelly" data-pcat="${c.k}" aria-pressed="${c.k===S.pd.cat&&S.pd.mode!=="review"}"><span>${c.e}</span>${esc(c.n[nl])}${pFree(c)?"":`<i>${t.wPro}</i>`}</button>`).join("")}</div>
 <div class="dchips psubs" role="group"><button type="button" data-psub="" aria-pressed="${!S.pd.sub}">${p.all}</button>${root.subs.length>1?root.subs.map(s=>`<button type="button" data-psub="${s.k}" aria-pressed="${S.pd.sub===s.k}">${esc(s.n[nl])}</button>`).join(""):""}${pExtraOf(root.k).length?`<button type="button" data-psub="ai" aria-pressed="${S.pd.sub==="ai"}">✨ ${p.aiGroup} ${pExtraOf(root.k).length}</button>`:""}<button type="button" data-pmake="1">✨ ${p.aiMake}</button><button type="button" data-pimp="1">${I.upload}${t.wImport}</button></div>
-<div class="bar"><div class="seg jelly small" id="wmode" role="group"><button type="button" data-pmode="learn" aria-pressed="${S.pd.mode==="learn"}">${t.wLearn}</button><button type="button" data-pmode="game" aria-pressed="${S.pd.mode==="game"}">🎮 ${p.games}</button><button type="button" data-pmode="review" aria-pressed="${S.pd.mode==="review"}">${t.wReview}${pAgain().length?" "+pAgain().length:""}</button></div></div>`;
+<div class="bar"><div class="seg jelly small" id="wmode" role="group"><button type="button" data-pmode="learn" aria-pressed="${S.pd.mode==="learn"}">${t.wLearn}</button><button type="button" data-pmode="game" aria-pressed="${S.pd.mode==="game"}">🎮 ${p.games}</button><button type="button" data-pmode="review" aria-pressed="${S.pd.mode==="review"}">${t.wReview}${pAgain().length?" "+pAgain().length:""}</button></div><span class="grow"></span><div class="mini-seg pages" role="group" aria-label="age">${[1,2,3].map(a=>`<button type="button" data-page="${a}" aria-pressed="${(S.pd.age||3)===a}">${p.ages[a-1]}</button>`).join("")}</div></div>`;
   if(S.pd.mode==="game")return h+pGameHTML();
   const list=S.pd.mode==="review"?pAgain():pcards().map(x=>({c:root,x}));
   if(!list.length&&!pview)return h+`<div class="wgrid" id="pgrid">${Array(9).fill(0).map((_,i)=>i===4?`<div class="wcell jelly wc"><span class="emo">🌟</span><span class="note">${S.pd.mode==="review"?t.wReviewEmpty:p.noLang}</span></div>`:`<div class="wcell jelly blank"></div>`).join("")}</div>`;
@@ -4969,7 +5036,7 @@ function picHTML(){
 ${more.length?`<div class="pmore"><small>${p.moreLinks}</small>${more.map(({rel,y})=>`<button type="button" class="skchip" data-plink="${esc(y.en)}">${esc(y.e)} ${esc(pWord(y,l))}<b>${p.rel[rel]||""}</b></button>`).join("")}</div>`:""}
 <div class="plangs">${PLANGS.map(L=>{const w=L.k==="ja"?(x.jk?`${x.ja}（${x.jk}）`:x.ja):pWord(x,L.k);return w?`<button type="button" class="pl${L.k===l?" on":""}" data-psayl="${L.k}"><small>${L.lbl}</small><b>${esc(w)}</b>${L.k==="tw"&&x.tl?`<i>${esc(x.tl)}</i>`:""}</button>`:""}).join("")}</div>
 ${pview?"":pNavHTML(list.length,k)}
-<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-pgrow="1">${I.sparkle}${p.grow}</button><button class="pill jelly" type="button" data-pex="1">${p.example}</button><button class="pill jelly" type="button" data-pdraw="1">🎨 ${p.draw}</button></div><div id="pexOut"></div>`;
+<div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-pgrow="1">${I.sparkle}${p.grow}</button><button class="pill jelly" type="button" data-pstory="1">📖 ${p.story}</button><button class="pill jelly" type="button" data-pex="1">${p.example}</button><button class="pill jelly" type="button" data-pdraw="1">🎨 ${p.draw}</button></div><div id="pexOut"></div>`;
 }
 const pKey=(c,x)=>(x.root||c.k)+"\u0001"+x.en;
 function pAgain(){return Object.keys(S.pd.again).map(k=>{const en=k.split("\u0001")[1],x=pFind(en);return x&&pWord(x,S.pd.lang)?{c:pRootsAll().find(r=>r.k===x.root)||PROOTS[0],x}:null}).filter(Boolean)}
@@ -5189,19 +5256,19 @@ function picImportGo(){
   if(!cards.length)return;S.pd.custom=(S.pd.custom||[]).concat(cards).slice(0,3000);PBANK=null;S.pd.sub="";pview=null;ptrail=[];S.pd.cat="mine";S.pd.idx=0;S.pd.mode="learn";save();closeLayer();render();toast(T().wImpDone(cards.length));
 }
 const PT_STR={
-  zh:{kindPic:"圖鑑",games:"遊戲",pickGame:"選一個遊戲",grab:"聽到就搶！",fast:n=>`3 秒內搶到 ${n} 張`,spy:f=>`我看到一個「${f}」開頭的東西…`,hint:"看提示",
+  zh:{kindPic:"圖鑑",games:"遊戲",story:"小故事",readAll:"整篇唸",storying:"小潔米正在編故事…",storyOff:"現在沒有 AI，這是用關聯字拼成的小故事；接上 AI 會依年齡寫出真正的故事和歷史小知識。",ages:["🧸3–6","🎒7–12","🎓13+"],pickGame:"選一個遊戲",grab:"聽到就搶！",fast:n=>`3 秒內搶到 ${n} 張`,spy:f=>`我看到一個「${f}」開頭的東西…`,hint:"看提示",
     gm:{find:["聽音找圖","聽＋看字，找出圖"],word:["看圖選字","看圖聽音，選對的字"],cloze:["習作填空","台灣國語習作的填空題"],spell:["拼字比賽","美國 Spelling Bee"],spy:["I Spy","英國小孩的開頭字遊戲"],karuta:["かるた搶牌","日本新年的搶牌遊戲"],hang:["救救果凍","英美 Hangman，猜錯果凍會變小"],mix:["混合挑戰","每題換一種玩法"]},
     aiMake:"AI 做新字卡",makeTitle:"AI 做一張新字卡",makeQ:"想學哪個字？（中英日都可以）",makePh:"例如：長頸鹿、ハムスター、sloth",makeGo:"做卡片",makeHow:"AI 會寫出中、英、日、台語和讀音，再畫一張簡單的圖。",making:"AI 正在畫圖、查讀音…",noAImake:"現在沒有 AI，可以用「匯入字卡」自己加。",redraw:"重畫",saveCard:"存進我的圖鑑",twCheck:"台語和台羅是 AI 產生的，教小孩前請先確認。",drawing:"AI 正在畫…",drawFail:"這次沒畫好，再試一次",draw:"AI 重畫這張圖",saved:"已存進「我的圖鑑」",
     all:"全部",aiGroup:"AI 擴充",rel:{kin:"同類",thing:"相關",where:"在哪裡"},backList:"回到清單",moreLinks:"更多關聯：",grow:"AI 擴充關聯字",growing:"AI 正在找相關的字…",noAIgrow:"現在沒有 AI；外圈已經有內建的關聯字可以點。",grown:n=>n?`新增了 ${n} 個關聯字，外圈點點看`:"這張卡的關聯字已經很完整了",kindWord:"詞語延伸",learn:"我要學",listen:"聽音找圖",hear:"聽發音",example:"AI 造一個例句",thinking:"想例句中…",noAI:"現在沒有 AI，先聽單字發音就很好。",noLang:"這一類還沒有這個語言的字卡。",
     noVoice:"這台裝置沒有語音功能。",noTaigi:"這台裝置沒有台語語音，先看台羅拼音；之後可以匯入語寶的真人錄音。",few:"這一類的卡片太少，換一類再玩。",which:"是哪一張圖？",byEar:"用聽的",byEye:"用看的",
     result:(s,n)=>`答對 ${s} / ${n}！`,impHelp:"一行一張：圖（emoji 或 https 圖片網址）, 中文, English, 日文|假名, 台語|台羅。例如：🐶,狗,dog,犬|いぬ,狗|káu"},
-  ja:{kindPic:"図鑑",games:"ゲーム",pickGame:"ゲームを選ぼう",grab:"聞こえたら取って！",fast:n=>`3 秒以内に ${n} 枚`,spy:f=>`「${f}」ではじまるもの、なーんだ？`,hint:"ヒント",
+  ja:{kindPic:"図鑑",games:"ゲーム",story:"おはなし",readAll:"全部よむ",storying:"ゼリーがおはなしを考え中…",storyOff:"今は AI が使えないので、関連語でつくった短いおはなしです。",ages:["🧸3–6","🎒7–12","🎓13+"],pickGame:"ゲームを選ぼう",grab:"聞こえたら取って！",fast:n=>`3 秒以内に ${n} 枚`,spy:f=>`「${f}」ではじまるもの、なーんだ？`,hint:"ヒント",
     gm:{find:["聞いてさがす","音と文字で絵をさがす"],word:["絵から文字","絵と音で正しい文字を"],cloze:["穴うめ","台湾の国語ドリル風"],spell:["スペリング","アメリカのスペリングビー"],spy:["I Spy","イギリスの頭文字あそび"],karuta:["かるた","お正月のかるた取り"],hang:["ゼリーを助けて","ハングマン：はずれるとゼリーが小さく"],mix:["ミックス","毎問ちがう遊び方"]},
     aiMake:"AI でカードを作る",makeTitle:"AI で新しいカード",makeQ:"覚えたい言葉は？（何語でも）",makePh:"例：キリン、長頸鹿、sloth",makeGo:"作る",makeHow:"AI が 4 言語と読みを書き、かんたんな絵を描きます。",making:"AI が絵と読みを準備中…",noAImake:"今は AI が使えません。「インポート」で追加できます。",redraw:"描き直す",saveCard:"マイ図鑑に保存",twCheck:"台湾語は AI によるものです。子どもに教える前に確認を。",drawing:"AI が描いています…",drawFail:"うまく描けませんでした。もう一度",draw:"AI で描き直す",saved:"マイ図鑑に保存しました",
     all:"すべて",aiGroup:"AI で追加",rel:{kin:"なかま",thing:"かんけい",where:"どこ"},backList:"一覧へ",moreLinks:"ほかの関連語：",grow:"AI で関連語を増やす",growing:"AI が関連する言葉を探しています…",noAIgrow:"今は AI が使えません。まわりの関連語をタップしてみてください。",grown:n=>n?`関連語を ${n} 個追加しました`:"関連語はもう十分そろっています",kindWord:"ことば広げ",learn:"学ぶ言語",listen:"聞いてさがす",hear:"発音を聞く",example:"AI で例文",thinking:"例文を作成中…",noAI:"今は AI が使えません。まずは単語の発音を聞いてみましょう。",noLang:"このカテゴリにはこの言語のカードがまだありません。",
     noVoice:"この端末は音声に対応していません。",noTaigi:"この端末には台湾語の音声がありません。台羅ローマ字を見てください。",few:"カードが少ないので、別のカテゴリで遊びましょう。",which:"どの絵かな？",byEar:"耳で",byEye:"目で",
     result:(s,n)=>`${n} 問中 ${s} 問正解！`,impHelp:"1 行 1 枚：絵（絵文字か https 画像 URL）, 中国語, English, 日本語|かな, 台湾語|台羅。例：🐶,狗,dog,犬|いぬ,狗|káu"},
-  en:{kindPic:"Picture cards",games:"Games",pickGame:"Pick a game",grab:"Grab it when you hear it!",fast:n=>`${n} grabbed within 3 s`,spy:f=>`I spy with my little eye something beginning with ${f}…`,hint:"Hint",
+  en:{kindPic:"Picture cards",games:"Games",story:"Story",readAll:"Read it all",storying:"Your jelly buddy is writing a story…",storyOff:"No AI right now, so this little story is built from the linked words.",ages:["🧸3–6","🎒7–12","🎓13+"],pickGame:"Pick a game",grab:"Grab it when you hear it!",fast:n=>`${n} grabbed within 3 s`,spy:f=>`I spy with my little eye something beginning with ${f}…`,hint:"Hint",
     gm:{find:["Listen & find","Hear and read it, find the picture"],word:["Picture to word","See and hear, pick the word"],cloze:["Fill the blank","Taiwan workbook style"],spell:["Spelling Bee","The American classic"],spy:["I Spy","British first-letter game"],karuta:["Karuta","Japan's New Year card grab"],hang:["Save the jelly","Hangman: misses shrink the jelly"],mix:["Mix","A different game each round"]},
     aiMake:"AI card maker",makeTitle:"Make a card with AI",makeQ:"Which word? (any language)",makePh:"e.g. sloth, 長頸鹿, ハムスター",makeGo:"Make it",makeHow:"AI writes it in four languages with readings and draws a simple picture.",making:"AI is drawing and looking up readings…",noAImake:"No AI right now. Use Import to add your own.",redraw:"Redraw",saveCard:"Save to My cards",twCheck:"The Taiwanese is AI-made; check it before teaching a child.",drawing:"AI is drawing…",drawFail:"That drawing didn't work. Try again",draw:"Redraw with AI",saved:"Saved to My cards",
     all:"All",aiGroup:"Added by AI",rel:{kin:"Same kind",thing:"Goes with",where:"Where"},backList:"Back to list",moreLinks:"More links:",grow:"AI: add linked words",growing:"AI is finding linked words…",noAIgrow:"No AI right now. Tap the linked words around the card.",grown:n=>n?`Added ${n} linked words`:"This card already has plenty of links",kindWord:"Word web",learn:"Learn",listen:"Listen & find",hear:"Hear it",example:"AI example sentence",thinking:"Writing an example…",noAI:"No AI right now. Listening to the word is a great start.",noLang:"No cards in this language for this category yet.",
@@ -5531,6 +5598,35 @@ const WK_STR={
     doneSum:(m,s)=>`You moved for ${m} minutes${s>1?`, ${s} days in a row`:""}. Your body will remember today.`,calAdded:"Logged on your calendar ✓",yay:"Yay!",calText:(n,m)=>`💪 Daily workout: ${n} ${m} min`,quest:"Finish today's workout"}
 };
 const WKT=()=>WK_STR[LANG[S.region]];
+/* ---------- a short story woven from the card and its links, sized to age ---------- */
+const AGE_NOTE={1:"a child aged 3-6: 3 very short, gentle, happy sentences, no scary parts",2:"a child aged 7-12: 5 short sentences with one surprising true fact, friendly tone",3:"a teenager or adult: 5-6 sentences that weave in real history or geography (a date, a place, why it matters), accurate and vivid"};
+async function pStory(){
+  const p=PT(),t=T(),cur=pCur(),out=$("pexOut");if(!cur||!out)return;const x=cur.x,l=S.pd.lang,age=S.pd.age||3;
+  const words=[x,...pLinks(x).map(k=>k.y)].slice(0,5),lname={en:"English",ja:"Japanese (simple, with kana for children)",zh:"Traditional Chinese (Taiwan)",tw:"Taiwanese Hokkien in Han characters"}[l];
+  out.innerHTML=`<div class="crwait">${mascot("wave","crmas")}<span>${p.storying}</span></div>`;await aiReady;
+  let st=null;
+  if(AI){try{
+    const r=await AI.json(`Write a short story in ${lname} for ${AGE_NOTE[age]}. It must use these words naturally: ${words.map(w=>pWord(w,l)||w.en).join(", ")} (English: ${words.map(w=>w.en).join(", ")}).
+Wrap each of those words in [[double brackets]] where it appears. Give a translation of each sentence in ${t.replyLang}.
+Reply ONLY JSON {"title":"short title in ${lname}","lines":[{"t":"sentence","tr":"translation"}],"fact":"${age>=2?"one true fact in "+t.replyLang+", or empty":""}"}`,{modelTier:"default",cache:false});
+    const lines=(Array.isArray(r.lines)?r.lines:[]).filter(z=>z&&z.t).slice(0,7).map(z=>({t:String(z.t).slice(0,160),tr:String(z.tr||"").slice(0,200)}));
+    if(lines.length)st={title:String(r.title||"").slice(0,40),lines,fact:String(r.fact||"").slice(0,200)};
+  }catch(e){}}
+  if(!st){   // no AI: a little trip made from the linked words
+    const w=words.map(y=>pWord(y,l)||y.en),c=w[0],a=w[1]||c,b=w[2]||a,d=w[3]||b;
+    const F={en:[`Today I found a [[${c}]].`,`Next to it: a [[${a}]] and a [[${b}]]!`,`Then I saw a [[${d}]]. What a day!`],
+      ja:[`きょう [[${c}]] を みつけたよ。`,`となりに [[${a}]] と [[${b}]]！`,`それから [[${d}]] も みたよ。たのしいね！`],
+      zh:[`今天我發現了[[${c}]]。`,`旁邊還有[[${a}]]和[[${b}]]！`,`後來又看到[[${d}]]，好好玩！`],
+      tw:[`今仔日我看著[[${c}]]。`,`邊仔閣有[[${a}]]佮[[${b}]]！`,`尾仔閣看著[[${d}]]，真心適！`]};
+    st={title:"",lines:(F[l]||F.en).map(z=>({t:z,tr:""})),fact:"",offline:true};
+  }
+  S.pd.lastStory=st;
+  const line=z=>esc(z).replace(/\[\[(.+?)\]\]/g,(m,w)=>`<button type="button" class="sw" data-sw="${w}">${w}</button>`);
+  out.innerHTML=`<div class="story jelly"><div class="row"><b class="stitle">📖 ${esc(st.title||p.story)}</b><span class="grow"></span><button class="pill jelly" type="button" data-sread="1">🔊 ${p.readAll}</button></div>
+${st.lines.map((z,i)=>`<div class="sline"><button type="button" class="say sm" data-sline="${i}" aria-label="🔊">${I.speak}</button><div><p lang="${l==="tw"?"nan":l}">${line(z.t)}</p>${z.tr&&l!==LANG[S.region]?`<small>${esc(z.tr)}</small>`:""}</div></div>`).join("")}
+${st.fact?`<p class="sfact">💡 ${esc(st.fact)}</p>`:""}${st.offline?`<p class="note">${p.storyOff}</p>`:""}</div>`;
+}
+const plain=t=>t.replace(/\[\[(.+?)\]\]/g,"$1");
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -5653,6 +5749,11 @@ document.addEventListener("click",e=>{
   const pnv=el.closest("[data-pnav]");if(pnv){picNav(+pnv.dataset.pnav);return}
   const pmk=el.closest("[data-pmark]");if(pmk){const c=pCur();if(c){const k=pKey(c.c,c.x);if(pmk.dataset.pmark==="known"){S.pd.known[k]=1;delete S.pd.again[k]}else{S.pd.again[k]=1;delete S.pd.known[k]}save();
     if(S.pd.mode==="review"&&pmk.dataset.pmark==="known")render();else picNav(1)}return}
+  const pag=el.closest("[data-page]");if(pag){S.pd.age=+pag.dataset.page;S.pd.idx=0;pview=null;ptrail=[];pg=null;PBANK=null;save();render();return}
+  if(el.closest("[data-pstory]")){pStory();return}
+  const psw=el.closest("[data-sw]");if(psw){sayIn(psw.dataset.sw,S.pd.lang);return}
+  const sln=el.closest("[data-sline]");if(sln&&S.pd.lastStory){sayIn(plain(S.pd.lastStory.lines[+sln.dataset.sline].t),S.pd.lang);return}
+  if(el.closest("[data-sread]")&&S.pd.lastStory){sayIn(S.pd.lastStory.lines.map(z=>plain(z.t)).join(" "),S.pd.lang);return}
   if(el.closest("[data-pex]")){picExample();return}
   if(el.closest("[data-psayq]")){if(pg&&pg.x)pSpeakCard(pg.x,S.pd.lang);return}
   const pgm=el.closest("[data-pgm]");if(pgm){S.pd.gm=pgm.dataset.pgm;pg=null;save();render();return}
