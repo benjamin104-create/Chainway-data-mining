@@ -1369,7 +1369,7 @@ const STR={
     wallTooBig:"這張照片太大存不下，換一張試試。",wallBad:"請選一張圖片（JPG、PNG）。",wallSaved:"桌布換好了。",
     sound:"聲音",chime:"提示音",voice:"語音",test:"試聽",
     notifAsk:"允許通知",notifOn:"通知已開啟",notifNo:"這個頁面不能發系統通知，請用安裝版。",
-    install:"放到手機桌面",installBtn:"安裝",installed:"已安裝在桌面",installPreview:"打開安裝版",installNoSite:"安裝版即將上線",
+    install:"放到手機桌面",installBtn:"安裝",installed:"已安裝在桌面",installPreview:"打開安裝版",installNoSite:"安裝版即將上線",installIos:"iPhone／iPad：用 Safari 打開這個網址 → 點下方「分享」→「加入主畫面」。",installAndroid:"Android／電腦：Chrome 右上角 ⋮ →「安裝應用程式」或「加到主畫面」。",aiWhyPrev:"這個預覽頁要先登入 claude.ai（或在 Claude App 裡打開）才能用 AI；也可以直接到正式網址使用。",aiWhySite:"AI 暫時連不上，請稍後再試；也可以在設定裡選一個 AI、填你自己的金鑰。",
     iosHow:"iPhone：Safari →「分享」→「加入主畫面」",andHow:"Android：Chrome → 選單 →「安裝應用程式」",
     ics:"本週提醒加入行事曆",icsNone:"本週還沒有設定時間的事。",
     goalPh:"寫下你的大目標",stepPh:"這一步要做什麼",stepN:n=>`第 ${n} 步`,goalLbl:"大目標",date:"日期",doneLbl:"完成",
@@ -1489,7 +1489,7 @@ const STR={
     wallTooBig:"この写真は大きすぎて保存できません。",wallBad:"画像（JPG・PNG）を選んでください。",wallSaved:"壁紙を変更しました。",
     sound:"サウンド",chime:"通知音",voice:"読み上げ",test:"試聴",
     notifAsk:"通知を許可",notifOn:"通知オン",notifNo:"このページからは通知できません。インストール版をご利用ください。",
-    install:"ホーム画面に置く",installBtn:"インストール",installed:"インストール済み",installPreview:"インストール版を開く",installNoSite:"インストール版は準備中",
+    install:"ホーム画面に置く",installBtn:"インストール",installed:"インストール済み",installPreview:"インストール版を開く",installNoSite:"インストール版は準備中",installIos:"iPhone／iPad：Safari でこの URL を開き、下の「共有」→「ホーム画面に追加」。",installAndroid:"Android／PC：Chrome 右上の ⋮ →「アプリをインストール」または「ホーム画面に追加」。",aiWhyPrev:"このプレビューでは claude.ai にログイン（または Claude アプリで開く）すると AI が使えます。正式 URL でも使えます。",aiWhySite:"AI に今つながりません。少し待つか、設定で AI を選んで自分のキーを入れてください。",
     iosHow:"iPhone：Safari →「共有」→「ホーム画面に追加」",andHow:"Android：Chrome → メニュー →「アプリをインストール」",
     ics:"今週の通知をカレンダーへ",icsNone:"今週は時刻付きのタスクがありません。",
     goalPh:"大きな目標を書く",stepPh:"このステップでやること",stepN:n=>`ステップ ${n}`,goalLbl:"目標",date:"日付",doneLbl:"完了",
@@ -1609,7 +1609,7 @@ const STR={
     wallTooBig:"That photo is too large to save. Try another.",wallBad:"Choose an image (JPG or PNG).",wallSaved:"Wallpaper updated.",
     sound:"Sound",chime:"Chime",voice:"Voice",test:"Test",
     notifAsk:"Allow notifications",notifOn:"Notifications on",notifNo:"This page can't send notifications. Use the installed app.",
-    install:"Home screen",installBtn:"Install",installed:"Installed",installPreview:"Open the app",installNoSite:"The app link is coming soon",
+    install:"Home screen",installBtn:"Install",installed:"Installed",installPreview:"Open the app",installNoSite:"The app link is coming soon",installIos:"iPhone/iPad: open this link in Safari, tap Share, then Add to Home Screen.",installAndroid:"Android/computer: in Chrome tap ⋮, then Install app or Add to Home screen.",aiWhyPrev:"In this preview, sign in to claude.ai (or open it in the Claude app) to use AI, or use the app link.",aiWhySite:"AI can't be reached right now. Try again later, or pick an AI in Settings and add your own key.",
     iosHow:"iPhone: Safari → Share → Add to Home Screen",andHow:"Android: Chrome → menu → Install app",
     ics:"Add this week's reminders to my calendar",icsNone:"No timed tasks this week yet.",
     goalPh:"Write your big goal",stepPh:"What this step is",stepN:n=>`Step ${n}`,goalLbl:"Goal",date:"Date",doneLbl:"Done",
@@ -1881,7 +1881,7 @@ let curMonth=new Date(addDays(cur,3).getFullYear(),addDays(cur,3).getMonth(),1);
 let newPri="high",pending=null,prevItems=[],editTime=null;
 let knobTurns=S.face,rotating=false;
 const IS_SITE=!!window.NG_SITE;
-const SITE_URL=window.NG_SITE_URL||"";
+const SITE_URL=window.NG_SITE_URL||"https://jaminepa-ninegrid.netlify.app";
 const T=()=>STR[LANG[S.region]];
 const PRI=["high","mid","low"];
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -2531,7 +2531,7 @@ const closeBtn=t=>`<button class="round jelly" type="button" data-close="1" aria
 function openSettings(){
   const t=T(),perm="Notification" in window?Notification.permission:"unsupported";
   let inst;
-  if(IS_SITE)inst=standalone()?`<span class="status">${t.installed}</span>`:(installEvt?`<button class="pill pri jelly" type="button" data-set="install">${I.phone}${t.installBtn}</button>`:"");
+  if(IS_SITE)inst=standalone()?`<span class="status">${t.installed}</span>`:(installEvt?`<button class="pill pri jelly" type="button" data-set="install">${I.phone}${t.installBtn}</button>`:`<span class="note">${/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)?t.installIos:t.installAndroid}</span>`);
   else inst=SITE_URL?`<a class="pill pri jelly" href="${esc(SITE_URL)}" target="_blank" rel="noopener">${I.phone}${t.installPreview}</a>`:`<span class="note">${t.installNoSite}</span>`;
   layer(`<div class="shead"><h2>${t.settings}</h2>${closeBtn(t)}</div>
 <div class="sgroup"><h3>${I.user}${t.account}</h3>${accountHTML()}${memberHTML()}</div>
@@ -3058,6 +3058,7 @@ function pickAI(){
   if(IS_SITE&&OWNER.aiProxy)return makeEngine("proxy","","");
   return null;
 }
+const aiWhy=()=>IS_SITE?T().aiWhySite:T().aiWhyPrev;
 function aiLabel(){
   const t=T(),c=aiCfg();
   if(!AI)return t.aiNames.none;
@@ -4241,6 +4242,7 @@ function aiSettingsHTML(){
   const t=T(),c=aiCfg(),prov=c.provider||"";
   const opts=[["",t.aiAuto],...Object.keys(PROVIDERS).map(k=>[k,t.aiProv[k]])];
   return `<p class="status">${esc(t.aiNow(aiLabel()))}</p>
+${AI?"":`<p class="note">${aiWhy()}${IS_SITE?"":` <a class="linkbtn" href="${esc(SITE_URL)}" target="_blank" rel="noopener">${esc(SITE_URL.replace(/^https?:\/\//,""))}</a>`}</p>`}
 ${IS_SITE&&AI&&AI.label==="proxy"?`<p class="note">${esc(AQ().left(aiLeft(),aiLimit()))}</p>`:""}
 <div class="szrow" role="group">${opts.map(([k,l])=>`<button type="button" data-aiprov="${k}" aria-pressed="${prov===k}">${esc(l)}</button>`).join("")}</div>
 ${prov?(IS_SITE?`<label class="fld">${t.aiKey}<input id="aiKey" type="password" autocomplete="off" value="${esc(c.key||"")}" placeholder="…"></label>
@@ -6978,7 +6980,7 @@ function openStylist(){
 }
 async function stylistGo(){
   const w=WRT(),idea=(($("wrIdea")||{}).value||"").trim(),out=$("wrOut");if(!idea)return;
-  await aiReady;if(!AI){toast(TT().noAI);return}
+  await aiReady;if(!AI){toast(aiWhy());return}
   out.innerHTML=`<p class="note">${w.aiWorking}</p>`;
   const menu=OF_SLOTS.map(s=>`${s}: ${OUTFIT[s].filter(ofOpen).map(x=>`${x.k} (${x.n.en})`).join(", ")||"(none)"}`).join("\n");
   try{const r=await AI.json(`You dress "Little Jelly", a cute orange jelly mascot, for this idea: "${idea}".
@@ -7001,7 +7003,7 @@ function openSkinAI(){
 }
 async function skinAIGo(){
   const s=STT(),idea=(($("skIdea")||{}).value||"").trim(),out=$("skOut");if(!idea)return;
-  await aiReady;if(!AI){toast(TT().noAI);return}
+  await aiReady;if(!AI){toast(aiWhy());return}
   out.innerHTML=`<p class="note">${s.skinWorking}</p>`;
   try{const r=await AI.json(`Design a colour theme for a friendly planner app from this idea: "${idea}".
 Readable UI matters: frosted white glass cards sit on top, so the background should be soft; if "dark" is true, cards turn dark glass with light text.
@@ -7239,7 +7241,7 @@ function zwHTML(){
 function zwGo(){const d=($("zwDate")||{}).value,h=+(($("zwHour")||{}).value||0);if(!d||!lunarOf(d)){toast(ZWT().bad);return}S.zw={date:d,hour:h};save();$("zwOut").innerHTML=zwHTML()}
 async function zwAI(){
   const z=ZWT(),l=LANG[S.region],c=zwChart(S.zw.date,+S.zw.hour||0),out=$("zwAi");if(!c||!out)return;
-  await aiReady;if(!AI){toast(TT().noAI);return}
+  await aiReady;if(!AI){toast(aiWhy());return}
   out.innerHTML=`<p class="note">${z.aiWait}</p>`;
   const lines=Array.from({length:12},(_,b)=>`${PAL.zh[c.pal[b]]}（${TG[c.stemOf(b)]}${DZ[b]}）：${(c.stars[b]||[]).map(n=>n+(c.hua[n]?"化"+c.hua[n]:"")).join("、")||"無主星"}${(c.aux[b]||[]).length?"；"+c.aux[b].join("、"):""}`).join("\n");
   try{const r=await AI(`You read Zi Wei Dou Shu charts through the lens of Alfred Adler's individual psychology (courage, contribution, lifestyle, "you are not determined by your past"). Write in ${{zh:"Traditional Chinese (Taiwan)",ja:"Japanese",en:"English"}[l]}.
@@ -7373,7 +7375,7 @@ function mhHTML(s){
 function mhGo(){const q=(($("mhQ")||{}).value||"").trim(),now=new Date();S.mh={d:key(now),t:now.getTime(),q};save();openMeihua();xpEvent("flow")}
 async function mhAI(){
   if(!S.mh)return;const m=MHT(),l=LANG[S.region],c=mhCast(new Date(S.mh.t)),out=$("mhAi");if(!c||!out)return;
-  await aiReady;if(!AI){toast(TT().noAI);return}
+  await aiReady;if(!AI){toast(aiWhy());return}
   out.innerHTML=`<p class="note">…</p>`;const h=HEX[c.ben-1];
   try{const r=await AI(`You interpret a Plum Blossom (梅花易數) I Ching cast through Alfred Adler's psychology (courage, contribution, choice). Write in ${{zh:"Traditional Chinese (Taiwan)",ja:"Japanese",en:"English"}[l]}, under 200 words, warm, no fear, no medical/legal/financial predictions.
 Question: ${S.mh.q||"(none: today in general)"}
