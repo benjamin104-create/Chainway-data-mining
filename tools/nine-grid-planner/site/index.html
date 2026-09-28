@@ -1138,6 +1138,14 @@ html .knob svg{width:22px;height:22px}
 :root.sk-fant .pill.jelly:hover::after,:root.sk-quest .pill.jelly:hover::after,:root.sk-fant .pill.jelly:focus-visible::after,:root.sk-quest .pill.jelly:focus-visible::after{content:"▶";position:absolute;left:-15px;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 :root.sk-fant .chip,:root.sk-quest .chip{box-shadow:none}
+/* 史詩戰記: dark stone panels with gold trim, crimson buttons, parchment text */
+:root.sk-epic{--g1:rgba(46,36,26,.94);--g2:rgba(24,18,14,.96);--edge:#B8913F;--hl:transparent;--chip:rgba(243,230,200,.07);--chip-edge:rgba(201,160,74,.35);--line:rgba(201,160,74,.3);--tint-a:0%;--ink:#F3E6C8;--muted:#C9B48C;--shade:rgba(0,0,0,.7);--art-op:1;--on-accent:#FFE9A8}
+:root.sk-epic .jelly,:root.sk-epic .sheet{--g1:rgba(46,36,26,.94);--g2:rgba(24,18,14,.96);border:2px solid #B8913F;border-radius:10px;box-shadow:inset 0 0 0 1px #3A2A14,inset 0 0 18px rgba(0,0,0,.55),0 8px 16px -6px rgba(0,0,0,.7);-webkit-backdrop-filter:none;backdrop-filter:none}
+:root.sk-epic .jelly::before{display:none}:root.sk-epic .round.jelly{border-radius:50%}:root.sk-epic .pill.jelly{border-radius:8px}
+:root.sk-epic .pill.pri{background:linear-gradient(180deg,#C8302A,#6E120E);border-color:#F2C94C;color:#FFE9A8;text-shadow:0 1px 0 #000}
+:root.sk-epic h2,:root.sk-epic .htitle b,:root.sk-epic .dn,:root.sk-epic .vct b,:root.sk-epic .jtop b{font-family:"Cinzel",var(--f-ui);color:#F2C94C;letter-spacing:.02em}
+:root.sk-epic .chip{box-shadow:none}
+.sw-epic{border:2px solid #C9A04A}
 .swwin{border:2px solid #fff;box-shadow:inset 0 0 0 1px #7F93E6}.sw-quest{border:3px solid #fff;box-shadow:0 0 0 1px #000}
 .aftile.wip{opacity:.55;filter:saturate(.35)}.aftile.wip b{color:var(--muted);font-weight:400}.aftile.wip small{color:var(--muted);opacity:.85}.aftile.wip svg{color:var(--muted)}
 .vchead{margin:10px 2px 0;font-size:15px;font-weight:400;color:var(--muted)}
@@ -1333,7 +1341,7 @@ const STR={
     left:n=>n?`還有 ${n} 件待辦還沒排到哪一天。`:"",
     remTitle:"時間到了",remDone:"完成了",remSnooze:"晚 10 分鐘",
     remSpeak:(t,x)=>`${t}，該做「${x}」了。`,
-    look:"外觀",skins:{white:"標準白",black:"標準黑",art:"世界名畫",fant:"奇幻水晶 RPG",quest:"勇者冒險 RPG",jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"外觀",skins:{epic:"史詩戰記 RPG",white:"標準白",black:"標準黑",art:"世界名畫",fant:"奇幻水晶 RPG",quest:"勇者冒險 RPG",jelly:"果凍",sakura:"櫻花",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"上傳桌布",wallRemove:"移除",wallOp:"桌布濃度",
     wallTooBig:"這張照片太大存不下，換一張試試。",wallBad:"請選一張圖片（JPG、PNG）。",wallSaved:"桌布換好了。",
     sound:"聲音",chime:"提示音",voice:"語音",test:"試聽",
@@ -1453,7 +1461,7 @@ const STR={
     left:n=>n?`曜日が決まっていないタスクが${n}件あります。`:"",
     remTitle:"時間です",remDone:"完了",remSnooze:"10分後",
     remSpeak:(t,x)=>`${t}です。「${x}」の時間です。`,
-    look:"見た目",skins:{white:"スタンダード白",black:"スタンダード黒",art:"世界の名画",fant:"クリスタル RPG",quest:"勇者の冒険 RPG",jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
+    look:"見た目",skins:{epic:"エピック戦記 RPG",white:"スタンダード白",black:"スタンダード黒",art:"世界の名画",fant:"クリスタル RPG",quest:"勇者の冒険 RPG",jelly:"ゼリー",sakura:"桜",matcha:"抹茶",ocean:"海",night:"夜"},
     upload:"壁紙を選ぶ",wallRemove:"外す",wallOp:"壁紙の濃さ",
     wallTooBig:"この写真は大きすぎて保存できません。",wallBad:"画像（JPG・PNG）を選んでください。",wallSaved:"壁紙を変更しました。",
     sound:"サウンド",chime:"通知音",voice:"読み上げ",test:"試聴",
@@ -1573,7 +1581,7 @@ const STR={
     left:n=>n?`${n} more ${n>1?"tasks have":"task has"} no day yet.`:"",
     remTitle:"It's time",remDone:"Done",remSnooze:"In 10 min",
     remSpeak:(t,x)=>`It's ${t}. Time for ${x}.`,
-    look:"Look",skins:{white:"Classic white",black:"Classic black",art:"Masterpieces",fant:"Crystal RPG",quest:"Hero's quest RPG",jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
+    look:"Look",skins:{epic:"Epic saga RPG",white:"Classic white",black:"Classic black",art:"Masterpieces",fant:"Crystal RPG",quest:"Hero's quest RPG",jelly:"Jelly",sakura:"Sakura",matcha:"Matcha",ocean:"Ocean",night:"Night"},
     upload:"Upload wallpaper",wallRemove:"Remove",wallOp:"Wallpaper",
     wallTooBig:"That photo is too large to save. Try another.",wallBad:"Choose an image (JPG or PNG).",wallSaved:"Wallpaper updated.",
     sound:"Sound",chime:"Chime",voice:"Voice",test:"Test",
@@ -1820,7 +1828,7 @@ function seed(){
 let S=null;
 S=load()||seed();
 S.region=S.region||"TW";S.mode=S.mode||S.view||"week";delete S.view;
-if(!S.skin||!(S.skin in {white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="jelly";
+if(!S.skin||!(S.skin in {epic:1,white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="jelly";
 if(S.wallOp==null)S.wallOp=100;if(S.voice==null)S.voice=true;if(S.chime==null)S.chime=true;
 S.face=S.face||0;S.seen=S.seen||{};S.ranges=S.ranges||[];S.tags=S.tags||[];S.donatePlan=S.donatePlan||"month";
 if(!S.goal)S.goal=seedGoal(LANG[S.region],!!S.example);
@@ -1905,6 +1913,7 @@ const SKINS={
   art:{bg:"#23283A",accent:"#B8862E",accentD:"#E3B65C",art:["#1B2A5A","#2E4C8C","#F2D56B","#6B8FC4"],draw:"paint",sw:"radial-gradient(circle at 70% 30%,#F2D56B 0 12%,transparent 13%),conic-gradient(from 40deg,#1B2A5A,#2E4C8C,#6B8FC4,#1B2A5A)",tints:["#E3B65C","#6B8FC4","#C98B6B","#8FB3A8","#D98C7A","#9DB8A0","#B49AC8"]},
   fant:{bg:"#060B2E",accent:"#F2C94C",accentD:"#F2C94C",art:[],draw:"fant",sw:"linear-gradient(180deg,#3448BE,#0E1868)",cls:"sk-fant",tints:["#F2C94C","#6FD3E8","#E9B77E","#8FA8FF","#FF8A8A","#8FE3A8","#D0A8FF"],dark:true},
   quest:{bg:"#000000",accent:"#FFD23F",accentD:"#FFD23F",art:[],draw:"quest",sw:"linear-gradient(#000,#000) padding-box,linear-gradient(#fff,#fff) border-box",cls:"sk-quest",font:"DotGothic16",tints:["#FFD23F","#5CC8FF","#FF9F43","#7BED9F","#FF6B6B","#A4E86B","#D6A2FF"],dark:true},
+  epic:{bg:"#15111A",accent:"#B3261E",accentD:"#F2B84B",art:[],draw:"epic",sw:"linear-gradient(180deg,#2E241A,#15111A) padding-box,linear-gradient(#C9A04A,#6B4A1A) border-box",cls:"sk-epic",font:"Cinzel",tints:["#C9A04A","#8FB3D9","#C0392B","#7FBF8E","#B48BD1","#E9C46A","#D98C5F"],dark:true},
   jelly:{bg:"#E7EFF2",accent:"#E8833A",accentD:"#F2A65A",art:["#E8833A","#1F5C66","#E9C39B","#9FB4BA","#F2B84B","#2E7F8A"],tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"]},
   sakura:{bg:"#FBEFF2",accent:"#C2456B",accentD:"#F28CA6",art:["#F4A7B9","#C2456B","#F9D3DC","#E8C9A0","#9E6B84","#F2B5C4"],tints:["#F28CA6","#E7A0C4","#F6B89A","#C9A0DC","#F4978E","#F7C1CF","#D38FB0"]},
   matcha:{bg:"#EEF3E6",accent:"#4B7A2B",accentD:"#A8C686",art:["#7FA35B","#3E5E2A","#D8E3C3","#C9B27C","#A8C686","#5E8A6E"],tints:["#8DB85F","#5E9E6E","#C9B27C","#A3C98B","#E0A458","#7BAE9B","#B7C77A"]},
@@ -1917,9 +1926,10 @@ const PXT=()=>({zh:"點陣字（每種背景都能用）",ja:"ドット文字（
 function applySkin(){
   const r=document.documentElement,k=skin(),acc=wall&&S.wallAccent?S.wallAccent:null;
   r.classList.toggle("night",!!k.dark);
-  ["sk-fant","sk-quest","sk-art","sk-plain"].forEach(c=>r.classList.remove(c));if(k.cls)r.classList.add(k.cls);if(k.draw==="paint")r.classList.add("sk-art");if(k.draw==="plain")r.classList.add("sk-plain");
+  ["sk-fant","sk-quest","sk-epic","sk-art","sk-plain"].forEach(c=>r.classList.remove(c));if(k.cls)r.classList.add(k.cls);if(k.draw==="paint")r.classList.add("sk-art");if(k.draw==="plain")r.classList.add("sk-plain");
   r.classList.toggle("px",!!S.pixel);
-  if((k.font||S.pixel)&&!document.getElementById("skinFont")){const l=document.createElement("link");l.id="skinFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap";document.head.appendChild(l)}
+  const needFont=f=>{if(document.getElementById("font-"+f))return;const l=document.createElement("link");l.id="font-"+f;l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+f+"&display=swap";document.head.appendChild(l)};
+  if(k.font==="DotGothic16"||S.pixel)needFont("DotGothic16");if(k.font&&k.font!=="DotGothic16")needFont(k.font+":wght@600;700");
   r.style.setProperty("--skin-bg",k.bg);
   r.style.setProperty("--skin-accent",acc?acc.l:k.accent);r.style.setProperty("--skin-accent-d",acc?acc.d:k.accentD);
   k.tints.forEach((c,i)=>r.style.setProperty("--c"+i,c));
@@ -1942,6 +1952,7 @@ function drawArt(){
   if(mode==="fant"){artFant(x,w,h);return}
   if(mode==="quest"){artQuest(x,w,h);return}
   if(mode==="motif"){artMotif(x,w,h,k);return}
+  if(mode==="epic"){artEpic(x,w,h);return}
   artShapes(x,w,h,k.art,Math.max(90,Math.min(150,w/5)));
 }
 /* 世界名畫: public-domain masterpieces from Wikimedia Commons, one a day (tap the caption for the next);
@@ -1987,6 +1998,21 @@ function artFant(x,w,h){
   const cg=x.createLinearGradient(cx-s,cy-s,cx+s,cy+s);cg.addColorStop(0,"#D8F4FF");cg.addColorStop(.5,"#6FC3F0");cg.addColorStop(1,"#2B5CC8");
   x.fillStyle=cg;x.beginPath();pts.forEach(([a,b],i)=>{const X=cx+a*s,Y=cy+b*s;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.closePath();x.fill();
   x.strokeStyle="rgba(255,255,255,.7)";x.lineWidth=1.2;x.beginPath();x.moveTo(cx,cy-1.5*s);x.lineTo(cx,cy+1.1*s);x.moveTo(cx-.55*s,cy-.2*s);x.lineTo(cx+.55*s,cy-.2*s);x.stroke();
+}
+// 史詩戰記: a fortress on a cliff at dusk, banners and drifting embers
+function artEpic(x,w,h){
+  const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,"#0E1226");g.addColorStop(.55,"#3A2438");g.addColorStop(1,"#6B3A22");x.fillStyle=g;x.fillRect(0,0,w,h);
+  let seed=21;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<w*h/5000;i++){x.fillStyle=`rgba(255,240,210,${.3+rnd()*.5})`;x.fillRect(rnd()*w,rnd()*h*.45,1.4,1.4)}
+  const m=x.createRadialGradient(w*.2,h*.18,0,w*.2,h*.18,Math.min(w,h)*.14);m.addColorStop(0,"#FFF1D0");m.addColorStop(.35,"#F6D9A0");m.addColorStop(1,"rgba(246,217,160,0)");x.fillStyle=m;x.beginPath();x.arc(w*.2,h*.18,Math.min(w,h)*.14,0,Math.PI*2);x.fill();
+  x.fillStyle="#241B2E";x.beginPath();x.moveTo(0,h*.62);for(let X=0;X<=w;X+=w/8)x.lineTo(X,h*(.5+.08*Math.sin(X/w*7+1)));x.lineTo(w,h);x.lineTo(0,h);x.fill();
+  const cx=w*.72,cy=h*.52,u=Math.min(w,h)/40;
+  x.fillStyle="#140F18";x.beginPath();x.moveTo(w*.45,h);x.lineTo(w*.55,cy+u*4);x.lineTo(w,cy+u*2);x.lineTo(w,h);x.fill();
+  const tower=(tx,tw,th)=>{x.fillRect(tx-tw/2,cy-th,tw,th+u*4);x.beginPath();x.moveTo(tx-tw/2-u*.6,cy-th);x.lineTo(tx,cy-th-u*4);x.lineTo(tx+tw/2+u*.6,cy-th);x.fill()};
+  x.fillStyle="#140F18";x.fillRect(cx-u*7,cy-u*5,u*14,u*9);tower(cx-u*7,u*3,u*9);tower(cx+u*7,u*3,u*10);tower(cx,u*4,u*14);
+  x.fillStyle="#F2B84B";[[cx-u*7,cy-u*6],[cx+u*7,cy-u*7],[cx,cy-u*10],[cx,cy-u*6],[cx-u*3,cy-u*2],[cx+u*3,cy-u*2]].forEach(([a,b])=>x.fillRect(a-u*.35,b,u*.7,u*1.1));
+  [[cx-u*3.2,"#8E1B16"],[cx+u*3.2,"#1F3E8C"]].forEach(([bx,c])=>{x.fillStyle=c;x.beginPath();x.moveTo(bx-u,cy-u*4);x.lineTo(bx+u,cy-u*4);x.lineTo(bx+u,cy+u*1.5);x.lineTo(bx,cy+u*.6);x.lineTo(bx-u,cy+u*1.5);x.fill();x.fillStyle="#F2B84B";x.fillRect(bx-u*.3,cy-u*2.6,u*.6,u*.6)});
+  for(let i=0;i<40;i++){x.fillStyle=`rgba(255,${140+Math.floor(rnd()*80)},60,${.35+rnd()*.5})`;x.beginPath();x.arc(rnd()*w,h*.45+rnd()*h*.55,.8+rnd()*1.8,0,Math.PI*2);x.fill()}
 }
 // 勇者冒險: a pixel-art field with sky, clouds, mountains, a castle and grass tiles
 function artQuest(x,w,h){
@@ -2485,7 +2511,7 @@ function openSettings(){
 <div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
-<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b class="${k==="fant"||k==="quest"?"swwin sw-"+k:""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
+<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k];return `<button type="button" class="sw" data-skin="${k}" aria-pressed="${S.skin===k}"><b class="${k==="fant"||k==="quest"?"swwin sw-"+k:k==="epic"?"sw-epic":""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
 ${(S.mySkins||[]).length?`<small class="note">${STT().mine}</small><div class="swatches">${S.mySkins.map(m=>`<button type="button" class="sw" data-skin="${m.id}" aria-pressed="${S.skin===m.id}"><b style="background:linear-gradient(135deg,${m.bg},${m.bg2||m.bg})"><i class="swm">${esc((m.motifs||[])[0]||"")}</i></b>${esc(m.name[LANG[S.region]]||m.name.zh)}</button>`).join("")}</div>`:""}
 <div class="row"><button class="pill jelly" type="button" data-wardrobe="1">👕 ${WRT().title}</button><button class="pill jelly" type="button" data-skinai="1">✨ ${STT().skinTitle}${studioOpen()?"":" 🔒"}</button></div>
 <div class="row"><button class="pill jelly tgl pxbtn" type="button" data-set="pixel" aria-pressed="${!!S.pixel}">▦ ${PXT()}</button></div>
@@ -5595,10 +5621,10 @@ S.music=S.music||{on:true,track:"piano",vol:.5};
 if(isWip(S.face))S.face=0;
 S.visit=S.visit||{n:0,last:""};if(S.visit.last!==key(new Date())){S.visit.n++;S.visit.last=key(new Date())}
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
-const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
-const MP_STR={zh:{names:{piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
-  ja:{names:{piano:"ピアノ",night:"夜のジャズ",classic:"オルゴール",crystal:"クリスタルハープ",chip:"8ビット冒険",rain:"雨の音",ocean:"波の音"},themed:n=>`BGM とプレイリストを「${n}」のおすすめにしました（自分で入れた曲はそのまま）`,notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
-  en:{names:{piano:"Soft piano",night:"Late-night jazz",classic:"Music box",crystal:"Crystal harp",chip:"8-bit adventure",rain:"Rain",ocean:"Waves"},themed:n=>`Music now matches “${n}” (songs you added are kept)`,notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
+const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"epic",e:"🛡️"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
+const MP_STR={zh:{names:{epic:"史詩戰鼓",piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
+  ja:{names:{epic:"いくさの太鼓",piano:"ピアノ",night:"夜のジャズ",classic:"オルゴール",crystal:"クリスタルハープ",chip:"8ビット冒険",rain:"雨の音",ocean:"波の音"},themed:n=>`BGM とプレイリストを「${n}」のおすすめにしました（自分で入れた曲はそのまま）`,notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
+  en:{names:{epic:"War drums",piano:"Soft piano",night:"Late-night jazz",classic:"Music box",crystal:"Crystal harp",chip:"8-bit adventure",rain:"Rain",ocean:"Waves"},themed:n=>`Music now matches “${n}” (songs you added are kept)`,notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
 const MPT=()=>MP_STR[LANG[S.region]];
 function ambCtx(){if(!AMB.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AMB.ctx=new C();AMB.master=AMB.ctx.createGain();AMB.master.gain.value=0;AMB.master.connect(AMB.ctx.destination)}return AMB.ctx}
 function noiseBuf(ctx,brown){const n=ctx.sampleRate*4,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5}else d[i]=w}return b}
@@ -5614,7 +5640,7 @@ function ambStart(track){
     const s=ctx.createBufferSource();s.buffer=noiseBuf(ctx,true);s.loop=true;const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=700;const g=ctx.createGain();g.gain.value=.35;
     const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.09;lg.gain.value=.25;lfo.connect(lg).connect(g.gain);
     s.connect(lp).connect(g).connect(out);s.start();lfo.start();AMB.nodes.push(s,lp,g,lfo,lg);
-  }else if(track==="night"||track==="classic"||track==="crystal"||track==="chip"){ambTheme(ctx,out,track)
+  }else if(track==="night"||track==="classic"||track==="crystal"||track==="chip"||track==="epic"){ambTheme(ctx,out,track)
   }else{   // soft piano: pentatonic notes over slow chords, with a gentle echo
     const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=.42;fb.gain.value=.32;wet.gain.value=.35;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
     const scale=[261.6,293.7,329.6,392,440,523.3,587.3,659.3,784];const chords=[[130.8,196,261.6],[110,164.8,220],[87.3,130.8,174.6],[98,146.8,196]];let beat=0;
@@ -5963,6 +5989,26 @@ const VCOURSES=[
    units:[{t:{zh:"日常口語",ja:"日常の口語",en:"Everyday talk"},items:[V2("No worries","口語","沒關係、不客氣","“Sorry I'm late!” “No worries.”","「抱歉我遲到了！」「沒關係。」","worries"),V2("I'm down","口語","我可以、算我一份","Pizza tonight? I'm down.","今晚吃披薩？算我一份。","down"),V2("hang out","口語","一起出去玩、閒晃","Do you want to hang out this weekend?","這週末要一起出去玩嗎？","hang"),V2("a piece of cake","俚語","小事一樁、超簡單","The test was a piece of cake.","那個考試超簡單。","cake"),V2("Hit me up","口語","（有事）聯絡我","Hit me up when you get to Taipei.","你到台北時聯絡我。","Hit"),V2("My bad","口語","我的錯（輕鬆的道歉）","Oops, my bad. I took your seat.","喔，我的錯，我坐到你的位子了。","bad"),V2("What's up?","口語","最近怎樣？（打招呼）","Hey, what's up? Long time no see!","嘿，最近怎樣？好久不見！","up"),V2("chill","口語","放輕鬆；（人）很隨和","Just chill, we have plenty of time.","放輕鬆，我們時間很多。","chill")]},{t:{zh:"影集常聽到",ja:"ドラマでよく聞く",en:"Heard on TV"},items:[V2("Break a leg","俚語","祝你好運（上台前說）","Break a leg at your concert tonight!","祝你今晚演唱會順利！","leg"),V2("Spill the tea","俚語","快說八卦","Come on, spill the tea! What happened?","快點，說八卦！發生什麼事？","tea"),V2("under the weather","俚語","身體不太舒服","I'm feeling a bit under the weather today.","我今天有點不舒服。","weather"),V2("Call it a day","俚語","今天就到這裡、收工","We've done enough. Let's call it a day.","做得夠多了，今天就收工吧。","day"),V2("low-key","口語","其實有點、偷偷地（不張揚）","I'm low-key excited about the trip.","我其實有點期待這趟旅行。","low-key"),V2("It's on me","口語","我請客","Don't worry about the bill. It's on me.","帳單別擔心，我請客。","me"),V2("Cut to the chase","俚語","直接講重點","Let's cut to the chase. What do you need?","直接講重點吧，你需要什麼？","chase"),V2("once in a blue moon","俚語","很少、難得一次","I eat fast food once in a blue moon.","我很少吃速食。","blue moon")]}]}
 ];
 S.vc=S.vc||{};S.vbook=S.vbook||{};
+// course explanations are written in Chinese; Japanese and English readers get them translated once by AI and kept
+S.vcTr=S.vcTr||{};
+const vLang=()=>LANG[S.region];
+const vTr=x=>vLang()==="zh"?null:((S.vcTr[vLang()]||{})[x.w]||null);
+const vM=x=>{const t=vTr(x);return t&&t.m||x.zh};
+const vST=x=>{if(vLang()==="en")return "";const t=vTr(x);return t&&t.st||x.st};
+const vP=x=>{const t=vTr(x);return t&&t.p||x.pos};
+let vcTrBusy=null;
+async function vcTransEnsure(u){
+  const L=vLang();if(L==="zh"||!u)return;const miss=u.items.filter(x=>!vTr(x));if(!miss.length||vcTrBusy===u)return;
+  vcTrBusy=u;await aiReady;if(!AI){vcTrBusy=null;return}
+  const lname=L==="ja"?"Japanese":"English";
+  try{const r=await AI.json(`These are items from an English course written for Chinese speakers. Rewrite the help for a ${lname}-speaking learner.
+For each item give: "w" (unchanged), "m" a short ${lname} meaning or explanation (max 30 characters for Japanese, 12 words for English; for grammar points explain the rule), ${L==="ja"?`"st" a natural Japanese translation of the example sentence, `:""}"p" the tag in ${lname} if the tag is Chinese, else the same tag.
+Items: ${JSON.stringify(miss.map(x=>({w:x.w,tag:x.pos,zh:x.zh,example:x.s})))}
+Reply ONLY JSON {"items":[{"w":"","m":"",${L==="ja"?`"st":"",`:""}"p":""}]}`,{cache:false});
+    S.vcTr[L]=S.vcTr[L]||{};(Array.isArray(r.items)?r.items:[]).forEach(y=>{const x=miss.find(z=>z.w===y.w);if(x&&y.m)S.vcTr[L][x.w]={m:String(y.m).slice(0,80),st:String(y.st||"").slice(0,120),p:String(y.p||"").slice(0,12)}});
+    save();if(S.face===4)render();
+  }catch(e){}finally{vcTrBusy=null}
+}
 const vcOf=k=>{const C=VCOURSES.find(c=>c.k===k);if(!C)return null;const st=S.vc[k]=S.vc[k]||{extra:[],done:{}};return {C,st,units:[...C.units,...st.extra]}};
 const vcOpen=(k,i)=>!OWNER.proCourses||i===0||owns("course:"+k)||owns("course:all")||unlocked("course");
 let vcView=null;   // {k} course, {k,u} unit, {k,u,quiz}
@@ -5988,8 +6034,8 @@ ${OWNER.proCourses&&!unlocked("course")?`<p class="note">${v.proNote}${OWNER.cou
   const u=units[vcView.u];if(!u)return "";
   if(vcView.quiz)return vqHTML(C,u);
   return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${esc(vName(C.n))}</button><b class="pgname">${esc(vName(u.t))}</b></div>
-<div class="vwords">${u.items.map((x,i)=>`<div class="vword jelly${C.kind?" phr":""}"><div class="vwh">${C.k==="grammar"?"":`<button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button>`}<b>${esc(x.w)}</b><i>${esc(x.pos)}</i><span>${esc(x.zh)}</span><button type="button" class="vstar${S.vbook[x.w]?" on":""}" data-vsave="${i}" aria-label="⭐">★</button></div>
-<p class="vs"><button type="button" class="say sm" data-vsays="${i}">${I.speak}</button><span>${vSent(x.s,x.b||x.w)}</span></p><small>${esc(x.st)}</small></div>`).join("")}</div>
+<div class="vwords">${u.items.map((x,i)=>`<div class="vword jelly${C.kind?" phr":""}"><div class="vwh">${C.k==="grammar"?"":`<button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button>`}<b>${esc(x.w)}</b><i>${esc(vP(x))}</i><span>${esc(vM(x))}</span><button type="button" class="vstar${S.vbook[x.w]?" on":""}" data-vsave="${i}" aria-label="⭐">★</button></div>
+<p class="vs"><button type="button" class="say sm" data-vsays="${i}">${I.speak}</button><span>${vSent(x.s,x.b||x.w)}</span></p>${vST(x)?`<small>${esc(vST(x))}</small>`:""}</div>`).join("")}</div>${vLang()!=="zh"&&u.items.some(x=>!vTr(x))?(setTimeout(()=>vcTransEnsure(u),0),`<p class="note" style="text-align:center">🤖 ${v.trNote}</p>`):""}
 <div class="row" style="justify-content:center"><button class="pill pri jelly" type="button" data-vquiz="1">📝 ${v.startQuiz}</button></div>`;
 }
 // the quiz: English → meaning, meaning → English, listening, and the example sentence with a blank
@@ -6000,13 +6046,13 @@ function vqHTML(C,u){
     return `<div class="lvup">${mascot(pct>=70?"cheer":"wave","lvmas")}<h2>${Q.score} / ${Q.qs.length}</h2><p>${"★".repeat(pct>=90?3:pct>=70?2:1)}</p><div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-vquiz="1">${T().gRestart}</button><button class="pill pri jelly" type="button" data-vcback="1">${v.backUnits}</button></div></div>`}
   const q=Q.qs[Q.i],x=q.x;
   const prompt=q.type==="en2zh"?`<b class="vqw">${esc(x.w)}</b><button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button>`
-    :q.type==="zh2en"?`<b class="vqw">${esc(x.zh)}</b><small>${esc(x.pos)}</small>`
+    :q.type==="zh2en"?`<b class="vqw">${esc(vM(x))}</b><small>${esc(vP(x))}</small>`
     :q.type==="listen"?`<button type="button" class="say big" data-vsay="${esc(x.w)}">${I.speak}</button><small>${v.listenQ}</small>`
-    :x.b?`<p class="vqs">${esc(x.s.replace(new RegExp(x.b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i"),"＿＿＿"))}</p><small>${esc(x.st)}</small>`
-    :`<p class="vqs">${esc(x.s.replace(new RegExp(x.w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\w*","i"),"＿＿＿"))}</p><small>${esc(x.st)}</small>`;
+    :x.b?`<p class="vqs">${esc(x.s.replace(new RegExp(x.b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i"),"＿＿＿"))}</p><small>${esc(vST(x))}</small>`
+    :`<p class="vqs">${esc(x.s.replace(new RegExp(x.w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\w*","i"),"＿＿＿"))}</p><small>${esc(vST(x))}</small>`;
   return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${esc(vName(u.t))}</button><span class="grow"></span><span class="cnt2">${Q.i+1}/${Q.qs.length} · ⭐ ${Q.score}</span></div>
 <div class="vq jelly">${prompt}</div>
-<div class="copts">${q.opts.map((y,i)=>`<button type="button" class="copt jelly${Q.done&&y===x?" ok":""}" data-vqa="${i}"><b>${esc(q.type==="en2zh"?y.zh:q.type==="cloze"&&x.b?y.b:y.w)}</b></button>`).join("")}</div>
+<div class="copts">${q.opts.map((y,i)=>`<button type="button" class="copt jelly${Q.done&&y===x?" ok":""}" data-vqa="${i}"><b>${esc(q.type==="en2zh"?vM(y):q.type==="cloze"&&x.b?y.b:y.w)}</b></button>`).join("")}</div>
 ${Q.done?`<p class="vs center"><span>${vSent(x.s,x.b||x.w)}</span></p>`:""}`;
 }
 function vqAnswer(i,btn){const Q=vcView.quiz;if(!Q||Q.done)return;const q=Q.qs[Q.i],y=q.opts[i];
@@ -6057,15 +6103,15 @@ function vBookHTML(){const v=VT(),list=Object.values(S.vbook).sort((a,b)=>(b.d||
   return `<div class="bar"><button class="pill jelly" type="button" data-vcback="1">‹ ${v.courses}</button><b class="pgname">⭐ ${v.book}</b></div>
 ${list.length?`<div class="vwords">${list.map(x=>`<div class="vword jelly"><div class="vwh"><button type="button" class="say sm" data-vsay="${esc(x.w)}">${I.speak}</button><b>${esc(x.w)}</b><i>${esc(x.pos)}</i><span>${esc(x.zh)}</span><button type="button" class="vstar on" data-vdrop="${esc(x.w.toLowerCase())}" aria-label="×">★</button></div>${x.s?`<p class="vs"><span>${vSent(x.s,x.w)}</span></p>`:""}</div>`).join("")}</div>`:`<p class="note">${v.bookEmpty}</p>`}`}
 const VC_STR={
-  zh:{packs:"加購篇：文法・句型・俚語（第 1 單元免費試讀）",courses:"單字課程",learned:(a,b)=>`已學 ${a} / ${b}`,book:"我的單字本",bookN:n=>`收藏了 ${n} 個字`,tapHint:"💡 例句裡的每個字都能點：聽發音、看意思，按 ☆ 收藏成字卡。",
+  zh:{trNote:"",packs:"加購篇：文法・句型・俚語（第 1 單元免費試讀）",courses:"單字課程",learned:(a,b)=>`已學 ${a} / ${b}`,book:"我的單字本",bookN:n=>`收藏了 ${n} 個字`,tapHint:"💡 例句裡的每個字都能點：聽發音、看意思，按 ☆ 收藏成字卡。",
     nextUnit:n=>`第 ${n} 單元`,genHint:"AI 依課程程度出新的一組字",unitN:n=>`第 ${n} 單元`,startQuiz:"開始測驗",listenQ:"聽聽看，是哪個字？",backUnits:"回到單元",
     proNote:"第 1 單元免費，其餘單元是加購內容。",noAI:"現在沒有 AI；可以先學內建單元，或由站長匯入官方字表。",genning:"AI 正在出下一個單元…",genFail:"這次沒出好，再試一次",
     looking:"查詢中…",noMeaning:"（接上 AI 可以查意思）",keep:"收藏",kept:"已收藏",bookEmpty:"還沒有收藏。在任何例句點一個字，按 ☆ 就會出現在這裡。",savedToast:w=>`已收藏「${w}」`},
-  ja:{packs:"追加パック：文法・構文・スラング（第 1 ユニット無料）",courses:"単語コース",learned:(a,b)=>`${a} / ${b} 語`,book:"マイ単語帳",bookN:n=>`${n} 語`,tapHint:"💡 例文の単語はタップできます：発音・意味、☆ でカードに保存。",
+  ja:{trNote:"日本語の説明を AI で用意しています…（一度だけ）",packs:"追加パック：文法・構文・スラング（第 1 ユニット無料）",courses:"単語コース",learned:(a,b)=>`${a} / ${b} 語`,book:"マイ単語帳",bookN:n=>`${n} 語`,tapHint:"💡 例文の単語はタップできます：発音・意味、☆ でカードに保存。",
     nextUnit:n=>`ユニット ${n}`,genHint:"AI がレベルに合わせて出題",unitN:n=>`ユニット ${n}`,startQuiz:"テスト",listenQ:"聞いて選ぼう",backUnits:"ユニットへ",
     proNote:"ユニット 1 は無料、以降は追加購入です。",noAI:"今は AI が使えません。内蔵ユニットで学べます。",genning:"AI が次のユニットを作成中…",genFail:"うまくいきませんでした。もう一度",
     looking:"調べています…",noMeaning:"（AI につなぐと意味を表示）",keep:"保存",kept:"保存済み",bookEmpty:"まだありません。例文の単語をタップして ☆ で保存。",savedToast:w=>`「${w}」を保存`},
-  en:{packs:"Add-on packs: grammar, patterns, slang (unit 1 free)",courses:"Word courses",learned:(a,b)=>`${a} / ${b} learnt`,book:"My word book",bookN:n=>`${n} saved`,tapHint:"💡 Every word in an example sentence is tappable: hear it, see the meaning, ☆ to save it as a card.",
+  en:{trNote:"Preparing English explanations with AI… (only once)",packs:"Add-on packs: grammar, patterns, slang (unit 1 free)",courses:"Word courses",learned:(a,b)=>`${a} / ${b} learnt`,book:"My word book",bookN:n=>`${n} saved`,tapHint:"💡 Every word in an example sentence is tappable: hear it, see the meaning, ☆ to save it as a card.",
     nextUnit:n=>`Unit ${n}`,genHint:"AI writes the next set at this level",unitN:n=>`Unit ${n}`,startQuiz:"Start the quiz",listenQ:"Listen: which word?",backUnits:"Back to units",
     proNote:"Unit 1 is free; later units are an add-on.",noAI:"No AI right now. Learn the built-in units, or import an official list.",genning:"AI is writing the next unit…",genFail:"That didn't work. Try again",
     looking:"Looking it up…",noMeaning:"(connect AI for meanings)",keep:"Save",kept:"Saved",bookEmpty:"Nothing yet. Tap a word in any sentence and press ☆.",savedToast:w=>`Saved “${w}”`}
@@ -6265,7 +6311,7 @@ function openTale(id,page){
   const T0=allTales().find(x=>x.id===id);if(!T0)return;const t=TT(),nl=LANG[S.region];
   tl=tl&&tl.id===id?tl:{id,page:0,lang:S.tales.lang||(S.pd&&["en","ja","zh"].includes(S.pd.lang)?S.pd.lang:nl),voice:S.tales.voice||"tts",playing:false};
   if(page!=null)tl.page=page;const p=tl.page,pg=T0.pages[p],txt=tlText(T0,p,tl.lang),sub=tl.lang!==nl?(pg.text[nl]||""):"";
-  const vs=[["tts","🤖 "+t.vTTS],["dad","👨 潔米爸"],["mom","👩 潔米媽"],["mine","🎙 "+t.vMine]];
+  const vs=[["tts","🤖 "+t.vTTS],["dad","👨 "+t.vDad],["mom","👩 "+t.vMom],["mine","🎙 "+t.vMine]];
   layer(`<div class="shead"><h2>${T0.f} ${esc(T0.t[nl]||T0.t.zh)}</h2>${closeBtn(T())}</div>
 <div class="tlangs">${TL_LANGS.map(L=>`<button type="button" data-tllang="${L.k}" aria-pressed="${tl.lang===L.k}">${L.lbl}${L.ai&&!(S.tales.tr||{})[id+"|"+L.k]?" ✨":""}</button>`).join("")}</div>
 <div class="tpage">${sceneOf(T0,p)}<div class="tpn">${p+1} / ${T0.pages.length}</div></div>
@@ -6348,15 +6394,15 @@ Reply ONLY JSON {"title":{"zh":"","en":"","ja":""},"pages":[{"bg":"desert","acto
   }catch(e){out.innerHTML=`<p class="note">${esc(e&&e.code?aiErrText(e):t.advFail)}</p>`}
 }
 const TL_STR={
-  zh:{pg:" 頁",old:"舊版（有你的錄音或翻譯）",lib:"故事館",pick:"選一本書",newAdv:"AI 編一個小潔米歷險",vTTS:"手機語音",vMine:"我的聲音",voice:"誰來唸：",read:"唸這頁",play:"有聲書",stop:"停止",needTr:"這本書還沒有這個語言的版本。",translate:"AI 翻譯整本",translating:"AI 翻譯中…",trFail:"翻譯沒成功，再試一次",noAI:"現在沒有 AI。",
+  zh:{vDad:"潔米爸",vMom:"潔米媽",pg:" 頁",old:"舊版（有你的錄音或翻譯）",lib:"故事館",pick:"選一本書",newAdv:"AI 編一個小潔米歷險",vTTS:"手機語音",vMine:"我的聲音",voice:"誰來唸：",read:"唸這頁",play:"有聲書",stop:"停止",needTr:"這本書還沒有這個語言的版本。",translate:"AI 翻譯整本",translating:"AI 翻譯中…",trFail:"翻譯沒成功，再試一次",noAI:"現在沒有 AI。",
     rec:v=>`錄這一頁（${v}）`,recStop:"停止錄音",recSaved:"錄好了！再按「唸這頁」聽聽看",recNo:"這裡不能錄音（預覽頁沒有麥克風權限），請在正式網站或安裝版使用。",
     recMine:"爸媽可以錄自己的聲音唸給孩子聽，只存在這台手機。",recOwner:"還沒有正式錄音。站長可以在這裡試錄，正式版的錄音檔要放上網站才會給所有人聽。",recOfficial:"這是正式錄音。",
     advHow:"選一個國家，AI 會寫一本 10 頁、有起承轉合的小潔米歷險，還會交到一個當地的朋友。圖用同一套畫風自動排好。",advIdea:"想加什麼劇情？（選填）",advPh:"例如：小潔米迷路了，被駱駝救了",advGo:"開始編故事",advMaking:"小潔米正在收行李…",advFail:"這次沒編好，再試一次",pickCountry:"先選一個國家"},
-  ja:{pg:" ページ",old:"旧版（録音・翻訳あり）",lib:"おはなし館",pick:"本を選ぼう",newAdv:"AI でゼリーの冒険をつくる",vTTS:"端末の声",vMine:"自分の声",voice:"読み手：",read:"このページ",play:"オーディオブック",stop:"停止",needTr:"この言語版はまだありません。",translate:"AI で全ページ翻訳",translating:"翻訳中…",trFail:"翻訳できませんでした",noAI:"今は AI が使えません。",
+  ja:{vDad:"ジェミーパパ",vMom:"ジェミーママ",pg:" ページ",old:"旧版（録音・翻訳あり）",lib:"おはなし館",pick:"本を選ぼう",newAdv:"AI でゼリーの冒険をつくる",vTTS:"端末の声",vMine:"自分の声",voice:"読み手：",read:"このページ",play:"オーディオブック",stop:"停止",needTr:"この言語版はまだありません。",translate:"AI で全ページ翻訳",translating:"翻訳中…",trFail:"翻訳できませんでした",noAI:"今は AI が使えません。",
     rec:v=>`このページを録音（${v}）`,recStop:"録音停止",recSaved:"録音しました！",recNo:"ここでは録音できません（プレビューにはマイク権限がありません）。",
     recMine:"親の声で読み聞かせを録音できます。この端末だけに保存。",recOwner:"まだ公式録音はありません。公開版の音声は、サイトに置くと全員が聴けます。",recOfficial:"公式録音です。",
     advHow:"国を選ぶと、AI が起承転結のある 10 ページの冒険を書きます。現地の友だちも登場。絵は同じ画風で組み立てます。",advIdea:"入れたいお話は？（任意）",advPh:"例：迷子になってラクダに助けられる",advGo:"お話をつくる",advMaking:"ゼリーが荷造り中…",advFail:"うまくできませんでした",pickCountry:"国を選んでね"},
-  en:{pg:" pages",old:"first edition (has your recordings or translations)",lib:"Story library",pick:"Pick a book",newAdv:"AI: a new Little Jelly adventure",vTTS:"Phone voice",vMine:"My voice",voice:"Read by:",read:"Read page",play:"Audiobook",stop:"Stop",needTr:"No version in this language yet.",translate:"Translate the book with AI",translating:"Translating…",trFail:"Translation failed. Try again",noAI:"No AI right now.",
+  en:{vDad:"Jamie's Dad",vMom:"Jamie's Mom",pg:" pages",old:"first edition (has your recordings or translations)",lib:"Story library",pick:"Pick a book",newAdv:"AI: a new Little Jelly adventure",vTTS:"Phone voice",vMine:"My voice",voice:"Read by:",read:"Read page",play:"Audiobook",stop:"Stop",needTr:"No version in this language yet.",translate:"Translate the book with AI",translating:"Translating…",trFail:"Translation failed. Try again",noAI:"No AI right now.",
     rec:v=>`Record this page (${v})`,recStop:"Stop recording",recSaved:"Recorded! Tap Read page to hear it",recNo:"Recording isn't available here (the preview has no microphone). Use the app link.",
     recMine:"Parents can record their own voice for their child; it stays on this phone.",recOwner:"No official recording yet. Official voice files go on the website for everyone.",recOfficial:"Official recording.",
     advHow:"Pick a country; AI writes a 10-page Little Jelly adventure with a real story arc and a local friend, drawn in the same style.",advIdea:"Any plot idea? (optional)",advPh:"e.g. Little Jelly gets lost and a camel helps",advGo:"Write the story",advMaking:"Little Jelly is packing…",advFail:"That didn't work. Try again",pickCountry:"Pick a country first"}
@@ -6643,7 +6689,7 @@ function photoSave(){
 function ambTheme(ctx,out,track){
   const now=()=>ctx.currentTime,hz=m=>440*Math.pow(2,(m-69)/12);
   const dl=ctx.createDelay(1),fb=ctx.createGain(),wet=ctx.createGain();dl.delayTime.value=track==="chip"?.24:.38;fb.gain.value=track==="chip"?.18:.3;wet.gain.value=track==="chip"?.15:.3;dl.connect(fb).connect(dl);dl.connect(wet).connect(out);AMB.nodes.push(dl,fb,wet);
-  const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=track==="chip"?2600:5200;lp.connect(out);lp.connect(dl);AMB.nodes.push(lp);
+  const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=track==="chip"?2600:track==="epic"?1500:5200;lp.connect(out);lp.connect(dl);AMB.nodes.push(lp);
   const tone=(m,vol,len,type,harm)=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type=type;o.frequency.value=hz(m);
     e.gain.setValueAtTime(0,now());e.gain.linearRampToValueAtTime(vol,now()+(type==="square"?.005:.01));e.gain.exponentialRampToValueAtTime(.0001,now()+len);o.connect(e);e.connect(lp);o.start();o.stop(now()+len+.05);
     if(harm){const o2=ctx.createOscillator(),e2=ctx.createGain();o2.type="sine";o2.frequency.value=hz(m)*harm;e2.gain.value=.25;o2.connect(e2).connect(e);o2.start();o2.stop(now()+len+.05)}};
@@ -6658,6 +6704,14 @@ function ambTheme(ctx,out,track){
   }else if(track==="crystal"){   // harp: rising broken chords (root, fifth, octave, tenth) over Dm–B♭–F–C
     const roots=[50,46,53,48],minor=[true,false,false,false];
     AMB.timer=setInterval(()=>{const c=Math.floor(beat/16)%4,r=roots[c],pat=[0,7,12,minor[c]?15:16],st=beat%16;tone(r+pat[st%4]+12*Math.floor(st/4),.045,2.4,"triangle",2);if(st===0)tone(r-12,.05,4,"sine");beat++},190);
+  }else if(track==="epic"){   // war drums, low strings and a horn call in D minor
+    const drum=v=>{const o=ctx.createOscillator(),e=ctx.createGain();o.type="sine";o.frequency.setValueAtTime(120,now());o.frequency.exponentialRampToValueAtTime(40,now()+.3);e.gain.setValueAtTime(v,now());e.gain.exponentialRampToValueAtTime(.0001,now()+.5);o.connect(e);e.connect(out);o.start();o.stop(now()+.55)};
+    const prog=[[38,50,53,57],[34,46,50,53],[36,48,52,55],[33,45,48,52]],horn=[62,65,69,67];
+    AMB.timer=setInterval(()=>{const bar=Math.floor(beat/8)%4,st=beat%8;
+      if(st===0)prog[bar].forEach(m=>tone(m,.03,2.8,"sawtooth"));
+      if(st===0||st===3||st===6)drum(st===0?.16:.09);
+      if(st===4&&Math.random()<.55)tone(horn[bar]+(Math.random()<.25?12:0),.045,1.5,"triangle",2);
+      beat++},340);
   }else{   // 8-bit march: a two-bar motif that repeats with small changes, square lead and triangle bass
     const scale=[60,62,64,67,69,72,74,76],roots=[48,53,55,48];let motif=Array.from({length:8},()=>Math.random()<.8?pick(scale):null);
     AMB.timer=setInterval(()=>{const bar=Math.floor(beat/8),st=beat%8;if(st===0&&bar%4===0&&bar)motif=motif.map(m=>Math.random()<.3?pick(scale):m);
@@ -6669,6 +6723,7 @@ const THEME_MUSIC={
   black:{track:"night",songs:[["Blue in Green","Miles Davis"],["Take Five","Dave Brubeck"],["Waltz for Debby","Bill Evans"],["'Round Midnight","Thelonious Monk"],["","","late night jazz lofi playlist"],["Nocturne Op.9 No.2","Frédéric Chopin"],["Moonlight Sonata","Ludwig van Beethoven"],["Autumn Leaves","Bill Evans"],["Weightless","Marconi Union"]]},
   art:{track:"classic",songs:[["Pictures at an Exhibition","Modest Mussorgsky"],["Clair de Lune","Claude Debussy"],["Spring (The Four Seasons)","Antonio Vivaldi"],["Air on the G String","J.S. Bach"],["","","classical music for art museum"],["The Moldau","Bedřich Smetana"],["Arabesque No.1","Claude Debussy"],["Swan Lake","Tchaikovsky"],["Canon in D","Johann Pachelbel"]]},
   fant:{track:"crystal",songs:[["Prelude","Nobuo Uematsu","Final Fantasy Prelude Nobuo Uematsu"],["Aerith's Theme","Nobuo Uematsu","Aerith's Theme Final Fantasy VII"],["To Zanarkand","Nobuo Uematsu","To Zanarkand Final Fantasy X"],["Eyes on Me","Faye Wong","Eyes on Me Faye Wong Final Fantasy VIII"],["","","Final Fantasy relaxing music playlist"],["Melodies of Life","Emiko Shiratori","Melodies of Life Final Fantasy IX"],["Terra's Theme","Nobuo Uematsu","Terra's Theme Final Fantasy VI"],["Suteki da ne","Rikki","Suteki da ne Final Fantasy X"],["Main Theme","Nobuo Uematsu","Final Fantasy Main Theme Nobuo Uematsu"]]},
+  epic:{track:"epic",songs:[["Legends of Azeroth","World of Warcraft OST","World of Warcraft Legends of Azeroth"],["Stormwind","World of Warcraft OST","World of Warcraft Stormwind music"],["Elwynn Forest","World of Warcraft OST","World of Warcraft Elwynn Forest music"],["Lament of the Highborne","World of Warcraft OST","Lament of the Highborne"],["","","World of Warcraft ambience music"],["Invincible","World of Warcraft OST","World of Warcraft Invincible"],["Seasons of War","World of Warcraft OST","World of Warcraft Seasons of War"],["Wrath of the Lich King","World of Warcraft OST","Wrath of the Lich King main theme"],["Mists of Pandaria","World of Warcraft OST","Mists of Pandaria main theme"]]},
   quest:{track:"chip",songs:[["Overture","Koichi Sugiyama","Dragon Quest Overture Koichi Sugiyama"],["Adventure","Koichi Sugiyama","Dragon Quest III Adventure Sugiyama"],["Into the Legend","Koichi Sugiyama","Dragon Quest III Into the Legend"],["Heavenly Flight","Koichi Sugiyama","Dragon Quest III Heavenly Flight"],["","","Dragon Quest symphonic suite playlist"],["Wedding Waltz","Koichi Sugiyama","Dragon Quest V Wedding Waltz"],["Town","Koichi Sugiyama","Dragon Quest town theme Sugiyama"],["Love Song Searching for You","Koichi Sugiyama","Dragon Quest Love Song Searching for You"],["Castle","Koichi Sugiyama","Dragon Quest castle theme Sugiyama"]]}
 };
 const themeOf=k=>{if(THEME_MUSIC[k])return THEME_MUSIC[k];const m=(S.mySkins||[]).find(x=>x.id===k);return m&&(m.music||(m.songs||[]).length)?{track:m.music,songs:m.songs||[]}:null};
@@ -6786,6 +6841,7 @@ const OUTFIT={
     OF("helmet",6,"勇者頭盔","勇者のかぶと","Hero's helmet","#B8C4D6",c=>`<path d="M30 22Q30 2 50 2Q70 2 70 22Z" fill="${c}" stroke="#7A8BA0" stroke-width="1.2"/><rect x="48" y="2" width="4" height="20" fill="#fff" opacity=".35"/><path d="M50 2Q46-8 56-12Q54-4 60-2Q54 0 50 2Z" fill="#E5484D"/>`),
     OF("beret",7,"畫家帽","ベレー帽","Beret","#C0392B",c=>`<ellipse cx="44" cy="12" rx="20" ry="8" fill="${c}" transform="rotate(-12 44 12)"/><circle cx="43" cy="4" r="2" fill="${c}"/>`),
     OF("grad",7,"學士帽","角帽","Graduation cap","#1B2735",c=>`<path d="M50 0L78 9 50 18 22 9Z" fill="${c}"/><path d="M36 13V20Q50 25 64 20V13L50 18Z" fill="${c}"/><path d="M50 9L72 12V24" stroke="#F2C94C" stroke-width="1.6" fill="none"/><circle cx="72" cy="25" r="2.2" fill="#F2C94C"/>`),
+    OF("horned",6,"角盔","つのかぶと","Horned helmet","#8C8C94",c=>`<path d="M30 22Q30 4 50 4Q70 4 70 22Z" fill="${c}" stroke="#5A4A3A" stroke-width="1.2"/><path d="M31 14Q18 12 16-2Q24 6 34 8ZM69 14Q82 12 84-2Q76 6 66 8Z" fill="#F2E6C9" stroke="#8C7A5A" stroke-width="1"/><rect x="47" y="4" width="6" height="18" fill="#000" opacity=".15"/>`),
     OF("santa",8,"聖誕帽","サンタ帽","Santa hat","#E5484D",c=>`<path d="M31 20Q40-4 66 4L70 20Z" fill="${c}"/><rect x="28" y="16" width="44" height="7" rx="3.5" fill="#fff"/><circle cx="68" cy="4" r="4.5" fill="#fff"/>`)],
   face:[
     OF("round",1,"圓框眼鏡","まる眼鏡","Round glasses","#3A2A1A",c=>`<g fill="none" stroke="${c}" stroke-width="2"><circle cx="37" cy="35" r="9"/><circle cx="58" cy="35" r="9"/><path d="M46 34Q47.5 32 49 34M28 34L22 32M67 34L74 32"/></g>`),
@@ -6797,6 +6853,7 @@ const OUTFIT={
     OF("scarf",2,"圍巾","マフラー","Scarf","#2A9DA8",c=>`<path d="M24 58Q50 70 76 58V64Q50 76 24 64Z" fill="${c}"/><path d="M62 66L66 80H58L56 68Z" fill="${c}"/><path d="M30 61Q50 71 70 61" stroke="#fff" stroke-width="1.4" opacity=".6" fill="none"/>`),
     OF("medal",3,"金牌","金メダル","Gold medal","#F2C94C",c=>`<path d="M44 56L50 66 56 56" stroke="#2F6FED" stroke-width="3" fill="none"/><circle cx="50" cy="69" r="6" fill="${c}" stroke="#B8862E"/><text x="50" y="71.5" font-size="7" text-anchor="middle" fill="#fff">1</text>`),
     OF("tie",4,"領帶","ネクタイ","Necktie","#1F5C66",c=>`<path d="M47 58H53L51 62 54 76 50 80 46 76 49 62Z" fill="${c}"/>`),
+    OF("pauldron",7,"大護肩","おおきな肩当て","Big pauldrons","#B8913F",c=>`<path d="M2 54Q4 38 22 40Q30 50 22 60Q10 62 2 54Z" fill="${c}" stroke="#6B4A1A" stroke-width="1.2"/><path d="M98 54Q96 38 78 40Q70 50 78 60Q90 62 98 54Z" fill="${c}" stroke="#6B4A1A" stroke-width="1.2"/><path d="M8 42L5 30 15 40ZM92 42L95 30 85 40Z" fill="#E9E4D8"/><path d="M8 52Q14 46 20 50M92 52Q86 46 80 50" stroke="#fff" stroke-width="1.2" opacity=".4" fill="none"/>`),
     OF("pearls",8,"珍珠項鍊","パールネックレス","Pearl necklace","#FFFFFF",c=>Array.from({length:11},(_,i)=>{const a=Math.PI*(.15+.07*i);return `<circle cx="${(50-Math.cos(a)*24).toFixed(1)}" cy="${(52+Math.sin(a)*12).toFixed(1)}" r="2" fill="${c}" stroke="#D6CFC0" stroke-width=".5"/>`}).join(""))],
   hand:[
     OF("balloon",1,"氣球","ふうせん","Balloon","#E5484D",c=>`<path d="M90 56Q86 40 92 26" stroke="#888" stroke-width=".8" fill="none"/><ellipse cx="92" cy="17" rx="8" ry="10" fill="${c}"/><path d="M89 12Q90 9 93 10" stroke="#fff" stroke-width="1.5" opacity=".6" fill="none"/>`),
@@ -6806,6 +6863,8 @@ const OUTFIT={
     OF("mic",4,"麥克風","マイク","Microphone","#9AA6B2",c=>`<path d="M88 60L92 48" stroke="#333" stroke-width="3" stroke-linecap="round"/><circle cx="93" cy="45" r="4.5" fill="${c}"/>`),
     OF("wand",5,"魔法棒","魔法のつえ","Magic wand","#F2C94C",c=>`<path d="M86 58L98 38" stroke="#5B4636" stroke-width="2.4" stroke-linecap="round"/><text x="98" y="39" font-size="12" text-anchor="middle" dominant-baseline="central" fill="${c}">★</text>`),
     OF("sword",6,"勇者之劍","勇者のけん","Hero's sword","#DDE3EA",c=>`<path d="M88 58V24" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/><path d="M82 56H94" stroke="#B8862E" stroke-width="3" stroke-linecap="round"/><path d="M88 58V64" stroke="#6B4A36" stroke-width="3"/>`),
+    OF("axe",6,"戰斧","せんとうの斧","Battle axe","#C9CED6",c=>`<path d="M88 64V26" stroke="#6B4A36" stroke-width="2.6" stroke-linecap="round"/><path d="M88 28Q104 22 106 38Q98 34 88 40Z" fill="${c}" stroke="#6B6B72" stroke-width="1"/>`),
+    OF("hammer",7,"聖錘","せいなるハンマー","Holy hammer","#F2C94C",c=>`<path d="M88 64V32" stroke="#6B4A36" stroke-width="2.6" stroke-linecap="round"/><rect x="80" y="21" width="16" height="12" rx="2" fill="${c}" stroke="#8C6A2A"/><path d="M84 27H92" stroke="#fff" opacity=".6"/>`),
     OF("brush",7,"畫筆","絵筆","Paintbrush","#E5484D",c=>`<path d="M86 60L98 40" stroke="#C9A27E" stroke-width="2.4" stroke-linecap="round"/><path d="M97 42L100 35 95 38Z" fill="${c}"/>`)],
   back:[
     OF("cape",5,"披風","マント","Cape","#C0392B",c=>`<path d="M22 44Q50 36 78 44L86 86Q50 94 14 86Z" fill="${c}"/>`),
@@ -6819,7 +6878,9 @@ const OF_SETS=[
   {k:"scholar",e:"📚",n:{zh:"學霸",ja:"がり勉",en:"Scholar"},p:{hat:"grad",face:"round",hand:"book"}},
   {k:"artist",e:"🎨",n:{zh:"畫家",ja:"画家",en:"Artist"},p:{hat:"beret",neck:"scarf",hand:"brush"}},
   {k:"mage",e:"🔮",n:{zh:"魔法師",ja:"魔法使い",en:"Mage"},p:{hat:"wizard",hand:"wand",back:"cape"},col:{back:"#6B4FCF"}},
-  {k:"hero",e:"⚔️",n:{zh:"勇者",ja:"勇者",en:"Hero"},p:{hat:"helmet",hand:"sword",back:"cape"}}
+  {k:"hero",e:"⚔️",n:{zh:"勇者",ja:"勇者",en:"Hero"},p:{hat:"helmet",hand:"sword",back:"cape"}},
+  {k:"warrior",e:"🪓",n:{zh:"戰士",ja:"戦士",en:"Warrior"},p:{hat:"horned",neck:"pauldron",hand:"axe"},col:{neck:"#8C8C94"}},
+  {k:"paladin",e:"🔨",n:{zh:"聖騎士",ja:"パラディン",en:"Paladin"},p:{hat:"helmet",neck:"pauldron",hand:"hammer",back:"cape"},col:{back:"#1F3E8C",hat:"#F2C94C"}}
 ];
 S.outfit=S.outfit||{};S.outfit.col=S.outfit.col||{};
 const ofItem=(slot,k)=>(OUTFIT[slot]||[]).find(x=>x.k===k);
@@ -6949,25 +7010,25 @@ const J=(k,c,name,tag,type,skills,outfit,goal,prog,need)=>({k,c,name,tag,type,sk
 const JOBS=[
   J("delver","#E07A3F",{zh:"掘徑者",ja:"ほりすすむ者",en:"Delver"},{zh:"把牆當成門的那種人",ja:"カベをトビラにする人",en:"Treats walls like doors"},
     {zh:"近戰推進型：血厚、站得住。他不擅長閃躲，他擅長讓對方先撐不住。",ja:"近接で押し進むタイプ。タフで、先に相手が音を上げる。",en:"Front-line pusher: tough and steady; the other side gives up first."},
-    [["破土斬","向前劈出一道土石弧，擊退第一個敵人。"],["地心迴旋","原地旋轉 2.5 秒，掃開身邊所有敵人。"]],{hat:"miner",hand:"pick"},{zh:"在週曆完成 10 件事",ja:"週カレンダーで 10 件おわらせる",en:"Finish 10 tasks in your week"},tasksDone,10),
+    [[{zh:"破土斬",ja:"地割り斬り",en:"Earthsplitter"},{zh:"向前劈出一道土石弧，擊退第一個敵人。",ja:"土と石の弧をふりおろし、最初の敵をはじきとばす。",en:"Swing an arc of earth and stone; the first foe is knocked back."}],[{zh:"地心迴旋",ja:"地核大回転",en:"Core Spin"},{zh:"原地旋轉 2.5 秒，掃開身邊所有敵人。",ja:"その場で2.5秒回転し、まわりの敵をなぎはらう。",en:"Spin for 2.5 s, sweeping away every foe around you."}]],{hat:"miner",hand:"pick"},{zh:"在週曆完成 10 件事",ja:"週カレンダーで 10 件おわらせる",en:"Finish 10 tasks in your week"},tasksDone,10),
   J("stonespeaker","#4E7ECF",{zh:"石語者",ja:"いしがたり",en:"Stonespeaker"},{zh:"石頭會回答，只要你問對問題",ja:"正しく聞けば、石はこたえる",en:"Stones answer, if you ask the right question"},
     {zh:"遠程法術型：清場最強。把敵人的推進整片抹掉，而不是一個一個打。",ja:"遠くから魔法で一気にかたづけるタイプ。",en:"Ranged spellcaster who clears a whole wave at once."},
-    [["碎石彈","射出三枚石片，扇形散開。"],["熔脈","射出一道貫穿光束，穿透路上所有敵人。"]],{hat:"hood",hand:"orb"},{zh:"完成 3 個單字課程單元",ja:"単語コースを 3 ユニット",en:"Complete 3 word-course units"},unitsDone,3),
+    [[{zh:"碎石彈",ja:"砕石弾",en:"Shard Shot"},{zh:"射出三枚石片，扇形散開。",ja:"石のかけらを3つ、扇形に飛ばす。",en:"Fire three stone shards in a fan."}],[{zh:"熔脈",ja:"溶脈",en:"Magma Vein"},{zh:"射出一道貫穿光束，穿透路上所有敵人。",ja:"道にいる敵をすべて貫く光線を放つ。",en:"A beam that pierces every foe in its path."}]],{hat:"hood",hand:"orb"},{zh:"完成 3 個單字課程單元",ja:"単語コースを 3 ユニット",en:"Complete 3 word-course units"},unitsDone,3),
   J("shadowbinder","#8E6BE0",{zh:"縛影者",ja:"かげしばり",en:"Shadowbinder"},{zh:"不與人對砍，只結束對砍",ja:"打ち合わない。終わらせるだけ。",en:"Doesn't trade blows; ends them"},
     {zh:"刺客型：身手快、爆發高，繞過前線直接處理關鍵。",ja:"すばやいアサシン。まわりこんで要をねらう。",en:"Quick assassin who slips past the front line."},
-    [["影襲","向前突進，穿過的敵人受到傷害，過程中不受傷。"],["影之潮","3 秒內不停瞬移到最近的敵人身上攻擊。"]],{hat:"band",hand:"dagger"},{zh:"來網站 5 天",ja:"5 日このサイトに来る",en:"Visit on 5 different days"},()=>(S.visit&&S.visit.n)||0,5),
+    [[{zh:"影襲",ja:"影襲",en:"Shadow Strike"},{zh:"向前突進，穿過的敵人受到傷害，過程中不受傷。",ja:"前へ突進し、通りぬけた敵にダメージ。そのあいだは無敵。",en:"Dash forward, hurting foes you pass; untouchable while dashing."}],[{zh:"影之潮",ja:"影の潮",en:"Shadow Tide"},{zh:"3 秒內不停瞬移到最近的敵人身上攻擊。",ja:"3秒間、近くの敵へ次々と瞬間移動して攻撃する。",en:"For 3 s, keep blinking to the nearest foe and striking."}]],{hat:"band",hand:"dagger"},{zh:"來網站 5 天",ja:"5 日このサイトに来る",en:"Visit on 5 different days"},()=>(S.visit&&S.visit.n)||0,5),
   J("lampwarden","#E0B23C",{zh:"燈守",ja:"あかりもり",en:"Lampwarden"},{zh:"自己不推，但讓整條線都往前",ja:"自分は前に出ないけど、みんなを前へ",en:"Doesn't push, but moves the whole line forward"},
     {zh:"召喚支援型：本體不強，但召出的燈兵最強，擅長照顧整個隊伍。",ja:"しょうかんサポート。よびだす仲間がいちばん強い。",en:"Summoner-support whose lamp soldiers are the strongest."},
-    [["點燈","點燃一盞燈，召出兩名燈兵一起作戰。"],["燈塔","架起一座友方燈塔，射程與威力都很高。"]],{hat:"hood",hand:"lantern",col:{hat:"#E0B23C"}},{zh:"在故事館讀 3 本書",ja:"おはなし館で 3 さつ読む",en:"Read 3 books in the story library"},()=>(S.use&&S.use.tale)||0,3),
+    [[{zh:"點燈",ja:"灯をともす",en:"Light the Lamp"},{zh:"點燃一盞燈，召出兩名燈兵一起作戰。",ja:"灯をともして、2人の灯兵をよびだす。",en:"Light a lamp and call two lamp soldiers to fight with you."}],[{zh:"燈塔",ja:"灯台",en:"Lighthouse"},{zh:"架起一座友方燈塔，射程與威力都很高。",ja:"射程も威力も高い味方の灯台を建てる。",en:"Raise a friendly lighthouse with long range and power."}]],{hat:"hood",hand:"lantern",col:{hat:"#E0B23C"}},{zh:"在故事館讀 3 本書",ja:"おはなし館で 3 さつ読む",en:"Read 3 books in the story library"},()=>(S.use&&S.use.tale)||0,3),
   J("oracle","#C9B98A",{zh:"神諭祭司",ja:"おつげのしさい",en:"Oracle"},{zh:"她說不要扶，於是八百年沒有人扶",ja:"「ささえないで」と言われ、八百年だれもささえなかった",en:"She said don't help her up; for 800 years, no one did"},
     {zh:"白袍那一路：防護最高、藥草吃得最好，還能給自己護盾。",ja:"白いローブの守り手。いちばん打たれ強い。",en:"The white-robed guardian, hardest of all to knock down."},
-    [["神諭光柱","一道光柱落在前方，穿透路上的敵人。"],["神殿之光","以自己為中心降下大範圍的光。"]],{hat:"halo",hand:"light",back:"wings"},{zh:"完成目標路線上的 3 個步驟",ja:"目標ルートを 3 ステップ",en:"Complete 3 steps on your goal path"},()=>((S.goal&&S.goal.steps)||[]).filter(x=>x&&x.done).length,3),
+    [[{zh:"神諭光柱",ja:"神託の光柱",en:"Oracle Pillar"},{zh:"一道光柱落在前方，穿透路上的敵人。",ja:"前方に光の柱が落ち、道の敵を貫く。",en:"A pillar of light lands ahead, piercing the foes on its path."}],[{zh:"神殿之光",ja:"神殿の光",en:"Temple Light"},{zh:"以自己為中心降下大範圍的光。",ja:"自分を中心に広い範囲へ光をふらせる。",en:"Bring down a wide circle of light around you."}]],{hat:"halo",hand:"light",back:"wings"},{zh:"完成目標路線上的 3 個步驟",ja:"目標ルートを 3 ステップ",en:"Complete 3 steps on your goal path"},()=>((S.goal&&S.goal.steps)||[]).filter(x=>x&&x.done).length,3),
   J("gladiator","#E0662A",{zh:"角鬥士",ja:"けんとうし",en:"Gladiator"},{zh:"贏的人戴桂冠，輸的人也曾經戴過",ja:"勝者は月桂冠を。敗者もかつてはかぶっていた",en:"Winners wear the laurel; losers once did too"},
     {zh:"快、脆、爆發高。他不擋，他讓對方沒有第二下。",ja:"速くて一撃が重い。二回目をださせない。",en:"Fast and fierce: there's no second hit."},
-    [["搶拍","向前突進並劈砍，命中就回一點血。"],["競技場","8 秒內攻擊速度大增，還能邊打邊回血。"]],{hat:"laurel",hand:"shield"},{zh:"升到 Lv 5",ja:"Lv 5 になる",en:"Reach Lv 5"},()=>myLv(),5),
+    [[{zh:"搶拍",ja:"先取り",en:"Quick Beat"},{zh:"向前突進並劈砍，命中就回一點血。",ja:"突進して斬りつけ、当たると少し回復。",en:"Dash in and slash; each hit heals you a little."}],[{zh:"競技場",ja:"闘技場",en:"Arena"},{zh:"8 秒內攻擊速度大增，還能邊打邊回血。",ja:"8秒間、攻撃がとても速くなり、攻撃しながら回復。",en:"For 8 s, attack much faster and heal as you hit."}]],{hat:"laurel",hand:"shield"},{zh:"升到 Lv 5",ja:"Lv 5 になる",en:"Reach Lv 5"},()=>myLv(),5),
   J("beastbinder","#8FB86A",{zh:"縛獸人",ja:"けものつかい",en:"Beastbinder"},{zh:"牠們比牠好相處",ja:"あの子たちのほうが、つきあいやすい",en:"The beasts are easier company"},
     {zh:"自己不強，但帶的夥伴很強，還能把敵人變成自己人。",ja:"自分は強くないけど、なかまがとても強い。",en:"Not strong alone, but the companions are, and foes become friends."},
-    [["哨音","一聲哨音震開周圍的敵人。"],["獸骨樁","架起一座友方獸骨塔，守住陣地。"]],{hat:"wolf",hand:"horn"},{zh:"在單字本收藏 10 個字",ja:"単語帳に 10 語ほぞん",en:"Save 10 words to your word book"},()=>Object.keys(S.vbook||{}).length,10)
+    [[{zh:"哨音",ja:"呼び笛",en:"Whistle"},{zh:"一聲哨音震開周圍的敵人。",ja:"笛の音でまわりの敵をはじきとばす。",en:"A sharp whistle knocks back the foes around you."}],[{zh:"獸骨樁",ja:"獣骨の杭",en:"Bone Totem"},{zh:"架起一座友方獸骨塔，守住陣地。",ja:"味方の獣骨の塔を建てて陣地を守る。",en:"Raise a friendly bone tower to hold your ground."}]],{hat:"wolf",hand:"horn"},{zh:"在單字本收藏 10 個字",ja:"単語帳に 10 語ほぞん",en:"Save 10 words to your word book"},()=>Object.keys(S.vbook||{}).length,10)
 ];
 const jobHas=k=>{const j=JOBS.find(x=>x.k===k);return !!j&&j.prog()>=j.need};
 const JB_STR={zh:{title:"小潔米職業圖鑑",open:n=>`🏅 職業圖鑑 ${n}/7`,from:"來自《通天塔》的七種職業。用網站就能收集，收集到就能穿上職業裝。",wear:"穿上職業裝",skills:"招牌技能",how:"收集方式",got:"已收集",jobLock:"收集職業後解鎖",newJob:n=>`🏅 收集到新職業：${n}！去衣櫃換上職業裝吧`,rpgCards:n=>`🗡️ 限定字卡出現了：字卡 → 圖鑑 →「${n}」`},
@@ -6979,7 +7040,7 @@ function openJobs(){
   layer(`<div class="shead"><h2>🏅 ${b.title} · ${n}/7</h2>${closeBtn(T())}</div><p class="note">${b.from}</p>
 <div class="jobs">${JOBS.map(j=>{const have=jobHas(j.k),p=Math.min(j.prog(),j.need),o=Object.assign({col:j.outfit.col||{}},j.outfit);
   return `<div class="job jelly${have?"":" no"}" style="--jc:${j.c}"><div class="jtop">${miniJelly(o,"jmas")}<div><b>${esc(j.name[l])}</b><small>${esc(j.name.en)}</small><i>「${esc(j.tag[l])}」</i></div></div>
-<p>${esc(j.type[l])}</p><div class="jsk"><small>${b.skills}</small>${j.skills.map(([a,d])=>`<span><b>${esc(a)}</b>${esc(d)}</span>`).join("")}</div>
+<p>${esc(j.type[l])}</p><div class="jsk"><small>${b.skills}</small>${j.skills.map(([a,d])=>`<span><b>${esc(a[l]||a.zh)}</b>${esc(d[l]||d.zh)}</span>`).join("")}</div>
 ${have?`<div class="row"><span class="jgot">✓ ${b.got}</span><button class="pill pri jelly" type="button" data-jwear="${j.k}">${b.wear}</button></div>`:`<div class="jhow"><small>${b.how}：${esc(j.goal[l])}</small><span class="vbar"><i style="width:${Math.max(4,Math.round(p/j.need*100))}%"></i></span><small>${p} / ${j.need}</small></div>`}</div>`}).join("")}</div>`);
 }
 function jobWear(k){const j=JOBS.find(x=>x.k===k);if(!j||!jobHas(k))return;OF_SLOTS.forEach(s=>{S.outfit[s]=j.outfit[s]||"";delete S.outfit.col[s]});Object.assign(S.outfit.col,j.outfit.col||{});save();refreshLogo();toast(WRT().saved);openJobs()}
@@ -7008,7 +7069,12 @@ const RPG_ROOTS=[
     {k:"town",n:{zh:"城鎮",ja:"まち",en:"Town"},c:[RC("🏰","城堡","castle","お城","おしろ"),RC("🤴","國王","king","王様","おうさま"),RC("👸","公主","princess","お姫様","おひめさま"),RC("🏨","旅館","inn","宿屋","やどや"),RC("⛪","教會","church","教会","きょうかい"),RC("🏪","道具店","item shop","道具屋","どうぐや"),RC("⚔️","武器店","weapon shop","武器屋","ぶきや"),RC("🏺","壺（打破有寶物？）","pot","つぼ"),RC("🛢️","木桶","barrel","たる"),RC(RPG_ART.chest,"寶箱","treasure chest","宝箱","たからばこ")]},
     {k:"adventure",n:{zh:"冒險",ja:"ぼうけん",en:"Adventure"},c:[RC("🦸","勇者","hero","勇者","ゆうしゃ"),RC("🗡️","劍","sword","剣","つるぎ"),RC("🛡️","盾","shield","盾","たて"),RC("🌿","藥草","medicinal herb","薬草","やくそう"),RC("🪙","金幣","gold","ゴールド"),RC("⬆️","升級","level up","レベルアップ"),RC("⭐","經驗值","experience","経験値","けいけんち",2),RC("📖","冒險之書（存檔）","save","冒険の書","ぼうけんのしょ"),RC("👥","夥伴","party","仲間","なかま"),RC("❤️","生命值","hit points","HP"),RC("💧","魔力","magic points","MP"),RC("☠️","中毒","poison","毒","どく"),RC("✨","復活","revive","生き返る","いきかえる")]}]}
 ];
-RPG_ROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>mkCard(r,R.k,sb.k))));
+RPG_ROOTS.push({k:"epicx",skin:"epic",rpg:1,e:"🛡️",n:{zh:"史詩戰記圖鑑",ja:"エピック戦記図鑑",en:"Epic saga"},subs:[
+    {k:"class",n:{zh:"職業",ja:"クラス",en:"Classes"},c:[RC("⚔️","戰士","warrior","戦士","せんし"),RC("🛡️","聖騎士","paladin","パラディン"),RC("🏹","獵人","hunter","ハンター"),RC("🗡️","盜賊","rogue","ローグ"),RC("✨","牧師","priest","プリースト"),RC("⚡","薩滿","shaman","シャーマン"),RC("🔮","法師","mage","メイジ"),RC("😈","術士","warlock","ウォーロック",2),RC("🌿","德魯伊","druid","ドルイド"),RC("💀","死亡騎士","death knight","デスナイト",2),RC("🥋","武僧","monk","モンク"),RC("🦇","惡魔獵人","demon hunter","デーモンハンター",2)]},
+    {k:"race",n:{zh:"種族",ja:"種族",en:"Races"},c:[RC("🧑","人類","human","人間","にんげん"),RC("👹","獸人","orc","オーク"),RC("🧝","精靈","elf","エルフ"),RC("🧔","矮人","dwarf","ドワーフ"),RC("🧙","地精","gnome","ノーム"),RC("🧌","食人妖","troll","トロール"),RC("🧟","不死族","undead","アンデッド",2),RC("🐂","牛頭人","minotaur","ミノタウロス",2),RC("👺","哥布林","goblin","ゴブリン"),RC("🐉","巨龍","dragon","ドラゴン")]},
+    {k:"mount",n:{zh:"坐騎",ja:"マウント",en:"Mounts"},c:[RC("🐎","坐騎","mount","マウント"),RC("🦅","獅鷲","gryphon","グリフォン"),RC("🐲","雙足飛龍","wyvern","ワイバーン",2),RC("🐺","戰狼","war wolf","いくさの狼","いくさのおおかみ"),RC("🦌","角鷹獸","hippogryph","ヒッポグリフ",2),RC("🐻","戰熊","war bear","いくさの熊","いくさのくま")]},
+    {k:"slang",n:{zh:"玩家術語",ja:"ゲーマー用語",en:"Gamer talk"},c:[RC("❗","任務","quest","クエスト"),RC("🏰","地城副本","dungeon","ダンジョン"),RC("👥","團隊副本","raid","レイド",2),RC("🛡️","公會","guild","ギルド"),RC("💰","戰利品","loot","ルート",2),RC("🟣","史詩裝備","epic","エピック"),RC("🟠","傳說裝備","legendary","レジェンダリー",2),RC("🛡️","坦克（擋怪的人）","tank","タンク"),RC("💚","補師","healer","ヒーラー"),RC("⚔️","輸出（DPS）","damage dealer","アタッカー",2),RC("😡","仇恨","aggro","ヘイト",2),RC("💧","法力","mana","マナ"),RC("⏳","冷卻時間","cooldown","クールダウン",2),RC("👑","首領","boss","ボス"),RC("🔁","重生","respawn","リスポーン",2),RC("💤","暫離（AFK）","away from keyboard","離席","りせき",2),RC("🐣","新手","noob","初心者","しょしんしゃ")]}]});
+RPG_ROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>typeof r==="string"?mkCard(r,R.k,sb.k):r)));
 
 /* ---------- events ---------- */
 let suppressUntil=0;
