@@ -1834,7 +1834,7 @@ function seedGoal(lang,example){
   return {title:sd.goal,steps:sd.steps.map((t,i)=>({text:t,date:i===2?key(addDays(today,10)):i===3?key(addDays(today,45)):"",done:i<2}))};
 }
 function seed(){
-  const s={region:guessRegion(),mode:"week",weeks:{},example:true,skin:"jelly",wallOp:100,voice:true,chime:true,face:0,seen:{},tags:[],donatePlan:"month"};S=s;
+  const s={region:guessRegion(),mode:"week",weeks:{},example:true,skin:"white",wallOp:100,voice:true,chime:true,face:0,seen:{},tags:[],donatePlan:"month"};S=s;
   const lang=LANG[s.region],sd=SEED[lang];const mon=mondayOf(new Date());const w=W(key(mon));
   w.inbox=sd.inbox.map(([t,p])=>({id:uid(),text:t,pri:p}));
   const cp=(i,day,done,time)=>{const it=w.inbox[i];w.days[day].push({id:uid(),text:it.text,pri:it.pri,done:!!done,src:it.id,time})};
@@ -1850,7 +1850,7 @@ function seed(){
 let S=null;
 S=load()||seed();
 S.region=S.region||"TW";S.mode=S.mode||S.view||"week";delete S.view;
-if(!S.skin||!(S.skin in {stars:1,lantern:1,epic:1,white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="jelly";
+if(!S.skin||!(S.skin in {stars:1,lantern:1,epic:1,white:1,black:1,art:1,fant:1,quest:1,jelly:1,sakura:1,matcha:1,ocean:1,night:1}||(String(S.skin).startsWith("my:")&&(S.mySkins||[]).some(x=>x.id===S.skin))))S.skin="white";
 if(S.wallOp==null)S.wallOp=100;if(S.voice==null)S.voice=true;if(S.chime==null)S.chime=true;
 S.face=S.face||0;S.seen=S.seen||{};S.ranges=S.ranges||[];S.tags=S.tags||[];S.donatePlan=S.donatePlan||"month";
 if(!S.goal)S.goal=seedGoal(LANG[S.region],!!S.example);
@@ -1945,7 +1945,8 @@ const SKINS={
   ocean:{bg:"#E5F0F6",accent:"#1B6D96",accentD:"#7FB8D6",art:["#1B6D96","#7FB8D6","#CFE4EF","#F2C57C","#2E4A62","#A9D3E0"],tints:["#4FA3CF","#2A9DA8","#7FB8D6","#5B8DEF","#F2B45C","#6CC3B8","#8FA8E8"]},
   night:{bg:"#10141E",accent:"#F2C66D",accentD:"#F2C66D",art:["#F2C66D","#2E7F8A","#E8833A","#3A4468","#9FB4BA","#233049"],tints:["#F2994A","#2A9DA8","#E9B77E","#6FB3D9","#EE7B6A","#7FBF8E","#B48BD1"],dark:true}
 };
-const skin=()=>SKINS[S.skin]||(S.mySkins||[]).find(x=>x.id===S.skin)||SKINS.jelly;
+const RETIRED_LOOKS={jelly:1,matcha:1,ocean:1,night:1};   // 不再提供；正在用的人可以繼續用，換掉後就不再出現
+const skin=()=>SKINS[S.skin]||(S.mySkins||[]).find(x=>x.id===S.skin)||SKINS.white;
 const skinName=k=>{const m=(S.mySkins||[]).find(x=>x.id===k);return m?(m.name[LANG[S.region]]||m.name.zh):(T().skins[k]||k)};
 const PXT=()=>({zh:"點陣字（每種背景都能用）",ja:"ドット文字（どの背景でも）",en:"Pixel font (any look)"})[LANG[S.region]];
 function applySkin(){
@@ -2538,7 +2539,7 @@ function openSettings(){
 <div class="sgroup"><h3>💾 ${SF().backup}</h3>${backupHTML()}</div>
 <div class="sgroup"><h3>${I.globe}${t.region}</h3><div class="row">${regionSelect()}</div></div>
 <div class="sgroup"><h3>${I.palette}${t.look}</h3>
-<div class="swatches">${Object.keys(SKINS).map(k=>{const s=SKINS[k],op=lookOpen(k);return `<button type="button" class="sw${op?"":" swlock"}" data-skin="${k}" aria-pressed="${S.skin===k}"${op?"":` title="${esc(lookLock(k))}"`}>${op?"":`<em class="swl">🔒</em>`}<b class="${k==="fant"||k==="quest"?"swwin sw-"+k:k==="epic"?"sw-epic":""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
+<div class="swatches">${Object.keys(SKINS).filter(k=>!RETIRED_LOOKS[k]||S.skin===k).map(k=>{const s=SKINS[k],op=lookOpen(k);return `<button type="button" class="sw${op?"":" swlock"}" data-skin="${k}" aria-pressed="${S.skin===k}"${op?"":` title="${esc(lookLock(k))}"`}>${op?"":`<em class="swl">🔒</em>`}<b class="${k==="fant"||k==="quest"?"swwin sw-"+k:k==="epic"?"sw-epic":""}" style="background:${s.sw||`radial-gradient(circle at 0 100%,${s.art[0]} 0 48%,transparent 49%),radial-gradient(circle at 100% 0,${s.art[1]} 0 36%,transparent 37%),${s.bg}`}"></b>${t.skins[k]}</button>`}).join("")}</div>
 ${(S.mySkins||[]).length?`<small class="note">${STT().mine}</small><div class="swatches">${S.mySkins.map(m=>`<button type="button" class="sw" data-skin="${m.id}" aria-pressed="${S.skin===m.id}"><b style="background:linear-gradient(135deg,${m.bg},${m.bg2||m.bg})"><i class="swm">${esc((m.motifs||[])[0]||"")}</i></b>${esc(m.name[LANG[S.region]]||m.name.zh)}</button>`).join("")}</div>`:""}
 <div class="row"><button class="pill jelly" type="button" data-wardrobe="1">👕 ${WRT().title}</button><button class="pill jelly" type="button" data-skinai="1">✨ ${STT().skinTitle}${studioOpen()?"":" 🔒"}</button></div>
 <div class="row"><button class="pill jelly tgl pxbtn" type="button" data-set="pixel" aria-pressed="${!!S.pixel}">▦ ${PXT()}</button></div>
