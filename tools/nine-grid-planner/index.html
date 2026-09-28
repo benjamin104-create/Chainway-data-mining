@@ -1061,6 +1061,9 @@ html .knob svg{width:22px;height:22px}
 .ysplay em{position:absolute;right:4px;bottom:4px;font-style:normal;font-size:11px;background:#000c;color:#fff;padding:0 4px;border-radius:4px}
 .ysmeta{flex:1;min-width:0;display:flex;flex-direction:column}.ysmeta b{font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ysmeta small{opacity:.7;font-size:12px}
 .ysadd{flex:0 0 40px;height:40px;border-radius:50%;border:0;font-size:20px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+.aqlead{display:flex;gap:10px;align-items:center}.aqlead .tmas{flex:0 0 52px;width:52px;height:52px}
+.aqbox{border:1.5px solid var(--line,#ddd);border-radius:16px;padding:10px 12px;margin-top:10px}.aqbox h3{font-size:15px;margin:0 0 6px}
+.aqsteps{margin:0 0 8px;padding-left:20px;line-height:1.7}.aqbox input{flex:1;min-width:0;font:inherit;padding:9px 11px;border-radius:12px;border:1.5px solid var(--line,#ccc);background:var(--card,#fff);color:inherit}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1193,7 +1196,10 @@ const OWNER={
   courseStore:"",                          // 單字課程加購頁網址
   voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
   codes:{},                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
-  aiProxy:"/.netlify/functions/ai"         // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
+  aiProxy:"/.netlify/functions/ai",        // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
+  aiFreeDaily:20,                          // 網站的免費 AI：每位使用者每天幾次（接上自己金鑰的人不受限）
+  aiPlusDaily:200,                         // 「AI 加值包」（權益 ai:plus）每天幾次
+  aiStore:""                               // AI 加值包的購買頁網址；空白就只能用兌換碼
 };
 // 八個贊助／友善連結位置。簽約後填 name、desc、url；tags 用來和使用者興趣配對。
 const SPONSORS=[
@@ -1254,7 +1260,7 @@ const STR={
     coachPh:"輸入你的想法…",send:"送出",stop:"停止",makePlan:"產生九宮格計畫",planning:"正在幫你排出八個步驟",
     planWeek:"這週先做",importPlan:"放進未來九宮格",keepTalk:"再聊聊",imported:"計畫已經放進九宮格和行事曆",
     aiOff:"AI 教練要在 Claude 裡打開這個頁面才能用。先用引導問答幫你想清楚：",
-    aiErr:{bad_key:"AI 金鑰無效或沒有權限，請到「外觀與提醒」檢查一下。",rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
+    aiErr:{quota:"今天的免費 AI 次數用完了。",site_busy:"今天網站的免費 AI 太多人用，已經到上限了。接上自己的免費 Gemini 就能繼續用。",bad_key:"AI 金鑰無效或沒有權限，請到「外觀與提醒」檢查一下。",rate_limited:"現在問的人有點多，過一會兒再試一次。",session_expired:"請重新登入 Claude 再試。",refused:"這個問題我沒辦法回答，換個說法試試。",invalid_json:"計畫沒有排好，請按一次「產生九宮格計畫」再試。",other:"連線出了點問題，請再試一次。"},
     fQs:["為什麼這件事對你重要？完成之後，你會變成什麼樣的人？","你現在的起點在哪？手上有哪些資源，最大的限制是什麼？","每週大概能投入多少時間在這件事上？"],
     fDone:"寫得很好！我先把目標放進九宮格中間，周圍八格請你拆成八個小步驟，每一步都寫下「做到什麼算完成」。",
     firstLbl:"第一個小行動",
@@ -1374,7 +1380,7 @@ const STR={
     coachPh:"思っていることを入力…",send:"送信",stop:"停止",makePlan:"九マス計画を作る",planning:"八つのステップを組み立てています",
     planWeek:"今週やること",importPlan:"未来の九マスに入れる",keepTalk:"もう少し話す",imported:"計画を九マスとカレンダーに入れました",
     aiOff:"AI コーチは Claude の中でこのページを開いたときに使えます。代わりに質問に答えて整理しましょう：",
-    aiErr:{bad_key:"AI キーが無効か、権限がありません。設定を確認してください。",rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
+    aiErr:{quota:"今日の無料 AI 回数を使い切りました。",site_busy:"今日はサイトの無料 AI が上限に達しました。自分の無料 Gemini キーをつなぐと続けられます。",bad_key:"AI キーが無効か、権限がありません。設定を確認してください。",rate_limited:"混み合っています。少し待ってからもう一度どうぞ。",session_expired:"Claude にログインし直してください。",refused:"この内容には答えられません。言い方を変えてみてください。",invalid_json:"計画をうまく作れませんでした。もう一度「九マス計画を作る」を押してください。",other:"接続に問題がありました。もう一度お試しください。"},
     fQs:["なぜそれが大切ですか？叶えたとき、どんな自分になっていたいですか？","今の出発点は？使える資源と、いちばんの制約は？","毎週どれくらい時間を使えますか？"],
     fDone:"いいですね。目標を九マスの真ん中に入れました。まわりの八つに、完了の基準がわかる小さなステップを書いてみてください。",
     firstLbl:"最初の小さな行動",
@@ -1494,7 +1500,7 @@ const STR={
     coachPh:"Type your thoughts…",send:"Send",stop:"Stop",makePlan:"Make my grid plan",planning:"Laying out your eight steps",
     planWeek:"Start this week",importPlan:"Put it in the Future Grid",keepTalk:"Keep talking",imported:"Your plan is in the grid and the calendar",
     aiOff:"The AI coach works when this page is opened inside Claude. Let's think it through with a few questions instead:",
-    aiErr:{bad_key:"That AI key didn't work. Check it under Look & reminders.",rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
+    aiErr:{quota:"You've used today's free AI.",site_busy:"The site's free AI hit today's limit. Connect your own free Gemini key to keep going.",bad_key:"That AI key didn't work. Check it under Look & reminders.",rate_limited:"It's busy right now. Try again in a moment.",session_expired:"Sign in to Claude again, then retry.",refused:"I can't help with that one. Try putting it another way.",invalid_json:"The plan didn't come out right. Press “Make my grid plan” once more.",other:"Something went wrong with the connection. Please try again."},
     fQs:["Why does this matter to you? Who do you want to become by doing it?","Where are you starting from? What resources do you have, and what's your biggest limit?","How much time can you give it each week?"],
     fDone:"Nice work. Your goal is now in the middle of the grid. Fill the eight squares around it with small steps, each with a clear finish line.",
     firstLbl:"First small action",
@@ -2744,6 +2750,11 @@ const PROVIDERS={
 function aiCfg(){try{return JSON.parse(localStorage.getItem(AIKEY))||{}}catch(e){return {}}}
 function setAiCfg(c){try{localStorage.setItem(AIKEY,JSON.stringify(c))}catch(e){}}
 function aiFail(code,message){return {code,message:message||code}}
+// the site's free AI (proxy) has a daily allowance per user; own keys and Claude are not counted
+function aiUsed(){const q=S.aiq||{};return q.d===key(new Date())?q.n||0:0}
+function aiLimit(){return owns("ai:plus")?(OWNER.aiPlusDaily||200):(OWNER.aiFreeDaily||20)}
+function aiLeft(){return Math.max(0,aiLimit()-aiUsed())}
+function aiCount(){const d=key(new Date());S.aiq={d,n:aiUsed()+1};save()}
 // turns in, turns out: consecutive same-role turns merged, starting and ending on user
 function toTurns(input){
   const raw=typeof input==="string"?[{role:"user",content:input}]:input.map(m=>({role:m.role==="assistant"?"assistant":"user",content:String(m.content||"")}));
@@ -2760,6 +2771,7 @@ function parseJSONLoose(text){
 }
 async function callProvider(p,key,model,turns,wantJson,signal){
   let r,j;
+  if(p==="proxy"&&aiLeft()<=0){aiQuotaSheet("daily_limit");throw aiFail("quota")}
   try{
     if(p==="gemini"){
       r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",signal,headers:{"content-type":"application/json","x-goog-api-key":key},
@@ -2771,18 +2783,23 @@ async function callProvider(p,key,model,turns,wantJson,signal){
       r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
         body:JSON.stringify({model,max_tokens:2000,messages:turns})});
     }else if(p==="proxy"){
-      r=await fetch(OWNER.aiProxy,{method:"POST",signal,headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns,json:!!wantJson})});
+      r=await fetch(OWNER.aiProxy,{method:"POST",signal,headers:Object.assign({"content-type":"application/json"},(S.aiPass||[]).length?{"x-ng-pass":S.aiPass[S.aiPass.length-1]}:{}),body:JSON.stringify({messages:turns,json:!!wantJson})});
     }
     j=await r.json().catch(()=>({}));
   }catch(e){if(e&&e.name==="AbortError")throw aiFail("cancelled");throw aiFail("upstream_error",String(e))}
   if(p==="proxy"&&(r.status===404||r.status===503))throw aiFail("not_declared");
   if(r.status===401||r.status===403)throw aiFail("bad_key");
+  if(p==="proxy"&&r.status===429&&j){
+    if(j.error==="daily_limit"||j.error==="hourly_limit"){aiQuotaSheet(j.error);throw aiFail("quota")}
+    if(j.error==="site_busy")throw aiFail("site_busy");
+  }
   if(r.status===429)throw aiFail("rate_limited");
   if(!r.ok)throw aiFail("upstream_error","HTTP "+r.status);
   const text=p==="gemini"?((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(x=>x.text||"").join("")
     :p==="openai"?(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||""
     :p==="anthropic"?(j.content||[]).map(x=>x.text||"").join(""):(j.text||"");
   if(!text.trim())throw aiFail("empty_completion");
+  if(p==="proxy")aiCount();
   return text;
 }
 // same shape as the sample capability: f(input, {onText, signal}) -> {text}, and f.json(...)
@@ -3981,6 +3998,7 @@ function aiSettingsHTML(){
   const t=T(),c=aiCfg(),prov=c.provider||"";
   const opts=[["",t.aiAuto],...Object.keys(PROVIDERS).map(k=>[k,t.aiProv[k]])];
   return `<p class="status">${esc(t.aiNow(aiLabel()))}</p>
+${IS_SITE&&AI&&AI.label==="proxy"?`<p class="note">${esc(AQ().left(aiLeft(),aiLimit()))}</p>`:""}
 <div class="szrow" role="group">${opts.map(([k,l])=>`<button type="button" data-aiprov="${k}" aria-pressed="${prov===k}">${esc(l)}</button>`).join("")}</div>
 ${prov?(IS_SITE?`<label class="fld">${t.aiKey}<input id="aiKey" type="password" autocomplete="off" value="${esc(c.key||"")}" placeholder="…"></label>
 <label class="fld">${t.aiModel}<input id="aiModel" type="text" value="${esc(c.model||PROVIDERS[prov].model)}"></label>
@@ -6078,7 +6096,9 @@ async function redeem(){const s=SF(),v=($("redeemIn").value||"").trim().toUpperC
   let h="";try{h=await sha256(v)}catch(e){toast(s.bad);return}
   const c=(OWNER.codes||{})[h];if(!c){toast(s.bad);return}
   S.usedCodes=S.usedCodes||[];if(S.usedCodes.includes(h)){toast(s.used);return}
-  (c.grants||[]).forEach(k=>grant(k,"code"));S.usedCodes.push(h);save();toast(s.ok);openSettings()}
+  (c.grants||[]).forEach(k=>grant(k,"code"));
+  if((c.grants||[]).some(k=>k.startsWith("ai:"))){S.aiPass=S.aiPass||[];if(!S.aiPass.includes(v))S.aiPass.push(v)}
+  S.usedCodes.push(h);save();toast(s.ok);openSettings()}
 function backupHTML(){const s=SF();
   return `<p class="note">${s.backupWhy}</p><div class="row"><button class="pill jelly" type="button" data-bk="out">⬇️ ${s.exp}</button><label class="pill jelly upload">⬆️ ${s.imp}<input id="bkFile" type="file" accept="application/json,.json"></label></div><div id="bkOut"></div>`}
 function backupOut(){const s=SF(),txt=JSON.stringify(Object.assign({},S,{_backup:new Date().toISOString()}));
@@ -6091,15 +6111,15 @@ function restoreFrom(txt){const s=SF();let o;try{o=JSON.parse(txt)}catch(e){toas
   const owned=Object.assign({},o.owned||{},S.owned),codes=[...new Set([...(o.usedCodes||[]),...(S.usedCodes||[])])];
   delete o._backup;S=o;S.owned=owned;S.usedCodes=codes;save();toast(s.restored);setTimeout(()=>location.reload(),600)}
 const SF_STR={
-  zh:{rights:"我的權益",backup:"資料備份",kinds:{pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
+  zh:{rights:"我的權益",backup:"資料備份",kinds:{ai:"AI 加值包",pic:"語寶圖鑑",deck:"詞語字卡",course:"單字課程",fit:"健身教練",wk:"每日功課"},all:"全部",
     src:{free:"免費時已開始使用，永久保留",code:"兌換碼",buy:"購買",reward:"升級獎勵"},none:"目前沒有加值內容。",
     keepNote:"曾經買過、兌換過，或在免費時用過的內容，之後網站調整也會一直保留給你。",codePh:"輸入兌換碼",redeem:"兌換",bad:"兌換碼不正確",used:"這組兌換碼已經用過了",ok:"兌換成功！",
     backupWhy:"資料存在這支手機裡。建議偶爾匯出備份；iPhone 的 Safari 如果很久沒開網站，可能會清掉資料，加到主畫面或登入 Google 同步可以避免。",exp:"匯出備份",imp:"從備份還原",saved:"備份檔已下載",copyIt:"這裡不能下載檔案，請複製下面的文字另外保存：",badFile:"這不是正確的備份檔",restored:"已還原，重新整理中…"},
-  ja:{rights:"わたしの権利",backup:"バックアップ",kinds:{pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
+  ja:{rights:"わたしの権利",backup:"バックアップ",kinds:{ai:"AI プラス",pic:"語宝図鑑",deck:"ことばカード",course:"単語コース",fit:"筋トレコーチ",wk:"毎日のメニュー"},all:"すべて",
     src:{free:"無料のときに使い始めたので永久に保持",code:"引換コード",buy:"購入",reward:"レベル特典"},none:"追加コンテンツはまだありません。",
     keepNote:"購入・引換・無料期間に使ったものは、サイトが変わってもずっと使えます。",codePh:"引換コード",redeem:"引き換える",bad:"コードが正しくありません",used:"このコードは使用済みです",ok:"引き換えました！",
     backupWhy:"データはこの端末に保存されます。ときどきバックアップを。",exp:"バックアップを書き出す",imp:"バックアップから復元",saved:"ダウンロードしました",copyIt:"ここではダウンロードできません。下の文字をコピーして保存してください：",badFile:"正しいバックアップではありません",restored:"復元しました。再読み込み中…"},
-  en:{rights:"My purchases & rights",backup:"Backup",kinds:{pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
+  en:{rights:"My purchases & rights",backup:"Backup",kinds:{ai:"AI pack",pic:"Picture cards",deck:"Word decks",course:"Word courses",fit:"Fitness coach",wk:"Daily workout"},all:"all",
     src:{free:"started while free, kept for good",code:"redeem code",buy:"purchase",reward:"level reward"},none:"No add-ons yet.",
     keepNote:"Anything you bought, redeemed, or used while it was free stays yours through every site update.",codePh:"Redeem code",redeem:"Redeem",bad:"That code isn't valid",used:"This code was already used",ok:"Redeemed!",
     backupWhy:"Your data lives on this device. Export a backup now and then.",exp:"Export backup",imp:"Restore from backup",saved:"Backup downloaded",copyIt:"Downloads aren't allowed here; copy this text and keep it:",badFile:"That isn't a valid backup",restored:"Restored. Reloading…"}
@@ -6156,6 +6176,35 @@ function ysShared(){
     let title=(p.get("title")||"").trim()||(p.get("text")||"").replace(m[0],"").trim()||"YouTube";
     ysAdd({title:title.slice(0,80),artist:"",url:n.url});toast(YST().shared);goFace(2);
   }catch(e){}
+}
+
+/* ---------- free AI daily allowance: what to do when it runs out ---------- */
+const AQ_STR={zh:{title:"今天的 AI 次數用完了",day:n=>owns("ai:plus")?`AI 加值包今天的 ${n} 次用完了，明天 0 點會重新計算。想現在繼續：`:`網站每天提供每人 ${n} 次免費 AI，明天 0 點會重新計算。想現在繼續，有兩個方法：`,hour:"這一個小時用得比較多，先休息一下，或用下面的方法繼續：",
+  ownT:"接上自己的免費 Gemini（約 2 分鐘，之後不算網站的次數）",s1:"用 Google 帳號打開",s2:"按「Create API key（建立 API 金鑰）」，再按複製",s3:"回到這裡貼上，按「接上」",ph:"貼上金鑰（AIza 開頭）",save:"接上",keyNote:"金鑰只存在你這支手機，不會傳給我們。Gemini 個人免費額度就很夠用。",keyOk:"接好了！AI 可以繼續用了",keyBad:"這組金鑰不能用，請再複製一次",
+  plusT:"AI 加值包",plusD:n=>`每天可以用 ${n} 次網站的 AI。有兌換碼就輸入：`,buy:"購買 AI 加值包",waitT:"明天再來",waitD:"不用做任何事，明天就又有免費次數。",left:(a,b)=>`今天的免費 AI 還剩 ${a} / ${b} 次`},
+ ja:{title:"今日の AI 回数を使い切りました",day:n=>owns("ai:plus")?`AI プラスの今日の ${n} 回を使い切りました（毎日 0 時にリセット）。今すぐ続けるには：`:`サイトの無料 AI は 1 日 ${n} 回までです（毎日 0 時にリセット）。今すぐ続けるには：`,hour:"この 1 時間でたくさん使いました。少し休むか、下の方法で続けてください：",
+  ownT:"自分の無料 Gemini キーをつなぐ（約 2 分・サイトの回数に数えません）",s1:"Google アカウントで開く",s2:"「Create API key」を押してコピー",s3:"ここに貼って「つなぐ」",ph:"キーを貼り付け（AIza…）",save:"つなぐ",keyNote:"キーはこの端末だけに保存され、私たちには送られません。",keyOk:"つながりました！",keyBad:"このキーは使えません。もう一度コピーしてください",
+  plusT:"AI プラス",plusD:n=>`サイトの AI を 1 日 ${n} 回使えます。引換コード：`,buy:"AI プラスを購入",waitT:"明日また",waitD:"何もしなくても、明日また無料で使えます。",left:(a,b)=>`今日の無料 AI 残り ${a} / ${b} 回`},
+ en:{title:"Today's AI is used up",day:n=>owns("ai:plus")?`Your AI pack's ${n} requests for today are used up, reset at midnight. To keep going now:`:`The site gives everyone ${n} free AI requests a day, reset at midnight. To keep going now:`,hour:"That was a lot in one hour. Take a short break, or:",
+  ownT:"Connect your own free Gemini key (about 2 minutes, no longer counts against the site)",s1:"Open with your Google account",s2:"Tap “Create API key”, then copy it",s3:"Paste it here and tap Connect",ph:"Paste key (starts with AIza)",save:"Connect",keyNote:"The key stays on this device and is never sent to us.",keyOk:"Connected! AI is back",keyBad:"That key didn't work, copy it again",
+  plusT:"AI pack",plusD:n=>`Use the site's AI ${n} times a day. Have a code? Enter it:`,buy:"Buy the AI pack",waitT:"Come back tomorrow",waitD:"Nothing to do: free requests come back tomorrow.",left:(a,b)=>`Free AI left today: ${a} / ${b}`}};
+const AQ=()=>AQ_STR[LANG[S.region]];
+let aiQuotaAt=0;
+function aiQuotaSheet(kind){
+  if(Date.now()-aiQuotaAt<1500)return;aiQuotaAt=Date.now();
+  const q=AQ(),s=SF();
+  layer(`<div class="shead"><h2>${q.title}</h2>${closeBtn(T())}</div>
+<p class="aqlead">${mascot("idle","tmas")}<span>${kind==="hourly_limit"?q.hour:q.day(aiLimit())}</span></p>
+<div class="aqbox"><h3>① ${q.ownT}</h3><ol class="aqsteps"><li>${q.s1} <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></li><li>${q.s2}</li><li>${q.s3}</li></ol>
+<div class="row" style="flex-wrap:nowrap"><input id="aqKey" type="password" autocomplete="off" placeholder="${esc(q.ph)}"><button class="pill pri jelly" type="button" data-aq="key">${q.save}</button></div><p class="note">${q.keyNote}</p></div>
+${owns("ai:plus")?"":`<div class="aqbox"><h3>② ${q.plusT}</h3><p class="note">${q.plusD(OWNER.aiPlusDaily||200)}</p><div class="row" style="flex-wrap:nowrap"><input id="redeemIn" type="text" maxlength="40" placeholder="${esc(s.codePh)}" autocapitalize="characters"><button class="pill jelly" type="button" data-redeem="1">${s.redeem}</button></div>${OWNER.aiStore?`<a class="pill jelly" href="${esc(OWNER.aiStore)}" target="_blank" rel="noopener">${q.buy}</a>`:""}</div>`}
+<div class="aqbox"><h3>${owns("ai:plus")?"②":"③"} ${q.waitT}</h3><p class="note">${q.waitD}</p></div>`,true);
+}
+async function aqConnect(){
+  const q=AQ(),v=(($("aqKey")||{}).value||"").trim();if(!v)return;
+  const old=aiCfg();setAiCfg({provider:"gemini",key:v,model:PROVIDERS.gemini.model});AI=pickAI();
+  try{await AI("Reply with the single word OK.");toast(q.keyOk);closeLayer()}
+  catch(e){setAiCfg(old);AI=pickAI();toast(e&&e.code==="bad_key"?q.keyBad:aiErrText(e))}
 }
 /* ---------- events ---------- */
 let suppressUntil=0;
@@ -6330,6 +6379,7 @@ document.addEventListener("click",e=>{
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
   if(el.closest("[data-ysopen]")){openYtSearch();return}
+  if(el.closest("[data-aq]")){aqConnect();return}
   const ysp=el.closest("[data-ysplay]");if(ysp){const v=YS.items[+ysp.dataset.ysplay];if(v)tubePlay([ysSong(v)],0,"search");return}
   const ysa=el.closest("[data-ysadd]");if(ysa){const v=YS.items[+ysa.dataset.ysadd];if(v){ysAdd(ysSong(v));ysa.textContent="✓"}return}
   if(el.closest("[data-mcards]")){openCards("send");return}
