@@ -4,6 +4,7 @@
 權益代號：pic:<大類>（例 pic:world）、pic:all、course:<課程>（k1000 hs3000 travel exam）、course:all、
           fit:<部位>、fit:all、deck:<字卡組>、wk:<方向>-<分鐘>（例 wk:dance-20）、
           course:grammar、course:pattern、course:slang（文法・句型・俚語篇）、
+          pic:fantx、pic:questx 不用兌換（選那兩種背景就會出現）、
           studio:ai（AI 工作室：AI 造型師＋AI 設計背景）、outfit:all（衣櫃全部解鎖）、
           ai:plus（AI 加值包：網站的 AI 每天可用次數變多）"""
 import hashlib, secrets, sys, json

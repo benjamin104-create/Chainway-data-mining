@@ -1137,6 +1137,12 @@ html .knob svg{width:22px;height:22px}
 .wrcols{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.wrcols small{flex-basis:100%}
 .wrc{width:28px;height:28px;border-radius:50%;border:2px solid rgba(0,0,0,.12)}.wrc.on{box-shadow:0 0 0 3px var(--accent)}
 .wrlock{opacity:.55}.logo{cursor:pointer}.swm{font-style:normal;display:grid;place-items:center;height:100%;font-size:18px}
+.jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.job{--r:18px;padding:12px;display:flex;flex-direction:column;gap:6px;border-top:4px solid var(--jc)}.job.no{opacity:.72}.job.no .jmas img{filter:grayscale(.85) brightness(1.05)}
+.jtop{display:flex;gap:10px;align-items:center}.jmas{width:74px;height:74px;flex:none}.jmas .mj{animation:none}
+.jtop b{display:block;font-size:17px;font-weight:400}.jtop small{color:var(--muted);font-size:11px}.jtop i{display:block;font-style:normal;font-size:12px;color:var(--jc)}
+.job p{margin:0;font-size:13px}.jsk{display:flex;flex-direction:column;gap:3px}.jsk small,.jhow small{color:var(--muted);font-size:11px}.jsk span{font-size:12px}.jsk span b{color:var(--jc);margin-right:6px;font-weight:400}
+.jhow{display:flex;flex-direction:column;gap:3px}.jgot{color:var(--jc);font-size:13px}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -2431,7 +2437,7 @@ function goFace(n,dir){
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
-  const swap=()=>{S.face=n;S.use=S.use||{};S.use[n]=(S.use[n]||0)+1;save();try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
+  const swap=()=>{S.face=n;S.use=S.use||{};S.use[n]=(S.use[n]||0)+1;save();setTimeout(jobCheck,1200);try{render()}catch(err){rotating=false;throw err}window.scrollTo({top:0,behavior:"auto"});maybeGuide()};
   if(reduced()||!f.animate){swap();return}
   rotating=true;
 
@@ -5218,7 +5224,7 @@ PROOTS.filter(R=>R.k==="world").forEach(R=>R.subs.forEach(sb=>{const [c,...rest]
 S.pd=S.pd||{on:true,lang:LANG[S.region]==="en"?"ja":"en",cat:"animal",idx:0,mode:"learn",again:{},known:{},custom:[]};
 S.pd.extra=S.pd.extra||{};S.pd.links=S.pd.links||{};if(S.pd.sub==null)S.pd.sub="";
 if(!PROOTS.some(r=>r.k===S.pd.cat)&&S.pd.cat!=="mine")S.pd.cat="animal";
-const pRootsAll=()=>{const mine=S.pd.custom&&S.pd.custom.length?[{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},subs:[{k:"mine",n:{zh:"全部",ja:"すべて",en:"All"},c:S.pd.custom.map(x=>Object.assign({root:"mine",sub:"mine"},x))}]}]:[];return [...PROOTS,...mine]};
+const pRootsAll=()=>{const mine=S.pd.custom&&S.pd.custom.length?[{k:"mine",e:"⭐",n:{zh:"我的圖鑑",ja:"マイ図鑑",en:"My cards"},subs:[{k:"mine",n:{zh:"全部",ja:"すべて",en:"All"},c:S.pd.custom.map(x=>Object.assign({root:"mine",sub:"mine"},x))}]}]:[];return [...PROOTS,...RPG_ROOTS.filter(r=>r.skin===S.skin),...mine]};
 const pcats=pRootsAll;
 const pcat=()=>pRootsAll().find(c=>c.k===S.pd.cat)||PROOTS[0];
 const pExtraOf=rk=>Object.values(S.pd.extra).filter(x=>x.root===rk);
@@ -5239,7 +5245,7 @@ function pLinks(x){
   (S.pd.links[x.en]||[]).forEach(l=>add(l.rel,l.en));
   return out;
 }
-const pFree=c=>!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||owns("pic:"+c.k)||owns("pic:all")||(typeof unlocked==="function"&&unlocked(c.k));
+const pFree=c=>c.rpg||!OWNER.proPics||OWNER.picFree.includes(c.k)||c.k==="mine"||owns("pic:"+c.k)||owns("pic:all")||(typeof unlocked==="function"&&unlocked(c.k));
 const pOpen=c=>pFree(c)?Infinity:OWNER.trialCards;
 let pview=null,ptrail=[];   // a card reached through a link, and the way back
 // romaji for kana, so a Chinese speaker can read Japanese on day one
@@ -6648,16 +6654,17 @@ const THEME_MUSIC={
   fant:{track:"crystal",songs:[["Prelude","Nobuo Uematsu","Final Fantasy Prelude Nobuo Uematsu"],["Aerith's Theme","Nobuo Uematsu","Aerith's Theme Final Fantasy VII"],["To Zanarkand","Nobuo Uematsu","To Zanarkand Final Fantasy X"],["Eyes on Me","Faye Wong","Eyes on Me Faye Wong Final Fantasy VIII"],["","","Final Fantasy relaxing music playlist"],["Melodies of Life","Emiko Shiratori","Melodies of Life Final Fantasy IX"],["Terra's Theme","Nobuo Uematsu","Terra's Theme Final Fantasy VI"],["Suteki da ne","Rikki","Suteki da ne Final Fantasy X"],["Main Theme","Nobuo Uematsu","Final Fantasy Main Theme Nobuo Uematsu"]]},
   quest:{track:"chip",songs:[["Overture","Koichi Sugiyama","Dragon Quest Overture Koichi Sugiyama"],["Adventure","Koichi Sugiyama","Dragon Quest III Adventure Sugiyama"],["Into the Legend","Koichi Sugiyama","Dragon Quest III Into the Legend"],["Heavenly Flight","Koichi Sugiyama","Dragon Quest III Heavenly Flight"],["","","Dragon Quest symphonic suite playlist"],["Wedding Waltz","Koichi Sugiyama","Dragon Quest V Wedding Waltz"],["Town","Koichi Sugiyama","Dragon Quest town theme Sugiyama"],["Love Song Searching for You","Koichi Sugiyama","Dragon Quest Love Song Searching for You"],["Castle","Koichi Sugiyama","Dragon Quest castle theme Sugiyama"]]}
 };
-const themeSongs=k=>THEME_MUSIC[k].songs.map(([title,artist,q])=>({title,artist,url:yt(q||title+" "+artist)}));
+const themeOf=k=>{if(THEME_MUSIC[k])return THEME_MUSIC[k];const m=(S.mySkins||[]).find(x=>x.id===k);return m&&(m.music||(m.songs||[]).length)?{track:m.music,songs:m.songs||[]}:null};
+const themeSongs=k=>((themeOf(k)||{}).songs||[]).map(([title,artist,q])=>({title,artist,url:yt(q||title+" "+artist)}));
 // switch the ambient track and swap in the look's YouTube picks, but only into tiles that still hold a
 // built-in pick (or are empty): songs the user added or edited are never touched
 function themeMusic(k){
-  const tm=THEME_MUSIC[k];if(!tm)return;
-  S.music.track=tm.track;if(AMB.playing)ambStart(tm.track);
-  const sig=x=>x.url+"|"+(x.title||"")+"|"+(x.artist||""),builtIn=new Set([...SEED_SONGS,...Object.keys(THEME_MUSIC).flatMap(themeSongs)].map(sig));
+  const tm=themeOf(k);if(!tm)return;
+  if(tm.track){S.music.track=tm.track;if(AMB.playing)ambStart(tm.track)}
+  const sig=x=>x.url+"|"+(x.title||"")+"|"+(x.artist||""),builtIn=new Set([...SEED_SONGS,...Object.keys(THEME_MUSIC).flatMap(themeSongs),...(S.mySkins||[]).flatMap(m=>themeSongs(m.id))].map(sig));
   const picks=themeSongs(k);
-  S.songs=S.songs.map((x,i)=>!x||!x.url||builtIn.has(sig(x))?Object.assign({},picks[i]):x);
-  toast(MPT().themed(T().skins[k]));
+  if(picks.length>=9)S.songs=S.songs.map((x,i)=>!x||!x.url||builtIn.has(sig(x))?Object.assign({},picks[i]):x);
+  toast(MPT().themed(skinName(k)));
 }
 
 /* ---------- members: people who choose to leave a way to reach them (opt-in), with tags for the owner ---------- */
@@ -6711,6 +6718,7 @@ function autoTags(m){m=m||S.member;
   const lv=lvInfo((S.xp&&S.xp.total)||0).L;out.push(lv>=6?"等級:6以上":lv>=3?"等級:3-5":"等級:新手");
   const v=(S.visit&&S.visit.n)||0;out.push(v>=14?"活躍:常客":v>=4?"活躍:回訪":"活躍:新朋友");
   if(standalone())out.push("已安裝App");
+  JOBS.filter(j=>jobHas(j.k)).forEach(j=>out.push("職業:"+j.name.zh));
   out.push("背景:"+skinName(S.skin));
   return [...new Set(out.filter(Boolean))];
 }
@@ -6799,7 +6807,8 @@ const OF_SETS=[
 S.outfit=S.outfit||{};S.outfit.col=S.outfit.col||{};
 const ofItem=(slot,k)=>(OUTFIT[slot]||[]).find(x=>x.k===k);
 const myLv=()=>lvInfo((S.xp&&S.xp.total)||0).L;
-const ofOpen=it=>!!it&&(it.lv<=myLv()||owns("outfit:all"));
+const ofOpen=it=>!!it&&(owns("outfit:all")||(it.job?it.job.some(k=>jobHas(k)):it.lv<=myLv()));
+const ofLockText=it=>it.job?JBT().jobLock:WRT().lock(it.lv);
 // the outfit as SVG pieces: behind the mascot and in front of it
 function outfitSVG(o){o=o||S.outfit;const part=s=>{const it=ofItem(s,o[s]);return it?it.svg((o.col||{})[s]||it.c):""};
   return {back:part("back"),front:["neck","face","hat","hand"].map(part).join("")}}
@@ -6816,12 +6825,12 @@ function miniJelly(o,cls){const s=outfitSVG(o);return `<span class="mascot ${cls
 function openWardrobe(){
   const w=WRT(),l=LANG[S.region],o=S.outfit,sl=wr.slot,cur=o[sl]||"",it=ofItem(sl,cur);
   const items=OUTFIT[sl].map(x=>{const open=ofOpen(x),pv=Object.assign({},o,{[sl]:x.k,col:Object.assign({},o.col,{[sl]:(o.col||{})[sl]&&cur===x.k?o.col[sl]:x.c})});
-    return `<button type="button" class="writ jelly${cur===x.k?" on":""}${open?"":" locked"}" data-writ="${x.k}"${open?"":` aria-disabled="true"`}>${miniJelly(pv,"wrmini")}<b>${esc(x.n[l])}</b>${open?"":`<small>🔒 ${w.lock(x.lv)}</small>`}</button>`}).join("");
+    return `<button type="button" class="writ jelly${cur===x.k?" on":""}${open?"":" locked"}" data-writ="${x.k}"${open?"":` aria-disabled="true"`}>${miniJelly(pv,"wrmini")}<b>${esc(x.n[l])}</b>${open?"":`<small>🔒 ${esc(ofLockText(x))}</small>`}</button>`}).join("");
   const sets=OF_SETS.map(st=>{const open=Object.entries(st.p).every(([s,k])=>ofOpen(ofItem(s,k))),lv=Math.max(...Object.entries(st.p).map(([s,k])=>ofItem(s,k).lv));
     return `<button type="button" class="pill jelly${open?"":" wrlock"}" data-wrset="${st.k}">${st.e} ${esc(st.n[l])}${open?"":` · 🔒Lv${lv}`}</button>`}).join("");
   layer(`<div class="shead"><h2>👕 ${w.title}</h2>${closeBtn(T())}</div>
 <div class="wrstage">${miniJelly(o,"wrbig pose-wave")}</div>
-<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-wrrand="1">${w.random}</button><button class="pill pri jelly" type="button" data-wrai="1">${w.ai}${studioOpen()?"":" 🔒"}</button></div>
+<div class="row" style="justify-content:center"><button class="pill jelly" type="button" data-jobs="1">${JBT().open(JOBS.filter(j=>jobHas(j.k)).length)}</button><button class="pill jelly" type="button" data-wrrand="1">${w.random}</button><button class="pill pri jelly" type="button" data-wrai="1">${w.ai}${studioOpen()?"":" 🔒"}</button></div>
 <div class="wrsets"><small>${w.sets}</small><div class="row">${sets}</div></div>
 <div class="seg jelly small wrtabs" role="group">${OF_SLOTS.map(s=>`<button type="button" data-wrslot="${s}" aria-pressed="${s===sl}">${w.slots[s]}${o[s]?" •":""}</button>`).join("")}</div>
 <div class="wrgrid"><button type="button" class="writ jelly${cur?"":" on"}" data-writ=""><span class="wrnone">∅</span><b>${w.none}</b></button>${items}</div>
@@ -6879,14 +6888,15 @@ async function skinAIGo(){
   out.innerHTML=`<p class="note">${s.skinWorking}</p>`;
   try{const r=await AI.json(`Design a colour theme for a friendly planner app from this idea: "${idea}".
 Readable UI matters: frosted white glass cards sit on top, so the background should be soft; if "dark" is true, cards turn dark glass with light text.
-Reply ONLY JSON {"name":{"zh":"short name in Traditional Chinese","ja":"","en":""},"dark":false,"bg":"#hex page colour","bg2":"#hex second gradient colour","accent":"#hex strong accent for buttons (good contrast with white text)","tints":["7 #hex soft colours for the seven weekdays"],"art":["6 #hex colours for background shapes"],"style":"motif or shapes","motifs":["2-4 single emoji that fit the idea"],"music":"one of piano, night, classic, crystal, chip, rain, ocean"}`,{cache:false});
+Reply ONLY JSON {"name":{"zh":"short name in Traditional Chinese","ja":"","en":""},"dark":false,"bg":"#hex page colour","bg2":"#hex second gradient colour","accent":"#hex strong accent for buttons (good contrast with white text)","tints":["7 #hex soft colours for the seven weekdays"],"art":["6 #hex colours for background shapes"],"style":"motif or shapes","motifs":["2-4 single emoji that fit the idea"],"music":"one of piano, night, classic, crystal, chip, rain, ocean","songs":[["9 real, well-known songs or pieces that fit the mood: title","artist"]]}. The songs array must have exactly 9 [title, artist] pairs; put an instrumental or playlist-style pick in position 5.`,{cache:false});
     const tints=(r.tints||[]).filter(hexOK).slice(0,7),art=(r.art||[]).filter(hexOK).slice(0,6);
     if(!hexOK(r.bg)||!hexOK(r.accent)||tints.length<7||art.length<3)throw new Error("colors");
     const id="my:"+uid(),l=LANG[S.region];
     const sk={id,name:{zh:String(r.name&&r.name.zh||idea).slice(0,16),ja:String(r.name&&r.name.ja||r.name&&r.name.zh||idea).slice(0,16),en:String(r.name&&r.name.en||idea).slice(0,24)},bg:r.bg,bg2:hexOK(r.bg2)?r.bg2:r.bg,accent:r.accent,accentD:r.accent,dark:!!r.dark,tints,art,
-      draw:r.style==="shapes"?"shapes":"motif",motifs:(r.motifs||[]).map(x=>String(x).slice(0,4)).filter(Boolean).slice(0,4),music:MP_TRACKS.some(x=>x.k===r.music)?r.music:""};
-    S.mySkins=S.mySkins.concat([sk]).slice(-12);S.skin=id;delete S.wallAccent;if(sk.music){S.music.track=sk.music;if(AMB.playing)ambStart(sk.music)}
-    save();applySkin();render();toast(s.skinMade(sk.name[l]));openSettings();
+      draw:r.style==="shapes"?"shapes":"motif",motifs:(r.motifs||[]).map(x=>String(x).slice(0,4)).filter(Boolean).slice(0,4),music:MP_TRACKS.some(x=>x.k===r.music)?r.music:"",songs:(Array.isArray(r.songs)?r.songs:[]).filter(x=>Array.isArray(x)&&x[0]).slice(0,9).map(x=>[String(x[0]).slice(0,60),String(x[1]||"").slice(0,40)])};
+    if(sk.songs.length<9)sk.songs=[];
+    S.mySkins=S.mySkins.concat([sk]).slice(-12);S.skin=id;delete S.wallAccent;themeMusic(id);
+    save();applySkin();render();setTimeout(()=>toast(s.skinMade(sk.name[l])),2600);openSettings();
   }catch(e){out.innerHTML=`<p class="note">${esc(e&&e.code?aiErrText(e):s.skinFail)}</p>`}
 }
 // scattered emoji motifs over a soft gradient (AI-designed backgrounds)
@@ -6897,6 +6907,91 @@ function artMotif(x,w,h,k){
   for(let y=step/2,row=0;y<h+step;y+=step*.8,row++)for(let X=(row%2?step/2:0);X<w+step;X+=step){
     x.save();x.globalAlpha=.35+rnd()*.3;x.translate(X+(rnd()-.5)*20,y+(rnd()-.5)*20);x.rotate((rnd()-.5)*.8);x.font=`${Math.round(22+rnd()*16)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;x.fillText(m[Math.floor(rnd()*m.length)],0,0);x.restore()}
 }
+
+
+/* ---------- 小潔米的職業 (the seven classes of 通天塔): collect them by using the site; each brings its own outfit ---------- */
+const OFJ=(k,job,zh,ja,en,c,svg)=>Object.assign(OF(k,99,zh,ja,en,c,svg),{job});
+OUTFIT.hat.push(
+  OFJ("miner",["delver"],"礦工帽","ヘルメット","Miner's helmet","#F2C94C",c=>`<path d="M28 20Q28 2 50 2Q72 2 72 20Z" fill="${c}"/><rect x="24" y="17" width="52" height="5" rx="2.5" fill="${c}"/><rect x="24" y="17" width="52" height="5" rx="2.5" fill="#000" opacity=".15"/><circle cx="50" cy="10" r="5" fill="#FFF4B8" stroke="#B8862E"/>`),
+  OFJ("hood",["stonespeaker","lampwarden"],"兜帽","フード","Hood","#4E7ECF",c=>`<path d="M22 30Q20-2 50-2Q80-2 78 30Q70 12 50 12Q30 12 22 30Z" fill="${c}"/><path d="M30 20Q50 6 70 20" stroke="#fff" stroke-width="1.2" opacity=".35" fill="none"/>`),
+  OFJ("band",["shadowbinder"],"忍者頭帶","はちまき","Headband","#8E6BE0",c=>`<rect x="24" y="15" width="52" height="7" rx="3.5" fill="${c}"/><rect x="44" y="15.5" width="12" height="6" rx="1" fill="#B8C4D6"/><path d="M75 18L88 12M75 20L88 27" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`),
+  OFJ("halo",["oracle"],"光環","光の輪","Halo","#F2C94C",c=>`<ellipse cx="50" cy="1" rx="16" ry="4.5" fill="none" stroke="${c}" stroke-width="3"/><ellipse cx="50" cy="1" rx="16" ry="4.5" fill="none" stroke="#fff" stroke-width="1" opacity=".6"/>`),
+  OFJ("laurel",["gladiator"],"桂冠","月桂冠","Laurel wreath","#7FBF8E",c=>[...[[27,24,-50],[31,17,-40],[37,11,-25],[44,8,-10]],...[[73,24,50],[69,17,40],[63,11,25],[56,8,10]]].map(([x,y,r])=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="2.6" fill="${c}" transform="rotate(${r} ${x} ${y})"/>`).join("")),
+  OFJ("wolf",["beastbinder"],"狼耳兜帽","オオカミずきん","Wolf hood","#8C6A50",c=>`<path d="M28 12L30-8 42 6ZM72 12L70-8 58 6Z" fill="${c}"/><path d="M22 30Q20 0 50 0Q80 0 78 30Q70 12 50 12Q30 12 22 30Z" fill="${c}"/><path d="M32 6L32-3 38 4ZM68 6L68-3 62 4Z" fill="#F4C7A0"/>`));
+OUTFIT.hand.push(
+  OFJ("pick",["delver"],"十字鎬","つるはし","Pickaxe","#9AA6B2",c=>`<path d="M86 62L96 30" stroke="#6B4A36" stroke-width="2.6" stroke-linecap="round"/><path d="M84 34Q96 22 108 32" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`),
+  OFJ("orb",["stonespeaker"],"石語法杖","石のつえ","Stone staff","#9FC2F0",c=>`<path d="M88 64V28" stroke="#6B4A36" stroke-width="2.4" stroke-linecap="round"/><circle cx="88" cy="24" r="5.5" fill="${c}"/><circle cx="86.5" cy="22.5" r="1.8" fill="#fff" opacity=".7"/>`),
+  OFJ("dagger",["shadowbinder"],"影刃","かげのやいば","Shadow blade","#C4AEF5",c=>`<path d="M86 60L96 44" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/><path d="M83 56L89 61" stroke="#4A3580" stroke-width="3" stroke-linecap="round"/>`),
+  OFJ("lantern",["lampwarden"],"守燈","ランタン","Lantern","#E0B23C",c=>`<path d="M88 56V46" stroke="#555" stroke-width="1.2"/><rect x="82" y="46" width="12" height="14" rx="3" fill="${c}" stroke="#8C6A2A"/><circle cx="88" cy="53" r="3" fill="#FFF4B8"/>`),
+  OFJ("light",["oracle"],"神諭之杖","おつげのつえ","Oracle staff","#F6E27A",c=>`<path d="M88 64V28" stroke="#E9DCC4" stroke-width="2.4"/><circle cx="88" cy="24" r="6" fill="${c}"/><path d="M88 14V18M88 30V34M78 24H82M94 24H98" stroke="${c}" stroke-width="1.6"/>`),
+  OFJ("shield",["gladiator"],"角鬥盾","たて","Gladiator shield","#E0662A",c=>`<path d="M82 46H98V56Q98 66 90 70Q82 66 82 56Z" fill="${c}" stroke="#8E3B16" stroke-width="1.2"/><path d="M90 48V68M83 56H97" stroke="#fff" opacity=".5"/>`),
+  OFJ("horn",["beastbinder"],"哨角","つのぶえ","Horn","#F2E6C9",c=>`<path d="M84 60Q86 44 100 40L102 46Q92 48 90 60Z" fill="${c}" stroke="#8C6A50" stroke-width="1"/>`));
+const tasksDone=()=>Object.values(S.weeks||{}).reduce((n,w)=>n+(w.days||[]).flat().filter(x=>x&&x.done).length,0);
+const unitsDone=()=>Object.values(S.vc||{}).reduce((n,v)=>n+Object.keys((v&&v.done)||{}).length,0);
+const J=(k,c,name,tag,type,skills,outfit,goal,prog,need)=>({k,c,name,tag,type,skills,outfit,goal,prog,need});
+const JOBS=[
+  J("delver","#E07A3F",{zh:"掘徑者",ja:"ほりすすむ者",en:"Delver"},{zh:"把牆當成門的那種人",ja:"カベをトビラにする人",en:"Treats walls like doors"},
+    {zh:"近戰推進型：血厚、站得住。他不擅長閃躲，他擅長讓對方先撐不住。",ja:"近接で押し進むタイプ。タフで、先に相手が音を上げる。",en:"Front-line pusher: tough and steady; the other side gives up first."},
+    [["破土斬","向前劈出一道土石弧，擊退第一個敵人。"],["地心迴旋","原地旋轉 2.5 秒，掃開身邊所有敵人。"]],{hat:"miner",hand:"pick"},{zh:"在週曆完成 10 件事",ja:"週カレンダーで 10 件おわらせる",en:"Finish 10 tasks in your week"},tasksDone,10),
+  J("stonespeaker","#4E7ECF",{zh:"石語者",ja:"いしがたり",en:"Stonespeaker"},{zh:"石頭會回答，只要你問對問題",ja:"正しく聞けば、石はこたえる",en:"Stones answer, if you ask the right question"},
+    {zh:"遠程法術型：清場最強。把敵人的推進整片抹掉，而不是一個一個打。",ja:"遠くから魔法で一気にかたづけるタイプ。",en:"Ranged spellcaster who clears a whole wave at once."},
+    [["碎石彈","射出三枚石片，扇形散開。"],["熔脈","射出一道貫穿光束，穿透路上所有敵人。"]],{hat:"hood",hand:"orb"},{zh:"完成 3 個單字課程單元",ja:"単語コースを 3 ユニット",en:"Complete 3 word-course units"},unitsDone,3),
+  J("shadowbinder","#8E6BE0",{zh:"縛影者",ja:"かげしばり",en:"Shadowbinder"},{zh:"不與人對砍，只結束對砍",ja:"打ち合わない。終わらせるだけ。",en:"Doesn't trade blows; ends them"},
+    {zh:"刺客型：身手快、爆發高，繞過前線直接處理關鍵。",ja:"すばやいアサシン。まわりこんで要をねらう。",en:"Quick assassin who slips past the front line."},
+    [["影襲","向前突進，穿過的敵人受到傷害，過程中不受傷。"],["影之潮","3 秒內不停瞬移到最近的敵人身上攻擊。"]],{hat:"band",hand:"dagger"},{zh:"來網站 5 天",ja:"5 日このサイトに来る",en:"Visit on 5 different days"},()=>(S.visit&&S.visit.n)||0,5),
+  J("lampwarden","#E0B23C",{zh:"燈守",ja:"あかりもり",en:"Lampwarden"},{zh:"自己不推，但讓整條線都往前",ja:"自分は前に出ないけど、みんなを前へ",en:"Doesn't push, but moves the whole line forward"},
+    {zh:"召喚支援型：本體不強，但召出的燈兵最強，擅長照顧整個隊伍。",ja:"しょうかんサポート。よびだす仲間がいちばん強い。",en:"Summoner-support whose lamp soldiers are the strongest."},
+    [["點燈","點燃一盞燈，召出兩名燈兵一起作戰。"],["燈塔","架起一座友方燈塔，射程與威力都很高。"]],{hat:"hood",hand:"lantern",col:{hat:"#E0B23C"}},{zh:"在故事館讀 3 本書",ja:"おはなし館で 3 さつ読む",en:"Read 3 books in the story library"},()=>(S.use&&S.use.tale)||0,3),
+  J("oracle","#C9B98A",{zh:"神諭祭司",ja:"おつげのしさい",en:"Oracle"},{zh:"她說不要扶，於是八百年沒有人扶",ja:"「ささえないで」と言われ、八百年だれもささえなかった",en:"She said don't help her up; for 800 years, no one did"},
+    {zh:"白袍那一路：防護最高、藥草吃得最好，還能給自己護盾。",ja:"白いローブの守り手。いちばん打たれ強い。",en:"The white-robed guardian, hardest of all to knock down."},
+    [["神諭光柱","一道光柱落在前方，穿透路上的敵人。"],["神殿之光","以自己為中心降下大範圍的光。"]],{hat:"halo",hand:"light",back:"wings"},{zh:"完成目標路線上的 3 個步驟",ja:"目標ルートを 3 ステップ",en:"Complete 3 steps on your goal path"},()=>((S.goal&&S.goal.steps)||[]).filter(x=>x&&x.done).length,3),
+  J("gladiator","#E0662A",{zh:"角鬥士",ja:"けんとうし",en:"Gladiator"},{zh:"贏的人戴桂冠，輸的人也曾經戴過",ja:"勝者は月桂冠を。敗者もかつてはかぶっていた",en:"Winners wear the laurel; losers once did too"},
+    {zh:"快、脆、爆發高。他不擋，他讓對方沒有第二下。",ja:"速くて一撃が重い。二回目をださせない。",en:"Fast and fierce: there's no second hit."},
+    [["搶拍","向前突進並劈砍，命中就回一點血。"],["競技場","8 秒內攻擊速度大增，還能邊打邊回血。"]],{hat:"laurel",hand:"shield"},{zh:"升到 Lv 5",ja:"Lv 5 になる",en:"Reach Lv 5"},()=>myLv(),5),
+  J("beastbinder","#8FB86A",{zh:"縛獸人",ja:"けものつかい",en:"Beastbinder"},{zh:"牠們比牠好相處",ja:"あの子たちのほうが、つきあいやすい",en:"The beasts are easier company"},
+    {zh:"自己不強，但帶的夥伴很強，還能把敵人變成自己人。",ja:"自分は強くないけど、なかまがとても強い。",en:"Not strong alone, but the companions are, and foes become friends."},
+    [["哨音","一聲哨音震開周圍的敵人。"],["獸骨樁","架起一座友方獸骨塔，守住陣地。"]],{hat:"wolf",hand:"horn"},{zh:"在單字本收藏 10 個字",ja:"単語帳に 10 語ほぞん",en:"Save 10 words to your word book"},()=>Object.keys(S.vbook||{}).length,10)
+];
+const jobHas=k=>{const j=JOBS.find(x=>x.k===k);return !!j&&j.prog()>=j.need};
+const JB_STR={zh:{title:"小潔米職業圖鑑",open:n=>`🏅 職業圖鑑 ${n}/7`,from:"來自《通天塔》的七種職業。用網站就能收集，收集到就能穿上職業裝。",wear:"穿上職業裝",skills:"招牌技能",how:"收集方式",got:"已收集",jobLock:"收集職業後解鎖",newJob:n=>`🏅 收集到新職業：${n}！去衣櫃換上職業裝吧`,rpgCards:n=>`🗡️ 限定字卡出現了：字卡 → 圖鑑 →「${n}」`},
+ ja:{title:"ゼリーのしょくぎょう図鑑",open:n=>`🏅 しょくぎょう ${n}/7`,from:"『通天塔』の7つのしょくぎょう。サイトを使うと集まり、しょくぎょうの服が着られます。",wear:"しょくぎょうの服を着る",skills:"とくいわざ",how:"あつめかた",got:"ゲット",jobLock:"しょくぎょうを集めると解放",newJob:n=>`🏅 新しいしょくぎょう：${n}！`,rpgCards:n=>`🗡️ 限定カード登場：単語 → 図鑑 →「${n}」`},
+ en:{title:"Little Jelly's jobs",open:n=>`🏅 Jobs ${n}/7`,from:"The seven classes of Tower of Babel. Collect them by using the site, then wear their outfits.",wear:"Wear this job",skills:"Signature skills",how:"How to collect",got:"Collected",jobLock:"Unlocks with a job",newJob:n=>`🏅 New job collected: ${n}! Try the outfit in the wardrobe`,rpgCards:n=>`🗡️ Limited cards unlocked: Words → Picture cards → “${n}”`}};
+const JBT=()=>JB_STR[LANG[S.region]];
+function openJobs(){
+  const b=JBT(),l=LANG[S.region],n=JOBS.filter(j=>jobHas(j.k)).length;
+  layer(`<div class="shead"><h2>🏅 ${b.title} · ${n}/7</h2>${closeBtn(T())}</div><p class="note">${b.from}</p>
+<div class="jobs">${JOBS.map(j=>{const have=jobHas(j.k),p=Math.min(j.prog(),j.need),o=Object.assign({col:j.outfit.col||{}},j.outfit);
+  return `<div class="job jelly${have?"":" no"}" style="--jc:${j.c}"><div class="jtop">${miniJelly(o,"jmas")}<div><b>${esc(j.name[l])}</b><small>${esc(j.name.en)}</small><i>「${esc(j.tag[l])}」</i></div></div>
+<p>${esc(j.type[l])}</p><div class="jsk"><small>${b.skills}</small>${j.skills.map(([a,d])=>`<span><b>${esc(a)}</b>${esc(d)}</span>`).join("")}</div>
+${have?`<div class="row"><span class="jgot">✓ ${b.got}</span><button class="pill pri jelly" type="button" data-jwear="${j.k}">${b.wear}</button></div>`:`<div class="jhow"><small>${b.how}：${esc(j.goal[l])}</small><span class="vbar"><i style="width:${Math.max(4,Math.round(p/j.need*100))}%"></i></span><small>${p} / ${j.need}</small></div>`}</div>`}).join("")}</div>`);
+}
+function jobWear(k){const j=JOBS.find(x=>x.k===k);if(!j||!jobHas(k))return;OF_SLOTS.forEach(s=>{S.outfit[s]=j.outfit[s]||"";delete S.outfit.col[s]});Object.assign(S.outfit.col,j.outfit.col||{});save();refreshLogo();toast(WRT().saved);openJobs()}
+// a job collected since last time gets one cheer
+function jobCheck(){S.jobsSeen=S.jobsSeen||[];const fresh=JOBS.filter(j=>jobHas(j.k)&&!S.jobsSeen.includes(j.k));if(!fresh.length)return;
+  S.jobsSeen=S.jobsSeen.concat(fresh.map(j=>j.k));save();toast(JBT().newJob(fresh.map(j=>j.name[LANG[S.region]]).join("、")))}
+
+/* ---------- picture cards that only show up with the two RPG looks ---------- */
+const svgUri=s=>"data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${s}</svg>`);
+const RPG_ART={
+  airship:svgUri(`<ellipse cx="50" cy="34" rx="38" ry="16" fill="#C9A06A"/><path d="M14 34h72M20 26h60M20 42h60" stroke="#8C6A40" stroke-width="1.5"/><path d="M30 48l6 12h28l6-12" stroke="#6B4A36" stroke-width="2" fill="none"/><path d="M28 60h44l-6 14H34z" fill="#8C5A36"/><circle cx="42" cy="66" r="2.5" fill="#FFE9A8"/><circle cx="52" cy="66" r="2.5" fill="#FFE9A8"/><circle cx="62" cy="66" r="2.5" fill="#FFE9A8"/><path d="M86 28l8-6v24l-8-6z" fill="#8C6A40"/><path d="M12 34l-8-9M12 34l-8 9" stroke="#555" stroke-width="3" stroke-linecap="round"/>`),
+  nautilus:svgUri(`<path d="M4 54Q28 32 70 38Q92 42 96 54Q92 66 70 70Q28 76 4 54Z" fill="#4E6A7E"/><path d="M40 38l6-12h16l4 12" fill="#3E5566"/><g fill="#FFE9A8" stroke="#C9A06A" stroke-width="1.5"><circle cx="34" cy="54" r="4.5"/><circle cx="50" cy="54" r="4.5"/><circle cx="66" cy="54" r="4.5"/></g><path d="M94 54l6-9v18z" fill="#C9A06A"/><path d="M10 54l-7-7M10 54l-7 7" stroke="#C9A06A" stroke-width="3"/><path d="M20 80q6-4 12 0t12 0" stroke="#8FD0F0" stroke-width="2" fill="none"/>`),
+  slime:svgUri(`<path d="M50 12Q56 26 70 38Q88 52 84 70Q80 88 50 88Q20 88 16 70Q12 52 30 38Q44 26 50 12Z" fill="#4AA8F0"/><ellipse cx="36" cy="42" rx="7" ry="4" fill="#fff" opacity=".6" transform="rotate(-30 36 42)"/><circle cx="40" cy="58" r="5" fill="#1B2735"/><circle cx="60" cy="58" r="5" fill="#1B2735"/><path d="M36 69Q50 84 64 69Z" fill="#E5484D"/>`),
+  chest:svgUri(`<rect x="14" y="44" width="72" height="40" rx="4" fill="#A8672F"/><path d="M14 44Q14 20 50 20Q86 20 86 44Z" fill="#C07A3A"/><path d="M14 44h72M14 64h72" stroke="#F2C94C" stroke-width="4"/><rect x="44" y="50" width="12" height="16" rx="2" fill="#F2C94C"/><circle cx="50" cy="57" r="2.5" fill="#6B4A36"/>`),
+  mimic:svgUri(`<rect x="14" y="50" width="72" height="36" rx="4" fill="#A8672F"/><path d="M14 38Q14 12 50 12Q86 12 86 38Z" fill="#C07A3A"/><path d="M14 38h72" stroke="#F2C94C" stroke-width="4"/><path d="M18 50h64l-6 8-6-8-6 8-6-8-6 8-6-8-6 8-6-8-6 8-6-8z" fill="#fff"/><rect x="14" y="38" width="72" height="12" fill="#5A1F1F"/><circle cx="36" cy="28" r="5" fill="#FFE14D"/><circle cx="64" cy="28" r="5" fill="#FFE14D"/><circle cx="36" cy="28" r="2" fill="#1B2735"/><circle cx="64" cy="28" r="2" fill="#1B2735"/>`)
+};
+const RC=(e,zh,en,ja,jk,lv)=>[e,zh,en,ja,jk||"","","",lv||1].join("|");
+const RPG_ROOTS=[
+  {k:"fantx",skin:"fant",rpg:1,e:"💎",n:{zh:"奇幻水晶圖鑑",ja:"クリスタル図鑑",en:"Crystal realm"},subs:[
+    {k:"summon",n:{zh:"召喚獸",ja:"召喚獣",en:"Summons"},c:[RC("📜","召喚","summon","召喚","しょうかん"),RC("🔥","伊夫利特（火焰召喚獸）","Ifrit","イフリート"),RC("❄️","希瓦（冰之女王）","Shiva","シヴァ"),RC("🐉","巴哈姆特（龍王）","Bahamut","バハムート"),RC("🐋","利維坦（大海之王）","Leviathan","リヴァイアサン"),RC("🗿","泰坦（大地巨人）","Titan","タイタン"),RC("🐎","奧丁（斬鐵之王）","Odin","オーディン",2),RC("🪶","鳳凰（不死鳥）","phoenix","フェニックス")]},
+    {k:"ride",n:{zh:"飛空艇與坐騎",ja:"飛空艇と乗りもの",en:"Airships & rides"},c:[RC(RPG_ART.airship,"飛空艇","airship","飛空艇","ひくうてい"),RC(RPG_ART.nautilus,"鸚鵡螺號","Nautilus","ノーチラス号",""),RC("⛵","帆船","sailing ship","帆船","はんせん"),RC("🚂","魔導列車","steam train","蒸気機関車","じょうききかんしゃ",2),RC("🐦","大鳥坐騎","giant bird","大きな鳥","おおきなとり")]},
+    {k:"items",n:{zh:"道具與魔法",ja:"アイテムと魔法",en:"Items & magic"},c:[RC("💎","水晶","crystal","クリスタル"),RC("🧪","藥水","potion","ポーション"),RC("⚗️","萬能藥","elixir","エリクサー"),RC("💧","以太（回復魔力）","ether","エーテル",2),RC("🪶","鳳凰羽毛（復活）","phoenix feather","フェニックスの羽根"),RC("✨","魔法","magic","魔法","まほう"),RC("🔥","火焰","fire","ファイア"),RC("🌨️","暴風雪","blizzard","ブリザード"),RC("⚡","雷電","thunder","サンダー"),RC("💚","治癒","cure","回復","かいふく")]},
+    {k:"jobs",n:{zh:"職業",ja:"ジョブ",en:"Jobs"},c:[RC("🛡️","騎士","knight","ナイト"),RC("🧙","魔法師","wizard","魔法使い","まほうつかい"),RC("🗡️","盜賊","thief","シーフ"),RC("🐲","龍騎士","dragoon","竜騎士","りゅうきし",2),RC("📜","召喚士","summoner","召喚士","しょうかんし"),RC("💫","治療師","healer","ヒーラー"),RC("🥋","武僧","monk","モンク")]}]},
+  {k:"questx",skin:"quest",rpg:1,e:"🗡️",n:{zh:"勇者冒險圖鑑",ja:"勇者の冒険図鑑",en:"Hero's quest"},subs:[
+    {k:"monsters",n:{zh:"怪物",ja:"モンスター",en:"Monsters"},c:[RC(RPG_ART.slime,"史萊姆","slime","スライム"),RC(RPG_ART.mimic,"寶箱怪","mimic","ミミック"),RC("🐉","龍","dragon","ドラゴン"),RC("👻","幽靈","ghost","おばけ"),RC("🦇","蝙蝠","bat","こうもり"),RC("💀","骷髏","skeleton","がいこつ"),RC("🗿","石像人","golem","ゴーレム",2),RC("😈","魔王","demon lord","魔王","まおう")]},
+    {k:"town",n:{zh:"城鎮",ja:"まち",en:"Town"},c:[RC("🏰","城堡","castle","お城","おしろ"),RC("🤴","國王","king","王様","おうさま"),RC("👸","公主","princess","お姫様","おひめさま"),RC("🏨","旅館","inn","宿屋","やどや"),RC("⛪","教會","church","教会","きょうかい"),RC("🏪","道具店","item shop","道具屋","どうぐや"),RC("⚔️","武器店","weapon shop","武器屋","ぶきや"),RC("🏺","壺（打破有寶物？）","pot","つぼ"),RC("🛢️","木桶","barrel","たる"),RC(RPG_ART.chest,"寶箱","treasure chest","宝箱","たからばこ")]},
+    {k:"adventure",n:{zh:"冒險",ja:"ぼうけん",en:"Adventure"},c:[RC("🦸","勇者","hero","勇者","ゆうしゃ"),RC("🗡️","劍","sword","剣","つるぎ"),RC("🛡️","盾","shield","盾","たて"),RC("🌿","藥草","medicinal herb","薬草","やくそう"),RC("🪙","金幣","gold","ゴールド"),RC("⬆️","升級","level up","レベルアップ"),RC("⭐","經驗值","experience","経験値","けいけんち",2),RC("📖","冒險之書（存檔）","save","冒険の書","ぼうけんのしょ"),RC("👥","夥伴","party","仲間","なかま"),RC("❤️","生命值","hit points","HP"),RC("💧","魔力","magic points","MP"),RC("☠️","中毒","poison","毒","どく"),RC("✨","復活","revive","生き返る","いきかえる")]}]}
+];
+RPG_ROOTS.forEach(R=>R.subs.forEach(sb=>sb.c=sb.c.map(r=>mkCard(r,R.k,sb.k))));
 
 /* ---------- events ---------- */
 let suppressUntil=0;
@@ -6932,7 +7027,7 @@ document.addEventListener("click",e=>{
     if(a==="install"&&installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;openSettings()})}
     return;
   }
-  const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;themeMusic(S.skin);save();applySkin();render();openSettings();return}
+  const sw=el.closest(".sw");if(sw){S.skin=sw.dataset.skin;delete S.wallAccent;PBANK=null;themeMusic(S.skin);const rr=RPG_ROOTS.find(r=>r.skin===S.skin);if(rr)setTimeout(()=>toast(JBT().rpgCards(rr.n[LANG[S.region]])),2800);save();applySkin();render();openSettings();return}
   if(el.closest("[data-artnext]")){paintShift++;drawArt();return}
 
   const co=el.closest("[data-coach]");
@@ -7077,10 +7172,12 @@ document.addEventListener("click",e=>{
   if(el.closest("[data-aq]")){aqConnect();return}
   if(el.closest("#logo,[data-wardrobe]")){openWardrobe();return}
   const wrs=el.closest("[data-wrslot]");if(wrs){wr.slot=wrs.dataset.wrslot;openWardrobe();return}
-  const wri=el.closest("[data-writ]");if(wri){const k=wri.dataset.writ,it=ofItem(wr.slot,k);if(k&&!ofOpen(it)){toast(WRT().lock(it.lv));return}S.outfit[wr.slot]=k;delete S.outfit.col[wr.slot];wrWear();return}
+  const wri=el.closest("[data-writ]");if(wri){const k=wri.dataset.writ,it=ofItem(wr.slot,k);if(k&&!ofOpen(it)){toast(ofLockText(it));return}S.outfit[wr.slot]=k;delete S.outfit.col[wr.slot];wrWear();return}
   const wrc=el.closest("[data-wrc]");if(wrc){S.outfit.col[wr.slot]=wrc.dataset.wrc;wrWear();return}
   const wst=el.closest("[data-wrset]");if(wst){wrSet(wst.dataset.wrset);return}
   if(el.closest("[data-wrrand]")){wrRandom();return}
+  if(el.closest("[data-jobs]")){openJobs();return}
+  const jw=el.closest("[data-jwear]");if(jw){jobWear(jw.dataset.jwear);return}
   if(el.closest("[data-wrai]")){openStylist();return}
   if(el.closest("[data-wraigo]")){stylistGo();return}
   if(el.closest("[data-skinai]")){openSkinAI();return}
@@ -7393,6 +7490,6 @@ render();
 checkReminders();
 boot();
 ysShared();
-memSync();memInvite();
+memSync();memInvite();setTimeout(jobCheck,2500);
 })();
 </script>
