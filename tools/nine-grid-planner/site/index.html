@@ -1069,6 +1069,13 @@ html .knob svg{width:22px;height:22px}
 
 .owned{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}.owned li{display:flex;flex-direction:column;padding:8px 10px;border-radius:12px;background:var(--chip)}.owned b{font-weight:400;font-size:14px}.owned small{font-size:11px;color:var(--muted)}
 
+.ysform{display:flex;gap:8px}.ysform input{flex:1;min-width:0;font:inherit;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line,#ccc);background:var(--card,#fff);color:inherit}
+.yslist{display:flex;flex-direction:column;gap:8px;margin-top:6px}.ysitem{display:flex;align-items:center;gap:10px}
+.ysplay{position:relative;flex:0 0 120px;height:68px;border:0;padding:0;border-radius:10px;overflow:hidden;background:#000;cursor:pointer}.ysplay img{width:100%;height:100%;object-fit:cover;display:block}
+.ysplay span{position:absolute;inset:0;display:grid;place-items:center;color:#fff}.ysplay span svg{width:28px;height:28px;filter:drop-shadow(0 1px 3px #000)}
+.ysplay em{position:absolute;right:4px;bottom:4px;font-style:normal;font-size:11px;background:#000c;color:#fff;padding:0 4px;border-radius:4px}
+.ysmeta{flex:1;min-width:0;display:flex;flex-direction:column}.ysmeta b{font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ysmeta small{opacity:.7;font-size:12px}
+.ysadd{flex:0 0 40px;height:40px;border-radius:50%;border:0;font-size:20px;background:var(--accent);color:var(--on-accent);cursor:pointer}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -2224,7 +2231,7 @@ function cover(seed){
 function renderMusicFace(){
   const t=T();
   const saved=(S.musicBox||[]).length?`<section class="mbox"><h3>${I.heart}${t.mBox} · ${S.musicBox.length}</h3><div class="mrow">${S.musicBox.map((m,i)=>`<button class="mitem" type="button" data-mbi="${i}"><i style="background:${cover(m.url+m.title)}"></i><b>${esc(m.title)}</b><small>${esc(m.from?t.mFrom(m.from):m.artist||"")}</small></button>`).join("")}</div></section>`:"";
-  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-mshuf="1">${I.sparkle}${t.mShuffle}</button><button class="pill jelly" type="button" data-mcards="1">${I.music}${t.mCards}</button><button class="pill jelly" type="button" data-imp="open">${I.upload}${t.impBtn}</button></div><div class="music">${S.songs.map((s,i)=>{
+  $("face").innerHTML=`<div class="coachbar"><button class="pill pri jelly" type="button" data-ysopen="1">🔍 ${YS_STR[LANG[S.region]].btn}</button><button class="pill jelly" type="button" data-mshuf="1">${I.sparkle}${t.mShuffle}</button><button class="pill jelly" type="button" data-mcards="1">${I.music}${t.mCards}</button><button class="pill jelly" type="button" data-imp="open">${I.upload}${t.impBtn}</button></div><div class="music">${S.songs.map((s,i)=>{
     const center=i===4;
     if(!s||!s.url)return `<button class="stile jelly blank${center?" center":""}" type="button" data-song="${i}" data-edit="${i}" aria-label="${t.addSong}"><span class="plus">+</span></button>`;
     const title=s.title||(center?t.playlist:"♪");
@@ -6115,6 +6122,58 @@ const SF_STR={
     backupWhy:"Your data lives on this device. Export a backup now and then.",exp:"Export backup",imp:"Restore from backup",saved:"Backup downloaded",copyIt:"Downloads aren't allowed here; copy this text and keep it:",badFile:"That isn't a valid backup",restored:"Restored. Reloading…"}
 };
 const SF=()=>SF_STR[LANG[S.region]];
+
+/* ---------- in-site YouTube search + share target ---------- */
+const YS_STR={zh:{btn:"搜尋歌曲",title:"搜尋歌曲",ph:"打歌名或歌手，例如：周杰倫 晴天",go:"搜尋",hint:"不用複製網址：搜尋 → ▶ 試聽 → ＋ 收進歌單。",none:"找不到，換個關鍵字試試",err:"搜尋失敗，稍後再試",site:"搜尋要在正式網站上才能用（預覽裡不行）。",added:"加進歌單了 ♪",boxed:"九宮格滿了，放進「我的收藏」",dup:"已經在歌單裡了",shared:"收到分享的歌 ♪",searching:"搜尋中…"},
+ ja:{btn:"曲をさがす",title:"曲をさがす",ph:"曲名やアーティスト名",go:"検索",hint:"URL のコピーは不要：検索 → ▶ 試聴 → ＋ で追加。",none:"見つかりません。別のことばで試してください",err:"検索に失敗しました",site:"検索は公開サイトでのみ使えます。",added:"プレイリストに追加しました ♪",boxed:"いっぱいなので「お気に入り」に入れました",dup:"もう入っています",shared:"シェアされた曲を受け取りました ♪",searching:"検索中…"},
+ en:{btn:"Search songs",title:"Search songs",ph:"Song or artist name",go:"Search",hint:"No copying links: search → ▶ preview → ＋ add.",none:"Nothing found, try other words",err:"Search failed, try again later",site:"Search works on the live site only (not in this preview).",added:"Added to your playlist ♪",boxed:"Grid is full, saved to My box",dup:"Already in your playlist",shared:"Got the shared song ♪",searching:"Searching…"}};
+const YST=()=>YS_STR[LANG[S.region]];
+let YS={q:"",items:[]};
+function openYtSearch(){
+  const t=YST();endGuide(true);
+  layer(`<div class="shead"><h2>🔍 ${t.title}</h2>${closeBtn(T())}</div>
+<form class="ysform" id="ysForm"><input id="ysQ" type="search" enterkeyhint="search" placeholder="${esc(t.ph)}" value="${esc(YS.q)}" autocomplete="off"><button class="pill pri" type="submit">${t.go}</button></form>
+<p class="note">${IS_SITE?t.hint:t.site}</p><div id="ysList" class="yslist"></div>`,true);
+  ysDraw();const q=$("ysQ");if(q)setTimeout(()=>q.focus(),60);
+}
+function ysDraw(msg){
+  const box=$("ysList");if(!box)return;
+  if(msg){box.innerHTML=`<p class="note" style="text-align:center">${esc(msg)}</p>`;return}
+  box.innerHTML=YS.items.map((v,i)=>`<div class="ysitem"><button type="button" class="ysplay" data-ysplay="${i}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy" onerror="this.remove()"><span>${I.play}</span>${v.len?`<em>${esc(v.len)}</em>`:""}</button><div class="ysmeta"><b>${esc(v.title)}</b><small>${esc(v.channel||"")}</small></div><button type="button" class="ysadd jelly" data-ysadd="${i}" aria-label="+">＋</button></div>`).join("");
+}
+async function ysRun(q){
+  const t=YST();q=String(q||"").trim();if(!q)return;YS.q=q;
+  if(!IS_SITE){ysDraw(t.site);return}
+  const direct=ytNorm(q);
+  if(direct&&direct.kind==="video"){YS.items=[{id:direct.id.slice(2),title:q,channel:""}];ysDraw();return}
+  ysDraw(t.searching);
+  try{const r=await fetch("/.netlify/functions/yt?list=1&q="+encodeURIComponent(q));if(!r.ok)throw 0;const j=await r.json();
+    YS.items=(j.items||[]).filter(v=>/^[\w-]{11}$/.test(v.id)).slice(0,8);
+    YS.items.length?ysDraw():ysDraw(t.none);
+  }catch(e){ysDraw(t.err)}
+}
+const ysSong=v=>({title:v.title||"YouTube",artist:v.channel||"",url:"https://www.youtube.com/watch?v="+v.id});
+// add without touching anything the user already has: first empty tile, else the box
+function ysAdd(song){
+  const t=YST();S.musicBox=S.musicBox||[];
+  const k=songKey(song);
+  if(S.songs.some(x=>x&&x.url&&songKey(x)===k)||S.musicBox.some(x=>songKey(x)===k)){toast(t.dup);return}
+  const i=S.songs.findIndex(x=>!x||!x.url);
+  if(i>=0){S.songs[i]=Object.assign({},song);toast(t.added)}
+  else{S.musicBox.unshift(Object.assign({genre:"",from:"",note:""},song));toast(t.boxed)}
+  save();if(S.face===2)render();
+}
+// Android "share to" this site (manifest share_target) → ?title=&text=&url=
+function ysShared(){
+  try{const p=new URLSearchParams(location.search);if(!p.has("url")&&!p.has("text"))return;
+    const raw=[p.get("url"),p.get("text")].filter(Boolean).join(" ");
+    const m=raw.match(/https?:\/\/(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be)\/\S+/i);
+    history.replaceState(null,"",location.pathname+location.hash);
+    if(!m)return;const n=ytNorm(m[0]);if(!n)return;
+    let title=(p.get("title")||"").trim()||(p.get("text")||"").replace(m[0],"").trim()||"YouTube";
+    ysAdd({title:title.slice(0,80),artist:"",url:n.url});toast(YST().shared);goFace(2);
+  }catch(e){}
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -6287,6 +6346,9 @@ document.addEventListener("click",e=>{
   const aip=el.closest("[data-aiprov]");if(aip){const c=aiCfg(),k=aip.dataset.aiprov;setAiCfg(k?Object.assign({},c,{provider:k,model:c.provider===k?c.model:""}):{});AI=pickAI();openSettings();return}
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
+  if(el.closest("[data-ysopen]")){openYtSearch();return}
+  const ysp=el.closest("[data-ysplay]");if(ysp){const v=YS.items[+ysp.dataset.ysplay];if(v)tubePlay([ysSong(v)],0,"search");return}
+  const ysa=el.closest("[data-ysadd]");if(ysa){const v=YS.items[+ysa.dataset.ysadd];if(v){ysAdd(ysSong(v));ysa.textContent="✓"}return}
   if(el.closest("[data-mcards]")){openCards("send");return}
   if(el.closest("[data-redeem]")){redeem();return}
   const bk=el.closest("[data-bk]");if(bk){backupOut();return}
@@ -6513,6 +6575,7 @@ document.addEventListener("paste",e=>{
   addTodoRows(lines,li);
 });
 document.addEventListener("submit",e=>{
+  if(e.target.id==="ysForm"){e.preventDefault();const q=$("ysQ");if(q){q.blur();ysRun(q.value)}return}
   if(e.target.id==="coachForm"){e.preventDefault();const v=$("coachIn").value;$("coachIn").value="";coachSend(v);return}
   if(e.target.id!=="addForm")return;e.preventDefault();
   const v=$("newTask").value.trim();if(!v)return;
@@ -6577,6 +6640,7 @@ applySkin();
 render();
 checkReminders();
 boot();
+ysShared();
 })();
 </script>
 
