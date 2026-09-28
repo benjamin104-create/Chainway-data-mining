@@ -1953,7 +1953,9 @@ const PXT=()=>({zh:"點陣字（每種背景都能用）",ja:"ドット文字（
 function applySkin(){
   const r=document.documentElement,k=skin(),acc=wall&&S.wallAccent?S.wallAccent:null;
   const lum=h=>{const m=/^#([0-9a-f]{6})$/i.exec(h||"");if(!m)return 1;const n=parseInt(m[1],16);return (.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))/255};
-  r.classList.toggle("night",!!k.dark||(k.draw==="motif"&&lum(k.bg)<.35&&lum(k.bg2||k.bg)<.45));
+  // the look decides light or dark text, not the phone's dark mode, so words always contrast with the background
+  const dk=!!k.dark||(k.draw==="motif"&&lum(k.bg)<.35&&lum(k.bg2||k.bg)<.45);
+  r.classList.toggle("night",dk);r.dataset.theme=dk?"dark":"light";
   ["sk-fant","sk-quest","sk-epic","sk-art","sk-plain"].forEach(c=>r.classList.remove(c));if(k.cls)r.classList.add(k.cls);if(k.draw==="paint")r.classList.add("sk-art");if(k.draw==="plain")r.classList.add("sk-plain");
   r.classList.toggle("px",!!S.pixel);
   const needFont=f=>{if(document.getElementById("font-"+f))return;const l=document.createElement("link");l.id="font-"+f;l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family="+f+"&display=swap";document.head.appendChild(l)};
