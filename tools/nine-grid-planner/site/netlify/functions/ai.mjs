@@ -42,6 +42,10 @@ export default async (req, context) => {
   const messages = Array.isArray(body.messages) ? body.messages.slice(-16) : [];
   const size = messages.reduce((n, m) => n + String(m.content || "").length, 0);
   if (!messages.length || size > 24000) return json({ error: "bad_request" }, 413);
+  // 拍照匯入：最多 3 張已縮小的 JPEG/PNG，附在最後一則使用者訊息
+  const images = (Array.isArray(body.images) ? body.images : []).slice(0, 3)
+    .filter((g) => g && /^image\/(jpeg|png|webp)$/.test(g.mime) && typeof g.data === "string" && g.data.length < 2_800_000 && /^[A-Za-z0-9+/=]+$/.test(g.data));
+  if (Array.isArray(body.images) && body.images.length && !images.length) return json({ error: "bad_request" }, 413);
 
   // 使用次數：先看限制，Gemini 回答成功才記一次
   const now = new Date(), day = now.toISOString().slice(0, 10), hour = now.toISOString().slice(0, 13);
@@ -64,7 +68,7 @@ export default async (req, context) => {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
-      contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: String(m.content || "") }] })),
+      contents: messages.map((m, i) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: String(m.content || "") }, ...(i === messages.length - 1 ? images.map((g) => ({ inline_data: { mime_type: g.mime, data: g.data } })) : [])] })),
       generationConfig: body.json ? { responseMimeType: "application/json" } : {},
     }),
   });
