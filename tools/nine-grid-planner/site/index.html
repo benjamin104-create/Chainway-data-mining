@@ -1057,6 +1057,16 @@ html .knob svg{width:22px;height:22px}
 .tvoice button{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-edge)}
 .trec{display:flex;flex-direction:column;gap:4px}.trec small{font-size:11.5px;color:var(--muted)}
 
+/* in-page YouTube player */
+.tube{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:58;width:min(380px,calc(100% - 24px));--r:22px;padding:10px;display:flex;flex-direction:column;gap:8px;animation:rise .3s var(--ease)}
+.tubehead{display:flex;align-items:center;gap:8px}.tubehead>div{flex:1;min-width:0;display:flex;flex-direction:column}.tubehead b{font-weight:400;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tubehead small{font-size:11px;color:var(--muted)}
+.tubehead .round{width:32px;height:32px}.eq.off i{animation:none;height:4px}
+.tubevid{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000}.tubevid iframe,.tubevid>div{position:absolute;inset:0;width:100%;height:100%}
+.tubectl{display:flex;align-items:center;justify-content:center;gap:8px}.tubectl .round{width:40px;height:40px;font-size:15px}.tubectl .pri{background:var(--accent);color:var(--on-accent)}.tubectl .on{color:#E0535A}.tubectl small{font-size:11px;color:var(--muted)}
+.tube.mini{width:200px;left:auto;right:12px;transform:none;padding:6px;gap:4px}.tube.mini .tubevid{width:188px;height:188px;aspect-ratio:auto}.tube.mini .tubevid iframe{width:334px;left:-73px}.tube.mini .tubehead small{display:none}.tube.mini .tubectl .round{width:32px;height:32px}.tube.mini .tubectl small{display:none}
+.stile .tlink{border:0;background:none;padding:0;text-align:left;width:100%;font:inherit}
+.mpsong{border:0;text-align:left;width:100%;font:inherit;cursor:pointer}
+
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1308,7 +1318,7 @@ const STR={
        [".mandala [data-step='0']","周圍八格拆成八個小步驟，點一格就能編輯、排進行事曆。"],
        ["#road","每完成一步，小人就往終點前進一格。"]],
       [[".music .center","中間放你最愛的歌單。"],
-       [".music [data-song='0']","點一下，就到 YouTube 播放。"],
+       [".music [data-song='0']","點一下，就在這裡播放，播完自動換下一首。"],
        [".music [data-song='0'] .pen","點筆，換成你自己的歌。"]],
       [["#sideSeg","這裡分成兩個入口：「為你推薦」給你用，「成為合作夥伴」給品牌看。"],["#tagRow","選幾個你有興趣的主題。"],
        [".spons [data-sp='0']","符合你興趣的夥伴會亮起來。"],
@@ -1428,7 +1438,7 @@ const STR={
        [".mandala [data-step='0']","まわりの八つに小さなステップを。タップで編集やカレンダー登録。"],
        ["#road","一歩終えるごとに、人がゴールへ近づきます。"]],
       [[".music .center","真ん中にお気に入りのプレイリストを。"],
-       [".music [data-song='0']","タップすると YouTube で再生。"],
+       [".music [data-song='0']","タップするとここで再生、終わると次の曲へ。"],
        [".music [data-song='0'] .pen","ペンで自分の曲に変更。"]],
       [["#sideSeg","入口は二つ。「あなたへのおすすめ」はあなた用、「パートナーになる」はブランド向けです。"],["#tagRow","興味のあるテーマを選んでください。"],
        [".spons [data-sp='0']","興味に合う仲間が光ります。"],
@@ -1548,7 +1558,7 @@ const STR={
        [".mandala [data-step='0']","Break it into eight steps around it. Tap one to edit it or add it to your week."],
        ["#road","Each finished step moves you one stop closer to the goal."]],
       [[".music .center","Put your favourite playlist in the middle."],
-       [".music [data-song='0']","Tap to play it on YouTube."],
+       [".music [data-song='0']","Tap to play it right here; the next song follows."],
        [".music [data-song='0'] .pen","Tap the pen to swap in your own song."]],
       [["#sideSeg","Two doors: “For you” is yours; “Partner with us” is for brands."],["#tagRow","Pick a few topics you care about."],
        [".spons [data-sp='0']","Partners that match light up."],
@@ -2199,7 +2209,7 @@ function renderMusicFace(){
     if(!s||!s.url)return `<button class="stile jelly blank${center?" center":""}" type="button" data-song="${i}" data-edit="${i}" aria-label="${t.addSong}"><span class="plus">+</span></button>`;
     const title=s.title||(center?t.playlist:"♪");
     return `<div class="stile${center?" center":""}" data-song="${i}"><div class="cover" style="background:${cover(s.url+s.title)}"></div>
-<a class="tlink" href="${esc(s.url)}" target="_blank" rel="noopener"><span class="play">${I.play}</span><span class="lbl"><b>${esc(title)}</b>${s.artist?`<span>${esc(s.artist)}</span>`:""}</span></a>
+<button type="button" class="tlink" data-tgrid="${i}"><span class="play">${I.play}</span><span class="lbl"><b>${esc(title)}</b>${s.artist?`<span>${esc(s.artist)}</span>`:""}</span></button>
 <button class="pen" type="button" data-edit="${i}" aria-label="${esc(title)}">${I.pen}</button></div>`;
   }).join("")}</div>${saved}`;
 }
@@ -3737,9 +3747,9 @@ function drawDeck(){
     render();return;
   }
   const c=deck.cards[deck.i];
-  box.innerHTML=`<div class="mcard jelly" id="mcard"><div class="mcover" style="background:${cover(c.url+c.title)}"><a class="play" href="${esc(c.url)}" target="_blank" rel="noopener" aria-label="${t.mListen}">${I.play}</a></div>
+  box.innerHTML=`<div class="mcard jelly" id="mcard"><div class="mcover" style="background:${cover(c.url+c.title)}"><button type="button" class="play" data-tdeck="1" aria-label="${t.mListen}">${I.play}</button></div>
 <div class="minfo">${c.from?`<small>${esc(t.mFrom(c.from))}</small>`:""}<b>${esc(c.title)}</b><span>${esc(c.artist||"")}</span>${c.genre?`<em>${esc(c.genre)}</em>`:""}${c.why||c.note?`<p>${esc(c.note||c.why)}</p>`:""}</div></div>
-<div class="mbtns"><button class="round jelly" type="button" data-mdeck="skip" aria-label="${t.mSkip}">${I.x}</button><span class="note">${deck.i+1} / ${deck.cards.length}</span><a class="round jelly" href="${esc(c.url)}" target="_blank" rel="noopener" aria-label="${t.mListen}">${I.play}</a><button class="round jelly love" type="button" data-mdeck="keep" aria-label="${t.mKeep}">${I.heart}</button></div>`;
+<div class="mbtns"><button class="round jelly" type="button" data-mdeck="skip" aria-label="${t.mSkip}">${I.x}</button><span class="note">${deck.i+1} / ${deck.cards.length}</span><button type="button" class="round jelly" data-tdeck="1" aria-label="${t.mListen}">${I.play}</button><button class="round jelly love" type="button" data-mdeck="keep" aria-label="${t.mKeep}">${I.heart}</button></div>`;
   swipeCard($("mcard"));
 }
 function deckAct(keep){
@@ -3792,7 +3802,7 @@ function readCards(){
 function openBoxItem(i){
   const t=T(),s=S.musicBox[i];if(!s)return;
   layer(`<div class="shead"><h2>${esc(s.title)}</h2>${closeBtn(t)}</div>${s.artist?`<p class="note">${esc(s.artist)}${s.from?" · "+esc(t.mFrom(s.from)):""}</p>`:""}${s.note?`<p class="firsthint">${esc(s.note)}</p>`:""}
-<div class="row"><a class="pill pri jelly" href="${esc(s.url)}" target="_blank" rel="noopener">${I.play}${t.mListen}</a><button class="pill jelly" type="button" data-mbox="del" data-i="${i}">${t.remove}</button></div>
+<div class="row"><button type="button" class="pill pri jelly" data-tbox="${i}">${I.play}${t.mListen}</button><button class="pill jelly" type="button" data-mbox="del" data-i="${i}">${t.remove}</button></div>
 <p class="note">${t.mToGrid}</p><div class="slotpick">${S.songs.map((x,k)=>`<button class="jelly" type="button" data-mslot="${k}" data-i="${i}">${k===4?"♫":k+1}</button>`).join("")}</div>`,true);
 }
 
@@ -5363,9 +5373,9 @@ function openAllFaces(){
 S.music=S.music||{on:true,track:"piano",vol:.5};
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
 const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
-const MP_STR={zh:{names:{piano:"輕鋼琴",rain:"雨聲",ocean:"海浪"},title:"背景音樂",here:"在這裡直接播",mine:"我的歌單（在 YouTube 打開）",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
-  ja:{names:{piano:"ピアノ",rain:"雨の音",ocean:"波の音"},title:"BGM",here:"ここで再生",mine:"マイプレイリスト（YouTube で開く）",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
-  en:{names:{piano:"Soft piano",rain:"Rain",ocean:"Waves"},title:"Background music",here:"Plays right here",mine:"My playlist (opens YouTube)",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
+const MP_STR={zh:{names:{piano:"輕鋼琴",rain:"雨聲",ocean:"海浪"},notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
+  ja:{names:{piano:"ピアノ",rain:"雨の音",ocean:"波の音"},notFound:"この曲の動画が見つかりません",endList:"最後の曲です",finding:"動画をさがしています…",song:"曲",title:"BGM",here:"ここで再生",mine:"マイプレイリスト",edit:"プレイリストを編集・AI おすすめ →",vol:"音量",off:"BGM なし"},
+  en:{names:{piano:"Soft piano",rain:"Rain",ocean:"Waves"},notFound:"Couldn't find a video for this song",endList:"That was the last song",finding:"Finding the video…",song:"Song",title:"Background music",here:"Plays right here",mine:"My playlist",edit:"Edit my playlist, AI picks →",vol:"Volume",off:"No background music"}};
 const MPT=()=>MP_STR[LANG[S.region]];
 function ambCtx(){if(!AMB.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AMB.ctx=new C();AMB.master=AMB.ctx.createGain();AMB.master.gain.value=0;AMB.master.connect(AMB.ctx.destination)}return AMB.ctx}
 function noiseBuf(ctx,brown){const n=ctx.sampleRate*4,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;if(brown){last=(last+.02*w)/1.02;d[i]=last*3.5}else d[i]=w}return b}
@@ -5404,7 +5414,7 @@ function openMusicSheet(){
   layer(`<div class="shead"><h2>🎵 ${m.title}</h2>${closeBtn(t)}</div>
 <h3>${m.here}</h3><div class="mptracks">${MP_TRACKS.map(x=>`<button type="button" class="mptr jelly${AMB.playing&&AMB.cur===x.k?" on":""}" data-mptrack="${x.k}"><span>${x.e}</span>${esc(m.names[x.k])}</button>`).join("")}</div>
 <label class="fld">${m.vol}<input id="mpVol" type="range" min="0" max="1" step="0.05" value="${S.music.vol}"></label>
-${songs.length?`<h3>${m.mine}</h3><div class="mpsongs">${songs.map(s=>`<a class="mpsong" href="${esc(s.url)}" target="_blank" rel="noopener">${I.play}<b>${esc(s.title||"YouTube")}</b><small>${esc(s.artist||"")}</small></a>`).join("")}</div>`:""}
+${songs.length?`<h3>${m.mine}</h3><div class="mpsongs">${songs.map((s,k)=>`<button type="button" class="mpsong" data-tlist="${k}">${I.play}<b>${esc(s.title||"YouTube")}</b><small>${esc(s.artist||"")}</small></button>`).join("")}</div>`:""}
 <div class="row"><button class="pill pri jelly" type="button" data-mpgo="1">${m.edit}</button><button class="linkbtn" type="button" data-mpoff="1">${m.off}</button></div>`,true);
   const v=$("mpVol");if(v)v.addEventListener("input",()=>ambVol(+v.value));
 }
@@ -5999,6 +6009,50 @@ const TL_STR={
     recMine:"Parents can record their own voice for their child; it stays on this phone.",recOwner:"No official recording yet. Official voice files go on the website for everyone.",recOfficial:"Official recording.",
     advHow:"Pick a country; AI writes a 6-page Little Jelly adventure, drawn with the same scenes and style.",advIdea:"Any plot idea? (optional)",advPh:"e.g. Little Jelly gets lost and a camel helps",advGo:"Write the story",advMaking:"Little Jelly is packing…",advFail:"That didn't work. Try again",pickCountry:"Pick a country first"}
 };
+/* ---------- play YouTube inside the site: one embedded player, a queue, next on end ---------- */
+const TUBE={q:[],i:0,player:null,ready:null,mini:false,src:""};
+S.ytIds=S.ytIds||{};
+const canTube=()=>IS_SITE;   // the preview's security rules don't allow the YouTube player
+function tubeQuery(s){try{const x=new URL(s.url);if(x.pathname==="/results")return x.searchParams.get("search_query")||""}catch(e){}return [s.title,s.artist].filter(Boolean).join(" ")}
+// a video id for a song: from its link, from the cache, or looked up once on the site's server
+async function tubeId(s){
+  const n=ytNorm(s.url||"");if(n&&n.kind==="video")return n.id.slice(2);
+  const q=tubeQuery(s);if(!q)return "";if(S.ytIds[q])return S.ytIds[q];
+  try{const r=await fetch("/.netlify/functions/yt?q="+encodeURIComponent(q));if(!r.ok)return "";const j=await r.json();if(j.id){S.ytIds[q]=j.id;save()}return j.id||""}catch(e){return ""}
+}
+function tubeApi(){if(TUBE.ready)return TUBE.ready;TUBE.ready=new Promise(res=>{if(window.YT&&YT.Player){res();return}window.onYouTubeIframeAPIReady=()=>res();const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";document.head.appendChild(s)});return TUBE.ready}
+// start playing a list of songs at index i
+async function tubePlay(list,i,src){
+  const s=list[i];if(!s)return;
+  if(!canTube()){const a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();return}
+  TUBE.q=list;TUBE.i=i;TUBE.src=src||"";tubeDraw(true);
+  const id=await tubeId(s);if(TUBE.q!==list||TUBE.i!==i)return;
+  if(!id){toast(MPT().notFound);tubeDraw();return}
+  if(AMB.playing){AMB.userPaused=true;ambPause()}
+  await tubeApi();
+  if(TUBE.player&&TUBE.player.loadVideoById){TUBE.player.loadVideoById(id)}
+  else TUBE.player=new YT.Player("tubeFrame",{videoId:id,playerVars:{autoplay:1,playsinline:1,rel:0,modestbranding:1},events:{onReady:e=>{try{e.target.playVideo()}catch(x){}},onStateChange:e=>{if(e.data===0)tubeStep(1);tubeDraw()}}});
+  tubeDraw();
+}
+function tubeStep(d){const n=TUBE.i+d;if(n<0||n>=TUBE.q.length){if(d>0)toast(MPT().endList);return}tubePlay(TUBE.q,n,TUBE.src)}
+function tubeClose(){try{TUBE.player&&TUBE.player.destroy()}catch(e){}TUBE.player=null;TUBE.q=[];const el=$("tube");if(el)el.remove()}
+function tubeDraw(loading){
+  let el=$("tube");const s=TUBE.q[TUBE.i];if(!s){if(el)el.remove();return}const m=MPT();
+  if(!el){el=document.createElement("div");el.id="tube";el.className="tube jelly";el.innerHTML=`<div class="tubehead"></div><div class="tubevid"><div id="tubeFrame"></div></div><div class="tubectl"></div>`;document.body.appendChild(el)}
+  el.classList.toggle("mini",TUBE.mini);
+  const st=TUBE.player&&TUBE.player.getPlayerState?TUBE.player.getPlayerState():-1,playing=st===1||st===3;
+  const kept=S.musicBox.some(x=>songKey(x)===songKey(s))||S.songs.some(x=>x&&songKey(x)===songKey(s));
+  el.querySelector(".tubehead").innerHTML=`<span class="eq${playing?"":" off"}"><i></i><i></i><i></i></span><div><b>${esc(s.title||m.song)}</b><small>${esc(s.artist||"")}${loading?" · "+m.finding:""}</small></div><button type="button" class="round" data-tube="mini" aria-label="mini">${TUBE.mini?"⤢":"⤡"}</button><button type="button" class="round" data-tube="close" aria-label="close">${I.x}</button>`;
+  el.querySelector(".tubectl").innerHTML=`<button type="button" class="round jelly" data-tube="prev"${TUBE.i?"":" disabled"}>⏮</button><button type="button" class="round jelly pri" data-tube="toggle">${playing?"❚❚":"▶"}</button><button type="button" class="round jelly" data-tube="next"${TUBE.i<TUBE.q.length-1?"":" disabled"}>⏭</button><button type="button" class="round jelly${kept?" on":""}" data-tube="keep" aria-label="♥">${kept?"♥":"♡"}</button><small>${TUBE.i+1} / ${TUBE.q.length}</small>`;
+}
+function tubeAct(a){const s=TUBE.q[TUBE.i];
+  if(a==="close"){tubeClose();return}
+  if(a==="mini"){TUBE.mini=!TUBE.mini;tubeDraw();return}
+  if(a==="prev"){tubeStep(-1);return}
+  if(a==="next"){tubeStep(1);return}
+  if(a==="toggle"&&TUBE.player&&TUBE.player.getPlayerState){const st=TUBE.player.getPlayerState();if(st===1)TUBE.player.pauseVideo();else TUBE.player.playVideo();setTimeout(tubeDraw,250);return}
+  if(a==="keep"&&s){if(!S.musicBox.some(x=>songKey(x)===songKey(s))&&!S.songs.some(x=>x&&songKey(x)===songKey(s))){S.musicBox.unshift({title:s.title,artist:s.artist||"",url:s.url,genre:s.genre||"",from:s.from||"",note:s.note||""});save();toast(T().mKept);if(S.face===2)render()}tubeDraw();return}
+}
 /* ---------- events ---------- */
 let suppressUntil=0;
 document.addEventListener("click",e=>{
@@ -6172,6 +6226,11 @@ document.addEventListener("click",e=>{
   const aia=el.closest("[data-aiact]");if(aia){if(aia.dataset.aiact==="save"){aiSave();toast(T().aiNow(aiLabel()));openSettings()}else aiTest();return}
   if(el.closest("[data-mshuf]")){openShuffle();return}
   if(el.closest("[data-mcards]")){openCards("send");return}
+  const tb=el.closest("[data-tube]");if(tb){tubeAct(tb.dataset.tube);return}
+  const tgr=el.closest("[data-tgrid]");if(tgr){const list=S.songs.filter(x=>x&&x.url),s0=S.songs[+tgr.dataset.tgrid];tubePlay(list,Math.max(0,list.indexOf(s0)),"grid");return}
+  if(el.closest("[data-tdeck]")){if(deck){const c=deck.cards[deck.i];tubePlay([c],0,"deck")}return}
+  const tbx=el.closest("[data-tbox]");if(tbx){closeLayer();tubePlay(S.musicBox,+tbx.dataset.tbox,"box");return}
+  const tls=el.closest("[data-tlist]");if(tls){closeLayer();tubePlay((S.songs||[]).filter(x=>x&&x.url),+tls.dataset.tlist,"grid");return}
   const mdk=el.closest("[data-mdeck]");if(mdk){const a=mdk.dataset.mdeck;if(a==="again")shuffleNow();else deckAct(a==="keep");return}
   const mo=el.closest("[data-mood]");if(mo){mood=mo.dataset.mood;document.querySelectorAll("[data-mood]").forEach(b=>b.style.cssText=b===mo?"background:var(--accent);color:var(--on-accent)":"");shuffleNow();return}
   const mtb=el.closest("[data-mtab]");if(mtb){openCards(mtb.dataset.mtab);return}
