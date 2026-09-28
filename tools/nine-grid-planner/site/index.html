@@ -1137,6 +1137,7 @@ html .knob svg{width:22px;height:22px}
 @keyframes blink{50%{opacity:0}}
 :root.sk-fant .chip,:root.sk-quest .chip{box-shadow:none}
 .swwin{border:2px solid #fff;box-shadow:inset 0 0 0 1px #7F93E6}.sw-quest{border:3px solid #fff;box-shadow:0 0 0 1px #000}
+.aftile.wip{opacity:.55;filter:saturate(.35)}.aftile.wip b{color:var(--muted);font-weight:400}.aftile.wip small{color:var(--muted);opacity:.85}.aftile.wip svg{color:var(--muted)}
 /* creator desk */
 .appgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .appt{position:relative;aspect-ratio:1;max-width:100%;--r:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1272,6 +1273,7 @@ const OWNER={
   voices:{dad:{},mom:{}},                  // 潔米爸／潔米媽的正式錄音：{"tortoise/zh/1":"https://.../tortoise-zh-1.m4a"}，放上網站後所有人都聽得到
   codes:{},                                // 兌換碼：{"兌換碼的 SHA-256":{grants:["course:all","fit:all"]}}，用 tools/nine-grid-planner/make-code.py 產生
   aiProxy:"/.netlify/functions/ai",        // 安裝版預設的免費 AI（Gemini），金鑰放在 Netlify 環境變數 GEMINI_API_KEY
+  wip:[3,6,7],                             // 建構中、先不開放的面（3 友善連結、6 創作工作台、7 AI 健身教練）；要開放就從這裡拿掉
   taleArt:{},                              // 故事插畫：{"aesop-tortoise":"tales/aesop-tortoise/"}，放 1.webp、2.webp…（見「故事插畫提示詞.md」）；沒放就用內建畫面
   aiFreeDaily:20,                          // 網站的免費 AI：每位使用者每天幾次（接上自己金鑰的人不受限）
   aiPlusDaily:200,                         // 「AI 加值包」（權益 ai:plus）每天幾次
@@ -2416,8 +2418,11 @@ ${price.length?`<section class="pcard jelly"><h3>${t.pPlans}</h3><div class="row
 }
 
 /* ---------- face rotation ---------- */
+const isWip=n=>(OWNER.wip||[]).includes(n);
 function goFace(n,dir){
-  n=(n+9)%9;if(n===S.face||rotating)return;
+  n=(n+9)%9;
+  if(isWip(n)){if(!dir){toast(NT().wipMsg);return}for(let k=0;k<9&&isWip(n);k++)n=(n+dir+9)%9}   // swiping skips sides that aren't open yet
+  if(n===S.face||rotating)return;
   endGuide(true);closeLayer();pending=null;editTime=null;
   dir=dir||(n>S.face?1:-1);knobTurns+=dir;
   const f=$("face");
@@ -4644,7 +4649,7 @@ function makeQuests(){
   const pick=(arr,i,not)=>{const a=arr.filter(x=>!not.includes(x));return a.length?a[rnd(i)%a.length]:SKILLS[rnd(i)%SKILLS.length].id};
   const s1=pick(gaps.length?gaps:weak,1,[]),s2=pick(weak.length?weak:SKILLS.map(s=>s.id),2,[s1]);
   const prac=(id,i)=>{const s=SKMAP[id];return {kind:"prac",sk:id,text:s.p[rnd(i+10)%2][skL()],done:false}};
-  const autos=["task","pic","game","fit"];if(!S.sk.stories.length)autos.unshift("flow");
+  const autos=["task","pic","game","fit"].filter(k=>k!=="fit"||!isWip(7));if(!S.sk.stories.length)autos.unshift("flow");
   const auto=S.sk.stories.length?autos[rnd(3)%autos.length]:"flow";
   return {d,re:rr,items:[prac(s1,1),prac(s2,2),{kind:auto,done:false}]};
 }
@@ -5536,24 +5541,26 @@ const PT_STR={
 const PT=()=>PT_STR[LANG[S.region]];
 /* ---------- bottom bar: four labelled favourites around an "all" button ---------- */
 S.favs=S.favs||[0,1,8,4];
-const NAV_STR={zh:{short:["週曆","目標","音樂","夥伴","字卡","遊戲","創作","健身","任務"],all:"全部",allTitle:"全部功能",pinHint:"📌 釘到下方（最多 4 個）"},
-  ja:{short:["週間","目標","音楽","仲間","単語","ゲーム","創作","筋トレ","クエスト"],all:"すべて",allTitle:"すべての機能",pinHint:"📌 下にピン留め（4 つまで）"},
-  en:{short:["Week","Goal","Music","Friends","Words","Games","Create","Fitness","Quests"],all:"All",allTitle:"Everything",pinHint:"📌 Pin to the bar (up to 4)"}};
+const NAV_STR={zh:{short:["週曆","目標","音樂","夥伴","字卡","遊戲","創作","健身","任務"],all:"全部",allTitle:"全部功能",pinHint:"📌 釘到下方（最多 4 個）",wip:"建構中",wipMsg:"這個功能還在建構中，敬請期待！"},
+  ja:{short:["週間","目標","音楽","仲間","単語","ゲーム","創作","筋トレ","クエスト"],all:"すべて",allTitle:"すべての機能",pinHint:"📌 下にピン留め（4 つまで）",wip:"準備中",wipMsg:"この機能は準備中です。お楽しみに！"},
+  en:{short:["Week","Goal","Music","Friends","Words","Games","Create","Fitness","Quests"],all:"All",allTitle:"Everything",pinHint:"📌 Pin to the bar (up to 4)",wip:"Coming soon",wipMsg:"This one is still being built. Coming soon!"}};
 const NT=()=>NAV_STR[LANG[S.region]];
 function renderDial(){
-  const n=NT(),f=S.favs.slice(0,4);
+  const n=NT(),f=S.favs.filter(x=>!isWip(x)).slice(0,4);
+  for(const x of [0,1,8,4,2,5])if(f.length<4&&!f.includes(x)&&!isWip(x))f.push(x);
   if(!f.includes(S.face))f[3]=S.face;   // the side you're on always shows
   const b=i=>`<button class="fb" type="button" data-face="${i}" aria-current="${i===S.face}" aria-label="${esc(T().faces[i])}">${FACE_ICONS[i]}<span>${esc(n.short[i])}</span></button>`;
   $("dial").innerHTML=b(f[0])+b(f[1])+`<button class="knob" id="knob" type="button" aria-label="${esc(n.allTitle)}"><svg viewBox="0 0 34 34" aria-hidden="true"><g fill="currentColor"><rect x="1" y="1" width="9" height="9" rx="3"/><rect x="12.5" y="1" width="9" height="9" rx="3"/><rect x="24" y="1" width="9" height="9" rx="3"/><rect x="1" y="12.5" width="9" height="9" rx="3"/><rect x="12.5" y="12.5" width="9" height="9" rx="4.5" fill="var(--accent)"/><rect x="24" y="12.5" width="9" height="9" rx="3"/><rect x="1" y="24" width="9" height="9" rx="3"/><rect x="12.5" y="24" width="9" height="9" rx="3"/><rect x="24" y="24" width="9" height="9" rx="3"/></g></svg><span>${esc(n.all)}</span></button>`+b(f[2])+b(f[3]);
 }
 // every side as a nine-grid menu; the pin puts one on the bar
 function openAllFaces(){
-  const t=T(),n=NT(),cells=[0,1,2,3,4,5,6,7,8].map(i=>`<div class="aftile jelly${i===S.face?" on":""}" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afgo="${i}">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>${esc(t.subs[i])}</small></button><button type="button" class="afpin${S.favs.includes(i)?" on":""}" data-afpin="${i}" aria-label="📌">📌</button></div>`);
+  const t=T(),n=NT(),cells=[0,1,2,3,4,5,6,7,8].map(i=>isWip(i)?`<div class="aftile jelly wip" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afwip="1" aria-disabled="true">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>🚧 ${esc(n.wip)}</small></button></div>`:`<div class="aftile jelly${i===S.face?" on":""}" style="--t:var(--c${i%7})"><button type="button" class="afgo" data-afgo="${i}">${FACE_ICONS[i]}<b>${esc(t.faces[i])}</b><small>${esc(t.subs[i])}</small></button><button type="button" class="afpin${S.favs.includes(i)?" on":""}" data-afpin="${i}" aria-label="📌">📌</button></div>`);
   layer(`<div class="shead"><h2>${n.allTitle}</h2>${closeBtn(t)}</div><div class="afgrid">${cells.join("")}</div><p class="note">${n.pinHint}</p>`,true);
 }
 
 /* ---------- background music made in the browser, so it plays anywhere ---------- */
 S.music=S.music||{on:true,track:"piano",vol:.5};
+if(isWip(S.face))S.face=0;
 const AMB={ctx:null,master:null,nodes:[],timer:null,cur:null,playing:false};
 const MP_TRACKS=[{k:"piano",e:"🎹"},{k:"night",e:"🌙"},{k:"classic",e:"🎻"},{k:"crystal",e:"💎"},{k:"chip",e:"👾"},{k:"rain",e:"🌧️"},{k:"ocean",e:"🌊"}];
 const MP_STR={zh:{names:{piano:"輕鋼琴",night:"深夜爵士",classic:"古典音樂盒",crystal:"水晶豎琴",chip:"8-bit 冒險",rain:"雨聲",ocean:"海浪"},themed:n=>`背景音樂和歌單換成「${n}」的推薦（你自己加的歌都保留）`,notFound:"找不到這首歌的影片，換一首試試",endList:"已經是最後一首了",finding:"正在找影片…",song:"歌曲",title:"背景音樂",here:"在這裡直接播",mine:"我的歌單",edit:"編輯我的歌單、AI 推薦 →",vol:"音量",off:"不要背景音樂"},
@@ -6634,6 +6641,7 @@ document.addEventListener("click",e=>{
   if(el.closest("[data-close]")||(el.dataset&&el.dataset.scrim)){const todo=$("todoList"),cb=$("coachBody");if(cb&&coach.ctl)coach.ctl.abort();closeLayer();if(todo||cb)maybeGuide();return}
   const fb=el.closest(".dial .fb");if(fb){goFace(+fb.dataset.face);return}
   if(el.closest("#knob")){openAllFaces();return}
+  if(el.closest("[data-afwip]")){toast(NT().wipMsg);return}
   const afg=el.closest("[data-afgo]");if(afg){closeLayer();goFace(+afg.dataset.afgo);return}
   const afp=el.closest("[data-afpin]");if(afp){const f=+afp.dataset.afpin;if(S.favs.includes(f)){if(S.favs.length>1)S.favs=S.favs.filter(x=>x!==f)}else{S.favs=S.favs.concat(f).slice(-4)}save();renderDial();openAllFaces();return}
   const mp=el.closest("[data-mp]");if(mp){if(mp.dataset.mp==="toggle"){if(AMB.playing){AMB.userPaused=true;ambPause()}else{AMB.userPaused=false;S.music.on=true;save();ambStart(S.music.track)}}else openMusicSheet();return}
