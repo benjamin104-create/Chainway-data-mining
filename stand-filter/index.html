@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>替身偵測器</title>
-<meta name="description" content="回答八個問題，從你「忘了時間」的經驗裡找出自己的替身，再用相機把它召喚出來。">
+<meta name="description" content="回答五個問題，找出你的人格標籤與專屬替身，再用相機把它召喚到身後。">
 <meta name="theme-color" content="#0d0a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -75,6 +75,8 @@
   .row > * { flex: 1 1 10rem; }
 
   /* 結果 */
+  .hero-stand { display: grid; place-items: center; border-radius: 20px; padding: 12px; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%); }
+  .hero-stand img { width: min(70vw, 300px); height: auto; filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 70%, transparent)); }
   .reveal { display: grid; gap: 6px; }
   .stand-name { font: 400 clamp(34px, 11vw, 54px)/1 var(--display); color: var(--accent); margin: 0; letter-spacing: .02em; overflow-wrap: anywhere; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
   .stand-sub { font-size: 15px; color: var(--muted); }
@@ -142,14 +144,14 @@
     <div class="sfx-hero" aria-hidden="true">ゴゴゴ</div>
     <span class="eyebrow">Stand Detector</span>
     <h1 class="display">你的替身偵測器</h1>
-    <p class="lead">每個人身上都有一個替身。它誕生在你做某件事做到忘了時間的那一刻。回答八個問題，把它找出來，再用相機召喚到你身後。</p>
+    <p class="lead">每個人身上都有一個替身。回答五個問題，找出你的人格標籤和專屬替身，再用相機把它召喚到你身後。</p>
     <ul class="steps">
-      <li><b>回想</b>一段讓你忘了時間的經驗</li>
-      <li><b>回答</b>你怎麼面對困難、最近最缺什麼</li>
-      <li><b>召喚</b>替身出現在你身後，拍照分享</li>
+      <li><b>回答</b>五個簡單的問題</li>
+      <li><b>獲得</b>人格標籤：勇氣、智慧、守護、自由、創造、羈絆</li>
+      <li><b>召喚</b>專屬替身出現在你身後，拍照分享</li>
     </ul>
     <div class="stack">
-      <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
+      <button class="primary" id="begin">開始偵測（約 1 分鐘）</button>
       <button class="secondary" id="skip">先直接拍照</button>
     </div>
     <p class="fine">這是讓人認識自己的小遊戲，參考心流理論、阿德勒心理學與馬斯洛需求層次設計，不是心理診斷。答案只存在你的手機裡。</p>
@@ -175,24 +177,25 @@
   <div class="col">
     <div class="reveal">
       <span class="eyebrow" id="rOwner"></span>
+      <span class="tag" id="rTag"></span>
+    </div>
+    <div class="hero-stand"><img id="rImg" alt=""></div>
+    <div class="reveal">
       <p class="stand-name" id="rName"></p>
       <span class="stand-sub" id="rZh"></span>
     </div>
-    <div><span class="tag" id="rForm"></span></div>
     <div class="statbox">
       <svg id="rHex" viewBox="0 0 220 220" role="img" aria-label="替身能力值六角圖"></svg>
       <dl class="stats" id="rStats"></dl>
     </div>
-    <div class="card"><h3>能力</h3><p id="rAbility"></p><p id="rFormDesc"></p></div>
-    <div class="card" id="rMemoryCard"><h3>替身誕生的瞬間</h3><blockquote id="rMemory"></blockquote><p id="rKey"></p></div>
-    <div class="card"><h3>本體的優勢與弱點</h3><p id="rStrength"></p><p id="rWeak"></p><p id="rWhy"></p><p class="try" id="rTry"></p></div>
-    <div class="card"><h3>覺醒條件</h3><p><b id="rNeedTitle"></b></p><p id="rNeed"></p><p class="try" id="rNeedTry"></p></div>
+    <div class="card"><h3>能力</h3><p id="rAbility"></p></div>
+    <div class="card"><h3>你的人格標籤</h3><p id="rNote"></p><p class="try" id="rTry"></p></div>
     <div class="stack">
       <button class="primary" id="summon">召喚替身拍照</button>
       <button class="secondary" id="copy">複製我的替身文字</button>
       <button class="link" id="redo">重新測驗</button>
     </div>
-    <p class="fine">參考心流理論（契克森米哈伊）、阿德勒個體心理學、馬斯洛需求層次。這是自我探索的小遊戲，不是心理診斷；如果你最近真的很辛苦，找信任的人或專業人員聊聊會更有幫助。</p>
+    <p class="fine">參考心流理論、阿德勒個體心理學、馬斯洛需求層次設計的小遊戲，不是心理診斷。替身為原創角色。</p>
   </div>
 </section>
 
@@ -221,7 +224,6 @@
     <div class="notice" id="notice" hidden></div>
   </main>
   <footer>
-    <div class="chips" id="styles" role="group" aria-label="替身顏色"></div>
     <div class="chips" id="sfx" role="group" aria-label="擬聲字與資訊卡"></div>
     <div class="controls">
       <button class="round" id="side" aria-label="替身換邊" title="替身換邊">
