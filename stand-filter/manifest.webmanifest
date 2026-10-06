@@ -1,7 +1,7 @@
 {
-  "name": "替身相機",
-  "short_name": "替身相機",
-  "description": "開啟相機，在身後召喚替身，拍照分享。",
+  "name": "替身偵測器",
+  "short_name": "替身偵測器",
+  "description": "回答八個問題找出你的替身，再用相機召喚它。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

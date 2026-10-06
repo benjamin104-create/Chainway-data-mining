@@ -3,50 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>替身相機</title>
-<meta name="description" content="在手機上開啟相機，替自己召喚一個替身，拍照後直接分享到 LINE。">
+<title>替身偵測器</title>
+<meta name="description" content="回答八個問題，從你「忘了時間」的經驗裡找出自己的替身，再用相機把它召喚出來。">
 <meta name="theme-color" content="#0d0a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="替身相機">
+<meta name="apple-mobile-web-app-title" content="替身偵測器">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Noto+Sans+TC:wght@500;900&display=swap">
 <style>
-  /* 單一深色相機介面：畫面滿版，底部操作列 */
+  /* 單一深色介面：測驗是一張張卡片，相機是滿版畫面＋底部操作列 */
   :root {
     --ink: #0d0a14;
+    --raise: #1a1426;
     --panel: rgba(13, 10, 20, .72);
     --line: rgba(255, 255, 255, .16);
     --fg: #f4f0ff;
     --muted: #a99fc4;
     --accent: #b15cff;
     --display: "Dela Gothic One", "Hiragino Sans", "Noto Sans TC", system-ui, sans-serif;
+    --heading: "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
     --body: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
     color-scheme: dark;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
-  html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; }
-  body { display: grid; grid-template-rows: auto 1fr auto; }
+  html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); }
+  body { overflow: hidden; }
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button:disabled { opacity: .4; }
 
-  header {
+  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+  .col { max-width: 34rem; margin: 0 auto; display: grid; gap: 18px; }
+  .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
+  .display { font: 900 clamp(38px, 12vw, 60px)/1.1 var(--heading); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+  .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
+  .fine { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+  .primary {
+    border: 0; background: var(--accent); color: #fff; padding: 15px 26px; border-radius: 999px;
+    font: 600 16px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center;
+  }
+  .secondary { border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 14px 22px; border-radius: 999px; font: 500 15px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center; }
+  .stack { display: grid; gap: 10px; }
+
+  /* 開場 */
+  #intro .col { min-height: 100%; align-content: center; }
+  .sfx-hero { font: 400 72px/1 var(--display); color: var(--accent); letter-spacing: .04em; text-shadow: 0 0 28px rgba(177, 92, 255, .5); }
+  .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .steps b { color: var(--fg); font-weight: 600; margin-right: 6px; }
+
+  /* 測驗 */
+  .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+  .qtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .link { background: none; border: 0; color: var(--muted); font-size: 14px; padding: 6px 0; cursor: pointer; }
+  .q { font: 900 24px/1.35 var(--heading); margin: 0; text-wrap: balance; }
+  .opt {
+    display: grid; gap: 4px; text-align: left; width: 100%; padding: 15px 16px; border-radius: 14px;
+    border: 1px solid var(--line); background: var(--raise); color: var(--fg); cursor: pointer; font-size: 16px;
+  }
+  .opt small { color: var(--muted); font-size: 13px; }
+  .opt:active, .opt[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--raise)); }
+  .field { width: 100%; padding: 15px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--raise); color: var(--fg); font: 16px/1.5 var(--body); resize: none; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 10rem; }
+
+  /* 結果 */
+  .reveal { display: grid; gap: 6px; }
+  .stand-name { font: 400 clamp(34px, 11vw, 54px)/1 var(--display); color: var(--accent); margin: 0; letter-spacing: .02em; overflow-wrap: anywhere; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .stand-sub { font-size: 15px; color: var(--muted); }
+  .tag { display: inline-block; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--accent); color: var(--fg); font-size: 13px; }
+  .statbox { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: center; }
+  .statbox svg { width: 100%; max-width: 220px; height: auto; justify-self: center; }
+  .stats { display: grid; gap: 7px; margin: 0; font-size: 14px; }
+  .stats div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .stats dt { color: var(--muted); }
+  .stats dd { margin: 0; font: 400 18px/1 var(--display); color: var(--fg); }
+  .card { background: var(--raise); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 8px; }
+  .card h3 { margin: 0; font-size: 13px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+  .card p { margin: 0; line-height: 1.7; font-size: 15px; }
+  .card .try { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 10px; }
+  blockquote { margin: 0; font-size: 17px; line-height: 1.6; }
+  @media (max-width: 380px) { .statbox { grid-template-columns: 1fr; } }
+
+  /* 相機 */
+  #cam { height: 100%; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
+  #cam header {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
   }
-  h1 { margin: 0; font: 400 20px/1 var(--display); letter-spacing: .04em; }
-  h1 small { font: 500 11px/1 var(--body); color: var(--muted); letter-spacing: .12em; margin-left: 8px; }
-
-  .stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+  #cam h1 { margin: 0; font: 400 18px/1.1 var(--display); letter-spacing: .04em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stage { position: relative; min-height: 0; overflow: hidden; }
   canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; touch-action: manipulation; }
   video { display: none; }
   .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .35s ease-out; }
   .flash.on { opacity: .85; transition: none; }
-
   .notice {
     position: absolute; inset: auto 16px 16px; padding: 12px 14px; border-radius: 12px;
     background: var(--panel); border: 1px solid var(--line); font-size: 14px; line-height: 1.55;
@@ -54,94 +111,137 @@
   }
   .start { position: absolute; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center; padding: 24px; }
   .start p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 30ch; }
-  .start .big { font: 400 54px/1 var(--display); color: var(--accent); letter-spacing: .06em; text-shadow: 0 0 24px rgba(177, 92, 255, .55); }
-
-  footer {
-    display: grid; gap: 12px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
-    background: linear-gradient(to top, var(--ink) 70%, transparent);
-  }
+  footer { display: grid; gap: 12px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px); }
   .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
-  .chip {
-    flex: none; border: 1px solid var(--line); background: transparent; color: var(--fg);
-    padding: 7px 12px; border-radius: 999px; font: 500 13px/1 var(--body); cursor: pointer;
-  }
+  .chip { flex: none; border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 7px 12px; border-radius: 999px; font: 500 13px/1 var(--body); cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--fg); color: var(--ink); border-color: var(--fg); }
   .chip .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
   .controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
-  .ghost-btn {
-    justify-self: start; border: 1px solid var(--line); background: transparent; color: var(--fg);
-    width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
-  }
-  .ghost-btn:last-child { justify-self: end; }
-  .shutter {
-    width: 74px; height: 74px; border-radius: 50%; border: 4px solid var(--fg); background: transparent;
-    padding: 5px; cursor: pointer;
-  }
+  .round { justify-self: start; border: 1px solid var(--line); background: transparent; color: var(--fg); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .controls .round:last-child { justify-self: end; }
+  .shutter { width: 74px; height: 74px; border-radius: 50%; border: 4px solid var(--fg); background: transparent; padding: 5px; cursor: pointer; }
   .shutter span { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--accent); transition: transform .12s; }
   .shutter:active span { transform: scale(.9); }
-  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  button:disabled { opacity: .4; }
-  .primary {
-    border: 0; background: var(--accent); color: #fff; padding: 13px 26px; border-radius: 999px;
-    font: 600 16px/1 var(--body); cursor: pointer;
-  }
 
   .sheet {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, .82); display: grid; grid-template-rows: 1fr auto;
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .86); display: grid; grid-template-rows: minmax(0, 1fr) auto;
     padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); gap: 14px;
   }
   .sheet img { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
-  .sheet .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .sheet .hint { text-align: center; color: var(--muted); font-size: 13px; margin: 0; width: 100%; }
-  .sheet a.primary { text-decoration: none; }
-  .secondary { border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 12px 22px; border-radius: 999px; font: 500 15px/1 var(--body); cursor: pointer; }
-  @media (prefers-reduced-motion: reduce) { .flash { transition: none; } }
+  .sheet .row { justify-content: center; }
+  .sheet .fine { text-align: center; width: 100%; flex-basis: 100%; }
+  @media (prefers-reduced-motion: reduce) { .flash, .bar span { transition: none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>替身相機<small>STAND CAM</small></h1>
-  <button class="ghost-btn" id="pick" aria-label="從相簿選照片" title="從相簿選照片" style="width:40px;height:40px">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
-  </button>
-  <input type="file" id="file" accept="image/*" hidden>
-</header>
 
-<main class="stage" id="stage">
-  <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓替身換邊站"></canvas>
-  <video id="video" playsinline muted></video>
-  <div class="flash" id="flash"></div>
-  <div class="start" id="start">
-    <div class="big">ゴゴゴ</div>
-    <p>開啟相機後，系統會把你從背景分出來，在你身後召喚一個替身。點畫面可以讓替身換邊站。</p>
-    <div><button class="primary" id="go">開啟相機</button></div>
-    <p id="loadState">正在載入人像辨識…</p>
+<!-- 開場 -->
+<section class="screen" id="intro">
+  <div class="col">
+    <div class="sfx-hero" aria-hidden="true">ゴゴゴ</div>
+    <span class="eyebrow">Stand Detector</span>
+    <h1 class="display">你的替身偵測器</h1>
+    <p class="lead">每個人身上都有一個替身。它誕生在你做某件事做到忘了時間的那一刻。回答八個問題，把它找出來，再用相機召喚到你身後。</p>
+    <ul class="steps">
+      <li><b>回想</b>一段讓你忘了時間的經驗</li>
+      <li><b>回答</b>你怎麼面對困難、最近最缺什麼</li>
+      <li><b>召喚</b>替身出現在你身後，拍照分享</li>
+    </ul>
+    <div class="stack">
+      <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
+      <button class="secondary" id="skip">先直接拍照</button>
+    </div>
+    <p class="fine">這是讓人認識自己的小遊戲，參考心流理論、阿德勒心理學與馬斯洛需求層次設計，不是心理診斷。答案只存在你的手機裡。</p>
   </div>
-  <div class="notice" id="notice" hidden></div>
-</main>
+</section>
 
-<footer>
-  <div class="chips" id="styles" role="group" aria-label="替身顏色"></div>
-  <div class="chips" id="sfx" role="group" aria-label="擬聲字"></div>
-  <div class="controls">
-    <button class="ghost-btn" id="side" aria-label="替身換邊" title="替身換邊">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
-    </button>
-    <button class="shutter" id="shot" aria-label="拍照" disabled><span></span></button>
-    <button class="ghost-btn" id="flip" aria-label="切換前後鏡頭" title="切換前後鏡頭">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13a3 3 0 0 1 5-2l1 1M15 13a3 3 0 0 1-5 2l-1-1"/></svg>
-    </button>
+<!-- 測驗 -->
+<section class="screen" id="quiz" hidden>
+  <div class="col">
+    <div class="qtop">
+      <button class="link" id="back">← 上一題</button>
+      <span class="fine" id="count">1 / 8</span>
+    </div>
+    <div class="bar"><span id="progress" style="width:12%"></span></div>
+    <h2 class="q" id="qtext"></h2>
+    <p class="lead" id="qhint"></p>
+    <div class="stack" id="qbody"></div>
   </div>
-</footer>
+</section>
+
+<!-- 結果 -->
+<section class="screen" id="result" hidden>
+  <div class="col">
+    <div class="reveal">
+      <span class="eyebrow" id="rOwner"></span>
+      <p class="stand-name" id="rName"></p>
+      <span class="stand-sub" id="rZh"></span>
+    </div>
+    <div><span class="tag" id="rForm"></span></div>
+    <div class="statbox">
+      <svg id="rHex" viewBox="0 0 220 220" role="img" aria-label="替身能力值六角圖"></svg>
+      <dl class="stats" id="rStats"></dl>
+    </div>
+    <div class="card"><h3>能力</h3><p id="rAbility"></p><p id="rFormDesc"></p></div>
+    <div class="card" id="rMemoryCard"><h3>替身誕生的瞬間</h3><blockquote id="rMemory"></blockquote><p id="rKey"></p></div>
+    <div class="card"><h3>本體的優勢與弱點</h3><p id="rStrength"></p><p id="rWeak"></p><p id="rWhy"></p><p class="try" id="rTry"></p></div>
+    <div class="card"><h3>覺醒條件</h3><p><b id="rNeedTitle"></b></p><p id="rNeed"></p><p class="try" id="rNeedTry"></p></div>
+    <div class="stack">
+      <button class="primary" id="summon">召喚替身拍照</button>
+      <button class="secondary" id="copy">複製我的替身文字</button>
+      <button class="link" id="redo">重新測驗</button>
+    </div>
+    <p class="fine">參考心流理論（契克森米哈伊）、阿德勒個體心理學、馬斯洛需求層次。這是自我探索的小遊戲，不是心理診斷；如果你最近真的很辛苦，找信任的人或專業人員聊聊會更有幫助。</p>
+  </div>
+</section>
+
+<!-- 相機 -->
+<section id="cam" hidden>
+  <header>
+    <button class="round" id="toResult" aria-label="回到我的替身" title="回到我的替身">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h1 id="camTitle">替身相機</h1>
+    <button class="round" id="pick" aria-label="從相簿選照片" title="從相簿選照片">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+    </button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </header>
+  <main class="stage">
+    <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓替身換邊站"></canvas>
+    <video id="video" playsinline muted></video>
+    <div class="flash" id="flash"></div>
+    <div class="start" id="start">
+      <div class="sfx-hero" aria-hidden="true">ゴゴゴ</div>
+      <p>開啟相機後，替身會出現在你身後，跟著你移動。點畫面可以讓替身換邊站。</p>
+      <div><button class="primary" id="go">開啟相機</button></div>
+      <p id="loadState">正在載入人像辨識…</p>
+    </div>
+    <div class="notice" id="notice" hidden></div>
+  </main>
+  <footer>
+    <div class="chips" id="styles" role="group" aria-label="替身顏色"></div>
+    <div class="chips" id="sfx" role="group" aria-label="擬聲字與資訊卡"></div>
+    <div class="controls">
+      <button class="round" id="side" aria-label="替身換邊" title="替身換邊">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
+      </button>
+      <button class="shutter" id="shot" aria-label="拍照" disabled><span></span></button>
+      <button class="round" id="flip" aria-label="切換前後鏡頭" title="切換前後鏡頭">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13a3 3 0 0 1 5-2l1 1M15 13a3 3 0 0 1-5 2l-1-1"/></svg>
+      </button>
+    </div>
+  </footer>
+</section>
 
 <div class="sheet" id="sheet" hidden>
-  <img id="result" alt="拍好的替身照片">
+  <img id="photo" alt="拍好的替身照片">
   <div class="row">
     <button class="primary" id="share">分享到 LINE／其他 App</button>
     <a class="secondary" id="save" download="stand.jpg">儲存照片</a>
     <button class="secondary" id="close">再拍一張</button>
-    <p class="hint" id="saveHint">iPhone 也可以長按照片 →「加入照片」。</p>
+    <p class="fine">iPhone 也可以長按照片 →「加入照片」。</p>
   </div>
 </div>
 

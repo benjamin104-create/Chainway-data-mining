@@ -1,6 +1,6 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'stand-cam-v1';
-const SHELL = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
+const CACHE = 'stand-cam-v2';
+const SHELL = ['./', 'index.html', 'app.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs', 'models/selfie_segmenter.tflite'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

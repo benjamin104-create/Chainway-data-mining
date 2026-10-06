@@ -1,4 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
+import { QUESTIONS, STAT_KEYS, computeStand } from './quiz.js';
 
 // ── 風格 ─────────────────────────────────────────────
 const STYLES = [
@@ -10,6 +11,8 @@ const STYLES = [
     bg: 'contrast(1.15) brightness(.75) hue-rotate(-20deg)', person: 'contrast(1.1)' },
   { id: 'crimson', name: '赤紅', tint: '#ff2e55', glow: '#ffb3c1', text: '#ff3d6e',
     bg: 'contrast(1.2) brightness(.72) saturate(1.2)', person: 'contrast(1.1)' },
+  { id: 'dawn', name: '曙光', tint: '#ff7a2e', glow: '#ffd9b0', text: '#ff9a4d',
+    bg: 'contrast(1.15) brightness(.76) saturate(1.1)', person: 'contrast(1.08) saturate(1.05)' },
   // 漫畫裡整頁換色的效果：背景與人都轉色相
   { id: 'swap', name: '異色', tint: '#00e1ff', glow: '#d0fbff', text: '#ff4fd8',
     bg: 'hue-rotate(160deg) saturate(1.7) contrast(1.25) brightness(.8)', person: 'hue-rotate(160deg) saturate(1.5) contrast(1.15)' },
@@ -24,40 +27,169 @@ const $ = (id) => document.getElementById(id);
 const view = $('view'), ctx = view.getContext('2d');
 const video = $('video');
 const state = {
-  style: STYLES[0], sfx: SFX[0], side: 1, facing: 'user',
+  style: STYLES[0], sfx: SFX[0], side: 1, facing: 'user', card: true,
   src: null, mirror: false, stream: null,
   segmenter: null, mask: null, box: null, lastTs: 0,
+  stand: null,
 };
 
-// 有些舊版 Safari 不支援 canvas filter：偵測後就跳過那些步驟
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// ── 畫面切換 ───────────────────────────────────────────
+function show(id) {
+  for (const s of ['intro', 'quiz', 'result', 'cam']) $(s).hidden = s !== id;
+  if (id !== 'cam') stopCamera();
+  else { $('start').hidden = false; $('shot').disabled = true; notice(''); }
+  $(id).scrollTop = 0;
+}
+function setStyle(st) {
+  state.style = st;
+  document.documentElement.style.setProperty('--accent', st.text);
+  for (const b of $('styles').children) b.setAttribute('aria-pressed', String(b.dataset.id === st.id));
+}
+
+// ── 測驗 ─────────────────────────────────────────────
+let qi = 0, answers = {};
+function renderQuestion() {
+  const Q = QUESTIONS[qi];
+  $('count').textContent = `${qi + 1} / ${QUESTIONS.length}`;
+  $('progress').style.width = `${(qi + 1) / QUESTIONS.length * 100}%`;
+  $('qtext').textContent = Q.q;
+  $('qhint').textContent = Q.hint || '';
+  $('qhint').hidden = !Q.hint;
+  const body = $('qbody'); body.innerHTML = '';
+  if (Q.kind === 'text') {
+    const f = document.createElement(Q.id === 'memory' ? 'textarea' : 'input');
+    f.className = 'field'; f.id = 'q_' + Q.id; f.maxLength = Q.max; f.placeholder = Q.placeholder;
+    if (f.tagName === 'TEXTAREA') f.rows = 3;
+    f.value = answers[Q.id] || '';
+    const row = document.createElement('div'); row.className = 'row';
+    const next = document.createElement('button'); next.className = 'primary'; next.textContent = '下一步';
+    const skip = document.createElement('button'); skip.className = 'secondary'; skip.textContent = '先略過';
+    next.onclick = () => { answers[Q.id] = f.value.trim(); advance(); };
+    skip.onclick = () => { answers[Q.id] = ''; advance(); };
+    f.onkeydown = (e) => { if (e.key === 'Enter' && f.tagName === 'INPUT') next.click(); };
+    row.append(next, skip); body.append(f, row);
+  } else {
+    for (const [val, label, sub] of Q.options) {
+      const b = document.createElement('button'); b.className = 'opt'; b.type = 'button';
+      b.setAttribute('aria-pressed', String(answers[Q.id] === val));
+      const t = document.createElement('span'); t.textContent = label; b.append(t);
+      if (sub) { const s = document.createElement('small'); s.textContent = sub; b.append(s); }
+      b.onclick = () => { answers[Q.id] = val; b.setAttribute('aria-pressed', 'true'); setTimeout(advance, 140); };
+      body.append(b);
+    }
+  }
+}
+function advance() {
+  if (qi < QUESTIONS.length - 1) { qi++; renderQuestion(); $('quiz').scrollTop = 0; return; }
+  store.set('stand-answers', answers);
+  showResult(computeStand(answers));
+}
+$('begin').onclick = () => { qi = 0; answers = store.get('stand-answers') || {}; renderQuestion(); show('quiz'); };
+$('back').onclick = () => { if (qi === 0) show('intro'); else { qi--; renderQuestion(); } };
+$('redo').onclick = () => { qi = 0; answers = {}; renderQuestion(); show('quiz'); };
+$('skip').onclick = () => { state.stand = null; $('camTitle').textContent = '替身相機'; show('cam'); };
+
+// ── 結果 ─────────────────────────────────────────────
+const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+function hexPoints(cx, cy, r, vals) {
+  return vals.map((v, i) => {
+    const a = -Math.PI / 2 + i * Math.PI / 3;
+    return [cx + Math.cos(a) * r * v, cy + Math.sin(a) * r * v];
+  });
+}
+function drawHexSvg(svg, grade) {
+  const ns = 'http://www.w3.org/2000/svg', el = (n, a) => { const e = document.createElementNS(ns, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  svg.innerHTML = '';
+  for (const k of [1, .6]) svg.append(el('polygon', { points: hexPoints(110, 110, 78, Array(6).fill(k)).join(' '), fill: 'none', style: 'stroke:var(--line)' }));
+  const vals = STAT_KEYS.map(([k]) => GRADE_V[grade[k]] / 5);
+  svg.append(el('polygon', { points: hexPoints(110, 110, 78, vals).join(' '), style: 'fill:color-mix(in srgb,var(--accent) 40%,transparent);stroke:var(--accent);stroke-width:2' }));
+  hexPoints(110, 110, 96, Array(6).fill(1)).forEach(([x, y], i) => {
+    const t = el('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', style: 'fill:var(--fg);font:400 15px var(--display)' });
+    t.textContent = grade[STAT_KEYS[i][0]]; svg.append(t);
+  });
+}
+function showResult(s) {
+  state.stand = s;
+  const st = STYLES.find((x) => x.id === s.domain.style) || STYLES[0];
+  setStyle(st);
+  $('rOwner').textContent = `本體：${s.owner}　的替身是`;
+  $('rName').textContent = `《${s.domain.name}》`;
+  $('rZh').textContent = s.domain.zh;
+  $('rForm').textContent = s.form.zh;
+  drawHexSvg($('rHex'), s.grade);
+  const dl = $('rStats'); dl.innerHTML = '';
+  for (const [k, label] of STAT_KEYS) {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = label; dd.textContent = s.grade[k]; d.append(dt, dd); dl.append(d);
+  }
+  $('rAbility').textContent = s.domain.ability;
+  $('rFormDesc').textContent = s.form.desc;
+  $('rMemory').textContent = s.memory ? `「${s.memory}」` : '你還沒寫下那個瞬間。下次做某件事做到忘了時間，記得把它記下來，那就是替身現身的時刻。';
+  $('rKey').textContent = s.key.text;
+  $('rStrength').textContent = `優勢：${s.priority.strength}`;
+  $('rWeak').textContent = `弱點：${s.priority.weak}`;
+  $('rWhy').textContent = s.priority.why;
+  $('rTry').textContent = `練習：${s.priority.try}`;
+  $('rNeedTitle').textContent = `你現在最需要的是「${s.need.zh}」：${s.need.title}`;
+  $('rNeed').textContent = s.need.text;
+  $('rNeedTry').textContent = `這週試試：${s.need.try}`;
+  $('copy').textContent = '複製我的替身文字';
+  $('camTitle').textContent = `《${s.domain.name}》`;
+  show('result');
+}
+$('summon').onclick = () => show('cam');
+$('toResult').onclick = () => show(state.stand ? 'result' : 'intro');
+$('copy').onclick = async () => {
+  const s = state.stand; if (!s) return;
+  const text = [
+    `本體：${s.owner}`, `替身：《${s.domain.name}》${s.domain.zh}（${s.form.zh}）`,
+    STAT_KEYS.map(([k, l]) => `${l} ${s.grade[k]}`).join('／'),
+    `能力：${s.domain.ability}`, s.memory ? `誕生的瞬間：「${s.memory}」` : '',
+    `覺醒條件：${s.need.title}`, location.origin + location.pathname,
+  ].filter(Boolean).join('\n');
+  try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
+  catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
+};
+const saved = store.get('stand-answers');
+if (saved?.domain) {
+  const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的替身';
+  b.onclick = () => { answers = saved; showResult(computeStand(saved)); };
+  $('skip').before(b);
+}
+
+// ── 相機介面 ───────────────────────────────────────────
+function chips(el, list, onPick, label, isOn) {
+  el.innerHTML = '';
+  for (const it of list) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.id = it.id;
+    b.setAttribute('aria-pressed', String(isOn(it)));
+    if (it.tint) { const d = document.createElement('span'); d.className = 'dot'; d.style.background = it.tint; b.append(d); }
+    b.append(label(it));
+    b.onclick = () => onPick(it, b);
+    el.append(b);
+  }
+}
+chips($('styles'), STYLES, (s) => setStyle(s), (s) => s.name, (s) => s === state.style);
+chips($('sfx'), [...SFX, { id: 'card', name: '資訊卡' }], (it, b) => {
+  if (it.id === 'card') { state.card = !state.card; b.setAttribute('aria-pressed', String(state.card)); return; }
+  state.sfx = it;
+  for (const x of $('sfx').children) if (x.dataset.id !== 'card') x.setAttribute('aria-pressed', String(x === b));
+}, (s) => s.name, (s) => s.id === 'card' ? state.card : s === state.sfx);
+
+function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
+
+// ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
 const FILTER_OK = (() => { const c = document.createElement('canvas').getContext('2d'); c.filter = 'blur(1px)'; return c.filter === 'blur(1px)'; })();
 const mk = (w = 1, h = 1) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 const srcC = mk(), personC = mk(), ghostC = mk(), auraC = mk(), maskC = mk(256, 256), tinyC = mk(48, 48);
 const maskCtx = maskC.getContext('2d');
 
-// ── 介面 ─────────────────────────────────────────────
-function chips(el, list, key, label) {
-  el.innerHTML = '';
-  for (const it of list) {
-    const b = document.createElement('button');
-    b.className = 'chip'; b.type = 'button';
-    b.setAttribute('aria-pressed', String(state[key] === it));
-    if (it.tint) { const d = document.createElement('span'); d.className = 'dot'; d.style.background = it.tint; b.append(d); }
-    b.append(label(it));
-    b.onclick = () => {
-      state[key] = it;
-      for (const x of el.children) x.setAttribute('aria-pressed', String(x === b));
-      if (key === 'style') document.documentElement.style.setProperty('--accent', it.text);
-    };
-    el.append(b);
-  }
-}
-chips($('styles'), STYLES, 'style', (s) => s.name);
-chips($('sfx'), SFX, 'sfx', (s) => s.name);
-
-function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
-
-// ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
 async function loadModel() {
   try {
     const fs = await FilesetResolver.forVisionTasks(new URL('lib/wasm', location.href).href);
@@ -75,7 +207,6 @@ async function loadModel() {
 }
 const modelReady = loadModel();
 
-// ── 相機 ─────────────────────────────────────────────
 async function startCamera() {
   stopCamera();
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -99,7 +230,7 @@ async function startCamera() {
 }
 function stopCamera() {
   state.stream?.getTracks().forEach((t) => t.stop());
-  state.stream = null;
+  state.stream = null; state.src = null;
 }
 function useSource(src, mirror) {
   state.src = src; state.mirror = mirror; state.box = null; state.mask = null;
@@ -147,6 +278,20 @@ function fallbackMask() {
   r.addColorStop(0, '#fff'); r.addColorStop(.75, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.beginPath(); g.ellipse(64, 74, 40, 56, 0, 0, 7); g.fill();
   state.mask = maskC; state.box = { x0: .19, y0: .14, x1: .81, y1: 1 };
+}
+
+// 替身的型態決定它站在哪裡、多大、有幾個
+function placements(form, cx, cy, bw, bh, W, t, side) {
+  const bob = Math.sin(t * 1.7) * bh * .012;
+  switch (form) {
+    case 'guard': return [{ x: cx + side * bw * .08, y: cy - bh * .13 + bob, s: 1.28 + Math.sin(t * 1.3) * .012, a: .8 }];
+    case 'remote': return [{ x: Math.min(W * .9, Math.max(W * .1, cx + side * bw * .6)), y: cy - bh * .3 + bob, s: .6, a: .85 }];
+    case 'swarm': return [0, 1, 2].map((i) => {
+      const a = t * .8 + i * 2.094;
+      return { x: cx + Math.cos(a) * bw * .55, y: cy - bh * .3 + Math.sin(a) * bh * .08 + bob, s: .5, a: .9 };
+    });
+    default: return [{ x: cx + side * bw * .3, y: cy - bh * .07 + bob, s: 1.12 + Math.sin(t * 1.3) * .012, a: .9 }];
+  }
 }
 
 let halftone = null;
@@ -206,30 +351,29 @@ function render(now) {
   ctx.filter = 'none';
   if (!FILTER_OK) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, W, H); }
 
-  // 網點
   halftone ||= halftonePattern();
   ctx.globalAlpha = .16; ctx.fillStyle = halftone; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
 
-  // 替身的位置：在人的斜後上方，微微浮動
   const bw = (box.x1 - box.x0) * W, bh = (box.y1 - box.y0) * H;
   const cx = (box.x0 + box.x1) / 2 * W, cy = (box.y0 + box.y1) / 2 * H;
-  const S = 1.12 + Math.sin(t * 1.3) * .012;
-  const gx = cx + state.side * bw * .3, gy = cy - bh * .07 + Math.sin(t * 1.7) * H * .006;
+  const ghosts = placements(state.stand?.formId || 'power', cx, cy, bw, bh, W, t, state.side);
 
-  // 集中線（從替身中心放射）
-  speedLines(gx, gy - bh * .2, W, H, t);
+  // 集中線（從第一個替身放射）
+  speedLines(ghosts[0].x, ghosts[0].y - bh * .2, W, H, t);
 
   const drawAt = (c, scale, x, y, alpha) => {
     ctx.save(); ctx.globalAlpha = alpha;
     ctx.translate(x, y); ctx.scale(scale, scale); ctx.translate(-cx, -cy);
     ctx.drawImage(c, 0, 0); ctx.restore();
   };
-  ctx.globalCompositeOperation = 'lighter';
-  drawAt(auraC, S * 1.06, gx, gy, .55 + Math.sin(t * 6) * .08);
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.save(); ctx.shadowColor = st.glow; ctx.shadowBlur = 24;
-  drawAt(ghostC, S, gx, gy, .9);
-  ctx.restore();
+  for (const g of ghosts) {
+    ctx.globalCompositeOperation = 'lighter';
+    drawAt(auraC, g.s * 1.06, g.x, g.y, .55 + Math.sin(t * 6) * .08);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.shadowColor = st.glow; ctx.shadowBlur = 24;
+    drawAt(ghostC, g.s, g.x, g.y, g.a);
+    ctx.restore();
+  }
 
   // 本人身上的氣場與本人
   ctx.globalCompositeOperation = 'lighter';
@@ -241,6 +385,7 @@ function render(now) {
 
   if (state.sfx.ch) sfx(W, H, t, st);
   vignette(W, H);
+  if (state.card && state.stand) standCard(W, H, st, state.stand);
 }
 
 function speedLines(x, y, W, H, t) {
@@ -257,7 +402,7 @@ function speedLines(x, y, W, H, t) {
 }
 
 // 擬聲字固定排在兩側，跟著節奏抖動
-const SFX_SLOTS = [[.08, .16, -12, 1], [.17, .3, -8, .82], [.07, .45, -14, .68], [.9, .58, 10, .95], [.82, .72, 6, .78], [.92, .86, 12, .62]];
+const SFX_SLOTS = [[.08, .16, -12, 1], [.17, .3, -8, .82], [.07, .45, -14, .68], [.9, .5, 10, .95], [.82, .63, 6, .78], [.92, .75, 12, .62]];
 function sfx(W, H, t, st) {
   const base = Math.min(W, H) * .17;
   ctx.save();
@@ -281,6 +426,36 @@ function vignette(W, H) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 }
 
+// 照片左下角的替身資訊卡：名字、本體、六項能力值
+function standCard(W, H, st, s) {
+  const u = Math.min(W, H) / 100, pad = 3 * u;
+  const cw = Math.min(W - pad * 2, 62 * u), ch = 21 * u, x = pad, y = H - ch - pad;
+  ctx.save();
+  ctx.fillStyle = 'rgba(12,8,20,.78)'; ctx.strokeStyle = st.text; ctx.lineWidth = .5 * u;
+  ctx.beginPath(); ctx.moveTo(x + 2 * u, y); ctx.lineTo(x + cw, y); ctx.lineTo(x + cw - 2 * u, y + ch); ctx.lineTo(x, y + ch); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // 六角能力圖
+  const r = 7.5 * u, hx = x + cw - r - 4.5 * u, hy = y + ch / 2;
+  const pts = (rr, vals) => hexPoints(hx, hy, rr, vals);
+  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .25 * u;
+  ctx.beginPath(); pts(r, Array(6).fill(1)).forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = st.tint + 'aa'; ctx.strokeStyle = st.text; ctx.lineWidth = .4 * u;
+  ctx.beginPath(); pts(r, STAT_KEYS.map(([k]) => GRADE_V[s.grade[k]] / 5)).forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${2.4 * u}px "Dela Gothic One", sans-serif`;
+  pts(r + 2.4 * u, Array(6).fill(1)).forEach(([px, py], i) => ctx.fillText(s.grade[STAT_KEYS[i][0]], px, py));
+  // 文字
+  const tx = x + 4 * u, maxW = hx - r - 3 * u - tx;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = `600 ${2.3 * u}px system-ui, sans-serif`;
+  ctx.fillText(`本體：${s.owner}`, tx, y + 5.5 * u, maxW);
+  ctx.fillStyle = st.text; ctx.font = `${4.6 * u}px "Dela Gothic One", sans-serif`;
+  ctx.fillText(`《${s.domain.name}》`, tx - 1.2 * u, y + 12 * u, maxW + 1.2 * u);
+  ctx.fillStyle = '#fff'; ctx.font = `600 ${2.4 * u}px system-ui, sans-serif`;
+  ctx.fillText(`${s.domain.zh}・${s.form.zh}`, tx, y + 17 * u, maxW);
+  ctx.restore();
+}
+
 // ── 拍照與分享 ─────────────────────────────────────────
 let lastBlob = null, lastUrl = null;
 $('shot').onclick = () => {
@@ -290,7 +465,7 @@ $('shot').onclick = () => {
     lastBlob = blob;
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = URL.createObjectURL(blob);
-    $('result').src = lastUrl; $('save').href = lastUrl;
+    $('photo').src = lastUrl; $('save').href = lastUrl;
     const file = new File([blob], 'stand.jpg', { type: 'image/jpeg' });
     $('share').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
     $('sheet').hidden = false;
@@ -298,7 +473,8 @@ $('shot').onclick = () => {
 };
 $('share').onclick = async () => {
   const file = new File([lastBlob], 'stand.jpg', { type: 'image/jpeg' });
-  try { await navigator.share({ files: [file], title: '我的替身' }); }
+  const s = state.stand;
+  try { await navigator.share({ files: [file], title: s ? `我的替身《${s.domain.name}》` : '我的替身' }); }
   catch (e) { if (e.name !== 'AbortError') notice('分享沒有成功，可以改用「儲存照片」再到 LINE 傳送。'); }
 };
 $('close').onclick = () => { $('sheet').hidden = true; };
