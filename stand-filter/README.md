@@ -1,6 +1,6 @@
 # 替身偵測器
 
-手機網頁小遊戲：先做八題測驗找出自己的替身，再打開相機把它召喚到身後，拍完可以直接分享到 LINE。
+手機網頁小遊戲：先做五題測驗找出自己的替身，再打開相機把它召喚到身後，拍完可以直接分享到 LINE。
 
 ## 玩法
 
@@ -11,14 +11,14 @@
 
 放在 `stands/`，檔名固定：
 
-| 檔名 | 標籤 | 替身 |
-|---|---|---|
-| courage | 勇氣 | 《CRIMSON VOW》赤之誓約 |
-| wisdom | 智慧 | 《BLUE CIPHER》蒼藍密碼 |
-| guard | 守護 | 《IVORY BASTION》象牙堡壘 |
-| freedom | 自由 | 《EMERALD GALE》翡翠疾風 |
-| create | 創造 | 《PRISM MUSE》稜鏡繆思 |
-| bond | 羈絆 | 《CORAL THREAD》珊瑚之線 |
+| 檔名 | 標籤 | 替身 | Canva 原圖 |
+|---|---|---|---|
+| courage | 勇氣 | 《ROAR OF BABYLON》巴比倫之吼 | https://www.canva.com/M/MAHXRz7tPjQ |
+| wisdom | 智慧 | 《ATHENIAN OWL》雅典之梟 | https://www.canva.com/M/MAHXR1XDyp4 |
+| guard | 守護 | 《HOLY BASTION》聖騎堡壘 | https://www.canva.com/M/MAHXRyl9hO8 |
+| freedom | 自由 | 《MERCURY GALE》信使之風 | https://www.canva.com/M/MAHXRwbbLrA |
+| create | 創造 | 《VENETIAN MUSE》威尼斯繆思 | https://www.canva.com/M/MAHXR0wrinY |
+| bond | 羈絆 | 《SUN OF UR》烏爾之陽 | https://www.canva.com/M/MAHXR5idbyA |
 
 `.png` 或 `.jpg` 都可以（有 `.png` 會優先用）。白底的圖會自動去背，透明底也可以。
 目前放的是縮圖（約 150×200），要換成高解析的原圖才會清楚：用相同檔名覆蓋即可。
