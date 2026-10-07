@@ -39,12 +39,18 @@
 - 程式庫與模型都放在 `lib/`、`models/`，不依賴外部 CDN。
 - 第一次開啟後會存在手機裡（service worker），之後開更快、離線也能用。
 
-## 怎麼放上網
+## 怎麼放上網（Netlify）
 
-整個資料夾是純靜態檔案，丟到任何支援 HTTPS 的靜態網站空間即可（相機只在 HTTPS 下能用）：
+Netlify 上已經建好網站 `jaminepa-guardian`（網址 https://jaminepa-guardian.netlify.app ），還沒有內容。
+把它接到 GitHub，之後每次推送都會自動更新：
 
-- Netlify：把資料夾拖進 app.netlify.com/drop
-- GitHub Pages：放進一個 repo，Settings → Pages 開啟
+1. 打開 https://app.netlify.com/projects/jaminepa-guardian
+2. 「Project configuration」→「Build & deploy」→「Link repository」，選 GitHub 的 `benjamin104-create/chainway-data-mining`
+3. Branch 選 `claude/fashion-sales-design-platform-vabg76`
+4. Base directory 填 `stand-filter`，Build command 留空，Publish directory 填 `stand-filter`
+5. 按 Deploy，等一兩分鐘就能用手機打開網址
+
+（設定也寫在 `netlify.toml`，Netlify 會自動讀。）
 
 ## 怎麼讓朋友「安裝」
 
