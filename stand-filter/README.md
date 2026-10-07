@@ -4,7 +4,7 @@
 
 ## 玩法
 
-五題選擇題 → 六種人格標籤之一（勇氣、智慧、守護、自由、創造、羈絆）→ 對應的原創替身出現在你身後。
+五題選擇題 → 六種人格標籤之一（勇氣、智慧、守護、自由、創造、羈絆）→ 選女神／男神／交給命運 → 十二位希臘羅馬神祇之一出現在你身後，背後有一圈星座光環。
 題目、替身名字、能力值和說明文字都在 `quiz.js`。
 
 ## 替身圖
@@ -13,16 +13,22 @@
 
 | 檔名 | 標籤 | 替身 | Canva 原圖 |
 |---|---|---|---|
-| courage | 勇氣 | 《MARS》戰神瑪爾斯 | https://www.canva.com/M/MAHXSfz7Aww |
-| wisdom | 智慧 | 《ATHENA》智慧女神雅典娜 | https://www.canva.com/M/MAHXSXBww1o |
-| guard | 守護 | 《ARTEMIS》月之女神阿提米絲 | https://www.canva.com/M/MAHXSVAAkGg |
-| freedom | 自由 | 《HERMES》旅神赫密士 | https://www.canva.com/M/MAHXSR0DA6k |
-| create | 創造 | 《VENUS》美神維納斯 | https://www.canva.com/M/MAHXSTTHhsA |
-| bond | 羈絆 | 《CUPID》愛神丘比特 | https://www.canva.com/M/MAHXSVbv2Wk |
+| courage | 勇氣・男 | 《MARS》戰神瑪爾斯 | https://www.canva.com/M/MAHXSfz7Aww |
+| nike | 勇氣・女 | 《NIKE》勝利女神妮姬 | https://www.canva.com/M/MAHXSRrwAMc |
+| wisdom | 智慧・女 | 《ATHENA》智慧女神雅典娜 | https://www.canva.com/M/MAHXSXBww1o |
+| apollo | 智慧・男 | 《APOLLO》光明之神阿波羅 | https://www.canva.com/M/MAHXSUV2iPs |
+| guard | 守護・女 | 《ARTEMIS》月之女神阿提米絲 | https://www.canva.com/M/MAHXSVAAkGg |
+| zeus | 守護・男 | 《ZEUS》眾神之王宙斯 | https://www.canva.com/M/MAHXSbiYLvc |
+| freedom | 自由・男 | 《HERMES》旅神赫密士 | https://www.canva.com/M/MAHXSR0DA6k |
+| iris | 自由・女 | 《IRIS》彩虹女神伊麗絲 | https://www.canva.com/M/MAHXSal39ns |
+| create | 創造・女 | 《VENUS》美神維納斯 | https://www.canva.com/M/MAHXSTTHhsA |
+| hephaestus | 創造・男 | 《HEPHAESTUS》鍛造之神赫菲斯托斯 | https://www.canva.com/M/MAHXSQ4urCg |
+| bond | 羈絆・男 | 《CUPID》愛神丘比特 | https://www.canva.com/M/MAHXSVbv2Wk |
+| hera | 羈絆・女 | 《HERA》天后希拉 | https://www.canva.com/M/MAHXSXPL1OQ |
 
 `.png` 或 `.jpg` 都可以（有 `.png` 會優先用）。白底的圖會自動去背，透明底也可以。
 目前放的是縮圖（約 150×200），要換成高解析的原圖才會清楚：用相同檔名覆蓋即可。
-替身以希臘羅馬神話的神祇為原型（神話本身沒有版權），造型是重新繪製的原創圖，沒有使用任何漫畫原作角色。
+替身以希臘羅馬神話的神祇為原型（神話本身沒有版權），造型是重新繪製的原創圖，沒有使用任何漫畫原作角色。宣傳時可以搭希臘神話話題，但不要用其他作品的名稱、標誌或角色名當標題。
 相機會偵測使用者的頭部位置，讓替身的臉站在頭的旁邊，不會被擋住。
 
 - 人像分割用 Google MediaPipe 的 selfie segmenter，**在手機上計算**，照片不會上傳到任何伺服器。

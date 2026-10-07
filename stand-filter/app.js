@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, computeStand } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, computeStand, standById } from './quiz.js';
 
 const SFX = [
   { id: 'auto', name: '擬聲字' },
@@ -113,7 +113,7 @@ $('back').onclick = () => { if (qi === 0) show('intro'); else { qi--; renderQues
 $('redo').onclick = () => { qi = 0; answers = {}; renderQuestion(); show('quiz'); };
 $('skip').onclick = () => {
   const ids = Object.keys(STANDS), id = ids[Math.floor(Math.random() * ids.length)];
-  useStand({ id, owner: '', ...STANDS[id] }); show('cam');
+  useStand(standById(id)); show('cam');
 };
 
 // ── 結果 ─────────────────────────────────────────────
@@ -372,6 +372,7 @@ function render(now) {
     sx = state.sx;
     sy = Math.max(u * 2, headY - sh * .08) + Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .25;
     speedLines(sx, sy + sh * .25, W, H, t, s);
+    stars(sx, sy + sh * .3, sh * .62, t, s, u);
     ctx.save();
     // 殘影
     ctx.globalAlpha = .22 * ease;
@@ -398,6 +399,30 @@ function render(now) {
   if (state.sfx) sfx(W, H, t, s);
   vignette(W, H);
   if (state.card && s.owner) standCard(W, H, s);
+}
+
+// 星座光環：替身身後的一圈星星與連線，星星會閃爍、整圈緩慢旋轉
+const STAR_PTS = Array.from({ length: 26 }, (_, i) => {
+  const r = .55 + ((i * 37) % 11) / 22, a = i * 2.39996;      // 黃金角分布，看起來自然又固定
+  return [Math.cos(a) * r, Math.sin(a) * r, 0.6 + ((i * 13) % 7) / 10, i * 1.7];
+});
+const STAR_LINKS = [[0, 5], [5, 13], [13, 21], [21, 8], [3, 11], [11, 19], [19, 6], [2, 10], [10, 18], [18, 23]];
+function stars(x, y, R, t, s, u) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t * .04);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = s.glow; ctx.globalAlpha = .28; ctx.lineWidth = .25 * u;
+  ctx.beginPath();
+  for (const [a, b] of STAR_LINKS) { ctx.moveTo(STAR_PTS[a][0] * R, STAR_PTS[a][1] * R); ctx.lineTo(STAR_PTS[b][0] * R, STAR_PTS[b][1] * R); }
+  ctx.stroke();
+  for (const [px, py, k, ph] of STAR_PTS) {
+    const tw = .45 + .55 * Math.abs(Math.sin(t * 1.8 + ph));
+    const r = k * u * .9 * tw;
+    ctx.globalAlpha = .9 * tw;
+    const g = ctx.createRadialGradient(px * R, py * R, 0, px * R, py * R, r * 3);
+    g.addColorStop(0, '#fff'); g.addColorStop(.3, s.glow); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px * R, py * R, r * 3, 0, 7); ctx.fill();
+  }
+  ctx.restore();
 }
 
 function speedLines(x, y, W, H, t, s) {
