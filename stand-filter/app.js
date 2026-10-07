@@ -1,17 +1,13 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
 import { QUESTIONS, STANDS, STAT_KEYS, LANGS, computeStand, standById } from './quiz.js';
 
-const SFX = [
-  { id: 'auto', name: '擬聲字' },
-  { id: 'none', name: '無字' },
-];
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
 const $ = (id) => document.getElementById(id);
 const view = $('view'), ctx = view.getContext('2d');
 const video = $('video');
 const state = {
-  sfx: true, card: true, side: 1, facing: 'user',
+  card: true, side: 1, facing: 'user',
   src: null, mirror: false, stream: null,
   segmenter: null, mask: null, box: null, lastTs: 0,
   stand: null, summonAt: 0,
@@ -185,7 +181,7 @@ if (saved?.q5) {
 }
 
 // ── 相機介面 ───────────────────────────────────────────
-for (const [id, name] of [['sfx', '擬聲字'], ['card', '資訊卡']]) {
+for (const [id, name] of [['card', '資訊卡']]) {
   const b = document.createElement('button');
   b.className = 'chip'; b.type = 'button'; b.textContent = name;
   b.setAttribute('aria-pressed', String(state[id]));
@@ -448,7 +444,6 @@ function render(now) {
   if (FILTER_OK) ctx.filter = 'contrast(1.08)';
   ctx.drawImage(personC, 0, 0); ctx.filter = 'none';
 
-  if (state.sfx) sfx(W, H, t, s);
   vignette(W, H);
   if (state.card && s.owner) standCard(W, H, s);
   tagStamp(W, H, s, u, now);
@@ -619,26 +614,6 @@ function speedLines(x, y, W, H, t, s) {
   ctx.restore();
 }
 
-// 擬聲字放在替身的另一側，跟著節奏抖動
-const SFX_SLOTS = [[.1, .5, -12, .8], [.17, .6, -8, .66], [.09, .7, -14, .55]];
-function sfx(W, H, t, s) {
-  const base = Math.min(W, H) * .17;
-  ctx.save();
-  ctx.lineJoin = 'round'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  SFX_SLOTS.forEach(([x, y, rot, k], i) => {
-    const side = state.useSide ?? state.side, px = side > 0 ? x : 1 - x;
-    const j = Math.sin(t * 22 + i * 1.7) * base * .025;
-    const size = base * k * (1 + Math.sin(t * 3 + i) * .04);
-    ctx.save();
-    ctx.translate(px * W + j, y * H - j); ctx.rotate((side > 0 ? rot : -rot) * Math.PI / 180);
-    ctx.font = `${size}px "Dela Gothic One", "Hiragino Sans", sans-serif`;
-    ctx.lineWidth = size * .2; ctx.strokeStyle = '#120a1c'; ctx.strokeText(s.sfx, 0, 0);
-    ctx.lineWidth = size * .07; ctx.strokeStyle = '#fff'; ctx.strokeText(s.sfx, 0, 0);
-    ctx.fillStyle = s.text; ctx.fillText(s.sfx, 0, 0);
-    ctx.restore();
-  });
-  ctx.restore();
-}
 function vignette(W, H) {
   const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.hypot(W, H) * .6);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(10,0,20,.55)');
@@ -708,5 +683,5 @@ $('file').onchange = async () => {
   stopCamera(); await modelReady; useSource(img, false); $('file').value = '';
 };
 
-document.fonts?.load('80px "Dela Gothic One"', 'ゴド').catch(() => {});
+document.fonts?.load('80px "Dela Gothic One"', 'ゼウス').catch(() => {});
 requestAnimationFrame(render);

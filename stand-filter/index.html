@@ -54,7 +54,7 @@
 
   /* 開場 */
   #intro .col { min-height: 100%; align-content: center; }
-  .sfx-hero { font: 400 72px/1 var(--display); color: var(--accent); letter-spacing: .04em; text-shadow: 0 0 28px rgba(177, 92, 255, .5); }
+  .sfx-hero { font: 900 clamp(40px, 12vw, 60px)/1 var(--heading); color: var(--accent); letter-spacing: .04em; text-shadow: 0 0 28px rgba(177, 92, 255, .5); }
   .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; line-height: 1.5; }
   .steps b { color: var(--fg); font-weight: 600; margin-right: 6px; }
 
@@ -147,7 +147,7 @@
 <!-- 開場 -->
 <section class="screen" id="intro">
   <div class="col">
-    <div class="sfx-hero" aria-hidden="true">ゴゴゴ</div>
+    <div class="sfx-hero" aria-hidden="true">✦ 守護靈 ✦</div>
     <span class="eyebrow">Stand Detector</span>
     <h1 class="display">你的替身偵測器</h1>
     <p class="lead">每個人身上都有一個替身。回答五個問題，找出你的人格標籤和專屬替身，再用相機把它召喚到你身後。</p>
@@ -226,7 +226,7 @@
     <video id="video" playsinline muted></video>
     <div class="flash" id="flash"></div>
     <div class="start" id="start">
-      <div class="sfx-hero" aria-hidden="true">ゴゴゴ</div>
+      <div class="sfx-hero" aria-hidden="true">✦ 守護靈 ✦</div>
       <p>開啟相機後，替身會出現在你身後，跟著你移動。點畫面可以讓替身換邊站。</p>
       <div><button class="primary" id="go">開啟相機</button></div>
       <p id="loadState">正在載入人像辨識…</p>
@@ -234,7 +234,7 @@
     <div class="notice" id="notice" hidden></div>
   </main>
   <footer>
-    <div class="chips" id="sfx" role="group" aria-label="擬聲字與資訊卡"></div>
+    <div class="chips" id="sfx" role="group" aria-label="資訊卡"></div>
     <div class="controls">
       <button class="round" id="side" aria-label="替身換邊" title="替身換邊">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
