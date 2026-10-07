@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, computeStand, standById } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, STAT_MEDIA, TAGS, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
@@ -145,6 +145,29 @@ function useStand(s) {
   $('camTitle').textContent = `《${s.name}》`;
   loadArt(s.id).catch(() => {});
 }
+// 自媒體建議：主標籤的定位與方向、等級 A 的強項、副標籤的混搭點子
+function renderMedia(s) {
+  const m = MEDIA[s.tagId];
+  const title = $('mediaTitle'); title.textContent = '你適合當自媒體的「';
+  const em = document.createElement('em'); em.textContent = m.role; title.append(em, '」');
+  $('mPitch').textContent = m.pitch;
+  const ul = $('mStrengths'); ul.innerHTML = '';
+  const strong = STAT_KEYS.filter(([k]) => s.grade[k] === 'A');
+  const list = strong.length ? strong : STAT_KEYS.filter(([k]) => s.grade[k] === 'B').slice(0, 2);
+  for (const [k, label] of list) {
+    const li = document.createElement('li'), b = document.createElement('b');
+    b.textContent = `${label} ${s.grade[k]}`; li.append(b, STAT_MEDIA[k]); ul.append(li);
+  }
+  const tp = $('mTopics'); tp.innerHTML = '';
+  for (const t of m.topics) { const sp = document.createElement('span'); sp.textContent = t; tp.append(sp); }
+  $('mFormats').textContent = m.formats;
+  $('mPlatforms').textContent = m.platforms;
+  $('mMixCard').hidden = !s.second;
+  if (s.second) $('mMix').textContent = `你的副標籤是「${TAGS[s.second].tag}」：${MEDIA[s.second].mix}，讓「${m.role}」的內容更有你的味道。`;
+  $('mFirst').textContent = m.first;
+  $('mWatch').textContent = `提醒：${m.watch}`;
+}
+
 async function showResult(s) {
   useStand(s);
   $('rOwner').textContent = `${s.owner}　的守護神是`;
@@ -164,6 +187,7 @@ async function showResult(s) {
     dd.textContent = s.grade[k]; d.append(dt, dd); dl.append(d);
   }
   $('rAbility').textContent = s.ability;
+  renderMedia(s);
   $('rNote').textContent = s.note;
   $('rTry').textContent = `這週試試：${s.try}`;
   $('copy').textContent = '複製我的守護神文字';
@@ -177,7 +201,7 @@ $('copy').onclick = async () => {
   const text = [
     `名字：${s.owner}`, `人格標籤：${s.tag}`, `守護神：《${s.name}》${s.zh}`,
     STAT_KEYS.map(([k, l]) => `${l} ${s.grade[k]}`).join('／'),
-    `能力：${s.ability}`, `哪位希臘神祇是你的守護神？來測 → ${location.origin + location.pathname}`,
+    `能力：${s.ability}`, `自媒體定位：${MEDIA[s.tagId].role}｜${MEDIA[s.tagId].formats}`, `哪位希臘神祇是你的守護神？來測 → ${location.origin + location.pathname}`,
   ].join('\n');
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }

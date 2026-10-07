@@ -110,6 +110,49 @@ export const LOCALE = {
     line: { zh: '重要的人，我幫你牢牢牽住。', ja: '大切な絆、しっかり結んであげる。', en: "I'll keep your precious bonds tied tight." } },
 };
 
+// 自媒體建議：主標籤決定定位與方向，副標籤給混搭點子，等級 A 的能力是要放大的強項
+export const MEDIA = {
+  courage: { role: '挑戰者', pitch: '記錄自己跨出舒適圈的過程，讓觀眾跟著你一起變勇敢。',
+    topics: ['30 天挑戰', '第一次做某件事', '實測與體驗', '失敗後怎麼站起來'],
+    formats: '短影音 vlog、實測影片、挑戰系列', platforms: 'TikTok、IG Reels、YouTube Shorts',
+    first: '開一個「30 天挑戰」系列，每天用 30 秒記錄進度。',
+    watch: '別只追求刺激，每支影片都說一句你學到了什麼。', mix: '加一點挑戰元素，例如「我試了一週…」' },
+  wisdom: { role: '拆解者', pitch: '把複雜的知識講到誰都聽得懂，讓人看完就學會一件事。',
+    topics: ['心理學小知識', '書摘與觀念整理', '迷思破解', '懶人包'],
+    formats: '圖文懶人包、解說影片、Podcast', platforms: 'IG 圖文、YouTube、方格子或部落格',
+    first: '挑一個你懂、但別人常搞錯的觀念，做成 5 張圖卡。',
+    watch: '少一點專有名詞，多一個生活裡的例子。', mix: '在內容裡加一個「一句話重點」' },
+  guard: { role: '陪伴者', pitch: '給需要的人安心感和實用的幫助，成為大家遇到困難時第一個想到的人。',
+    topics: ['親子教養', '照顧自己與家人', '心理支持', '實用生活清單'],
+    formats: '實用清單、問答整理、溫暖短文', platforms: 'Facebook 社團、LINE 社群、IG',
+    first: '把身邊朋友最常問你的 3 個問題，各寫成一篇回答。',
+    watch: '先照顧好自己，替留言回覆設定時間和界線。', mix: '加上一個「可以馬上做的小步驟」' },
+  freedom: { role: '探索者', pitch: '分享不一樣的生活方式，讓人看到人生還有別的選擇。',
+    topics: ['旅行與在地探索', '斜槓與自由工作', '一個人的生活', '慢生活'],
+    formats: '生活 vlog、旅記、限時動態', platforms: 'YouTube、IG 限動、Threads',
+    first: '不寫腳本，拍一支「我的一天」。',
+    watch: '自由也要有節奏：固定每週同一天更新。', mix: '加入你自己的生活風格和觀點' },
+  create: { role: '創作者', pitch: '讓人看見作品，也看見它是怎麼一步步做出來的。',
+    topics: ['作品與製作過程', '改造前後對比', '手作或設計教學', '靈感來源'],
+    formats: '製作過程縮時、before／after、教學影片', platforms: 'IG Reels、Pinterest、TikTok',
+    first: '拍下一件作品從零到完成的 15 秒縮時。',
+    watch: '不用等完美才發，過程本身就是好內容。', mix: '加上一點視覺巧思或手作感' },
+  bond: { role: '連結者', pitch: '經營一個讓大家彼此認識、互相打氣的社群。',
+    topics: ['人際關係與溝通', '讀者故事', '心情交流', '線上或線下聚會'],
+    formats: '直播、提問箱、互動貼文、社群活動', platforms: 'Threads、IG 直播、LINE 社群',
+    first: '發一篇提問貼文，再把大家的回答整理成下一篇。',
+    watch: '也要說自己的故事，不要只當主持人。', mix: '在結尾加一個邀請大家留言的問題' },
+};
+// 能力等級 A 代表可以放大的強項，每一項對應一種內容策略
+export const STAT_MEDIA = {
+  pow: '敢表達立場：做「我的看法」「說真話」類型的內容',
+  spd: '動作快：跟上時事和熱門話題，維持高頻率更新',
+  rng: '影響範圍大：找人合作、聯名、經營社群',
+  dur: '撐得久：做長期系列，例如每週固定單元',
+  pre: '做得細：精緻的圖卡、剪輯和深度教學',
+  gro: '成長快：從零開始記錄，讓觀眾陪你一起變強',
+};
+
 export const QUESTIONS = [
   { id: 'name', kind: 'text', q: '先告訴守護神你的名字', hint: '會印在你和守護神的合照上。', placeholder: '例如：小安', max: 12 },
   { id: 'q1', q: '朋友遇到困難，你的第一個反應是？', options: [
@@ -169,6 +212,8 @@ export function computeStand(a) {
   // 同分時，以第五題（最想要的超能力）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
   const tagId = tied.includes(a.q5) ? a.q5 : tied[0] || 'courage';
+  // 副標籤：主標籤以外，次多的那一個
+  const second = Object.keys(count).filter((k) => k !== tagId).sort((x, y) => count[y] - count[x])[0] || null;
   const pair = Object.keys(STANDS).filter((id) => STANDS[id].tagId === tagId);
   let sex = a.sex;
   if (sex !== 'm' && sex !== 'f') {
@@ -177,5 +222,5 @@ export function computeStand(a) {
     sex = h & 1 ? 'm' : 'f';
   }
   const id = pair.find((k) => STANDS[k].sex === sex) || pair[0];
-  return standById(id, (a.name || '').trim() || '無名的勇者');
+  return { ...standById(id, (a.name || '').trim() || '無名的勇者'), second };
 }
