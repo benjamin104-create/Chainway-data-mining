@@ -106,6 +106,9 @@
   /* App 內建瀏覽器提示 */
   .inapp { display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--raise)); border: 1px solid var(--accent); font-size: 14px; line-height: 1.6; }
   .inapp b { font-size: 15px; }
+  .inapp-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .inapp .small { padding: 10px 16px; font-size: 14px; }
+  .inapp.switch { position: absolute; inset: auto 16px 16px; z-index: 4; }
   /* 自媒體建議 */
   .media { display: grid; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
   .media-title { margin: 0; font: 900 28px/1.25 var(--heading); text-wrap: balance; }
@@ -185,7 +188,10 @@
       <li><b>獲得</b>人格標籤：勇氣、智慧、守護、自由、創造、羈絆</li>
       <li><b>合照</b>開相機，守護神會用 AR 出現在你身後，拍照分享</li>
     </ul>
-    <div class="inapp" id="inapp" hidden><b>建議用 Safari 或 Chrome 開啟</b><span id="inappHow"></span></div>
+    <div class="inapp" id="inapp" hidden>
+      <span>你正在 App 內建的瀏覽器裡。多數情況可以直接玩；如果等一下相機打不開，按下面切換。</span>
+      <div class="inapp-row"><a class="primary small" data-open-browser href="#">用瀏覽器開啟</a><button class="secondary small" type="button" data-copy-link>複製網址</button></div>
+    </div>
     <div class="stack">
       <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
       <button class="secondary" id="skip">先直接拍照</button>
@@ -275,6 +281,12 @@
       <p id="loadState">正在載入人像辨識…</p>
     </div>
     <div class="notice" id="notice" hidden></div>
+    <div class="inapp switch" id="switchPanel" hidden>
+      <b>這個 App 不讓網頁開相機</b>
+      <span id="switchHow">按「用瀏覽器開啟」換到手機瀏覽器，答案會留著，不用重做。</span>
+      <div class="inapp-row"><a class="primary small" data-open-browser href="#">用瀏覽器開啟</a><button class="secondary small" type="button" data-copy-link>複製網址</button></div>
+      <button class="link" type="button" id="switchPhoto">或改用相簿裡的照片</button>
+    </div>
   </main>
   <footer>
     <div class="chips" id="sfx" role="group" aria-label="資訊卡"></div>
@@ -308,14 +320,47 @@
       location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'openExternalBrowser=1' + location.hash);
       return;
     }
-    // Instagram、Facebook、Messenger、Threads 的內建瀏覽器：提示改用瀏覽器開
-    if (/Instagram|FBAN|FBAV|FB_IAB|Messenger|Barcelona/i.test(ua)) {
-      var ios = /iPhone|iPad/i.test(ua);
-      document.getElementById('inapp').hidden = false;
-      document.getElementById('inappHow').textContent = ios
-        ? '在這個 App 裡可能打不開相機。請點右上角「⋯」→「在外部瀏覽器開啟」，用 Safari 打開這一頁。'
-        : '在這個 App 裡可能打不開相機。請點右上角「⋮」→「在瀏覽器中開啟」，用 Chrome 打開這一頁。';
+    // Instagram、Facebook、Messenger、Threads 等內建瀏覽器：先讓他直接玩，另外準備一鍵切換
+    var inApp = /Instagram|FBAN|FBAV|FB_IAB|Messenger|Barcelona|Threads|TikTok|musical_ly|Bytedance|Twitter|KAKAOTALK|WeChat|MicroMessenger/i.test(ua);
+    window.IN_APP = inApp;
+    var android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+    // 換瀏覽器後儲存空間不同，所以把目前的答案一起放進網址帶過去
+    function carryUrl() {
+      var data = null;
+      try { data = { a: JSON.parse(localStorage.getItem('stand-answers')), p: JSON.parse(localStorage.getItem('stand-progress')) }; } catch (e) {}
+      var q = 'openExternalBrowser=1';
+      if (data && (data.a || data.p)) q += '&carry=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data)))));
+      return location.host + location.pathname + '?' + q;
     }
+    // Android：intent 連結直接叫出 Chrome；iPhone：x-safari-https 叫出 Safari（iOS 17 以後）
+    function browserHref() {
+      var rest = carryUrl();
+      return android ? 'intent://' + rest + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent('https://' + rest) + ';end'
+        : ios ? 'x-safari-https://' + rest : 'https://' + rest;
+    }
+    window.carryHref = function () { return location.protocol + '//' + carryUrl(); };
+    document.querySelectorAll('[data-open-browser]').forEach(function (a) {
+      a.href = '#';
+      a.addEventListener('click', function () {
+        a.href = browserHref();
+        // 叫不出瀏覽器時（App 擋掉），一秒後改提示手動方式
+        setTimeout(function () {
+          if (document.visibilityState === 'visible') {
+            var how = document.getElementById('switchHow');
+            if (how) how.textContent = ios ? '如果沒跳出 Safari：點右上角「⋯」→「在外部瀏覽器開啟」，或按「複製網址」貼到 Safari。'
+              : '如果沒跳出 Chrome：點右上角「⋮」→「在瀏覽器中開啟」，或按「複製網址」貼到 Chrome。';
+          }
+        }, 1200);
+      });
+    });
+    document.querySelectorAll('[data-copy-link]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var url = window.carryHref(), done = function () { b.textContent = '已複製，貼到瀏覽器就能開'; };
+        if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { prompt('長按複製這個網址', url); });
+        else prompt('長按複製這個網址', url);
+      });
+    });
+    if (inApp) document.getElementById('inapp').hidden = false;
   })();
 </script>
 <script type="module" src="app.js"></script>

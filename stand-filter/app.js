@@ -227,6 +227,17 @@ $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
 };
+// 從 App 內建瀏覽器切換過來時，網址裡帶著原本的答案：存起來，直接回到結果
+(() => {
+  const c = new URLSearchParams(location.search).get('carry'); if (!c) return;
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(c))));
+    if (d.a) store.set('stand-answers', d.a);
+    if (d.p) store.set('stand-progress', d.p);
+    history.replaceState(null, '', location.pathname);
+    if (d.a && !d.p) setTimeout(() => { answers = d.a; showResult(computeStand(d.a)); }, 0);
+  } catch {}
+})();
 const progress = store.get('stand-progress');
 if (progress?.answers) $('begin').textContent = `繼續作答（第 ${progress.qi + 1} 步）`;
 const saved = store.get('stand-answers');
@@ -280,16 +291,15 @@ const modelReady = loadModel();
 
 async function startCamera() {
   stopCamera();
-  if (!navigator.mediaDevices?.getUserMedia) {
-    notice('這個瀏覽器不能開相機。如果你是在 LINE 裡開的，請點右上角選「用預設瀏覽器開啟」，或改用上方的相簿按鈕。');
-    return;
-  }
+  $('switchPanel').hidden = true;
+  if (!navigator.mediaDevices?.getUserMedia) { cameraBlocked(); return; }
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 1280 } },
     });
   } catch (e) {
+    if (window.IN_APP) { cameraBlocked(); return; }      // App 內建瀏覽器擋相機：給一鍵切換
     notice(e.name === 'NotAllowedError'
       ? '相機權限被拒絕了。請到瀏覽器設定允許這個網站使用相機，再重新整理。'
       : '打不開相機（' + e.name + '）。可以改用上方的相簿按鈕選一張照片。');
@@ -299,6 +309,11 @@ async function startCamera() {
   await video.play();
   useSource(video, state.facing === 'user');
 }
+function cameraBlocked() {
+  if (window.IN_APP) { $('start').hidden = true; $('switchPanel').hidden = false; }
+  else notice('這個瀏覽器不能開相機。請改用 Safari 或 Chrome 打開，或用上方的相簿按鈕選一張照片。');
+}
+$('switchPhoto').onclick = () => { $('switchPanel').hidden = true; $('file').click(); };
 function stopCamera() {
   state.stream?.getTracks().forEach((t) => t.stop());
   state.stream = null; state.src = null;
