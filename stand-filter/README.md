@@ -13,16 +13,17 @@
 
 | 檔名 | 標籤 | 替身 | Canva 原圖 |
 |---|---|---|---|
-| courage | 勇氣 | 《ROAR OF BABYLON》巴比倫之吼 | https://www.canva.com/M/MAHXRz7tPjQ |
-| wisdom | 智慧 | 《ATHENIAN OWL》雅典之梟 | https://www.canva.com/M/MAHXR1XDyp4 |
-| guard | 守護 | 《HOLY BASTION》聖騎堡壘 | https://www.canva.com/M/MAHXRyl9hO8 |
-| freedom | 自由 | 《MERCURY GALE》信使之風 | https://www.canva.com/M/MAHXRwbbLrA |
-| create | 創造 | 《VENETIAN MUSE》威尼斯繆思 | https://www.canva.com/M/MAHXR0wrinY |
-| bond | 羈絆 | 《SUN OF UR》烏爾之陽 | https://www.canva.com/M/MAHXR5idbyA |
+| courage | 勇氣 | 《MARS》戰神瑪爾斯 | https://www.canva.com/M/MAHXSfz7Aww |
+| wisdom | 智慧 | 《ATHENA》智慧女神雅典娜 | https://www.canva.com/M/MAHXSXBww1o |
+| guard | 守護 | 《ARTEMIS》月之女神阿提米絲 | https://www.canva.com/M/MAHXSVAAkGg |
+| freedom | 自由 | 《HERMES》旅神赫密士 | https://www.canva.com/M/MAHXSR0DA6k |
+| create | 創造 | 《VENUS》美神維納斯 | https://www.canva.com/M/MAHXSTTHhsA |
+| bond | 羈絆 | 《CUPID》愛神丘比特 | https://www.canva.com/M/MAHXSVbv2Wk |
 
 `.png` 或 `.jpg` 都可以（有 `.png` 會優先用）。白底的圖會自動去背，透明底也可以。
 目前放的是縮圖（約 150×200），要換成高解析的原圖才會清楚：用相同檔名覆蓋即可。
-替身都是原創設計，沒有使用任何原作角色。
+替身以希臘羅馬神話的神祇為原型（神話本身沒有版權），造型是重新繪製的原創圖，沒有使用任何漫畫原作角色。
+相機會偵測使用者的頭部位置，讓替身的臉站在頭的旁邊，不會被擋住。
 
 - 人像分割用 Google MediaPipe 的 selfie segmenter，**在手機上計算**，照片不會上傳到任何伺服器。
 - 程式庫與模型都放在 `lib/`、`models/`，不依賴外部 CDN。

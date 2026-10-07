@@ -239,7 +239,7 @@ function stopCamera() {
 }
 function useSource(src, mirror) {
   state.src = src; state.mirror = mirror; state.box = null; state.mask = null;
-  state.summonAt = performance.now();
+  state.summonAt = performance.now(); state.sx = null;
   const w = src.videoWidth || src.naturalWidth, h = src.videoHeight || src.naturalHeight;
   const k = Math.min(1, 1080 / Math.max(w, h));
   const W = Math.round(w * k), H = Math.round(h * k);
@@ -269,7 +269,15 @@ function segment(now) {
       }
       maskCtx.putImageData(img, 0, 0);
       state.mask = maskC;
-      if (n > f.length * .01) smoothBox({ x0: minX / mw, y0: minY / mh, x1: (maxX + 1) / mw, y1: (maxY + 1) / mh });
+      if (n > f.length * .01) {
+        // 頭部範圍：人像最上面那一段（約身高的兩成）的左右邊界
+        const yEnd = Math.min(maxY, minY + Math.max(4, (maxY - minY) * .2));
+        let hx0 = mw, hx1 = -1;
+        for (let y = minY; y <= yEnd; y++) for (let x = minX; x <= maxX; x++) {
+          if (f[y * mw + x] > .5) { if (x < hx0) hx0 = x; if (x > hx1) hx1 = x; }
+        }
+        smoothBox({ x0: minX / mw, y0: minY / mh, x1: (maxX + 1) / mw, y1: (maxY + 1) / mh, hx0: hx0 / mw, hx1: (hx1 + 1) / mw });
+      }
     });
   } catch (e) { console.warn(e); }
 }
@@ -282,7 +290,7 @@ function fallbackMask() {
   const r = g.createRadialGradient(64, 70, 10, 64, 70, 60);
   r.addColorStop(0, '#fff'); r.addColorStop(.75, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.beginPath(); g.ellipse(64, 74, 40, 56, 0, 0, 7); g.fill();
-  state.mask = maskC; state.box = { x0: .19, y0: .14, x1: .81, y1: 1 };
+  state.mask = maskC; state.box = { x0: .19, y0: .14, x1: .81, y1: 1, hx0: .38, hx1: .62 };
 }
 
 let halftone = null;
@@ -290,6 +298,22 @@ function halftonePattern() {
   const c = mk(10, 10), g = c.getContext('2d');
   g.fillStyle = '#000'; g.beginPath(); g.arc(5, 5, 2.1, 0, 7); g.fill();
   return ctx.createPattern(c, 'repeat');
+}
+
+// 替身的臉要避開本人的頭：站到頭的旁邊；兩邊都放不下就縮小再試
+function placeStand(box, W, H, bh, ratio) {
+  const hx0 = box.hx0 * W, hx1 = box.hx1 * W, headW = hx1 - hx0;
+  let sh = Math.min(H * .82, Math.max(bh * .9, H * .5));
+  for (let i = 0; i < 6; i++) {
+    const sw = sh * ratio, gap = sw * .2 + headW * .08;   // 替身的臉約占圖寬的中間四成
+    for (const side of [state.side, -state.side]) {
+      const x = side > 0 ? hx1 + gap : hx0 - gap;
+      if (x - sw * .2 >= 0 && x + sw * .2 <= W) return { x, side, sh, sw };
+    }
+    sh *= .85;
+  }
+  const sw = sh * ratio, side = state.side;
+  return { x: side > 0 ? W - sw * .2 : sw * .2, side, sh, sw };
 }
 
 function render(now) {
@@ -305,7 +329,7 @@ function render(now) {
 
   segment(now);
   if (!state.mask) { if (!state.segmenter) fallbackMask(); else { ctx.drawImage(srcC, 0, 0); return; } }
-  const box = state.box || { x0: .25, y0: .15, x1: .75, y1: 1 };
+  const box = state.box || { x0: .25, y0: .15, x1: .75, y1: 1, hx0: .4, hx1: .6 };
 
   // 1. 把人切出來
   const pc = personC.getContext('2d');
@@ -341,15 +365,17 @@ function render(now) {
   const enter = Math.min(1, (now - state.summonAt) / 900), ease = 1 - Math.pow(1 - enter, 3);
   let sx = cx, sy = headY;
   if (a) {
-    const sh = Math.min(H * .82, Math.max(bh * .9, H * .5)), sw = sh * a.width / a.height;
-    // 站在斜後方，但至少留六成身體在畫面內
-    sx = Math.min(W - sw * .3, Math.max(sw * .3, cx + state.side * bw * .45));
-    sy = headY - sh * .16 + Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .25;
+    const p = placeStand(box, W, H, bh, a.width / a.height);
+    const sh = p.sh, sw = p.sw;
+    state.sx = state.sx == null ? p.x : state.sx + (p.x - state.sx) * .25;
+    state.useSide = p.side;
+    sx = state.sx;
+    sy = Math.max(u * 2, headY - sh * .08) + Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .25;
     speedLines(sx, sy + sh * .25, W, H, t, s);
     ctx.save();
     // 殘影
     ctx.globalAlpha = .22 * ease;
-    ctx.drawImage(a, sx - sw * .52 - state.side * u * 2, sy - u, sw * 1.04, sh * 1.04);
+    ctx.drawImage(a, sx - sw * .52 - p.side * u * 2, sy - u, sw * 1.04, sh * 1.04);
     // 本體＋光暈
     ctx.globalAlpha = .95 * ease;
     ctx.shadowColor = s.glow; ctx.shadowBlur = 6 * u;
@@ -394,11 +420,11 @@ function sfx(W, H, t, s) {
   ctx.save();
   ctx.lineJoin = 'round'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   SFX_SLOTS.forEach(([x, y, rot, k], i) => {
-    const px = state.side > 0 ? x : 1 - x;
+    const side = state.useSide ?? state.side, px = side > 0 ? x : 1 - x;
     const j = Math.sin(t * 22 + i * 1.7) * base * .025;
     const size = base * k * (1 + Math.sin(t * 3 + i) * .04);
     ctx.save();
-    ctx.translate(px * W + j, y * H - j); ctx.rotate((state.side > 0 ? rot : -rot) * Math.PI / 180);
+    ctx.translate(px * W + j, y * H - j); ctx.rotate((side > 0 ? rot : -rot) * Math.PI / 180);
     ctx.font = `${size}px "Dela Gothic One", "Hiragino Sans", sans-serif`;
     ctx.lineWidth = size * .2; ctx.strokeStyle = '#120a1c'; ctx.strokeText(s.sfx, 0, 0);
     ctx.lineWidth = size * .07; ctx.strokeStyle = '#fff'; ctx.strokeText(s.sfx, 0, 0);
