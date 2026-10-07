@@ -140,14 +140,14 @@ function useStand(s) {
 }
 async function showResult(s) {
   useStand(s);
-  $('rOwner').textContent = `本體：${s.owner}　的替身是`;
+  $('rOwner').textContent = `${s.owner}　的守護神是`;
   $('rTag').textContent = `人格標籤｜${s.tag}`;
   $('rTagBig').textContent = s.tag;
-  $('rTagSub').textContent = `${s.tagNames.ja}・${s.tagNames.en}`;
+  $('rTagSub').textContent = s.tagNames.en;
   $('rName').textContent = `《${s.name}》`;
   $('rZh').textContent = s.names ? `${s.zh}・${s.titles.ja}「${s.names.ja}」・${s.titles.en}` : s.zh;
   $('rLine').textContent = `「${s.line.zh}」`; $('rLineJa').textContent = `「${s.line.ja}」`; $('rLineEn').textContent = `“${s.line.en}”`;
-  $('rImg').alt = `${s.zh}的替身立繪`;
+  $('rImg').alt = `${s.zh}的守護神立繪`;
   drawHexSvg($('rHex'), s.grade);
   const dl = $('rStats'); dl.innerHTML = '';
   for (const [k, label] of STAT_KEYS) {
@@ -157,7 +157,7 @@ async function showResult(s) {
   $('rAbility').textContent = s.ability;
   $('rNote').textContent = s.note;
   $('rTry').textContent = `這週試試：${s.try}`;
-  $('copy').textContent = '複製我的替身文字';
+  $('copy').textContent = '複製我的守護神文字';
   show('result');
   try { $('rImg').src = (await loadArt(s.id)).toDataURL(); } catch {}
 }
@@ -166,16 +166,16 @@ $('toResult').onclick = () => show(state.stand?.owner ? 'result' : 'intro');
 $('copy').onclick = async () => {
   const s = state.stand; if (!s) return;
   const text = [
-    `本體：${s.owner}`, `人格標籤：${s.tag}`, `替身：《${s.name}》${s.zh}`,
+    `名字：${s.owner}`, `人格標籤：${s.tag}`, `守護神：《${s.name}》${s.zh}`,
     STAT_KEYS.map(([k, l]) => `${l} ${s.grade[k]}`).join('／'),
-    `能力：${s.ability}`, `來測你的替身 → ${location.origin + location.pathname}`,
+    `能力：${s.ability}`, `哪位希臘神祇是你的守護神？來測 → ${location.origin + location.pathname}`,
   ].join('\n');
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
 };
 const saved = store.get('stand-answers');
 if (saved?.q5) {
-  const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的替身';
+  const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的守護神';
   b.onclick = () => { answers = saved; showResult(computeStand(saved)); };
   $('skip').before(b);
 }
@@ -504,7 +504,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const LABEL = { zh: '守護靈', ja: '守護霊', en: 'GUARDIAN SPIRIT' };
+const LABEL = { zh: '守護神', ja: '守護神', en: 'GUARDIAN DEITY' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
@@ -642,7 +642,7 @@ function standCard(W, H, s) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = `600 ${2.3 * u}px system-ui, sans-serif`;
   const L = state.lang, tg = s.tagNames?.[L] || s.tag;
-  ctx.fillText(L === 'en' ? `USER: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `本体：${s.owner}｜タイプ：${tg}` : `本體：${s.owner}｜人格標籤：${tg}`, tx, y + 5.5 * u, maxW);
+  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜人格標籤：${tg}`, tx, y + 5.5 * u, maxW);
   ctx.fillStyle = s.text; ctx.font = `${4.6 * u}px "Dela Gothic One", sans-serif`;
   ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 12 * u, maxW + 1.2 * u);
   ctx.fillStyle = '#fff'; ctx.font = `600 ${2.4 * u}px system-ui, sans-serif`;
@@ -668,7 +668,7 @@ $('shot').onclick = () => {
 $('share').onclick = async () => {
   const file = new File([lastBlob], 'stand.jpg', { type: 'image/jpeg' });
   const s = state.stand;
-  try { await navigator.share({ files: [file], title: s ? `我的替身《${s.name}》` : '我的替身' }); }
+  try { await navigator.share({ files: [file], title: s ? `我的守護神《${s.name}》` : '我的守護神' }); }
   catch (e) { if (e.name !== 'AbortError') notice('分享沒有成功，可以改用「儲存照片」再到 LINE 傳送。'); }
 };
 $('close').onclick = () => { $('sheet').hidden = true; };

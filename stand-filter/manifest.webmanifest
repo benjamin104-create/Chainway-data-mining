@@ -1,7 +1,7 @@
 {
-  "name": "替身偵測器",
-  "short_name": "替身偵測器",
-  "description": "回答五個問題找出你的替身，再用相機召喚它。",
+  "name": "守護神偵測器",
+  "short_name": "守護神偵測器",
+  "description": "哪位希臘神祇是你的守護神？回答五個問題，再用相機召喚祂。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

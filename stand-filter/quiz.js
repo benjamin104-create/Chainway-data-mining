@@ -1,4 +1,4 @@
-// 替身偵測器：五題選擇題 → 人格標籤 → 選男神或女神 → 專屬替身
+// 守護神偵測器：五題選擇題 → 人格標籤 → 選男神或女神 → 專屬守護神
 // 娛樂性的自我探索，不是心理診斷。
 
 // 六種人格標籤：說明與練習屬於標籤，每個標籤有一位男神、一位女神
@@ -23,17 +23,17 @@ export const TAGS = {
     try: '主動聯絡一個好久沒聊的朋友。' },
 };
 
-// 替身以希臘羅馬神話的神祇為原型（神話本身沒有版權），圖是重新繪製的原創圖。
-// 每位替身的圖放在 stands/<id>.png 或 stands/<id>.jpg（白底或透明底都可以）
+// 守護神以希臘羅馬神話的神祇為原型（神話本身沒有版權），圖是重新繪製的原創圖。
+// 每位守護神的圖放在 stands/<id>.png 或 stands/<id>.jpg（白底或透明底都可以）
 export const STANDS = {
   courage: { tagId: 'courage', sex: 'm', name: 'MARS', zh: '戰神瑪爾斯',
     tint: '#ff2e55', glow: '#ff9a6b', text: '#ff3d6e',
     grade: { pow: 'A', spd: 'A', rng: 'C', dur: 'B', pre: 'C', gro: 'A' },
-    ability: '羅馬的戰神。握緊拳頭的瞬間，本體和身邊的人都會一起忘記恐懼。' },
+    ability: '羅馬的戰神。握緊拳頭的瞬間，你和身邊的人都會一起忘記恐懼。' },
   nike: { tagId: 'courage', sex: 'f', name: 'NIKE', zh: '勝利女神妮姬',
     tint: '#ff2e55', glow: '#ffc27a', text: '#ff3d6e',
     grade: { pow: 'A', spd: 'A', rng: 'B', dur: 'B', pre: 'C', gro: 'A' },
-    ability: '展開雙翼的勝利女神。本體舉起拳頭的那一刻，就已經贏了一半。' },
+    ability: '展開雙翼的勝利女神。你舉起拳頭的那一刻，就已經贏了一半。' },
   wisdom: { tagId: 'wisdom', sex: 'f', name: 'ATHENA', zh: '智慧女神雅典娜',
     tint: '#2a6bff', glow: '#7fe8ff', text: '#4fc3ff',
     grade: { pow: 'C', spd: 'B', rng: 'A', dur: 'B', pre: 'A', gro: 'B' },
@@ -41,7 +41,7 @@ export const STANDS = {
   apollo: { tagId: 'wisdom', sex: 'm', name: 'APOLLO', zh: '光明之神阿波羅',
     tint: '#2a6bff', glow: '#fff1a0', text: '#4fc3ff',
     grade: { pow: 'B', spd: 'B', rng: 'A', dur: 'B', pre: 'A', gro: 'B' },
-    ability: '光明與預言之神。豎琴一響，本體眼前的迷霧就會被陽光照散。' },
+    ability: '光明與預言之神。豎琴一響，你眼前的迷霧就會被陽光照散。' },
   guard: { tagId: 'guard', sex: 'f', name: 'ARTEMIS', zh: '月之女神阿提米絲',
     tint: '#ffc23d', glow: '#fff1b8', text: '#ffd23f',
     grade: { pow: 'B', spd: 'C', rng: 'C', dur: 'A', pre: 'B', gro: 'B' },
@@ -49,15 +49,15 @@ export const STANDS = {
   zeus: { tagId: 'guard', sex: 'm', name: 'ZEUS', zh: '眾神之王宙斯',
     tint: '#ffc23d', glow: '#fff6c0', text: '#ffd23f',
     grade: { pow: 'A', spd: 'B', rng: 'B', dur: 'A', pre: 'C', gro: 'B' },
-    ability: '奧林帕斯的眾神之王。雷霆落下的範圍，就是本體要守護的地方。' },
+    ability: '奧林帕斯的眾神之王。雷霆落下的範圍，就是你要守護的地方。' },
   freedom: { tagId: 'freedom', sex: 'm', name: 'HERMES', zh: '旅神赫密士',
     tint: '#12d688', glow: '#c6ffe4', text: '#2bd97c',
     grade: { pow: 'C', spd: 'A', rng: 'A', dur: 'C', pre: 'B', gro: 'A' },
-    ability: '腳踏羽翼的眾神信使。能化作一陣風，帶著本體去任何想去的地方，誰都抓不住。' },
+    ability: '腳踏羽翼的眾神信使。能化作一陣風，帶著你去任何想去的地方，誰都抓不住。' },
   iris: { tagId: 'freedom', sex: 'f', name: 'IRIS', zh: '彩虹女神伊麗絲',
     tint: '#12d688', glow: '#e0fff0', text: '#2bd97c',
     grade: { pow: 'C', spd: 'A', rng: 'A', dur: 'B', pre: 'B', gro: 'A' },
-    ability: '踩著彩虹往返天地的女神。彩虹架到哪裡，本體就能走到哪裡。' },
+    ability: '踩著彩虹往返天地的女神。彩虹架到哪裡，你就能走到哪裡。' },
   create: { tagId: 'create', sex: 'f', name: 'VENUS', zh: '美神維納斯',
     tint: '#c03dff', glow: '#ffb3f0', text: '#ff4fd8',
     grade: { pow: 'B', spd: 'B', rng: 'B', dur: 'C', pre: 'A', gro: 'A' },
@@ -65,7 +65,7 @@ export const STANDS = {
   hephaestus: { tagId: 'create', sex: 'm', name: 'HEPHAESTUS', zh: '鍛造之神赫菲斯托斯',
     tint: '#c03dff', glow: '#ffc08a', text: '#ff4fd8',
     grade: { pow: 'A', spd: 'C', rng: 'C', dur: 'A', pre: 'A', gro: 'A' },
-    ability: '眾神的工匠。鐵鎚每敲一下，本體腦中的想法就變成看得見、摸得到的東西。' },
+    ability: '眾神的工匠。鐵鎚每敲一下，你腦中的想法就變成看得見、摸得到的東西。' },
   bond: { tagId: 'bond', sex: 'm', name: 'CUPID', zh: '愛神丘比特',
     tint: '#ff7a2e', glow: '#ffd9b0', text: '#ff9a4d',
     grade: { pow: 'C', spd: 'C', rng: 'A', dur: 'A', pre: 'B', gro: 'A' },
@@ -111,7 +111,7 @@ export const LOCALE = {
 };
 
 export const QUESTIONS = [
-  { id: 'name', kind: 'text', q: '先替替身的「本體」取個名字', hint: '會印在你的替身照片上。', placeholder: '例如：小安', max: 12 },
+  { id: 'name', kind: 'text', q: '先告訴守護神你的名字', hint: '會印在你和守護神的合照上。', placeholder: '例如：小安', max: 12 },
   { id: 'q1', q: '朋友遇到困難，你的第一個反應是？', options: [
     ['courage', '先衝過去幫忙再說'], ['wisdom', '先搞清楚到底發生什麼事'], ['guard', '站在他旁邊，誰都別想欺負他'],
     ['freedom', '帶他出去走走、換個環境'], ['create', '想一個別人想不到的解法'], ['bond', '陪他聊到他心情好一點'] ] },
@@ -153,5 +153,5 @@ export function computeStand(a) {
     sex = h & 1 ? 'm' : 'f';
   }
   const id = pair.find((k) => STANDS[k].sex === sex) || pair[0];
-  return standById(id, (a.name || '').trim() || '無名的本體');
+  return standById(id, (a.name || '').trim() || '無名的勇者');
 }

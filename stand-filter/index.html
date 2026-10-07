@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>替身偵測器</title>
-<meta name="description" content="回答五個問題，找出你的人格標籤與專屬替身，再用相機把它召喚到身後。">
+<title>守護神偵測器</title>
+<meta name="description" content="回答五個問題，看看十二位希臘神祇中誰是你的守護神，再用相機把祂召喚到你身後。">
 <meta name="theme-color" content="#0d0a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="替身偵測器">
+<meta name="apple-mobile-web-app-title" content="守護神偵測器">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -81,7 +81,7 @@
   .tag-big b { writing-mode: vertical-rl; font: 900 clamp(48px, 16vw, 76px)/1 var(--heading); color: #fff; letter-spacing: .04em;
     padding: 10px 6px; background: linear-gradient(160deg, var(--accent), transparent); -webkit-text-stroke: 1.5px #120a1c;
     text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 70%, transparent); clip-path: polygon(0 4%, 100% 0, 100% 96%, 0 100%); }
-  .tag-big small { font: 700 11px/1.2 var(--body); letter-spacing: .12em; color: var(--fg); writing-mode: vertical-rl; }
+  .tag-big small { font: 700 10px/1.3 var(--body); letter-spacing: .1em; color: var(--fg); text-align: center; background: rgba(13, 10, 20, .7); padding: 3px 6px; border-radius: 4px; }
   .hero-stand img { width: min(70vw, 300px); height: auto; filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 70%, transparent)); }
   .reveal { display: grid; gap: 6px; }
   .stand-name { font: 400 clamp(34px, 11vw, 54px)/1 var(--display); color: var(--accent); margin: 0; letter-spacing: .02em; overflow-wrap: anywhere; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
@@ -147,14 +147,14 @@
 <!-- 開場 -->
 <section class="screen" id="intro">
   <div class="col">
-    <div class="sfx-hero" aria-hidden="true">✦ 守護靈 ✦</div>
-    <span class="eyebrow">Stand Detector</span>
-    <h1 class="display">你的替身偵測器</h1>
-    <p class="lead">每個人身上都有一個替身。回答五個問題，找出你的人格標籤和專屬替身，再用相機把它召喚到你身後。</p>
+    <div class="sfx-hero" aria-hidden="true">✦ 守護神 ✦</div>
+    <span class="eyebrow">Guardian Deity Detector</span>
+    <h1 class="display">哪位希臘神祇是你的守護神？</h1>
+    <p class="lead">奧林帕斯的十二位神祇裡，有一位正在守護你。回答五個問題，找出你的人格標籤和守護神，再用相機把祂召喚到你身後。</p>
     <ul class="steps">
       <li><b>回答</b>五個簡單的問題，再選男神或女神</li>
       <li><b>獲得</b>人格標籤：勇氣、智慧、守護、自由、創造、羈絆</li>
-      <li><b>召喚</b>十二位希臘神祇之一，出現在你身後，拍照分享</li>
+      <li><b>召喚</b>守護神出現在你身後，拍照分享</li>
     </ul>
     <div class="stack">
       <button class="primary" id="begin">開始偵測（約 1 分鐘）</button>
@@ -193,41 +193,41 @@
       <p class="stand-name" id="rName"></p>
       <span class="stand-sub" id="rZh"></span>
     </div>
-    <div class="card"><h3>守護靈的台詞</h3><blockquote id="rLine"></blockquote><p class="fine" id="rLineJa"></p><p class="fine" id="rLineEn"></p></div>
+    <div class="card"><h3>守護神對你說</h3><blockquote id="rLine"></blockquote><p class="fine" id="rLineJa"></p><p class="fine" id="rLineEn"></p></div>
     <div class="statbox">
-      <svg id="rHex" viewBox="0 0 220 220" role="img" aria-label="替身能力值六角圖"></svg>
+      <svg id="rHex" viewBox="0 0 220 220" role="img" aria-label="守護神能力值六角圖"></svg>
       <dl class="stats" id="rStats"></dl>
     </div>
     <div class="card"><h3>能力</h3><p id="rAbility"></p></div>
     <div class="card"><h3>你的人格標籤</h3><p id="rNote"></p><p class="try" id="rTry"></p></div>
     <div class="stack">
-      <button class="primary" id="summon">召喚替身拍照</button>
-      <button class="secondary" id="copy">複製我的替身文字</button>
+      <button class="primary" id="summon">召喚守護神拍照</button>
+      <button class="secondary" id="copy">複製我的守護神文字</button>
       <button class="link" id="redo">重新測驗</button>
     </div>
-    <p class="fine">參考心流理論、阿德勒個體心理學、馬斯洛需求層次設計的小遊戲，不是心理診斷。替身為原創角色。</p>
+    <p class="fine">參考心流理論、阿德勒個體心理學、馬斯洛需求層次設計的小遊戲，不是心理診斷。守護神以希臘神話為原型，圖為原創繪製。</p>
   </div>
 </section>
 
 <!-- 相機 -->
 <section id="cam" hidden>
   <header>
-    <button class="round" id="toResult" aria-label="回到我的替身" title="回到我的替身">
+    <button class="round" id="toResult" aria-label="回到我的守護神" title="回到我的守護神">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
-    <h1 id="camTitle">替身相機</h1>
+    <h1 id="camTitle">守護神相機</h1>
     <button class="round" id="pick" aria-label="從相簿選照片" title="從相簿選照片">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
     </button>
     <input type="file" id="file" accept="image/*" hidden>
   </header>
   <main class="stage">
-    <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓替身換邊站"></canvas>
+    <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓守護神換邊站"></canvas>
     <video id="video" playsinline muted></video>
     <div class="flash" id="flash"></div>
     <div class="start" id="start">
-      <div class="sfx-hero" aria-hidden="true">✦ 守護靈 ✦</div>
-      <p>開啟相機後，替身會出現在你身後，跟著你移動。點畫面可以讓替身換邊站。</p>
+      <div class="sfx-hero" aria-hidden="true">✦ 守護神 ✦</div>
+      <p>開啟相機後，守護神會出現在你身後，跟著你移動。點畫面可以讓祂換邊站。</p>
       <div><button class="primary" id="go">開啟相機</button></div>
       <p id="loadState">正在載入人像辨識…</p>
     </div>
@@ -236,7 +236,7 @@
   <footer>
     <div class="chips" id="sfx" role="group" aria-label="資訊卡"></div>
     <div class="controls">
-      <button class="round" id="side" aria-label="替身換邊" title="替身換邊">
+      <button class="round" id="side" aria-label="守護神換邊" title="守護神換邊">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
       </button>
       <button class="shutter" id="shot" aria-label="拍照" disabled><span></span></button>
@@ -248,7 +248,7 @@
 </section>
 
 <div class="sheet" id="sheet" hidden>
-  <img id="photo" alt="拍好的替身照片">
+  <img id="photo" alt="拍好的守護神照片">
   <div class="row">
     <button class="primary" id="share">分享到 LINE／其他 App</button>
     <a class="secondary" id="save" download="stand.jpg">儲存照片</a>
