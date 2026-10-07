@@ -146,7 +146,16 @@ export const QUESTIONS = [
     ['f', '女神'], ['m', '男神'], ['any', '交給命運決定'] ] },
 ];
 
-export const STAT_KEYS = [['pow', '破壞力'], ['spd', '速度'], ['rng', '射程距離'], ['dur', '持續力'], ['pre', '精密動作性'], ['gro', '成長性']];
+// 六角圖的六個頂點：每一項都有自己的意思，畫在頂點旁邊
+export const STAT_KEYS = [['pow', '力量'], ['spd', '行動力'], ['rng', '影響力'], ['dur', '持久力'], ['pre', '精準度'], ['gro', '成長性']];
+export const STAT_INFO = {
+  pow: { short: { zh: '力量', ja: 'パワー', en: 'POWER' }, desc: '遇到困難時，往前推的力氣' },
+  spd: { short: { zh: '行動力', ja: '行動力', en: 'SPEED' }, desc: '想到就去做的速度' },
+  rng: { short: { zh: '影響力', ja: '影響力', en: 'REACH' }, desc: '能影響、幫助多少人' },
+  dur: { short: { zh: '持久力', ja: '持久力', en: 'STAMINA' }, desc: '遇到挫折還能撐多久' },
+  pre: { short: { zh: '精準度', ja: '精密さ', en: 'PRECISION' }, desc: '把事情做細、做對的能力' },
+  gro: { short: { zh: '成長性', ja: '成長性', en: 'GROWTH' }, desc: '未來還能長多大' },
+};
 
 export function standById(id, owner = '') {
   const s = STANDS[id];

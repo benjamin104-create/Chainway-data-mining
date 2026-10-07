@@ -87,18 +87,19 @@
   .stand-name { font: 400 clamp(34px, 11vw, 54px)/1 var(--display); color: var(--accent); margin: 0; letter-spacing: .02em; overflow-wrap: anywhere; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
   .stand-sub { font-size: 15px; color: var(--muted); }
   .tag { display: inline-block; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--accent); color: var(--fg); font-size: 13px; }
-  .statbox { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: center; }
-  .statbox svg { width: 100%; max-width: 220px; height: auto; justify-self: center; }
+  .statbox { display: grid; gap: 14px; }
+  .statbox svg { width: 100%; max-width: 340px; height: auto; justify-self: center; }
   .stats { display: grid; gap: 7px; margin: 0; font-size: 14px; }
   .stats div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
-  .stats dt { color: var(--muted); }
+  .stats dt { display: grid; gap: 2px; min-width: 0; }
+  .stats dt b { color: var(--fg); font-weight: 600; }
+  .stats dt small { color: var(--muted); font-size: 12px; }
   .stats dd { margin: 0; font: 400 18px/1 var(--display); color: var(--fg); }
   .card { background: var(--raise); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 8px; }
   .card h3 { margin: 0; font-size: 13px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
   .card p { margin: 0; line-height: 1.7; font-size: 15px; }
   .card .try { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 10px; }
   blockquote { margin: 0; font-size: 17px; line-height: 1.6; }
-  @media (max-width: 380px) { .statbox { grid-template-columns: 1fr; } }
 
   /* 相機 */
   #cam { height: 100%; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
@@ -195,7 +196,7 @@
     </div>
     <div class="card"><h3>守護神對你說</h3><blockquote id="rLine"></blockquote><p class="fine" id="rLineJa"></p><p class="fine" id="rLineEn"></p></div>
     <div class="statbox">
-      <svg id="rHex" viewBox="0 0 220 220" role="img" aria-label="守護神能力值六角圖"></svg>
+      <svg id="rHex" viewBox="0 0 320 290" role="img" aria-label="守護神能力值六角圖"></svg>
       <dl class="stats" id="rStats"></dl>
     </div>
     <div class="card"><h3>能力</h3><p id="rAbility"></p></div>

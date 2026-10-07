@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, LANGS, computeStand, standById } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
@@ -122,14 +122,21 @@ function hexPoints(cx, cy, r, vals) {
   });
 }
 function drawHexSvg(svg, grade) {
+  // 頂點旁邊寫「項目名稱＋等級」，一眼看得出哪一角是什麼
   const ns = 'http://www.w3.org/2000/svg', el = (n, a) => { const e = document.createElementNS(ns, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const C = [160, 142], R = 82;
   svg.innerHTML = '';
-  for (const k of [1, .6]) svg.append(el('polygon', { points: hexPoints(110, 110, 78, Array(6).fill(k)).join(' '), fill: 'none', style: 'stroke:var(--line)' }));
+  for (const k of [1, .8, .6, .4, .2]) svg.append(el('polygon', { points: hexPoints(...C, R, Array(6).fill(k)).join(' '), fill: 'none', style: `stroke:var(--line);stroke-width:${k === 1 ? 1.5 : .8}` }));
+  hexPoints(...C, R, Array(6).fill(1)).forEach(([x, y]) => svg.append(el('line', { x1: C[0], y1: C[1], x2: x, y2: y, style: 'stroke:var(--line);stroke-width:.8' })));
   const vals = STAT_KEYS.map(([k]) => GRADE_V[grade[k]] / 5);
-  svg.append(el('polygon', { points: hexPoints(110, 110, 78, vals).join(' '), style: 'fill:color-mix(in srgb,var(--accent) 40%,transparent);stroke:var(--accent);stroke-width:2' }));
-  hexPoints(110, 110, 96, Array(6).fill(1)).forEach(([x, y], i) => {
-    const t = el('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', style: 'fill:var(--fg);font:400 15px var(--display)' });
-    t.textContent = grade[STAT_KEYS[i][0]]; svg.append(t);
+  svg.append(el('polygon', { points: hexPoints(...C, R, vals).join(' '), style: 'fill:color-mix(in srgb,var(--accent) 40%,transparent);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round' }));
+  hexPoints(...C, R, vals).forEach(([x, y]) => svg.append(el('circle', { cx: x, cy: y, r: 3.5, style: 'fill:var(--accent)' })));
+  hexPoints(...C, R + 30, Array(6).fill(1)).forEach(([x, y], i) => {
+    const [k, label] = STAT_KEYS[i];
+    const name = el('text', { x, y: y - 9, 'text-anchor': 'middle', 'dominant-baseline': 'middle', style: 'fill:var(--muted);font:700 13px var(--heading)' });
+    name.textContent = label; svg.append(name);
+    const g = el('text', { x, y: y + 10, 'text-anchor': 'middle', 'dominant-baseline': 'middle', style: 'fill:var(--fg);font:400 19px var(--display)' });
+    g.textContent = grade[k]; svg.append(g);
   });
 }
 function useStand(s) {
@@ -152,7 +159,9 @@ async function showResult(s) {
   const dl = $('rStats'); dl.innerHTML = '';
   for (const [k, label] of STAT_KEYS) {
     const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
-    dt.textContent = label; dd.textContent = s.grade[k]; d.append(dt, dd); dl.append(d);
+    const b = document.createElement('b'), sm = document.createElement('small');
+    b.textContent = label; sm.textContent = STAT_INFO[k].desc; dt.append(b, sm);
+    dd.textContent = s.grade[k]; d.append(dt, dd); dl.append(d);
   }
   $('rAbility').textContent = s.ability;
   $('rNote').textContent = s.note;
@@ -624,29 +633,35 @@ function vignette(W, H) {
 // 照片左下角的替身資訊卡：名字、本體、人格標籤、六項能力值
 function standCard(W, H, s) {
   const u = Math.min(W, H) / 100, pad = 3 * u;
-  const cw = Math.min(W - pad * 2, 64 * u), ch = 21 * u, x = pad, y = H - ch - pad;
+  const cw = Math.min(W - pad * 2, 76 * u), ch = 30 * u, x = pad, y = H - ch - pad;
   ctx.save();
   ctx.fillStyle = 'rgba(12,8,20,.8)'; ctx.strokeStyle = s.text; ctx.lineWidth = .5 * u;
   ctx.beginPath(); ctx.moveTo(x + 2 * u, y); ctx.lineTo(x + cw, y); ctx.lineTo(x + cw - 2 * u, y + ch); ctx.lineTo(x, y + ch); ctx.closePath();
   ctx.fill(); ctx.stroke();
-  const r = 7.5 * u, hx = x + cw - r - 4.5 * u, hy = y + ch / 2;
+  const r = 6.5 * u, hx = x + cw - r - 9 * u, hy = y + ch / 2;
   const pts = (rr, vals) => hexPoints(hx, hy, rr, vals);
   const poly = (p) => { ctx.beginPath(); p.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); };
   ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .25 * u; poly(pts(r, Array(6).fill(1))); ctx.stroke();
   ctx.fillStyle = s.tint + 'aa'; ctx.strokeStyle = s.text; ctx.lineWidth = .4 * u;
   poly(pts(r, STAT_KEYS.map(([k]) => GRADE_V[s.grade[k]] / 5))); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${2.4 * u}px "Dela Gothic One", sans-serif`;
-  pts(r + 2.4 * u, Array(6).fill(1)).forEach(([px, py], i) => ctx.fillText(s.grade[STAT_KEYS[i][0]], px, py));
-  const tx = x + 4 * u, maxW = hx - r - 3 * u - tx;
+  const Ls = state.lang;
+  pts(r + 4.2 * u, Array(6).fill(1)).forEach(([px, py], i) => {
+    const k = STAT_KEYS[i][0];
+    ctx.font = `700 ${1.6 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillText(STAT_INFO[k].short[Ls], px, py - 1.2 * u);
+    ctx.font = `${2.3 * u}px "Dela Gothic One", sans-serif`; ctx.fillStyle = '#fff';
+    ctx.fillText(s.grade[k], px, py + 1.2 * u);
+  });
+  const tx = x + 4 * u, maxW = hx - r - 9 * u - tx;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = `600 ${2.3 * u}px system-ui, sans-serif`;
   const L = state.lang, tg = s.tagNames?.[L] || s.tag;
-  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜人格標籤：${tg}`, tx, y + 5.5 * u, maxW);
+  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜人格標籤：${tg}`, tx, y + 8.5 * u, maxW);
   ctx.fillStyle = s.text; ctx.font = `${4.6 * u}px "Dela Gothic One", sans-serif`;
-  ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 12 * u, maxW + 1.2 * u);
+  ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 17 * u, maxW + 1.2 * u);
   ctx.fillStyle = '#fff'; ctx.font = `600 ${2.4 * u}px system-ui, sans-serif`;
-  ctx.fillText(s.titles ? `${s.titles[L]}・${s.names[L]}` : s.zh, tx, y + 17 * u, maxW);
+  ctx.fillText(s.titles ? `${s.titles[L]}・${s.names[L]}` : s.zh, tx, y + 23.5 * u, maxW);
   ctx.restore();
 }
 
