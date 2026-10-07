@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>守護神偵測器</title>
-<meta name="description" content="回答五個問題，看看十二位希臘神祇中誰是你的守護神，再用相機把祂召喚到你身後。">
+<meta name="description" content="回答十個問題，看看十二位希臘神祇中誰是你的守護神，再用相機把祂召喚到你身後。">
 <meta name="theme-color" content="#0d0a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -79,7 +79,7 @@
   .hero-stand { position: relative; }
   .tag-big { position: absolute; left: 4px; top: 8px; display: grid; justify-items: center; gap: 6px; z-index: 1; }
   .tag-big b { writing-mode: vertical-rl; font: 900 clamp(48px, 16vw, 76px)/1 var(--heading); color: #fff; letter-spacing: .04em;
-    padding: 10px 6px; background: linear-gradient(160deg, var(--accent), transparent); -webkit-text-stroke: 1.5px #120a1c;
+    padding: 10px 6px; background: linear-gradient(160deg, var(--accent), transparent); -webkit-text-stroke: 5px #120a1c; paint-order: stroke fill;
     text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 70%, transparent); clip-path: polygon(0 4%, 100% 0, 100% 96%, 0 100%); }
   .tag-big small { font: 700 10px/1.3 var(--body); letter-spacing: .1em; color: var(--fg); text-align: center; background: rgba(13, 10, 20, .7); padding: 3px 6px; border-radius: 4px; }
   .hero-stand img { width: min(70vw, 300px); height: auto; filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 70%, transparent)); }
@@ -150,14 +150,14 @@
     <div class="sfx-hero" aria-hidden="true">✦ 守護神 ✦</div>
     <span class="eyebrow">Guardian Deity Detector</span>
     <h1 class="display">哪位希臘神祇是你的守護神？</h1>
-    <p class="lead">奧林帕斯的十二位神祇裡，有一位正在守護你。回答五個問題，找出你的人格標籤和守護神，再用相機把祂召喚到你身後。</p>
+    <p class="lead">奧林帕斯的十二位神祇裡，有一位正在守護你。回答十個問題，找出你的人格標籤和守護神，再用相機把祂召喚到你身後。</p>
     <ul class="steps">
-      <li><b>回答</b>五個簡單的問題，再選男神或女神</li>
+      <li><b>回答</b>十個簡單的問題，再選男神或女神</li>
       <li><b>獲得</b>人格標籤：勇氣、智慧、守護、自由、創造、羈絆</li>
-      <li><b>召喚</b>守護神出現在你身後，拍照分享</li>
+      <li><b>合照</b>開相機，守護神會用 AR 出現在你身後，拍照分享</li>
     </ul>
     <div class="stack">
-      <button class="primary" id="begin">開始偵測（約 1 分鐘）</button>
+      <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
       <button class="secondary" id="skip">先直接拍照</button>
     </div>
     <p class="fine">這是讓人認識自己的小遊戲，參考心流理論、阿德勒心理學與馬斯洛需求層次設計，不是心理診斷。答案只存在你的手機裡。</p>

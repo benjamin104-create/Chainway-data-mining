@@ -1,4 +1,4 @@
-// 守護神偵測器：五題選擇題 → 人格標籤 → 選男神或女神 → 專屬守護神
+// 守護神偵測器：十題選擇題 → 人格標籤 → 選男神或女神 → 專屬守護神
 // 娛樂性的自我探索，不是心理診斷。
 
 // 六種人格標籤：說明與練習屬於標籤，每個標籤有一位男神、一位女神
@@ -127,6 +127,21 @@ export const QUESTIONS = [
   { id: 'q5', q: '如果能有一種超能力，你選？', options: [
     ['wisdom', '看穿一切的眼睛'], ['freedom', '瞬間移動'], ['courage', '不會受傷的身體'],
     ['bond', '讀懂別人的心'], ['guard', '擋下所有攻擊的盾'], ['create', '想到什麼就能變出什麼'] ] },
+  { id: 'q6', q: '遇到不公平的事，你會？', options: [
+    ['courage', '站出來直接說'], ['wisdom', '先蒐集證據再處理'], ['guard', '先保護受影響的人'],
+    ['freedom', '不想被捲進去，找自己的路'], ['create', '想一個新方法讓規則變好'], ['bond', '找大家一起討論'] ] },
+  { id: 'q7', q: '分組做報告，你通常負責？', options: [
+    ['wisdom', '查資料、整理重點'], ['create', '做簡報、想創意'], ['courage', '上台報告'],
+    ['bond', '協調大家、幫忙打氣'], ['guard', '最後檢查，確保不出錯'], ['freedom', '挑自己有興趣的部分做'] ] },
+  { id: 'q8', q: '你最喜歡哪一種旅行？', options: [
+    ['freedom', '不排行程，走到哪算哪'], ['wisdom', '博物館、古蹟、深度導覽'], ['courage', '登山、潛水、刺激挑戰'],
+    ['create', '拍照、寫生、逛市集找靈感'], ['bond', '跟一大群朋友熱鬧出遊'], ['guard', '帶家人出去、照顧大家'] ] },
+  { id: 'q9', q: '哪一刻最讓你有成就感？', options: [
+    ['create', '做出一個原本不存在的東西'], ['guard', '在乎的人平平安安'], ['wisdom', '解開一個難題'],
+    ['courage', '突破自己的極限'], ['bond', '大家因為你變得更親近'], ['freedom', '照自己的方式完成一件事'] ] },
+  { id: 'q10', q: '你希望十年後的自己是？', options: [
+    ['bond', '身邊有一群真心的朋友'], ['freedom', '能自由選擇想過的生活'], ['guard', '能照顧好家人和在乎的人'],
+    ['create', '留下屬於自己的作品'], ['wisdom', '成為某個領域的專家'], ['courage', '做過很多勇敢的事'] ] },
   { id: 'sex', kind: 'choice', q: '最後，你想召喚哪一種守護神？', options: [
     ['f', '女神'], ['m', '男神'], ['any', '交給命運決定'] ] },
 ];
@@ -140,7 +155,7 @@ export function standById(id, owner = '') {
 
 export function computeStand(a) {
   const count = {};
-  for (const q of QUESTIONS) if (/^q\d$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
+  for (const q of QUESTIONS) if (/^q\d+$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
   const best = Math.max(0, ...Object.values(count));
   // 同分時，以第五題（最想要的超能力）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
