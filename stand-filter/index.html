@@ -111,6 +111,17 @@
   .pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .pills span { padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); font-size: 13px; }
   .first-step { border-color: var(--accent); }
+  .bars { display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) 2.6em; gap: 8px; align-items: center; font-size: 13px; }
+  .bar-row i { display: block; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .bar-row i span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+  .bar-row.top { font-weight: 700; }
+  .bar-row em { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .answer-list { margin: 0; display: grid; gap: 10px; }
+  .answer-list div { display: grid; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .answer-list div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .answer-list dt { font-size: 12px; color: var(--muted); letter-spacing: .06em; }
+  .answer-list dd { margin: 0; font-size: 15px; line-height: 1.6; }
   .first-step p:first-of-type { font-size: 17px; font-weight: 600; }
 
   /* 相機 */
@@ -213,15 +224,16 @@
     </div>
     <div class="card"><h3>能力</h3><p id="rAbility"></p></div>
     <section class="media" id="rMedia" aria-labelledby="mediaTitle">
-      <span class="eyebrow">自媒體方向</span>
+      <span class="eyebrow">自媒體方向・依你的 10 個答案分析</span>
       <h2 class="media-title" id="mediaTitle"></h2>
       <p class="lead" id="mPitch"></p>
       <div class="media-grid">
-        <div class="card"><h3>可以放大的能力</h3><ul class="plain" id="mStrengths"></ul></div>
+        <div class="card"><h3>你的人格組成（10 題）</h3><div class="bars" id="mBars"></div></div>
         <div class="card"><h3>適合的主題</h3><div class="pills" id="mTopics"></div></div>
         <div class="card"><h3>內容形式</h3><p id="mFormats"></p><h3>適合的平台</h3><p id="mPlatforms"></p></div>
         <div class="card" id="mMixCard"><h3>混搭你的副標籤</h3><p id="mMix"></p></div>
       </div>
+      <div class="card"><h3>從你的答案看到的經營方式</h3><dl class="answer-list" id="mAnswers"></dl></div>
       <div class="card first-step"><h3>這週就能做的第一步</h3><p id="mFirst"></p><p class="fine" id="mWatch"></p></div>
     </section>
     <div class="card"><h3>你的人格標籤</h3><p id="rNote"></p><p class="try" id="rTry"></p></div>

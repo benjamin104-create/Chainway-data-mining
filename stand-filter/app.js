@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, STAT_MEDIA, TAGS, computeStand, standById } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
@@ -145,25 +145,36 @@ function useStand(s) {
   $('camTitle').textContent = `《${s.name}》`;
   loadArt(s.id).catch(() => {});
 }
-// 自媒體建議：主標籤的定位與方向、等級 A 的強項、副標籤的混搭點子
+// 自媒體建議：全部依本人的 10 個答案，不看守護神的六角圖
+// 主標籤給定位，副標籤給混搭，每一題選的選項各給一句具體建議
 function renderMedia(s) {
-  const m = MEDIA[s.tagId];
+  const m = MEDIA[s.tagId], counts = s.counts || {}, a = s.answers || {};
   const title = $('mediaTitle'); title.textContent = '你適合當自媒體的「';
   const em = document.createElement('em'); em.textContent = m.role; title.append(em, '」');
   $('mPitch').textContent = m.pitch;
-  const ul = $('mStrengths'); ul.innerHTML = '';
-  const strong = STAT_KEYS.filter(([k]) => s.grade[k] === 'A');
-  const list = strong.length ? strong : STAT_KEYS.filter(([k]) => s.grade[k] === 'B').slice(0, 2);
-  for (const [k, label] of list) {
-    const li = document.createElement('li'), b = document.createElement('b');
-    b.textContent = `${label} ${s.grade[k]}`; li.append(b, STAT_MEDIA[k]); ul.append(li);
+  const bars = $('mBars'); bars.innerHTML = '';
+  const total = Object.values(counts).reduce((x, y) => x + y, 0) || 1;
+  for (const t of Object.keys(TAGS).sort((x, y) => (counts[y] || 0) - (counts[x] || 0))) {
+    const n = counts[t] || 0, row = document.createElement('div');
+    row.className = 'bar-row' + (t === s.tagId || t === s.second ? ' top' : '');
+    const name = document.createElement('span'); name.textContent = TAGS[t].tag;
+    const track = document.createElement('i'), fill = document.createElement('span');
+    fill.style.width = `${n / total * 100}%`; track.append(fill);
+    const num = document.createElement('em'); num.textContent = `${n} 題`;
+    row.append(name, track, num); bars.append(row);
+  }
+  const dl = $('mAnswers'); dl.innerHTML = '';
+  for (const [q, label, by] of ANSWER_MEDIA) {
+    if (!a[q]) continue;
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = label; dd.textContent = by[a[q]]; d.append(dt, dd); dl.append(d);
   }
   const tp = $('mTopics'); tp.innerHTML = '';
   for (const t of m.topics) { const sp = document.createElement('span'); sp.textContent = t; tp.append(sp); }
   $('mFormats').textContent = m.formats;
   $('mPlatforms').textContent = m.platforms;
   $('mMixCard').hidden = !s.second;
-  if (s.second) $('mMix').textContent = `你的副標籤是「${TAGS[s.second].tag}」：${MEDIA[s.second].mix}，讓「${m.role}」的內容更有你的味道。`;
+  if (s.second) $('mMix').textContent = `你的副標籤是「${TAGS[s.second].tag}」（${counts[s.second]} 題）：${MEDIA[s.second].mix}，讓「${m.role}」的內容更有你的味道。`;
   $('mFirst').textContent = m.first;
   $('mWatch').textContent = `提醒：${m.watch}`;
 }
