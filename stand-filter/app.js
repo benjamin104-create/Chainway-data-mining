@@ -318,10 +318,10 @@ function halftonePattern() {
 const TITLE_H = 13;   // 上方標題列的高度（u），替身的頭不進這一區
 function placeStand(W, H, bh, headY, ratio, u) {
   const top = state.colTop, n = top ? top.length : 0;
-  const base = Math.min(H * .8, Math.max(bh * .9, H * .5));
+  const base = Math.min(H * .98, Math.max(bh * 1.1, H * .68));   // 守護靈要夠大，比本人還高
   const prev = state.pose, cx = state.personCx ?? W / 2;
   let best = null;
-  for (const k of [1, .88, .77, .67, .58, .5]) {
+  for (const k of [1, .9, .81, .72, .64, .56]) {
     const sh = base * k, sw = sh * ratio;
     const sy = Math.max(TITLE_H * u, Math.min(headY - sh * .06, H - sh * .75));
     for (let i = 0; i <= 24; i++) {
@@ -340,7 +340,7 @@ function placeStand(W, H, bh, headY, ratio, u) {
       }
       const off = (Math.max(0, sw / 2 - x) + Math.max(0, x + sw / 2 - W)) / sw;
       const side = Math.sign(x - cx) || 1;
-      let score = face * 6 + body * .8 + off * .6 + (1 - k) * 1.2 + (side === state.side ? 0 : .25);
+      let score = face * 6 + body * .8 + off * .6 + (1 - k) * 2 + (side === state.side ? 0 : .25);
       if (prev) score += Math.abs(x - prev.tx) / W * .6 + Math.abs(sh - prev.tsh) / H * .4;
       if (!best || score < best.score) best = { score, x, sy, sh, sw, side };
     }
@@ -382,10 +382,10 @@ function render(now) {
   ac.globalCompositeOperation = 'source-over';
 
   // 3. 背景：壓暗、拉對比、網點
-  if (FILTER_OK) ctx.filter = 'contrast(1.15) saturate(1.1) brightness(.72)';
+  if (FILTER_OK) ctx.filter = 'contrast(1.05) saturate(.8) brightness(.62)';
   ctx.drawImage(srcC, 0, 0); ctx.filter = 'none';
   if (!FILTER_OK) { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(0, 0, W, H); }
-  ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = s.tint; ctx.globalAlpha = .45; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = s.tint; ctx.globalAlpha = .2; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   halftone ||= halftonePattern();
   ctx.globalAlpha = .15; ctx.fillStyle = halftone; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
@@ -424,10 +424,11 @@ function render(now) {
     }
     ctx.save();
     ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale, scale);   // 以腳底為支點
-    ctx.globalAlpha = .22 * ease;                  // 殘影
+    ctx.globalAlpha = .14 * ease;                  // 殘影
     ctx.drawImage(a, -sw * .52 - P.side * u * 2 - P.vx * 3, -sh * 1.02, sw * 1.04, sh * 1.04);
-    ctx.globalAlpha = .95 * ease;
-    ctx.shadowColor = s.glow; ctx.shadowBlur = (6 + pulse * 6) * u;
+    ctx.globalAlpha = .88 * ease;
+    if (FILTER_OK) ctx.filter = 'saturate(.7) brightness(.88) contrast(.95)';   // 顏色收斂，不搶本人
+    ctx.shadowColor = s.glow; ctx.shadowBlur = (3 + pulse * 4) * u;
     ctx.drawImage(a, -sw / 2, -sh, sw, sh);
     ctx.restore();
   } else {
@@ -436,12 +437,12 @@ function render(now) {
 
   // 5. 本人的氣場與本人（擋在替身前面）
   ctx.globalCompositeOperation = 'lighter';
-  ctx.save(); ctx.globalAlpha = .35 + Math.sin(t * 7.3) * .06;
+  ctx.save(); ctx.globalAlpha = .16 + Math.sin(t * 7.3) * .03;
   const k = 1.05 + Math.sin(t * 5) * .01, cy = (box.y0 + box.y1) / 2 * H;
   ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); ctx.drawImage(auraC, 0, 0);
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
-  if (FILTER_OK) ctx.filter = 'contrast(1.08)';
+  if (FILTER_OK) ctx.filter = 'contrast(1.06) brightness(1.06) saturate(1.05)';
   ctx.drawImage(personC, 0, 0); ctx.filter = 'none';
 
   vignette(W, H);
