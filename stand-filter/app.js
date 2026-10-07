@@ -146,6 +146,8 @@ async function showResult(s) {
   useStand(s);
   $('rOwner').textContent = `本體：${s.owner}　的替身是`;
   $('rTag').textContent = `人格標籤｜${s.tag}`;
+  $('rTagBig').textContent = s.tag;
+  $('rTagSub').textContent = `${s.tagNames.ja}・${s.tagNames.en}`;
   $('rName').textContent = `《${s.name}》`;
   $('rZh').textContent = s.names ? `${s.zh}・${s.titles.ja}「${s.names.ja}」・${s.titles.en}` : s.zh;
   $('rLine').textContent = `「${s.line.zh}」`; $('rLineJa').textContent = `「${s.line.ja}」`; $('rLineEn').textContent = `“${s.line.en}”`;
@@ -449,8 +451,55 @@ function render(now) {
   if (state.sfx) sfx(W, H, t, s);
   vignette(W, H);
   if (state.card && s.owner) standCard(W, H, s);
+  tagStamp(W, H, s, u, now);
   titleBanner(W, H, s, u, ease);
   if (state.standHead) speech(W, H, s, u, t, ease);
+}
+
+// ── 人格標籤大字：「守護」「創造」這種一眼就懂的直排大字，放在守護靈的另一側 ──
+function tagStamp(W, H, s, u, now) {
+  const L = state.lang, word = s.tagNames?.[L] || s.tag;
+  const t0 = (now - state.summonAt) / 1000 - .5; if (t0 <= 0) return;
+  const k = Math.min(1, t0 / .35), slam = 1 + (1 - k) * .8;     // 從大往下「砸」進畫面
+  const side = -(state.useSide ?? state.side);                   // 守護靈的另一邊
+  const top = TITLE_H * u + 2 * u;
+  ctx.save(); ctx.globalAlpha = k;
+  if (L === 'en') {
+    let px = 9 * u; ctx.font = FONT.en(900, px);
+    while (ctx.measureText(word).width > W * .5 && px > 4 * u) { px *= .92; ctx.font = FONT.en(900, px); }
+    const w = ctx.measureText(word).width, x = side > 0 ? W - 3 * u - w / 2 : 3 * u + w / 2, y = top + px;
+    ctx.translate(x, y); ctx.rotate(-.12 * side); ctx.scale(slam, slam);
+    stampBar(-w / 2 - 2 * u, -px * .95, w + 4 * u, px * 1.25, s);
+    stampText(word, 0, 0, px, s, u);
+  } else {
+    // 直排：一個字一格
+    const chars = [...word], px = Math.min(15 * u, (H * .42) / chars.length);
+    ctx.font = FONT.zh(900, px);                                  // 漢字一律用思源黑體，日文字型缺字
+    const x = side > 0 ? W - 4 * u - px / 2 : 4 * u + px / 2;
+    const h = chars.length * px * 1.05;
+    ctx.translate(x, top + h / 2); ctx.rotate(.06 * side); ctx.scale(slam, slam);
+    stampBar(-px * .62, -h / 2 - px * .2, px * 1.24, h + px * .4, s);
+    chars.forEach((c, i) => stampText(c, 0, -h / 2 + px * (i * 1.05 + .88), px, s, u));
+    // 旁邊的小字：人格標籤 / タイプ
+    ctx.font = `700 ${2.2 * u}px system-ui, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    const sub = L === 'ja' ? 'タイプ' : '人格標籤';
+    [...sub].forEach((c, i) => ctx.fillText(c, -side * px * .95, -h / 2 + 2.4 * u * (i + 1)));
+  }
+  ctx.restore();
+}
+function stampBar(x, y, w, h, s) {
+  // 筆刷感的色塊：斜切的平行四邊形
+  ctx.save(); ctx.globalAlpha *= .9;
+  const g = ctx.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, s.tint); g.addColorStop(1, 'rgba(0,0,0,.2)');
+  ctx.fillStyle = g; const sk = Math.min(w, h) * .18;
+  ctx.beginPath(); ctx.moveTo(x + sk, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - sk, y + h); ctx.lineTo(x, y + h); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function stampText(c, x, y, px, s, u) {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+  ctx.lineWidth = px * .2; ctx.strokeStyle = '#120a1c'; ctx.strokeText(c, x, y);
+  ctx.lineWidth = px * .07; ctx.strokeStyle = s.glow; ctx.strokeText(c, x, y);
+  ctx.fillStyle = '#fff'; ctx.fillText(c, x, y);
 }
 
 // ── 前景文字：守護靈名稱（最上方）與台詞對話框，永遠畫在人和替身的前面 ──
@@ -571,7 +620,7 @@ function speedLines(x, y, W, H, t, s) {
 }
 
 // 擬聲字放在替身的另一側，跟著節奏抖動
-const SFX_SLOTS = [[.1, .2, -12, 1], [.18, .34, -8, .82], [.09, .48, -14, .68]];
+const SFX_SLOTS = [[.1, .5, -12, .8], [.17, .6, -8, .66], [.09, .7, -14, .55]];
 function sfx(W, H, t, s) {
   const base = Math.min(W, H) * .17;
   ctx.save();
