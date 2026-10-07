@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, computeStand, standById } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, LANGS, computeStand, standById } from './quiz.js';
 
 const SFX = [
   { id: 'auto', name: '擬聲字' },
@@ -15,6 +15,8 @@ const state = {
   src: null, mirror: false, stream: null,
   segmenter: null, mask: null, box: null, lastTs: 0,
   stand: null, summonAt: 0,
+  lang: /^ja/i.test(navigator.language) ? 'ja' : /^zh/i.test(navigator.language) ? 'zh' : 'en',
+  colTop: null, pose: null,
 };
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -145,7 +147,8 @@ async function showResult(s) {
   $('rOwner').textContent = `本體：${s.owner}　的替身是`;
   $('rTag').textContent = `人格標籤｜${s.tag}`;
   $('rName').textContent = `《${s.name}》`;
-  $('rZh').textContent = s.zh;
+  $('rZh').textContent = s.names ? `${s.zh}・${s.titles.ja}「${s.names.ja}」・${s.titles.en}` : s.zh;
+  $('rLine').textContent = `「${s.line.zh}」`; $('rLineJa').textContent = `「${s.line.ja}」`; $('rLineEn').textContent = `“${s.line.en}”`;
   $('rImg').alt = `${s.zh}的替身立繪`;
   drawHexSvg($('rHex'), s.grade);
   const dl = $('rStats'); dl.innerHTML = '';
@@ -187,6 +190,15 @@ for (const [id, name] of [['sfx', '擬聲字'], ['card', '資訊卡']]) {
   b.onclick = () => { state[id] = !state[id]; b.setAttribute('aria-pressed', String(state[id])); };
   $('sfx').append(b);
 }
+const langRow = document.createElement('div'); langRow.className = 'chips'; langRow.setAttribute('role', 'group'); langRow.setAttribute('aria-label', '語言');
+for (const [id, name] of Object.entries(LANGS)) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = name; b.dataset.lang = id;
+  b.setAttribute('aria-pressed', String(state.lang === id));
+  b.onclick = () => { state.lang = id; for (const x of langRow.children) x.setAttribute('aria-pressed', String(x === b)); };
+  langRow.append(b);
+}
+$('sfx').after(langRow);
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
@@ -239,7 +251,7 @@ function stopCamera() {
 }
 function useSource(src, mirror) {
   state.src = src; state.mirror = mirror; state.box = null; state.mask = null;
-  state.summonAt = performance.now(); state.sx = null;
+  state.summonAt = performance.now(); state.pose = null; state.colTop = null;
   const w = src.videoWidth || src.naturalWidth, h = src.videoHeight || src.naturalHeight;
   const k = Math.min(1, 1080 / Math.max(w, h));
   const W = Math.round(w * k), H = Math.round(h * k);
@@ -261,14 +273,17 @@ function segment(now) {
       if (maskC.width !== mw || maskC.height !== mh) { maskC.width = mw; maskC.height = mh; }
       const img = maskCtx.createImageData(mw, mh), d = img.data;
       let minX = mw, minY = mh, maxX = -1, maxY = -1, n = 0;
+      const top = new Float32Array(mw).fill(1);
       for (let i = 0; i < f.length; i++) {
         const a = f[i];
         d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = a * 255;
-        if (a > .5) { const x = i % mw, y = (i / mw) | 0; n++;
+        if (a > .5) { const x = i % mw, y = (i / mw) | 0; n++; if (top[x] === 1) top[x] = y / mh;
           if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
       }
       maskCtx.putImageData(img, 0, 0);
       state.mask = maskC;
+      if (!state.colTop || state.colTop.length !== mw) state.colTop = top;
+      else for (let x = 0; x < mw; x++) state.colTop[x] += (top[x] - state.colTop[x]) * .4;
       if (n > f.length * .01) {
         // 頭部範圍：人像最上面那一段（約身高的兩成）的左右邊界
         const yEnd = Math.min(maxY, minY + Math.max(4, (maxY - minY) * .2));
@@ -300,20 +315,39 @@ function halftonePattern() {
   return ctx.createPattern(c, 'repeat');
 }
 
-// 替身的臉要避開本人的頭：站到頭的旁邊；兩邊都放不下就縮小再試
-function placeStand(box, W, H, bh, ratio) {
-  const hx0 = box.hx0 * W, hx1 = box.hx1 * W, headW = hx1 - hx0;
-  let sh = Math.min(H * .82, Math.max(bh * .9, H * .5));
-  for (let i = 0; i < 6; i++) {
-    const sw = sh * ratio, gap = sw * .2 + headW * .08;   // 替身的臉約占圖寬的中間四成
-    for (const side of [state.side, -state.side]) {
-      const x = side > 0 ? hx1 + gap : hx0 - gap;
-      if (x - sw * .2 >= 0 && x + sw * .2 <= W) return { x, side, sh, sw };
+// 替身找位置：把人像每一欄的最上緣當成「被擋住的高度」，
+// 在畫面上試不同位置與大小，挑臉最不會被擋、身體也露最多的地方（越大越好，也偏好待在原地）
+const TITLE_H = 13;   // 上方標題列的高度（u），替身的頭不進這一區
+function placeStand(W, H, bh, headY, ratio, u) {
+  const top = state.colTop, n = top ? top.length : 0;
+  const base = Math.min(H * .8, Math.max(bh * .9, H * .5));
+  const prev = state.pose, cx = state.personCx ?? W / 2;
+  let best = null;
+  for (const k of [1, .88, .77, .67, .58, .5]) {
+    const sh = base * k, sw = sh * ratio;
+    const sy = Math.max(TITLE_H * u, Math.min(headY - sh * .06, H - sh * .75));
+    for (let i = 0; i <= 24; i++) {
+      const x = sw * .22 + (W - sw * .44) * i / 24;
+      let face = 0, body = 0, cols = 0;
+      if (n) {
+        const c0 = Math.max(0, Math.floor((x - sw / 2) / W * n)), c1 = Math.min(n, Math.ceil((x + sw / 2) / W * n));
+        for (let c = c0; c < c1; c++) {
+          const rel = ((c + .5) / n * W - (x - sw / 2)) / sw, pt = top[c] * H;
+          const fy1 = sy + sh * .32;
+          if (Math.abs(rel - .5) < .24) face += Math.max(0, fy1 - Math.max(sy, pt)) / (fy1 - sy);
+          body += Math.max(0, sy + sh - Math.max(fy1, pt)) / (sh * .68);
+          cols++;
+        }
+        face /= Math.max(1, cols * .48); body /= Math.max(1, cols);
+      }
+      const off = (Math.max(0, sw / 2 - x) + Math.max(0, x + sw / 2 - W)) / sw;
+      const side = Math.sign(x - cx) || 1;
+      let score = face * 6 + body * .8 + off * .6 + (1 - k) * 1.2 + (side === state.side ? 0 : .25);
+      if (prev) score += Math.abs(x - prev.tx) / W * .6 + Math.abs(sh - prev.tsh) / H * .4;
+      if (!best || score < best.score) best = { score, x, sy, sh, sw, side };
     }
-    sh *= .85;
   }
-  const sw = sh * ratio, side = state.side;
-  return { x: side > 0 ? W - sw * .2 : sw * .2, side, sh, sw };
+  return best;
 }
 
 function render(now) {
@@ -363,24 +397,40 @@ function render(now) {
   const cx = (box.x0 + box.x1) / 2 * W, headY = box.y0 * H;
   const a = art[s.id];
   const enter = Math.min(1, (now - state.summonAt) / 900), ease = 1 - Math.pow(1 - enter, 3);
-  let sx = cx, sy = headY;
+  state.personCx = cx;
   if (a) {
-    const p = placeStand(box, W, H, bh, a.width / a.height);
-    const sh = p.sh, sw = p.sw;
-    state.sx = state.sx == null ? p.x : state.sx + (p.x - state.sx) * .25;
-    state.useSide = p.side;
-    sx = state.sx;
-    sy = Math.max(u * 2, headY - sh * .08) + Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .25;
-    speedLines(sx, sy + sh * .25, W, H, t, s);
-    stars(sx, sy + sh * .3, sh * .62, t, s, u);
+    const p = placeStand(W, H, bh, headY, a.width / a.height, u);
+    let P = state.pose;
+    if (!P) P = state.pose = { x: p.x, y: p.sy, sh: p.sh, vx: 0, lean: 0, tx: p.x, tsh: p.sh, side: p.side };
+    P.tx = p.x; P.tsh = p.sh; P.side = p.side;
+    const nx = P.x + (p.x - P.x) * .12;          // 像 AR 角色一樣滑過去，不是瞬間跳
+    P.vx = nx - P.x; P.x = nx;
+    P.y += (p.sy - P.y) * .12; P.sh += (p.sh - P.sh) * .12;
+    P.lean += (Math.max(-.18, Math.min(.18, P.vx / u * .06)) - P.lean) * .15;
+    state.useSide = P.side;
+    const sh = P.sh, sw = sh * a.width / a.height;
+    // 擺 pose：每 4.5 秒用力一次（放大＋光圈），其餘時間呼吸、輕晃
+    const ph = (t + 1) % 4.5, pulse = ph < .6 ? Math.sin(ph / .6 * Math.PI) : 0;
+    const scale = (1 + Math.sin(t * 1.6) * .012 + pulse * .07) * (.75 + .25 * ease);
+    const rot = P.lean + Math.sin(t * 1.1) * .025 - pulse * .04 * P.side;
+    const bob = Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .3;
+    const fx = P.x, fy = P.y + bob;                // 頭頂位置
+    state.standHead = { x: fx, y: fy, sw, sh };
+    speedLines(fx, fy + sh * .25, W, H, t, s);
+    stars(fx, fy + sh * .3, sh * .62 * (1 + pulse * .15), t, s, u);
+    if (pulse > 0) {                               // 擺 pose 時的衝擊光圈
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = s.glow; ctx.globalAlpha = pulse * .7; ctx.lineWidth = u * (1.5 - pulse);
+      ctx.beginPath(); ctx.ellipse(fx, fy + sh * .35, sw * (.3 + ph), sh * (.25 + ph * .6), 0, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
     ctx.save();
-    // 殘影
-    ctx.globalAlpha = .22 * ease;
-    ctx.drawImage(a, sx - sw * .52 - p.side * u * 2, sy - u, sw * 1.04, sh * 1.04);
-    // 本體＋光暈
+    ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale, scale);   // 以腳底為支點
+    ctx.globalAlpha = .22 * ease;                  // 殘影
+    ctx.drawImage(a, -sw * .52 - P.side * u * 2 - P.vx * 3, -sh * 1.02, sw * 1.04, sh * 1.04);
     ctx.globalAlpha = .95 * ease;
-    ctx.shadowColor = s.glow; ctx.shadowBlur = 6 * u;
-    ctx.drawImage(a, sx - sw / 2, sy, sw, sh);
+    ctx.shadowColor = s.glow; ctx.shadowBlur = (6 + pulse * 6) * u;
+    ctx.drawImage(a, -sw / 2, -sh, sw, sh);
     ctx.restore();
   } else {
     speedLines(cx, headY, W, H, t, s);
@@ -399,6 +449,88 @@ function render(now) {
   if (state.sfx) sfx(W, H, t, s);
   vignette(W, H);
   if (state.card && s.owner) standCard(W, H, s);
+  titleBanner(W, H, s, u, ease);
+  if (state.standHead) speech(W, H, s, u, t, ease);
+}
+
+// ── 前景文字：守護靈名稱（最上方）與台詞對話框，永遠畫在人和替身的前面 ──
+const FONT = {
+  zh: (w, px) => `${w} ${px}px "Noto Sans TC", "PingFang TC", sans-serif`,
+  ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
+  en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
+};
+const LABEL = { zh: '守護靈', ja: '守護霊', en: 'GUARDIAN SPIRIT' };
+function titleBanner(W, H, s, u, ease) {
+  const L = state.lang, h = TITLE_H * u;
+  ctx.save();
+  ctx.globalAlpha = ease;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, 'rgba(10,6,18,.88)'); g.addColorStop(1, 'rgba(10,6,18,.0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, h * 1.15);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = s.glow; ctx.font = `700 ${2.4 * u}px system-ui, sans-serif`;
+  const label = `${LABEL[L]} ・ ${s.titles[L]}`;
+  ctx.fillText(L === 'en' ? label.toUpperCase() : label, W / 2, 4 * u);
+  const big = L === 'en' ? s.names.en : `${s.names[L]}  ${s.names.en}`;
+  let px = 6.6 * u; ctx.font = FONT[L](900, px);
+  while (ctx.measureText(big).width > W - 8 * u && px > 3 * u) { px *= .92; ctx.font = FONT[L](900, px); }
+  ctx.lineJoin = 'round'; ctx.lineWidth = px * .22; ctx.strokeStyle = '#120a1c'; ctx.strokeText(big, W / 2, 4.2 * u + px);
+  ctx.fillStyle = '#fff'; ctx.fillText(big, W / 2, 4.2 * u + px);
+  ctx.globalCompositeOperation = 'source-atop';
+  const gg = ctx.createLinearGradient(0, 4 * u, 0, 4.2 * u + px); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
+  ctx.fillStyle = gg; ctx.fillText(big, W / 2, 4.2 * u + px);
+  ctx.restore();
+}
+function wrapLines(text, maxW, L) {
+  const parts = L === 'en' ? text.split(' ') : [...text];
+  const lines = []; let cur = '';
+  for (const p of parts) {
+    const next = cur ? cur + (L === 'en' ? ' ' : '') + p : p;
+    if (ctx.measureText(next).width > maxW && cur) { lines.push(cur); cur = p; } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function speech(W, H, s, u, t, ease) {
+  const L = state.lang, hd = state.standHead, text = s.line[L];
+  // 開場 1 秒後浮現，之後一直留著；每次擺 pose 時跳一下
+  const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1) * 2));
+  if (show <= 0) return;
+  const px = 3.4 * u; ctx.save(); ctx.font = FONT[L](700, px);
+  const maxW = Math.min(W * .56, 52 * u), lines = wrapLines(text, maxW, L);
+  const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 5 * u, bh = lines.length * px * 1.3 + 3.6 * u;
+  // 放在替身頭的外側（遠離本人那一側）；放不下就放在頭的上方
+  const out = hd.x >= (state.personCx ?? W / 2) ? 1 : -1;
+  let bx = hd.x + out * (hd.sw * .18 + bw / 2), by = hd.y + hd.sh * .04;
+  if (bx - bw / 2 < 2 * u || bx + bw / 2 > W - 2 * u) { bx = hd.x; by = hd.y - bh - 2 * u; }
+  bx = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, bx));
+  by = Math.max(TITLE_H * u + u, Math.min(H - bh - 26 * u, by));
+  const pop = 1 + Math.max(0, Math.sin(((t + 1) % 4.5) / .6 * Math.PI)) * ((t + 1) % 4.5 < .6 ? .06 : 0);
+  ctx.globalAlpha = show * ease;
+  ctx.translate(bx, by + bh / 2); ctx.scale(pop * (.8 + .2 * show), pop * (.8 + .2 * show));
+  const x0 = -bw / 2, y0 = -bh / 2, r = 2.2 * u;
+  // 尾巴從最靠近替身臉的那一邊伸出去，指向臉
+  const fxr = hd.x - bx, fyr = hd.y + hd.sh * .12 - (by + bh / 2);
+  let b1, b2, tip;
+  if (Math.abs(fxr) > bw / 2) {
+    const ex = Math.sign(fxr) * (bw / 2 - 1), yb = Math.max(y0 + r + 2 * u, Math.min(-y0 - r - 2 * u, fyr * .3));
+    const ang = Math.atan2(fyr - yb, fxr - ex);
+    b1 = [ex, yb - 1.6 * u]; b2 = [ex, yb + 1.6 * u]; tip = [ex + Math.cos(ang) * 4.5 * u, yb + Math.sin(ang) * 4.5 * u];
+  } else {
+    const ey = Math.sign(fyr || 1) * (bh / 2 - 1), xb = Math.max(x0 + r + 2 * u, Math.min(-x0 - r - 2 * u, fxr * .5));
+    b1 = [xb - 1.6 * u, ey]; b2 = [xb + 1.6 * u, ey]; tip = [xb + (fxr - xb) * .3, ey + Math.sign(fyr || 1) * 4.5 * u];
+  }
+  // 外框與尾巴畫成同一個形狀：先描粗黑邊，再填白，接縫就不會出現
+  const shape = () => {
+    ctx.beginPath(); ctx.roundRect(x0, y0, bw, bh, r);
+    ctx.moveTo(...b1); ctx.lineTo(...tip); ctx.lineTo(...b2); ctx.closePath();
+  };
+  ctx.lineJoin = 'round';
+  shape(); ctx.strokeStyle = '#120a1c'; ctx.lineWidth = 1.2 * u; ctx.stroke();
+  shape(); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#120a1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, 0, y0 + 1.8 * u + px * 1.3 * (i + .5)));
+  ctx.restore();
 }
 
 // 星座光環：替身身後的一圈星星與連線，星星會閃爍、整圈緩慢旋轉
@@ -484,11 +616,12 @@ function standCard(W, H, s) {
   const tx = x + 4 * u, maxW = hx - r - 3 * u - tx;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = `600 ${2.3 * u}px system-ui, sans-serif`;
-  ctx.fillText(`本體：${s.owner}｜人格標籤：${s.tag}`, tx, y + 5.5 * u, maxW);
+  const L = state.lang, tg = s.tagNames?.[L] || s.tag;
+  ctx.fillText(L === 'en' ? `USER: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `本体：${s.owner}｜タイプ：${tg}` : `本體：${s.owner}｜人格標籤：${tg}`, tx, y + 5.5 * u, maxW);
   ctx.fillStyle = s.text; ctx.font = `${4.6 * u}px "Dela Gothic One", sans-serif`;
   ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 12 * u, maxW + 1.2 * u);
   ctx.fillStyle = '#fff'; ctx.font = `600 ${2.4 * u}px system-ui, sans-serif`;
-  ctx.fillText(s.zh, tx, y + 17 * u, maxW);
+  ctx.fillText(s.titles ? `${s.titles[L]}・${s.names[L]}` : s.zh, tx, y + 17 * u, maxW);
   ctx.restore();
 }
 

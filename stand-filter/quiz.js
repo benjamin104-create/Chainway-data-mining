@@ -76,6 +76,40 @@ export const STANDS = {
     ability: '守護家人與約定的天后。被她牽起的關係，不會輕易斷掉。' },
 };
 
+// 三種語言的名字、稱號與台詞（相機畫面上的標題與對話框用）
+export const LANGS = { zh: '中文', ja: '日本語', en: 'EN' };
+export const TAG_NAMES = {
+  courage: { zh: '勇氣', ja: '勇気', en: 'COURAGE' }, wisdom: { zh: '智慧', ja: '知恵', en: 'WISDOM' },
+  guard: { zh: '守護', ja: '守護', en: 'PROTECTION' }, freedom: { zh: '自由', ja: '自由', en: 'FREEDOM' },
+  create: { zh: '創造', ja: '創造', en: 'CREATION' }, bond: { zh: '羈絆', ja: '絆', en: 'BOND' },
+};
+export const LOCALE = {
+  courage: { names: { zh: '瑪爾斯', ja: 'マルス', en: 'MARS' }, titles: { zh: '戰神', ja: '戦いの神', en: 'God of War' },
+    line: { zh: '怕什麼？我就在你身後！', ja: '恐れるな、背中は任せろ！', en: "Fear nothing. I've got your back!" } },
+  nike: { names: { zh: '妮姬', ja: 'ニケ', en: 'NIKE' }, titles: { zh: '勝利女神', ja: '勝利の女神', en: 'Goddess of Victory' },
+    line: { zh: '勝利，已經在你手中。', ja: '勝利はもう、君の手の中に。', en: 'Victory is already in your hands.' } },
+  wisdom: { names: { zh: '雅典娜', ja: 'アテナ', en: 'ATHENA' }, titles: { zh: '智慧女神', ja: '知恵の女神', en: 'Goddess of Wisdom' },
+    line: { zh: '冷靜下來，答案就在眼前。', ja: '落ち着いて。答えはすぐそこよ。', en: 'Stay calm. The answer is right there.' } },
+  apollo: { names: { zh: '阿波羅', ja: 'アポロン', en: 'APOLLO' }, titles: { zh: '光明之神', ja: '光の神', en: 'God of Light' },
+    line: { zh: '讓光照亮你的路吧。', ja: '光よ、君の道を照らせ。', en: 'Let the light guide your way.' } },
+  guard: { names: { zh: '阿提米絲', ja: 'アルテミス', en: 'ARTEMIS' }, titles: { zh: '月之女神', ja: '月の女神', en: 'Goddess of the Moon' },
+    line: { zh: '你想守護的人，我一起守護。', ja: '君が守りたいもの、私も守る。', en: 'Whoever you protect, I protect too.' } },
+  zeus: { names: { zh: '宙斯', ja: 'ゼウス', en: 'ZEUS' }, titles: { zh: '眾神之王', ja: '神々の王', en: 'King of the Gods' },
+    line: { zh: '有我在，誰也動不了你。', ja: '我がいる限り、誰にも手出しはさせぬ。', en: 'While I stand, none shall touch you.' } },
+  freedom: { names: { zh: '赫密士', ja: 'ヘルメス', en: 'HERMES' }, titles: { zh: '旅神', ja: '旅の神', en: 'God of Travelers' },
+    line: { zh: '走吧，世界在等你！', ja: '行こうぜ、世界が待ってる！', en: "Let's go. The world is waiting!" } },
+  iris: { names: { zh: '伊麗絲', ja: 'イリス', en: 'IRIS' }, titles: { zh: '彩虹女神', ja: '虹の女神', en: 'Goddess of the Rainbow' },
+    line: { zh: '彩虹的盡頭，由你決定。', ja: '虹の果ては、君が決める。', en: 'You decide where the rainbow ends.' } },
+  create: { names: { zh: '維納斯', ja: 'ヴィーナス', en: 'VENUS' }, titles: { zh: '美神', ja: '美の女神', en: 'Goddess of Beauty' },
+    line: { zh: '你創造的一切，都很美。', ja: 'あなたが生み出すもの、全部美しい。', en: 'Everything you create is beautiful.' } },
+  hephaestus: { names: { zh: '赫菲斯托斯', ja: 'ヘパイストス', en: 'HEPHAESTUS' }, titles: { zh: '鍛造之神', ja: '鍛冶の神', en: 'God of the Forge' },
+    line: { zh: '想到了？那就動手打造吧！', ja: '思いついたなら、鍛え上げろ！', en: 'Got an idea? Then forge it!' } },
+  bond: { names: { zh: '丘比特', ja: 'キューピッド', en: 'CUPID' }, titles: { zh: '愛神', ja: '愛の神', en: 'God of Love' },
+    line: { zh: '你的心，連著好多人的心。', ja: '君の心は、たくさんの心とつながってる。', en: 'Your heart is linked to so many others.' } },
+  hera: { names: { zh: '希拉', ja: 'ヘラ', en: 'HERA' }, titles: { zh: '天后', ja: '神々の女王', en: 'Queen of the Gods' },
+    line: { zh: '重要的人，我幫你牢牢牽住。', ja: '大切な絆、しっかり結んであげる。', en: "I'll keep your precious bonds tied tight." } },
+};
+
 export const QUESTIONS = [
   { id: 'name', kind: 'text', q: '先替替身的「本體」取個名字', hint: '會印在你的替身照片上。', placeholder: '例如：小安', max: 12 },
   { id: 'q1', q: '朋友遇到困難，你的第一個反應是？', options: [
@@ -101,7 +135,7 @@ export const STAT_KEYS = [['pow', '破壞力'], ['spd', '速度'], ['rng', '射�
 
 export function standById(id, owner = '') {
   const s = STANDS[id];
-  return { id, owner, ...TAGS[s.tagId], ...s };
+  return { id, owner, ...TAGS[s.tagId], ...s, ...LOCALE[id], tagNames: TAG_NAMES[s.tagId] };
 }
 
 export function computeStand(a) {
