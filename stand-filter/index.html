@@ -101,6 +101,11 @@
   .card .try { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 10px; }
   blockquote { margin: 0; font-size: 17px; line-height: 1.6; }
 
+  .sticky-cta { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 5; display: grid; }
+  .sticky-cta .primary { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+  /* App 內建瀏覽器提示 */
+  .inapp { display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--raise)); border: 1px solid var(--accent); font-size: 14px; line-height: 1.6; }
+  .inapp b { font-size: 15px; }
   /* 自媒體建議 */
   .media { display: grid; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
   .media-title { margin: 0; font: 900 28px/1.25 var(--heading); text-wrap: balance; }
@@ -180,6 +185,7 @@
       <li><b>獲得</b>人格標籤：勇氣、智慧、守護、自由、創造、羈絆</li>
       <li><b>合照</b>開相機，守護神會用 AR 出現在你身後，拍照分享</li>
     </ul>
+    <div class="inapp" id="inapp" hidden><b>建議用 Safari 或 Chrome 開啟</b><span id="inappHow"></span></div>
     <div class="stack">
       <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
       <button class="secondary" id="skip">先直接拍照</button>
@@ -238,11 +244,11 @@
     </section>
     <div class="card"><h3>你的人格標籤</h3><p id="rNote"></p><p class="try" id="rTry"></p></div>
     <div class="stack">
-      <button class="primary" id="summon">召喚守護神拍照</button>
       <button class="secondary" id="copy">複製我的守護神文字</button>
       <button class="link" id="redo">重新測驗</button>
     </div>
     <p class="fine">參考心流理論、阿德勒個體心理學、馬斯洛需求層次設計的小遊戲，不是心理診斷。守護神以希臘神話為原型，圖為原創繪製。</p>
+    <div class="sticky-cta"><button class="primary" id="summon">召喚守護神拍照</button></div>
   </div>
 </section>
 
@@ -294,6 +300,24 @@
   </div>
 </div>
 
+<script>
+  // LINE 內建瀏覽器常常不能開相機：自動加上 openExternalBrowser=1，讓 LINE 改用手機瀏覽器打開
+  (function () {
+    var ua = navigator.userAgent || '';
+    if (/\bLine\//i.test(ua) && !/openExternalBrowser=1/.test(location.search)) {
+      location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'openExternalBrowser=1' + location.hash);
+      return;
+    }
+    // Instagram、Facebook、Messenger、Threads 的內建瀏覽器：提示改用瀏覽器開
+    if (/Instagram|FBAN|FBAV|FB_IAB|Messenger|Barcelona/i.test(ua)) {
+      var ios = /iPhone|iPad/i.test(ua);
+      document.getElementById('inapp').hidden = false;
+      document.getElementById('inappHow').textContent = ios
+        ? '在這個 App 裡可能打不開相機。請點右上角「⋯」→「在外部瀏覽器開啟」，用 Safari 打開這一頁。'
+        : '在這個 App 裡可能打不開相機。請點右上角「⋮」→「在瀏覽器中開啟」，用 Chrome 打開這一頁。';
+    }
+  })();
+</script>
 <script type="module" src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {

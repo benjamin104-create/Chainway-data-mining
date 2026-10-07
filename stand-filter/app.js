@@ -90,7 +90,9 @@ function renderQuestion() {
     next.onclick = () => { answers[Q.id] = f.value.trim(); advance(); };
     skip.onclick = () => { answers[Q.id] = ''; advance(); };
     f.onkeydown = (e) => { if (e.key === 'Enter') next.click(); };
+    f.enterKeyHint = 'next';
     row.append(next, skip); body.append(f, row);
+    setTimeout(() => f.focus(), 50);
   } else {
     for (const [val, label] of Q.options) {
       const b = document.createElement('button'); b.className = 'opt'; b.type = 'button';
@@ -102,16 +104,23 @@ function renderQuestion() {
   }
 }
 function advance() {
-  if (qi < QUESTIONS.length - 1) { qi++; renderQuestion(); $('quiz').scrollTop = 0; return; }
-  store.set('stand-answers', answers);
+  if (qi < QUESTIONS.length - 1) {
+    qi++; store.set('stand-progress', { qi, answers });   // 每答一題就存，中途離開也能接著做
+    renderQuestion(); $('quiz').scrollTop = 0; return;
+  }
+  store.set('stand-answers', answers); store.set('stand-progress', null);
   showResult(computeStand(answers));
 }
-$('begin').onclick = () => { qi = 0; answers = store.get('stand-answers') || {}; renderQuestion(); show('quiz'); };
+$('begin').onclick = () => {
+  const p = store.get('stand-progress');
+  if (p?.answers) { qi = p.qi; answers = p.answers; } else { qi = 0; answers = {}; }
+  renderQuestion(); show('quiz');
+};
 $('back').onclick = () => { if (qi === 0) show('intro'); else { qi--; renderQuestion(); } };
-$('redo').onclick = () => { qi = 0; answers = {}; renderQuestion(); show('quiz'); };
+$('redo').onclick = () => { qi = 0; answers = {}; store.set('stand-progress', null); renderQuestion(); show('quiz'); };
 $('skip').onclick = () => {
   const ids = Object.keys(STANDS), id = ids[Math.floor(Math.random() * ids.length)];
-  useStand(standById(id)); show('cam');
+  useStand(standById(id)); show('cam'); $('go').click();
 };
 
 // ── 結果 ─────────────────────────────────────────────
@@ -205,7 +214,8 @@ async function showResult(s) {
   show('result');
   try { $('rImg').src = (await loadArt(s.id)).toDataURL(); } catch {}
 }
-$('summon').onclick = () => show('cam');
+const summon = () => { show('cam'); $('go').click(); };
+$('summon').onclick = summon;
 $('toResult').onclick = () => show(state.stand?.owner ? 'result' : 'intro');
 $('copy').onclick = async () => {
   const s = state.stand; if (!s) return;
@@ -217,6 +227,8 @@ $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
 };
+const progress = store.get('stand-progress');
+if (progress?.answers) $('begin').textContent = `繼續作答（第 ${progress.qi + 1} 步）`;
 const saved = store.get('stand-answers');
 if (saved?.q5) {
   const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的守護神';
