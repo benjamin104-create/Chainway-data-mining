@@ -677,6 +677,12 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
     b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty7', state.beauty); syncSliders(); };
     pre.append(b);
   }
+  { // 自動補光：預設打開，依臉的亮度和偏色自動修正
+    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
+    const sync = () => { b.textContent = state.beauty.auto === false ? '🌤 自動補光：關' : '🌤 自動補光：開'; b.setAttribute('aria-pressed', String(state.beauty.auto !== false)); };
+    b.onclick = () => { state.beauty.auto = state.beauty.auto === false; store.set('beauty7', state.beauty); sync(); };
+    sync(); pre.append(b);
+  }
   panel.append(pre);
   for (const [k, label] of BEAUTY_SLIDERS) {
     const row = document.createElement('label'); row.className = 'slider';

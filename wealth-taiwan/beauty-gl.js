@@ -26,7 +26,8 @@ in vec2 v; out vec4 o;
 uniform sampler2D src, mask, feat;
 uniform vec2 px;
 uniform vec3 tone;
-uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, softK, bloomR, appleK;
+uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, softK, bloomR, appleK, autoExp, autoShadow;
+uniform vec3 autoWB;
 const vec3 LUM = vec3(.299, .587, .114);
 vec3 softLight(vec3 b, vec3 s) {
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
@@ -120,6 +121,18 @@ void main() {
     col = 1. - (1. - col) * (1. - hi * softK * .45);
     col = mix(col, max(col, bl), softK * .22);
   }
+  // 自動補光：依臉的亮度和顏色自動修正，不用使用者調整
+  col *= autoWB;                                                   // 黃光、綠光、藍光偏色拉回好看的膚色
+  if (autoExp > 0.) {
+    // 太暗就提亮：只提「亮度」、顏色比例不變（不會變灰白）；皮膚提最多，頭髮衣服只提一點
+    float l = max(dot(col, LUM), .01), e = autoExp * (.35 + .65 * toneW);
+    float l2 = 1. - pow(1. - min(l, 1.), 1. + e);
+    col *= l2 / l;
+  }
+  if (autoShadow > 0.) {
+    float l = dot(col, LUM);
+    col += (1. - smoothstep(.25, .75, l)) * autoShadow * .14 * toneW;   // 頂光造成的眼窩、鼻下、下巴陰影補亮
+  }
   if (appleK > 0.) {
     // 蘋果肌（最後才上，不會被美白、柔光洗掉）：兩頰粉嫩紅暈，中間一點光澤看起來飽滿；整體膚色也暖一點，不會死白
     col = mix(col, softLight(col, vec3(1., .6, .54)), appleK * .2 * toneW);
@@ -153,6 +166,29 @@ void main() {
   vec4 s = texture(img, p / size);
   o = vec4(s.rgb * s.a, s.a);
 }`;
+
+// 自動補光：用兩頰的膚色估計這張照片的曝光和偏色，算出要補多少
+// 目標：明亮、帶一點暖粉的膚色（台灣人喜歡的「狀態好」）
+const IDEAL = [.93, .76, .66];
+const lum = (c) => .299 * c[0] + .587 * c[1] + .114 * c[2];
+let autoState = null;
+function autoCorrect(tone, on) {
+  if (!on) return { exp: 0, shadow: 0, wb: [1, 1, 1] };
+  const y = lum(tone), iy = lum(IDEAL);
+  const exp = Math.max(0, Math.min(1.3, (.7 - y) / .7 * 2.4));                // 越暗補越多
+  const shadow = Math.max(.35, Math.min(1, (.75 - y) * 2.5));
+  const wb = IDEAL.map((c, i) => {
+    const want = (c / iy) / (tone[i] / Math.max(.05, y));                       // 理想色比 ÷ 目前色比
+    return Math.max(.88, Math.min(1.12, 1 + (want - 1) * .4));                  // 只修一部分，保留現場氣氛
+  });
+  const next = { exp, shadow, wb };
+  if (!autoState) autoState = next;
+  else {                                                                         // 慢慢變，不會閃
+    autoState.exp += (next.exp - autoState.exp) * .15; autoState.shadow += (next.shadow - autoState.shadow) * .15;
+    autoState.wb = autoState.wb.map((c, i) => c + (next.wb[i] - c) * .15);
+  }
+  return autoState;
+}
 
 export function createBeautyGL() {
   const canvas = document.createElement('canvas');
@@ -279,7 +315,10 @@ export function createBeautyGL() {
     gl.uniform1f(U(P1, 'lightK'), k('light')); gl.uniform1f(U(P1, 'eyesK'), Math.min(1, k('eyes') * 1.1));
     gl.uniform1f(U(P1, 'evenK'), k('smooth') * .7);                 // 膚色均勻跟著磨皮
     gl.uniform1f(U(P1, 'sharpK'), k('smooth') > 0 ? .25 + k('smooth') * .4 : 0);   // 皮膚越光滑，五官越清楚
-    gl.uniform1f(U(P1, 'softK'), k('soft')); gl.uniform1f(U(P1, 'appleK'), k('apple')); gl.uniform1f(U(P1, 'bloomR'), fwid * .09);
+    gl.uniform1f(U(P1, 'softK'), k('soft')); gl.uniform1f(U(P1, 'appleK'), k('apple'));
+    const auto = autoCorrect(tone || [.8, .65, .58], b.auto !== false);
+    gl.uniform1f(U(P1, 'autoExp'), auto.exp); gl.uniform1f(U(P1, 'autoShadow'), auto.shadow);
+    gl.uniform3f(U(P1, 'autoWB'), ...auto.wb); gl.uniform1f(U(P1, 'bloomR'), fwid * .09);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // 第二步：畫到畫布上
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -309,5 +348,5 @@ export function createBeautyGL() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     return canvas;
   }
-  return { render, reset() { sm = null; tone = null; } };
+  return { render, reset() { sm = null; tone = null; autoState = null; } };
 }
