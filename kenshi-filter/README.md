@@ -61,5 +61,6 @@
 
     python3 -m http.server 8000      # 開 http://localhost:8000 ，示範模式：/?demo=cam
 
-上線方式和 `stand-filter` 一樣（Netlify，Base directory / Publish directory 填 `kenshi-filter`）。
+網址：**https://jaminepa-kenshi.netlify.app**（Netlify 專案 `jaminepa-kenshi`，目前是手動上傳 `kenshi-filter` 資料夾）。
+要改成推送就自動更新：Netlify 專案設定 →「Link repository」選這個 repo，Base directory / Publish directory 填 `kenshi-filter`。
 相機需要 https。LINE 內建瀏覽器會自動改用手機瀏覽器開啟。
