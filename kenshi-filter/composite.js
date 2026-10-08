@@ -25,18 +25,37 @@ export function drawMappedMask(ctx, mask, crop, mirror, W) {
   ctx.restore();
 }
 
-// Foreground head, neck and visible forearms cut holes in the garment layer.
+export function copyPartMasks(result, head, skin) {
+  const masks = result.confidenceMasks;
+  if (!masks || masks.length < 4) return false;
+  const hair = masks[1].getAsFloat32Array(), face = masks[3].getAsFloat32Array(), bodySkin = masks[2].getAsFloat32Array();
+  const width = masks[0].width, height = masks[0].height;
+  for (const [cv, type] of [[head, 'head'], [skin, 'skin']]) {
+    if (cv.width !== width || cv.height !== height) { cv.width = width; cv.height = height; }
+    const g = cv.getContext('2d'), image = g.createImageData(width, height);
+    for (let i = 0; i < hair.length; i++) {
+      const value = type === 'head' ? Math.min(1, hair[i] + face[i]) : bodySkin[i];
+      image.data[i * 4] = image.data[i * 4 + 1] = image.data[i * 4 + 2] = 255;
+      image.data[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (value - .13) / .68)) * 255);
+    }
+    g.putImageData(image, 0, 0);
+  }
+  return true;
+}
+
+// Foreground hair, face, neck and exposed hands cut holes in the garment layer.
 // The original camera pixels then show through, preserving face and hand detail.
 const handForeground = document.createElement('canvas');
-export function cutForeground(layer, foreground, kp, personMask = null, cameraFrame = null) {
+export function cutForeground(layer, foreground, kp, personMask = null, cameraFrame = null, parts = null) {
   const W = layer.width, H = layer.height, g = foreground.getContext('2d');
   g.clearRect(0, 0, W, H);
   const { sh, up, side, shoulderW: S } = frame(kp);
   const head = kp.n;
   g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineCap = 'round';
-  g.save(); g.translate(head.x, head.y);
+  if (parts?.head) g.drawImage(parts.head, 0, 0);
+  else { g.save(); g.translate(head.x, head.y);
   g.rotate(Math.atan2(side.y, side.x));
-  g.beginPath(); g.ellipse(0, -S * .08, S * .27, S * .39, 0, 0, Math.PI * 2); g.fill(); g.restore();
+  g.beginPath(); g.ellipse(0, -S * .08, S * .27, S * .39, 0, 0, Math.PI * 2); g.fill(); g.restore(); }
   g.lineWidth = S * .19;
   g.beginPath(); g.moveTo(head.x, head.y);
   g.lineTo(sh.x + up.x * S * .04, sh.y + up.y * S * .04); g.stroke();
@@ -55,8 +74,11 @@ export function cutForeground(layer, foreground, kp, personMask = null, cameraFr
     const across = Math.abs((w.x - sh.x) * side.x + (w.y - sh.y) * side.y) < S * .63;
     const closer = Number.isFinite(w.z) && w.z > (kp[s + 's'].z || 0) + S * .04;
     if (across || closer) {
-      include(e); include(w);
-      hg.lineWidth = S * .16; hg.beginPath(); hg.moveTo(e.x, e.y); hg.lineTo(w.x, w.y); hg.stroke();
+      const cuff = { x: e.x + (w.x - e.x) * .95, y: e.y + (w.y - e.y) * .95 };
+      include(cuff); include(w);
+      // The long sleeve replaces the forearm clothing. Only exposed hands
+      // and the tiny cuff gap are kept in front of the new garment.
+      hg.lineWidth = S * .14; hg.beginPath(); hg.moveTo(cuff.x, cuff.y); hg.lineTo(w.x, w.y); hg.stroke();
       hg.beginPath(); hg.arc(w.x, w.y, S * .1, 0, Math.PI * 2); hg.fill();
       for (const k of [s + 'i', s + 'p', s + 't']) if (kp[k]?.v > .5) {
         // Pose points sit near finger joints, not the fingertips. Extend their
@@ -69,7 +91,9 @@ export function cutForeground(layer, foreground, kp, personMask = null, cameraFr
       }
     }
   }
-  if (cameraFrame && bounds.x0 < bounds.x1) {
+  if (parts?.skin) {
+    hg.save(); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(parts.skin, 0, 0); hg.restore();
+  } else if (cameraFrame && bounds.x0 < bounds.x1) {
     // Refine the broad joint region with the person's own skin chroma. This
     // keeps open fingers without cutting a large shirt-colored hole around them.
     const x = Math.max(0, Math.floor(bounds.x0)), y = Math.max(0, Math.floor(bounds.y0));

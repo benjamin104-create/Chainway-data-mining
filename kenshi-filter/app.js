@@ -1,7 +1,8 @@
-import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
+import { FilesetResolver, PoseLandmarker, ImageSegmenter } from './lib/vision_bundle.mjs';
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawRealHaori, placePose } from './ar.js';
-import { copyPersonMask, drawMappedMask, cutForeground } from './composite.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawRealHaori, haoriAssetsReady, placePose } from './ar.js';
+import { copyPersonMask, copyPartMasks, drawMappedMask, cutForeground } from './composite.js';
+import { buildHaoriRig } from './garment-rig.js';
 import { Stage3D } from './render3d.js';
 
 const stage3d = new Stage3D();
@@ -183,7 +184,17 @@ video.playsInline = true; video.muted = true; video.setAttribute('playsinline', 
 const cam = { frame: 0, stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
 const garmentLayer = document.createElement('canvas'), foregroundLayer = document.createElement('canvas');
 const maskVideo = document.createElement('canvas'), maskScreen = document.createElement('canvas');
+const headVideo = document.createElement('canvas'), skinVideo = document.createElement('canvas');
+const headScreen = document.createElement('canvas'), skinScreen = document.createElement('canvas');
 const atmosphereLayer = document.createElement('canvas');
+const fit = { width: 1, length: 1 };
+for (const key of ['width', 'length']) {
+  const input = $('fit-' + key), output = $('fit-' + key + '-value');
+  input.oninput = () => { fit[key] = Number(input.value) / 100; output.textContent = input.value + '%'; };
+}
+$('fitReset').onclick = () => {
+  for (const key of ['width', 'length']) { fit[key] = 1; $('fit-' + key).value = 100; $('fit-' + key + '-value').textContent = '100%'; }
+};
 function sizeLayer(cv, W, H) { if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } }
 
 const MODES = [['free', '自拍模式'], ['move', '招式挑戰']];
@@ -262,6 +273,8 @@ async function loadModel() {
     });
     try { cam.pose = await PoseLandmarker.createFromOptions(fs, opts('GPU')); }
     catch { cam.pose = await PoseLandmarker.createFromOptions(fs, opts('CPU')); }
+    // Semantic masks are optional: never block pose tracking if unavailable.
+    loadPartsModel(fs);
     $('loadState').textContent = '';
   } catch (e) {
     console.warn('pose failed', e);
@@ -269,6 +282,16 @@ async function loadModel() {
   }
 }
 let modelReady = null;
+
+async function loadPartsModel(fs) {
+  const opts = (delegate) => ({ baseOptions: {
+    modelAssetPath: new URL('models/selfie_multiclass_256x256.tflite', location.href).href, delegate,
+  }, runningMode: 'VIDEO', outputCategoryMask: false, outputConfidenceMasks: true });
+  try {
+    try { cam.parts = await ImageSegmenter.createFromOptions(fs, opts('GPU')); }
+    catch { cam.parts = await ImageSegmenter.createFromOptions(fs, opts('CPU')); }
+  } catch (e) { cam.partsFailed = true; console.warn('semantic masks unavailable; using joint masks', e); }
+}
 
 function choosePhoto(origin = state.camOrigin) {
   cam.uploadOrigin = origin;
@@ -315,7 +338,9 @@ $('photoInput').onchange = async () => {
 async function openCam(origin = 'result', photo = null) {
   cancelAnimationFrame(cam.raf); stopStream(); releaseUploadedPhoto();
   cam.uploadedPhoto = photo?.image || null; cam.uploadUrl = photo?.url || null;
+  $('fitReset').click();
   cam.hold = 0; cam.firedAt = 0; cam.shotAt = 0; cam.wantShot = false; cam.match = 0; cam.light = null;
+  cam.photoRenderKey = null;
   if (photo) state.mode = 'free';
   state.camOrigin = origin;
   show('cam');
@@ -337,7 +362,7 @@ addEventListener('resize', () => { if (!$('cam').hidden) fitStage(); });
 
 async function startCamera() {
   stopStream();
-  cam.kp = null; cam.maskAt = 0; cam.lastVideoTime = undefined; cam.trail = [];
+  cam.kp = null; cam.maskAt = 0; cam.partsAt = 0; cam.partsSourceTime = undefined; cam.lastVideoTime = undefined; cam.trail = [];
   cam.photoDemo = !cam.uploadedPhoto && params.get('demo') === 'photo';
   cam.photoMode = !!cam.uploadedPhoto || cam.photoDemo;
   $('flip').textContent = cam.photoMode ? '↥' : '⟲';
@@ -394,9 +419,11 @@ function videoLight(source = video) {
 
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
-  // A fixed photo needs no continuous pose inference or 60 fps compositing.
-  if (!cam.photoMode || now - (cam.lastPhotoRender || 0) >= 80) {
-    renderFrame(now); cam.lastPhotoRender = now;
+  // Still photos redraw only when tracking/model/garment/control state changes.
+  const photoKey = [!!cam.pose, !!cam.parts, haoriAssetsReady(), cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+    fit.width, fit.length, stage.width, stage.height].join('|');
+  if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
+    renderFrame(now); cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
   }
   if (cam.shotAt && now >= cam.shotAt) { cam.shotAt = 0; cam.wantShot = true; }
   if (cam.wantShot) { cam.wantShot = false; takeShot(now); }
@@ -422,7 +449,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
   ctx.fillStyle = '#0f0c0b'; ctx.fillRect(0, 0, W, H);
 
   // 1. 背景：相機畫面（cover 填滿，前鏡頭鏡像）
-  let kp = null, personMask = null;
+  let kp = null, personMask = null, parts = null;
   const source = cam.uploadedPhoto || (cam.photoDemo ? cam.previewPhoto : video);
   if ((!cam.demo || cam.photoMode) && (cam.photoMode ? source?.naturalWidth : video.readyState >= 2 && video.videoWidth)) {
     const vw = source.videoWidth || source.naturalWidth, vh = source.videoHeight || source.naturalHeight;
@@ -450,14 +477,14 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
       const lms = res.landmarks?.[0];
       if (lms) {
         const map = (x, y, z) => [mirror ? W - (dx + x * dw) : dx + x * dw, dy + y * dh, -(z || 0) * dw];
-        const raw = fromLandmarks(lms, map, mirror);
+        const raw = fromLandmarks(lms, map, mirror, res.worldLandmarks?.[0]);
         const rf = frame(raw), shoulderW = Math.hypot(raw.rs.x - raw.ls.x, raw.rs.y - raw.ls.y);
         const bodyRatio = shoulderW / rf.T;
         const hipsReady = raw.lh.v > .32 && raw.rh.v > .32;
         // 手持自拍只需要頭和雙肩；髖部沒入鏡時由肩線建立虛擬胸腔。
         const torsoReady = raw.ls.v > .52 && raw.rs.v > .52 && (cam.photoMode ? raw.n.v > .55 : raw.n.v > .42 || hipsReady)
           && shoulderW > Math.min(W, H) * .075 && rf.T > Math.min(W, H) * .055
-          && bodyRatio > .35 && bodyRatio < 2.2;
+          && bodyRatio > .16 && bodyRatio < 2.2;
         if (torsoReady) {
           const previous = mapTrackedPose(crop, W, H, mirror);
           cam.kp = smooth(previous, raw); cam.trackW = W; cam.trackH = H; cam.trackCrop = crop; cam.trackMirror = mirror; cam.lastSeen = now;
@@ -465,12 +492,30 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
       }
       } finally { res.close(); }
     }
+    // A photo is segmented once (including when the optional model loads late).
+    // Live masks are deliberately slower than pose inference to limit phone cost.
+    if (!capture && cam.parts && sourceTime !== cam.partsSourceTime && (cam.photoMode || now - (cam.partsAttemptAt || 0) > 600)) {
+      cam.partsAttemptAt = now;
+      try {
+        const result = cam.parts.segmentForVideo(source, now);
+        try { if (copyPartMasks(result, headVideo, skinVideo)) cam.partsAt = now; }
+        finally { result.close(); }
+        cam.partsSourceTime = sourceTime;
+      } catch (e) { console.warn('semantic frame failed', e); cam.partsSourceTime = sourceTime; }
+    }
     if ((cam.photoMode || now - cam.lastSeen < 400) && cam.kp) kp = mapTrackedPose(crop, W, H, mirror);
     else if (cam.kp) { cam.kp = null; cam.trail = []; }
     if (kp && cam.maskAt && (cam.photoMode || now - cam.maskAt < 400)) {
       sizeLayer(maskScreen, W, H);
       const mg = maskScreen.getContext('2d'); mg.clearRect(0, 0, W, H);
       drawMappedMask(mg, maskVideo, { dx, dy, dw, dh }, mirror, W); personMask = maskScreen;
+    }
+    if (kp && cam.partsAt && (cam.photoMode || now - cam.partsAt < 850)) {
+      for (const [src, dst] of [[headVideo, headScreen], [skinVideo, skinScreen]]) {
+        sizeLayer(dst, W, H); const g = dst.getContext('2d'); g.clearRect(0, 0, W, H);
+        drawMappedMask(g, src, crop, mirror, W);
+      }
+      parts = { head: headScreen, skin: skinScreen };
     }
   } else if (cam.demo) {
     // 示範人偶：在站姿與招式之間來回
@@ -504,16 +549,24 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
   if (kp) {
     sizeLayer(garmentLayer, W, H); sizeLayer(foregroundLayer, W, H);
     const gg = garmentLayer.getContext('2d'); gg.clearRect(0, 0, W, H);
-    const outfitReady = drawRealHaori(gg, kp, c, cam.light ?? 1);
-    if (!cam.demo || cam.photoMode) cutForeground(garmentLayer, foregroundLayer, kp, personMask, ctx.canvas);
+    const outfitReady = drawRealHaori(gg, kp, c, cam.light ?? 1, fit);
+    const unsupported = buildHaoriRig(kp)?.unsupported;
+    if (!cam.demo || cam.photoMode) cutForeground(garmentLayer, foregroundLayer, kp, personMask, ctx.canvas, parts);
     ctx.drawImage(garmentLayer, 0, 0);
     if (cam.photoMode) {
       $('shutter').disabled = !outfitReady;
-      if (cam.uploadedPhoto) $('loadState').textContent = outfitReady ? '照片在本機處理' : '載入羽織素材…';
+      if (cam.uploadedPhoto) $('loadState').textContent = unsupported ? '側身角度太大，請換較正面的照片'
+        : outfitReady ? (parts ? '骨架貼合 · 照片在本機處理' : cam.partsFailed ? '骨架貼合 · 基本遮擋' : '骨架貼合 · 精細遮罩載入中') : '載入羽織素材…';
+    } else if (!cam.demo) {
+      $('loadState').textContent = unsupported ? '請稍微轉回正面' : '';
+      $('shutter').disabled = !outfitReady;
     }
   } else if (cam.photoMode) {
     $('shutter').disabled = true;
     if (cam.uploadedPhoto && cam.pose) $('loadState').textContent = '請換一張臉與雙肩清楚的照片';
+  } else if (!cam.demo) {
+    $('shutter').disabled = true;
+    if (cam.pose) $('loadState').textContent = '請讓臉與雙肩清楚入鏡';
   }
 
   // 2. 招式吻合度

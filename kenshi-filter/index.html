@@ -115,6 +115,11 @@
   .cam-quick { display: flex; align-items: center; gap: 8px; }
   .cam-quick #modes { flex: 1; }
   .customize { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: rgba(8,7,6,.76); backdrop-filter: blur(14px); }
+  .fit-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .fit-controls label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  .fit-controls input { width: 100%; accent-color: var(--accent); }
+  .fit-controls output { color: var(--fg); }
+  .fit-controls .fine { grid-column: 1 / -1; }
   .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
   .chips::-webkit-scrollbar { display: none; }
   .chip { flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 9px 13px; border-radius: 999px; font-size: 14px; cursor: pointer; white-space: nowrap; }
@@ -246,6 +251,13 @@
     <div class="customize" id="customizer" hidden>
       <div class="chips" id="gear"></div>
       <div class="chips" id="roster"></div>
+      <div class="fit-controls">
+        <p class="fine">已自動依骨架貼合；寬鬆度與衣長可小幅微調。</p>
+        <label>寬鬆度 <output id="fit-width-value">100%</output><input id="fit-width" type="range" min="85" max="120" value="100" aria-label="羽織寬鬆度"></label>
+        <label>衣長 <output id="fit-length-value">100%</output><input id="fit-length" type="range" min="80" max="120" value="100" aria-label="羽織衣長"></label>
+        <button class="chip" id="fitReset">還原自動貼合</button>
+        <p class="fine">適用正面與中度側身。大幅轉身或背面尚不支援。</p>
+      </div>
     </div>
     <div class="controls">
       <div class="meter" id="meter"><span id="meterText"></span><div class="bar"><i id="meterBar" style="width:0"></i></div></div>

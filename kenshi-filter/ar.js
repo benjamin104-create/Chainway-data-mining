@@ -3,10 +3,11 @@
 //
 // 關鍵點格式：{ n, ls, rs, le, re, lw, rw, lh, rh, lk, rk, la, ra } 每個是 { x, y, v }（畫面像素，v = 可見度 0～1）
 // l／r 指畫面左右（前鏡頭已鏡像，所以像照鏡子）
+import { buildHaoriRig, drawTextureMesh } from './garment-rig.js';
 
 // MediaPipe Pose 33 點的索引 → 我們用的名字（mirror=true 時左右對調，讓 l 永遠在畫面左邊）
 const MP = { n: 0, ls: 11, rs: 12, le: 13, re: 14, lw: 15, rw: 16, lp: 17, rp: 18, li: 19, ri: 20, lt: 21, rt: 22, lh: 23, rh: 24, lk: 25, rk: 26, la: 27, ra: 28 };
-export function fromLandmarks(lms, map, mirror) {
+export function fromLandmarks(lms, map, mirror, world = null) {
   const kp = {};
   for (const k in MP) {
     // MediaPipe 的 left 是「本人的左邊」，未鏡像影像裡在畫面右側
@@ -14,7 +15,9 @@ export function fromLandmarks(lms, map, mirror) {
     if (k !== 'n' && !mirror) idx = MP[(k[0] === 'l' ? 'r' : 'l') + k.slice(1)];
     const p = lms[idx];
     const [x, y, z] = map(p.x, p.y, p.z);
-    kp[k] = { x, y, z, v: p.visibility ?? 1 };
+    const w = world?.[idx];
+    const inFrame = p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
+    kp[k] = { x, y, z, v: inFrame ? Math.min(p.visibility ?? 1, p.presence ?? 1) : 0, wx: w?.x, wy: w?.y, wz: w?.z };
   }
   return kp;
 }
@@ -51,9 +54,13 @@ export function smooth(prev, next, base = .38) {
     const torso = k === 'ls' || k === 'rs' || k === 'lh' || k === 'rh';
     const t = confidence < .42 ? 0 : Math.min(.72, base + dynamic + (torso ? -.08 : .08));
     out[k] = {
+      ...b,
       x: predicted.x + (b.x - predicted.x) * t,
       y: predicted.y + (b.y - predicted.y) * t,
       z: b.z == null ? b.z : (a.z ?? b.z) + (b.z - (a.z ?? b.z)) * Math.min(.7, Math.max(.18, t * .65)),
+      wx: Number.isFinite(b.wx) ? (a.wx ?? b.wx) + (b.wx - (a.wx ?? b.wx)) * .3 : b.wx,
+      wy: Number.isFinite(b.wy) ? (a.wy ?? b.wy) + (b.wy - (a.wy ?? b.wy)) * .3 : b.wy,
+      wz: Number.isFinite(b.wz) ? (a.wz ?? b.wz) + (b.wz - (a.wz ?? b.wz)) * .3 : b.wz,
       v: confidence,
     };
   }
@@ -75,9 +82,11 @@ const dist = (a, b) => len(sub(a, b));
 // 身體座標：髖中點、往上方向、側向、軀幹長
 export function frame(kp) {
   const sh = mid(kp.ls, kp.rs), shoulder = sub(kp.rs, kp.ls), shoulderW = Math.max(20, len(shoulder));
+  const rig = buildHaoriRig(kp);
+  const referenceWidth = rig?.frontWidth || shoulderW;
   const measuredHip = mid(kp.lh, kp.rh), measuredT = dist(measuredHip, sh);
   const hipsReady = (kp.lh?.v ?? 0) > .32 && (kp.rh?.v ?? 0) > .32
-    && measuredT > shoulderW * .38 && measuredT < shoulderW * 2.5;
+    && measuredT > referenceWidth * .38 && measuredT < referenceWidth * 2.5;
   let hip, T, up, side;
   if (hipsReady) {
     hip = measuredHip; T = Math.max(20, measuredT); up = norm(sub(sh, hip));
@@ -88,7 +97,7 @@ export function frame(kp) {
     side = norm(shoulder); up = perp(side);
     const toHead = kp.n ? sub(kp.n, sh) : V(0, -1);
     if (up.x * toHead.x + up.y * toHead.y < 0) up = mul(up, -1);
-    T = shoulderW * .92; hip = add(sh, mul(up, -T));
+    T = rig?.T || shoulderW * 1.18; hip = add(sh, mul(up, -T));
   }
   return { hip, sh, T, up, side, shoulderW, upperOnly: !hipsReady };
 }
@@ -149,55 +158,52 @@ export function tile(kind, c1, c2, S = 64) {
 
 // ── 寫實布料羽織 ─────────────────────────────────────
 // 使用透明產品攝影素材作為布料明暗與縫線基底，再依角色套色與紋樣。
-// 整件素材以肩線建立的身體座標貼合，因此可隨真人平移、縮放與側傾。
-const realHaoriImage = new Image();
-realHaoriImage.decoding = 'async';
-realHaoriImage.src = new URL('assets/haori-real-base.png', import.meta.url).href;
-const realHaoriCache = new Map();
-const realPhotos = Object.fromEntries(['thunder', 'flame'].map((fx) => {
+// 衣身由肩／髖控制網格；兩袖依肩／肘／腕分別彎曲，不再方形縮放整張圖。
+const rigPhotos = Object.fromEntries(['body', 'sleeve'].map((part) => {
   const img = new Image(); img.decoding = 'async';
-  img.src = new URL(`assets/haori-real-${fx}.png`, import.meta.url).href;
-  return [fx, img];
+  img.src = new URL(`assets/haori-rig-${part}-v2.png`, import.meta.url).href;
+  return [part, img];
 }));
-function realHaoriTexture(ch) {
-  const photo = realPhotos[ch.fx];
-  if (photo?.complete && photo.naturalWidth) return photo;
-  const key = [ch.pattern, ch.haori, ch.haori2].join('|');
-  if (realHaoriCache.has(key)) return realHaoriCache.get(key);
-  if (!realHaoriImage.complete || !realHaoriImage.naturalWidth) return null;
-  const cv = document.createElement('canvas'); cv.width = cv.height = 1024;
-  const g = cv.getContext('2d');
-  g.drawImage(realHaoriImage, 0, 0, 1024, 1024);
-  // 使用 color 混色保留原照片明暗，衣領及每一道皺褶都留在材質內。
-  g.save(); g.globalCompositeOperation = 'color'; g.globalAlpha = .88;
-  g.fillStyle = ch.haori; g.fillRect(0, 0, 1024, 1024); g.restore();
-  g.save(); g.globalCompositeOperation = 'destination-in';
-  g.drawImage(realHaoriImage, 0, 0, 1024, 1024); g.restore();
-  // 角色紋樣只覆在布料 alpha 內，並以柔光混合，避免重新變成平面貼紙。
-  const overlay = g.createPattern(tile(ch.pattern, 'rgba(0,0,0,0)', ch.haori2, ch.pattern === 'uroko' ? 78 : 92), 'repeat');
-  if (overlay) {
-    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .44;
-    g.fillStyle = overlay; g.fillRect(0, 0, 1024, 1024); g.restore();
+const rigTextureCache = new Map();
+export const haoriAssetsReady = () => Object.values(rigPhotos).every((image) => image.complete && image.naturalWidth > 0);
+function rigTexture(ch, part) {
+  const image = rigPhotos[part];
+  if (!image.complete || !image.naturalWidth) return null;
+  const key = [part, ch.pattern, ch.haori, ch.haori2].join('|');
+  if (rigTextureCache.has(key)) return rigTextureCache.get(key);
+  const cv = document.createElement('canvas');
+  cv.width = 640; cv.height = Math.round(640 * image.naturalHeight / image.naturalWidth);
+  const g = cv.getContext('2d', { willReadFrequently: true });
+  g.drawImage(image, 0, 0, cv.width, cv.height);
+  const original = g.getImageData(0, 0, cv.width, cv.height);
+  const pattern = document.createElement('canvas'); pattern.width = cv.width; pattern.height = cv.height;
+  const pg = pattern.getContext('2d', { willReadFrequently: true });
+  const tileSize = part === 'body' ? 140 : 190;
+  pg.fillStyle = pg.createPattern(tile(ch.pattern, ch.haori, ch.haori2, tileSize), 'repeat'); pg.fillRect(0, 0, cv.width, cv.height);
+  const colors = pg.getImageData(0, 0, cv.width, cv.height).data;
+  const pixels = original.data;
+  for (let i = 0; i < pixels.length; i += 4) if (pixels[i + 3]) {
+    const luminance = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+    // Dark seam/collar pixels stay dark. Every pattern pixel retains the
+    // original cloth fold luminance instead of a flat color overlay.
+    const seam = luminance < 90;
+    const shade = Math.max(.28, Math.min(1.18, luminance / 182));
+    for (let c = 0; c < 3; c++) pixels[i + c] = seam ? pixels[i + c] : Math.min(255, colors[i + c] * shade);
   }
-  // 印花也需要布料陰影，否則高光和皺褶會在印花位置消失。
-  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .25;
-  g.drawImage(realHaoriImage, 0, 0, 1024, 1024); g.restore();
-  realHaoriCache.set(key, cv); return cv;
+  g.putImageData(original, 0, 0); rigTextureCache.set(key, cv); return cv;
 }
 
-export function drawRealHaori(ctx, kp, ch, light = 1) {
+export function drawRealHaori(ctx, kp, ch, light = 1, fit = {}) {
   if (!kp?.ls || !kp?.rs || !kp?.n) return false;
-  const tex = realHaoriTexture(ch);
-  if (!tex) return false;
-  const { sh, up, side, shoulderW } = frame(kp);
-  if (!Number.isFinite(shoulderW) || shoulderW < 24) return false;
-  const down = mul(up, -1), W = shoulderW * 1.46, H = W;
+  const body = rigTexture(ch, 'body'), arm = rigTexture(ch, 'sleeve');
+  if (!body || !arm) return false;
+  const rig = buildHaoriRig(kp, fit);
+  if (!rig || rig.unsupported) return false;
   ctx.save();
-  ctx.transform(side.x, side.y, down.x, down.y, sh.x, sh.y);
-  ctx.globalAlpha = 1;
-  ctx.filter = `brightness(${Math.max(.72, Math.min(1.12, light))}) saturate(.98) drop-shadow(0 ${shoulderW * .025}px ${shoulderW * .04}px rgba(0,0,0,.32))`;
-  // 產品照的肩線約在圖片高度 35%；把該位置鎖在真人雙肩中點。
-  ctx.drawImage(tex, -W / 2, -H * .35, W, H);
+  ctx.filter = `brightness(${Math.max(.75, Math.min(1.15, light))}) saturate(.97)`;
+  for (const sleeve of rig.sleeves.filter((s) => s.z < rig.bodyZ)) drawTextureMesh(ctx, arm, sleeve.point, 5, 10);
+  drawTextureMesh(ctx, body, rig.bodyPoint, 8, 14);
+  for (const sleeve of rig.sleeves.filter((s) => s.z >= rig.bodyZ)) drawTextureMesh(ctx, arm, sleeve.point, 5, 10);
   ctx.restore();
   return true;
 }
