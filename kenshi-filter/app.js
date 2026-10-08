@@ -1,6 +1,6 @@
 import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, placePose } from './ar.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawAnimeOutfit, placePose } from './ar.js';
 import { Stage3D } from './render3d.js';
 
 const stage3d = new Stage3D();
@@ -204,6 +204,12 @@ function gearChips() {
   $('gear').replaceChildren(...OUTFITS.map(([id, l]) => mk('outfit', id, l)), sep, ...WEAPON_CHOICES.map(([id, l]) => mk('weapon', id, l)));
 }
 gearChips();
+$('customizeBtn').onclick = () => {
+  const open = $('customizer').hidden;
+  $('customizer').hidden = !open;
+  $('customizeBtn').setAttribute('aria-expanded', String(open));
+  $('customizeBtn').textContent = open ? '收起' : '造型';
+};
 // 目前畫面上的角色：角色資料＋換過的武器（同一組合回傳同一個物件，3D 舞台才不會每幀重建）
 const gearCache = new Map();
 function gear(id = state.char) {
@@ -260,6 +266,9 @@ let modelReady = null;
 async function openCam(origin = 'result') {
   state.camOrigin = origin;
   show('cam');
+  $('customizer').hidden = true;
+  $('customizeBtn').setAttribute('aria-expanded', 'false');
+  $('customizeBtn').textContent = '造型';
   modelReady ||= loadModel();
   syncChips(); updateHint();
   fitStage();
@@ -339,16 +348,22 @@ function loop(now) {
     // 示範人偶：在站姿與招式之間來回
     cam.demoT += 1 / 60;
     const t = (Math.sin(cam.demoT * 1.3) + 1) / 2;
-    const T = Math.min(W, H) * .2;
+    const partialPreview = params.get('flat') === 'partial';
+    const T = Math.min(W, H) * (partialPreview ? .32 : .2);
     ctx.fillStyle = '#231c19'; ctx.fillRect(0, H * .8, W, H * .2);
     kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), { x: W / 2, y: H * .55 }, T);
+    if (partialPreview) for (const k of ['le', 're', 'lw', 'rw']) kp[k].v = .1;
   }
 
   drawAtmosphere(ctx, W, H, c, kp, now);
+  const flatPreview = params.has('flat');
+  if (kp && (!cam.demo || flatPreview)) drawAnimeOutfit(ctx, kp, c, state.outfit);
 
   // 2. 招式吻合度
   let res = null, guide = null;
-  if (kp && state.mode === 'move' && now - cam.firedAt > 1600) {
+  const handReady = (s) => kp?.[s + 'e']?.v > .5 && kp?.[s + 'w']?.v > .48;
+  const armsReady = c.move.hand === 'both' ? handReady('l') && handReady('r') : handReady(c.move.hand);
+  if (kp && armsReady && state.mode === 'move' && now - cam.firedAt > 1600) {
     res = matchPose(kp, c.move.pose);
     cam.match += (res.score - cam.match) * .3;
     guide = guidePose(kp, c, res);
@@ -356,20 +371,20 @@ function loop(now) {
       cam.hold ||= now;
       if (now - cam.hold > 650) { cam.firedAt = now; cam.cool = now + 3200; cam.hold = 0; cam.shotAt = now + 450; }
     } else cam.hold = 0;
-  } else if (!kp) { cam.match = 0; cam.hold = 0; }
+  } else if (!kp || !armsReady) { cam.match = 0; cam.hold = 0; }
   const pct = Math.round(Math.min(1, Math.max(0, (cam.match - .35) / .45)) * 100);
-  $('meterText').textContent = kp ? (cam.hold ? '保持住！' : `招式吻合 ${pct}%`) : '找不到人，退後一點';
+  $('meterText').textContent = !kp ? '找不到人，退後一點' : !armsReady ? '請讓雙手入鏡' : (cam.hold ? '保持住！' : `招式吻合 ${pct}%`);
   $('meterBar').style.width = (kp ? pct : 0) + '%';
 
   // 3. 3D 服裝與武器（招式框的淡影一起畫）
   stage3d.setCharacter(c);
   if (kp || guide) {
     const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
-    const wp = kp && weaponPose(kp, c, c.move.blade, cam.demo ? 1 : assist);
+    const wp = kp && armsReady && weaponPose(kp, c, c.move.blade, cam.demo ? 1 : assist);
     // 招式發動時吹一陣風：衣服往刀的反方向翻飛
     const ft0 = (now - cam.firedAt) / 1000, gust = cam.firedAt && ft0 < 1.4 ? (1 - ft0 / 1.4) * (wp?.T || 0) * (1.2 + .4 * Math.sin(now / 45)) : 0;
     const bd = c.move.blade, wind = gust ? { x: -bd[0] * gust, y: -bd[1] * gust - gust * .2 } : null;
-    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1, now, wind, outfit: state.outfit }), 0, 0);
+    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1, now, wind, outfit: state.outfit, showOutfit: cam.demo && !flatPreview }), 0, 0);
     if (guide) drawGuide(ctx, guide.tg, c, res, (Math.sin(now / 250) + 1) / 2);
     if (wp) {
       const b0 = wp.blades[0], R = stage3d.reach(wp.T);

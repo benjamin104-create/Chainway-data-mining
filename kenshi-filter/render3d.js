@@ -509,7 +509,7 @@ export class Stage3D {
   }
   // 刀尖在畫面上的位置（給刀光殘影用）
   reach(T) { return (this.weapons?.[0].userData.reach || 2) * T; }
-  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light, now, wind, outfit:'full'|'haori' }
+  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light, now, wind, outfit, showOutfit }
   render(W, H, opts) {
     const r = this.renderer;
     if (this.canvas.width !== W || this.canvas.height !== H) {
@@ -526,11 +526,12 @@ export class Stage3D {
       grp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(b.dir.x, -b.dir.y, 0).normalize());
       grp.scale.setScalar(T);
     };
+    const showOutfit = opts.showOutfit !== false;
     this.outfit.setMode(opts.outfit || 'full'); this.ghost.setMode(opts.outfit || 'full');
-    this.outfit.group.visible = !!opts.kp;
-    if (opts.kp) this.outfit.update(opts.kp, { now: opts.now, wind: opts.wind });
-    this.ghost.group.visible = !!opts.ghostKp;
-    if (opts.ghostKp) { this.ghost.update(opts.ghostKp); this.ghost.group.position.z = -2000; }
+    this.outfit.group.visible = showOutfit && !!opts.kp;
+    if (showOutfit && opts.kp) this.outfit.update(opts.kp, { now: opts.now, wind: opts.wind });
+    this.ghost.group.visible = showOutfit && !!opts.ghostKp;
+    if (showOutfit && opts.ghostKp) { this.ghost.update(opts.ghostKp); this.ghost.group.position.z = -2000; }
     this.doll.group.visible = !!(opts.doll && opts.kp);
     if (opts.doll && opts.kp) this.doll.update(opts.kp);
     this.weapons.forEach((g, i) => place(g, opts.kp && opts.blades?.[i], opts.kp));

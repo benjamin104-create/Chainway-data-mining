@@ -88,6 +88,11 @@ export function tile(kind, c1, c2, S = 64) {
       for (let i = 1; i <= 4; i++) g.lineTo(i * S / 4, y0 + (i % 2 ? -S / 8 : S / 8));
       g.stroke();
     }
+  } else if (kind === 'uroko') {         // 鱗：規整白色三角
+    g.fillStyle = c2;
+    for (let row = 0, y = 12; y < S; row++, y += 22) for (let x = row % 2 ? 12 : 0; x < S; x += 24) {
+      g.beginPath(); g.moveTo(x, y - 7); g.lineTo(x + 7, y + 6); g.lineTo(x - 7, y + 6); g.closePath(); g.fill();
+    }
   } else if (kind === 'hishi') {         // 菱：斜向的菱形格子
     g.lineWidth = 3.5;
     g.beginPath(); g.moveTo(0, S / 2); g.lineTo(S / 2, 0); g.lineTo(S, S / 2); g.lineTo(S / 2, S); g.closePath(); g.stroke();
@@ -102,6 +107,71 @@ export function tile(kind, c1, c2, S = 64) {
   }
   tileCache.set(key, cv);
   return cv;
+}
+
+// ── 真人相機用的 2D 動畫羽織 ─────────────────────────
+// 3D 寬袖在手肘／手腕離開畫面時容易被錯誤骨架拉成球狀。真人模式改用平面剪影：
+// 輪廓仍跟著骨架，但尺寸只由肩寬與穩定軀幹比例決定；看不到手臂時就不畫袖子。
+export function drawAnimeOutfit(ctx, kp, ch, mode = 'haori') {
+  if (!kp?.ls || !kp?.rs || !kp?.lh || !kp?.rh) return;
+  const { hip, sh, T: rawT, up, side } = frame(kp);
+  const shoulderW = dist(kp.ls, kp.rs);
+  const T = Math.max(36, Math.min(rawT, shoulderW * 1.65));
+  if (!Number.isFinite(T) || shoulderW < 24) return;
+  const down = mul(up, -1), neck = mid(kp.ls, kp.rs);
+  const pt = (base, sx, dy) => add(add(base, mul(side, sx * T)), mul(down, dy * T));
+  // 鱗紋縮小，比例更接近原作服裝，也避免手機近拍時看起來像大面積幾何貼紙。
+  const tileSize = ch.pattern === 'uroko' ? 58 : 76;
+  const pattern = ctx.createPattern(tile(ch.pattern, ch.haori, ch.haori2, tileSize), 'repeat');
+  const line = Math.max(4, T * .045);
+  const makePath = (pts) => {
+    const p = new Path2D(); p.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) p.lineTo(pts[i].x, pts[i].y);
+    p.closePath(); return p;
+  };
+  const paint = (p, fill, alpha = .96) => {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(0,0,0,.48)'; ctx.shadowBlur = T * .12; ctx.shadowOffsetY = T * .035;
+    ctx.fillStyle = fill; ctx.fill(p); ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#130d0c'; ctx.lineWidth = line; ctx.stroke(p); ctx.restore();
+  };
+
+  // 全套內襯：簡單的深色貼身剪影，不再用有厚度的圓管。
+  if (mode === 'full') {
+    const inner = makePath([pt(neck, -.23, .02), pt(neck, .23, .02), pt(hip, .28, .64), pt(hip, -.28, .64)]);
+    paint(inner, ch.inner, .98);
+    ctx.save(); ctx.strokeStyle = ch.trim; ctx.lineWidth = T * .06; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(pt(hip, -.28, .04).x, pt(hip, -.28, .04).y); ctx.lineTo(pt(hip, .28, .04).x, pt(hip, .28, .04).y); ctx.stroke(); ctx.restore();
+  }
+
+  // 左右前襟分開，中央保留一道真人衣服，避免整片塑膠感。
+  const hemDrop = ch.silhouette?.hem === -1.48 ? .72 : .88;
+  const flare = ch.silhouette?.flare || 1;
+  const left = makePath([
+    pt(neck, -.04, .02), kp.ls, pt(hip, -.52 * flare, hemDrop), pt(hip, -.08, hemDrop * .96), pt(hip, -.05, .02),
+  ]);
+  const right = makePath([
+    pt(neck, .04, .02), kp.rs, pt(hip, .52 * flare, hemDrop), pt(hip, .08, hemDrop * .96), pt(hip, .05, .02),
+  ]);
+  paint(left, pattern); paint(right, pattern);
+
+  // 只有手肘與手腕可靠入鏡時才畫袖子；這是避免近拍時出現巨大球體的關鍵。
+  for (const s of ['l', 'r']) {
+    const e = kp[s + 'e'], w = kp[s + 'w'], shoulder = kp[s + 's'];
+    if (!e || !w || e.v < .55 || w.v < .5 || shoulder.v < .65) continue;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#130d0c'; ctx.lineWidth = T * .34; ctx.beginPath(); ctx.moveTo(shoulder.x, shoulder.y); ctx.lineTo(e.x, e.y); ctx.lineTo(w.x, w.y); ctx.stroke();
+    ctx.strokeStyle = pattern; ctx.lineWidth = T * .27; ctx.stroke();
+    ctx.strokeStyle = ch.trim; ctx.lineWidth = T * .035; ctx.beginPath(); ctx.arc(w.x, w.y, T * .14, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+
+  // 動畫式白色衣襟與腰帶，讓平面剪影讀起來仍像完整服裝。
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#140d0b'; ctx.lineWidth = T * .085;
+  ctx.beginPath(); ctx.moveTo(pt(neck, -.04, .02).x, pt(neck, -.04, .02).y); ctx.lineTo(pt(hip, -.06, .7).x, pt(hip, -.06, .7).y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pt(neck, .04, .02).x, pt(neck, .04, .02).y); ctx.lineTo(pt(hip, .06, .7).x, pt(hip, .06, .7).y); ctx.stroke();
+  ctx.strokeStyle = ch.trim; ctx.lineWidth = T * .038;
+  ctx.beginPath(); ctx.moveTo(pt(neck, -.04, .02).x, pt(neck, -.04, .02).y); ctx.lineTo(pt(hip, -.06, .7).x, pt(hip, -.06, .7).y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pt(neck, .04, .02).x, pt(neck, .04, .02).y); ctx.lineTo(pt(hip, .06, .7).x, pt(hip, .06, .7).y); ctx.stroke(); ctx.restore();
 }
 // ── 武器的位置與方向（3D 模型在 render3d.js）──────────
 // 依手的位置估刀的方向；招式吻合度越高，越貼近招式預先算好的方向
