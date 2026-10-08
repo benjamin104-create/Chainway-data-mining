@@ -1,5 +1,5 @@
 // 把劍士服裝、武器畫在人身上，並計算「招式」姿勢吻合度。
-// 只用 Canvas 2D 畫向量圖形：頭和手露在外面，其他部位（軀幹、手臂、腿）換成羽織、袖子、袴。
+// 服裝與武器的 3D 渲染在 render3d.js；這裡是骨架、比對、刀光與招式特效（Canvas 2D）。
 //
 // 關鍵點格式：{ n, ls, rs, le, re, lw, rw, lh, rh, lk, rk, la, ra } 每個是 { x, y, v }（畫面像素，v = 可見度 0～1）
 // l／r 指畫面左右（前鏡頭已鏡像，所以像照鏡子）
@@ -13,8 +13,8 @@ export function fromLandmarks(lms, map, mirror) {
     let idx = MP[k];
     if (k !== 'n' && !mirror) idx = MP[(k[0] === 'l' ? 'r' : 'l') + k.slice(1)];
     const p = lms[idx];
-    const [x, y] = map(p.x, p.y);
-    kp[k] = { x, y, v: p.visibility ?? 1 };
+    const [x, y, z] = map(p.x, p.y, p.z);
+    kp[k] = { x, y, z, v: p.visibility ?? 1 };
   }
   return kp;
 }
@@ -28,7 +28,7 @@ export function smooth(prev, next, base = .45) {
     if (!a) { out[k] = b; continue; }
     const d = Math.hypot(b.x - a.x, b.y - a.y);
     const t = Math.min(1, base + d / 120);
-    out[k] = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, v: b.v };
+    out[k] = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: b.z == null ? b.z : (a.z ?? b.z) + (b.z - (a.z ?? b.z)) * Math.min(1, t * .6), v: b.v };
   }
   return out;
 }
@@ -57,11 +57,12 @@ export function frame(kp) {
 
 // ── 和風紋樣：每種紋樣畫成一小塊磁磚，再用 pattern 平鋪 ──────────
 const tileCache = new Map();
-function tile(kind, c1, c2) {
-  const key = kind + c1 + c2;
+export function tile(kind, c1, c2, S = 64) {
+  const key = kind + c1 + c2 + S;
   if (tileCache.has(key)) return tileCache.get(key);
-  const S = 64, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
   const g = cv.getContext('2d');
+  g.scale(S / 64, S / 64); S = 64;
   g.fillStyle = c1; g.fillRect(0, 0, S, S);
   g.strokeStyle = c2; g.fillStyle = c2; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
   if (kind === 'shippo') {               // 七寶：圓圈交疊
@@ -101,101 +102,7 @@ function tile(kind, c1, c2) {
   tileCache.set(key, cv);
   return cv;
 }
-function patternFill(ctx, ch, angle, scale, origin) {
-  const p = ctx.createPattern(tile(ch.pattern, ch.haori, ch.haori2), 'repeat');
-  if (p && p.setTransform && typeof DOMMatrix !== 'undefined') {
-    p.setTransform(new DOMMatrix().translate(origin.x, origin.y).rotate(angle * 180 / Math.PI).scale(scale));
-  }
-  return p || ch.haori;
-}
-
-function poly(ctx, pts) { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath(); }
-function shape(ctx, pts, fill, line, lw) { poly(ctx, pts); ctx.fillStyle = fill; ctx.fill(); if (line) { ctx.strokeStyle = line; ctx.lineWidth = lw; ctx.stroke(); } }
-
-// 一段「粗管子」：從 a 到 b，寬度從 wa 漸變到 wb
-function tube(a, b, wa, wb) {
-  const d = norm(sub(b, a)), n = perp(d);
-  return [add(a, mul(n, wa / 2)), add(b, mul(n, wb / 2)), sub(b, mul(n, wb / 2)), sub(a, mul(n, wa / 2))];
-}
-
-// ── 服裝 ───────────────────────────────────
-// opts.alpha：透明度（招式框用淡淡的）　opts.H：畫面高度（腿看不到時延伸到畫面外）
-export function drawCostume(ctx, kp, ch, opts = {}) {
-  const { hip, sh, T, up, side } = frame(kp);
-  const down = mul(up, -1);
-  const lw = Math.max(2, T * .028), ink = '#120d0b';
-  const angle = Math.atan2(side.y, side.x);
-  const pscale = T / 150;
-  ctx.save();
-  ctx.globalAlpha = opts.alpha ?? 1;
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-
-  // 腿（袴）：看不到腳的時候往下延伸
-  for (const s of ['l', 'r']) {
-    const h = kp[s + 'h'];
-    const hOut = add(h, mul(side, (s === 'l' ? -1 : 1) * T * .06));
-    let k = kp[s + 'k'], a = kp[s + 'a'];
-    if (!k || k.v < .35) k = add(hOut, mul(down, T * 1.05));
-    if (!a || a.v < .35) a = add(k, mul(norm(sub(k, hOut)), T * 1.0));
-    const thigh = tube(hOut, k, T * .42, T * .44), shin = tube(k, a, T * .44, T * .54);
-    shape(ctx, thigh, ch.hakama, ink, lw);
-    shape(ctx, shin, ch.hakama, ink, lw);
-    // 袴的褶線
-    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = lw * .7;
-    ctx.beginPath(); ctx.moveTo(hOut.x, hOut.y); ctx.lineTo(a.x, a.y); ctx.stroke();
-  }
-
-  // 軀幹：羽織（肩比實際寬一點，側身時也蓋得住）
-  const shW = Math.max(dist(kp.ls, kp.rs) / 2, T * .24) * 1.18;
-  const hipW = Math.max(dist(kp.lh, kp.rh) / 2, T * .2) * 1.5;
-  const hem = add(hip, mul(down, T * .72));
-  const P = (base, sx, ux) => add(add(base, mul(side, sx)), mul(up, ux));
-  const neckL = P(sh, -T * .1, T * .04), neckR = P(sh, T * .1, T * .04);
-  const body = [P(sh, -shW, -T * .02), neckL, neckR, P(sh, shW, -T * .02), P(hem, hipW * 1.1, 0), P(hem, -hipW * 1.1, 0)];
-  // 內襯（羽織敞開露出的上衣）
-  const inner = [neckL, neckR, P(hip, T * .2, T * .05), P(hem, T * .16, 0), P(hem, -T * .16, 0), P(hip, -T * .2, T * .05)];
-  shape(ctx, body, patternFill(ctx, ch, angle, pscale, sh), ink, lw);
-  shape(ctx, inner, ch.inner, ink, lw * .8);
-  // 衣襟
-  ctx.strokeStyle = ch.trim; ctx.lineWidth = lw * 1.6;
-  ctx.beginPath(); ctx.moveTo(neckL.x, neckL.y); ctx.lineTo(P(hip, -T * .2, T * .05).x, P(hip, -T * .2, T * .05).y); ctx.lineTo(P(hem, -T * .16, 0).x, P(hem, -T * .16, 0).y);
-  ctx.moveTo(neckR.x, neckR.y); ctx.lineTo(P(hip, T * .2, T * .05).x, P(hip, T * .2, T * .05).y); ctx.lineTo(P(hem, T * .16, 0).x, P(hem, T * .16, 0).y); ctx.stroke();
-  // 腰帶
-  shape(ctx, [P(hip, -T * .22, T * .2), P(hip, T * .22, T * .2), P(hip, T * .22, T * .08), P(hip, -T * .22, T * .08)], ch.trim, ink, lw * .7);
-  // 立體感：側邊加一點陰影
-  ctx.save(); poly(ctx, body); ctx.clip();
-  const g = ctx.createLinearGradient(P(sh, -shW, 0).x, P(sh, -shW, 0).y, P(sh, shW, 0).x, P(sh, shW, 0).y);
-  g.addColorStop(0, 'rgba(0,0,0,.28)'); g.addColorStop(.45, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(255,255,255,.08)');
-  ctx.fillStyle = g; ctx.fill(); ctx.restore();
-  // 領口：蓋住原本衣服的領子，只露出脖子
-  shape(ctx, [neckL, neckR, P(sh, 0, -T * .2)], ch.inner, ink, lw * .6);
-
-  // 手臂（寬袖）：袖口停在手腕前，手露出來
-  for (const s of ['l', 'r']) {
-    const S = kp[s + 's'], E = kp[s + 'e'], W = kp[s + 'w'];
-    if (!E || !W || E.v < .2 || W.v < .2) continue;
-    const Sout = add(S, mul(norm(sub(S, sh)), T * .06));
-    const f = norm(sub(W, E)), cuff = sub(W, mul(f, T * .1));
-    // 垂下來的袖兜（往畫面下方垂）
-    const drop = V(0, 1), fe = Math.abs(f.y);          // 前臂越水平，袖兜越明顯
-    const sag = T * (.18 + .3 * (1 - fe));
-    const n = mul(perp(f), perp(f).y >= 0 ? 1 : -1);   // 指向畫面下方的那一側
-    const sleeve = [...tube(Sout, E, T * .4, T * .38)];
-    shape(ctx, sleeve, patternFill(ctx, ch, Math.atan2(E.y - S.y, E.x - S.x), pscale, S), ink, lw);
-    const fore = tube(E, cuff, T * .38, T * .46);
-    const bag = [add(E, mul(n, T * .18)), add(cuff, mul(n, T * .23)), add(add(cuff, mul(n, T * .23)), mul(drop, sag)), add(add(E, mul(n, T * .18)), mul(drop, sag * .6))];
-    shape(ctx, bag, patternFill(ctx, ch, Math.atan2(f.y, f.x), pscale, E), ink, lw);
-    shape(ctx, fore, patternFill(ctx, ch, Math.atan2(f.y, f.x), pscale, E), ink, lw);
-    // 袖口滾邊
-    ctx.strokeStyle = ch.trim; ctx.lineWidth = lw * 1.4;
-    const c1 = add(cuff, mul(perp(f), T * .23)), c2 = sub(cuff, mul(perp(f), T * .23));
-    ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.stroke();
-  }
-  ctx.restore();
-  return { T };
-}
-
-// ── 武器 ───────────────────────────────────
+// ── 武器的位置與方向（3D 模型在 render3d.js）──────────
 // 依手的位置估刀的方向；招式吻合度越高，越貼近招式預先算好的方向
 export function weaponPose(kp, ch, target, matchT) {
   const { T, up } = frame(kp);
@@ -219,59 +126,12 @@ export function weaponPose(kp, ch, target, matchT) {
     const k = Math.min(1, matchT * matchT * 1.4);
     dir = norm(lerp(dir, t, k));
   }
-  const out = [{ grip, dir }];
+  const z = (k) => kp[k]?.z ?? 0;
+  const out = [{ grip, dir, z: both || hand === 'both' ? (z('lw') + z('rw')) / 2 : z('rw') }];
   if (ch.weapon.kind === 'twin') {
-    out.push({ grip: handOf('l'), dir: fore('l') });
+    out.push({ grip: handOf('l'), dir: fore('l'), z: z('lw') });
   }
   return { T, blades: out };
-}
-
-export function drawWeapon(ctx, ch, grip, dir, T, alpha = 1) {
-  const w = ch.weapon, n = perp(dir);
-  const L = T * w.len;
-  ctx.save(); ctx.globalAlpha = alpha; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  const ink = '#120d0b', lw = Math.max(1.5, T * .02);
-  if (w.kind === 'naginata') {
-    // 薙刀：長柄，手握在柄的中段，刀身在前端
-    const butt = sub(grip, mul(dir, L * .35)), neck = add(grip, mul(dir, L * .45));
-    shape(ctx, tube(butt, neck, T * .07, T * .07), w.grip, ink, lw);
-    const tip = add(neck, mul(dir, L * .4)), bow = add(lerp(neck, tip, .5), mul(n, T * .12));
-    ctx.beginPath(); ctx.moveTo(neck.x + n.x * T * .05, neck.y + n.y * T * .05);
-    ctx.quadraticCurveTo(bow.x, bow.y, tip.x, tip.y);
-    ctx.quadraticCurveTo(lerp(neck, tip, .5).x, lerp(neck, tip, .5).y, neck.x - n.x * T * .04, neck.y - n.y * T * .04); ctx.closePath();
-    bladeFill(ctx, ch, neck, tip); ctx.strokeStyle = ink; ctx.lineWidth = lw; ctx.stroke();
-    shape(ctx, tube(sub(neck, mul(dir, T * .04)), add(neck, mul(dir, T * .04)), T * .16, T * .16), w.tsuba, ink, lw);
-    ctx.restore(); return tip;
-  }
-  const gripLen = w.kind === 'twin' ? T * .22 : w.kind === 'odachi' ? T * .55 : T * .38;
-  const butt = sub(grip, mul(dir, gripLen * .45)), guard = add(grip, mul(dir, gripLen * .55));
-  const tip = add(guard, mul(dir, L));
-  const bw = T * (w.kind === 'odachi' ? .11 : w.kind === 'long' ? .06 : .075);
-  // 刀身：微微彎曲
-  const curve = mul(n, -L * .05);
-  ctx.beginPath();
-  ctx.moveTo(guard.x + n.x * bw / 2, guard.y + n.y * bw / 2);
-  const m = add(lerp(guard, tip, .55), curve);
-  ctx.quadraticCurveTo(m.x + n.x * bw / 2, m.y + n.y * bw / 2, tip.x, tip.y);
-  ctx.quadraticCurveTo(m.x - n.x * bw / 2, m.y - n.y * bw / 2, guard.x - n.x * bw / 2, guard.y - n.y * bw / 2);
-  ctx.closePath();
-  bladeFill(ctx, ch, guard, tip); ctx.strokeStyle = ink; ctx.lineWidth = lw; ctx.stroke();
-  // 刀柄（菱形纏繩）
-  shape(ctx, tube(butt, guard, bw * 1.15, bw * 1.15), w.grip, ink, lw);
-  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = lw * .6;
-  for (let i = 1; i < 5; i++) { const a = lerp(butt, guard, i / 5), b = lerp(butt, guard, (i + .5) / 5);
-    ctx.beginPath(); ctx.moveTo(a.x + n.x * bw * .5, a.y + n.y * bw * .5); ctx.lineTo(b.x - n.x * bw * .5, b.y - n.y * bw * .5); ctx.stroke(); }
-  // 刀鍔
-  ctx.beginPath(); ctx.ellipse(guard.x, guard.y, bw * 1.5, bw * .45, Math.atan2(n.y, n.x), 0, Math.PI * 2);
-  ctx.fillStyle = w.tsuba; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = lw; ctx.stroke();
-  ctx.restore();
-  return tip;
-}
-function bladeFill(ctx, ch, a, b) {
-  const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-  g.addColorStop(0, '#dfe6ee'); g.addColorStop(.6, '#ffffff'); g.addColorStop(1, ch.glow);
-  ctx.shadowColor = ch.tint; ctx.shadowBlur = 14;
-  ctx.fillStyle = g; ctx.fill(); ctx.shadowBlur = 0;
 }
 
 // ── 刀光殘影：刀尖移動夠快時畫一道弧 ────────────────
@@ -331,16 +191,18 @@ export function matchPose(kp, pose) {
   return best[0].score >= best[1].score - .02 ? best[0] : best[1];
 }
 
-// 招式框：淡淡的服裝剪影＋虛線輪廓，到位的段落變亮
-export function drawGuide(ctx, kp, ch, res, pulse) {
+// 招式框：目標姿勢放到使用者身上的位置（3D 淡影用）＋刀的位置
+export function guidePose(kp, ch, res) {
   const { hip, T } = frame(kp);
   const tg = placePose(ch.move.pose, hip, T, res?.flip);
-  ctx.save();
-  drawCostume(ctx, tg, ch, { alpha: .28 });
   const blade = ch.move.blade, dir = norm(V(res?.flip ? -blade[0] : blade[0], blade[1]));
   const grip = ch.move.hand === 'both' ? mid(tg.lw, tg.rw) : (res?.flip ? tg.lw : tg.rw);
-  drawWeapon(ctx, ch, grip, dir, T, .3);
-  // 骨架虛線
+  return { tg, blades: [{ grip, dir }] };
+}
+// 招式框的骨架虛線：到位的段落變亮
+export function drawGuide(ctx, tg, ch, res, pulse) {
+  const { T } = frame(tg);
+  ctx.save();
   ctx.setLineDash([T * .08, T * .06]); ctx.lineCap = 'round';
   for (const [a, b] of SEGS) {
     const ok = res?.parts?.[a + b];
@@ -351,7 +213,6 @@ export function drawGuide(ctx, kp, ch, res, pulse) {
     ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
   }
   ctx.setLineDash([]);
-  // 頭的位置圈
   ctx.globalAlpha = .6; ctx.strokeStyle = '#fff'; ctx.lineWidth = T * .025;
   ctx.beginPath(); ctx.arc(tg.n.x, tg.n.y, T * .22, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();

@@ -1,6 +1,9 @@
 import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, drawCostume, weaponPose, drawWeapon, drawTrail, matchPose, drawGuide, drawFinisher, placePose } from './ar.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, placePose } from './ar.js';
+import { Stage3D } from './render3d.js';
+
+const stage3d = new Stage3D();
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -73,7 +76,7 @@ function finish() {
   $('who').textContent = `你是「${t.name}」`;
   $('quote').textContent = `「${t.line}」`;
   for (const k of ['healthy', 'shadow', 'adler', 'maslow', 'try']) $(k).textContent = t[k];
-  drawPortrait($('heroCanvas'), c, 1);
+  drawPortrait($('heroCanvas'), c, params.has('pt') ? +params.get('pt') : .55);
 
   // 和每位劍士的相似度：用分數本身（每一型 0～100）
   const ranked = ORDER.map((id) => [id, state.scores[id]]).sort((a, b) => b[1] - a[1]);
@@ -124,33 +127,11 @@ function blendPose(a, b, t) {
   for (const k in a) out[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t];
   return out;
 }
-function drawMannequin(ctx, kp, c) {
-  const { T } = frame(kp);
-  drawCostume(ctx, kp, c, {});
-  // 手
-  ctx.fillStyle = '#f2d2bb'; ctx.strokeStyle = '#120d0b'; ctx.lineWidth = Math.max(2, T * .025);
-  for (const s of ['l', 'r']) {
-    const w = kp[s + 'w'], e = kp[s + 'e'];
-    const d = Math.hypot(w.x - e.x, w.y - e.y) || 1;
-    const x = w.x + (w.x - e.x) / d * T * .05, y = w.y + (w.y - e.y) / d * T * .05;
-    ctx.beginPath(); ctx.arc(x, y, T * .1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  }
+// 示範人偶：3D 人偶穿上服裝、拿著武器
+function renderDoll(W, H, kp, c, light = 1) {
+  stage3d.setCharacter(c);
   const wp = weaponPose(kp, c, c.move.blade, 1);
-  for (const b of wp.blades) drawWeapon(ctx, c, b.grip, b.dir, T);
-  // 頭：脖子、臉、頭髮
-  const sh = { x: (kp.ls.x + kp.rs.x) / 2, y: (kp.ls.y + kp.rs.y) / 2 };
-  const head = { x: kp.n.x, y: kp.n.y - T * .05 }, r = T * .24;
-  ctx.fillStyle = '#e8c4aa';
-  ctx.beginPath(); ctx.moveTo(sh.x - T * .07, sh.y + T * .02); ctx.lineTo(head.x - T * .07, head.y); ctx.lineTo(head.x + T * .07, head.y); ctx.lineTo(sh.x + T * .07, sh.y + T * .02); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#f2d2bb';
-  ctx.beginPath(); ctx.ellipse(head.x, head.y, r * .82, r, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#1b1414';
-  ctx.beginPath(); ctx.ellipse(head.x, head.y - r * .35, r * .95, r * .72, 0, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(head.x - r * .9, head.y - r * .3); ctx.lineTo(head.x - r * .3, head.y - r * .1); ctx.lineTo(head.x, head.y - r * .5);
-  ctx.lineTo(head.x + r * .35, head.y - r * .12); ctx.lineTo(head.x + r * .92, head.y - r * .3); ctx.lineTo(head.x + r * .8, head.y - r * .9); ctx.lineTo(head.x - r * .8, head.y - r * .9); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = c.trim; ctx.fillRect(head.x - r * .9, head.y - r * .62, r * 1.8, r * .14);   // 頭帶
-  ctx.fillStyle = '#1b1414';
-  for (const dx of [-.32, .32]) { ctx.beginPath(); ctx.ellipse(head.x + dx * r, head.y + r * .12, r * .08, r * .13, 0, 0, Math.PI * 2); ctx.fill(); }
+  return stage3d.render(W, H, { kp, blades: wp.blades, doll: true, light });
 }
 function drawPortrait(cv, c, t) {
   const ctx = cv.getContext('2d');
@@ -158,16 +139,14 @@ function drawPortrait(cv, c, t) {
   const T = cv.height * .2;
   const pose = blendPose(NEUTRAL, c.move.pose, t);
   const kp = placePose(pose, { x: cv.width / 2, y: cv.height * .5 }, T);
-  ctx.save(); ctx.globalAlpha = .9;
-  drawMannequin(ctx, kp, c);
-  ctx.restore();
+  ctx.drawImage(renderDoll(cv.width, cv.height, kp, c), 0, 0);
 }
 
 // ── AR 相機 ─────────────────────────────────
 const stage = $('stage'), sctx = stage.getContext('2d');
 const video = document.createElement('video');
 video.playsInline = true; video.muted = true; video.setAttribute('playsinline', '');
-const cam = { stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
+const cam = { frame: 0, stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
 
 const MODES = [['move', '招式挑戰'], ['free', '自由揮刀']];
 $('modes').replaceChildren(...MODES.map(([id, label]) => {
@@ -253,6 +232,18 @@ function stopCamera() { stopStream(); cancelAnimationFrame(cam.raf); }
 $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; cam.kp = null; startCamera(); };
 $('camBack').onclick = () => show('result');
 
+// 估計現場亮度（0.4～1.4），讓衣服的打光跟環境接近
+const lightC = document.createElement('canvas'); lightC.width = lightC.height = 8;
+function videoLight() {
+  try {
+    const g = lightC.getContext('2d', { willReadFrequently: true });
+    g.drawImage(video, 0, 0, 8, 8);
+    const d = g.getImageData(0, 0, 8, 8).data;
+    let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * .3 + d[i + 1] * .59 + d[i + 2] * .11;
+    return Math.min(1.4, Math.max(.4, s / 64 / 255 * 2.2));
+  } catch { return 1; }
+}
+
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   const W = stage.width, H = stage.height, ctx = sctx;
@@ -270,12 +261,13 @@ function loop(now) {
     if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); }
     ctx.drawImage(video, dx, dy, dw, dh);
     ctx.restore();
+    if (!(cam.frame++ % 20)) cam.light = videoLight();
     if (cam.pose && video.currentTime !== cam.lastVideoTime) {
       cam.lastVideoTime = video.currentTime;
       const res = cam.pose.detectForVideo(video, now);
       const lms = res.landmarks?.[0];
       if (lms) {
-        const map = (x, y) => [mirror ? W - (dx + x * dw) : dx + x * dw, dy + y * dh];
+        const map = (x, y, z) => [mirror ? W - (dx + x * dw) : dx + x * dw, dy + y * dh, -(z || 0) * dw];
         const raw = fromLandmarks(lms, map, mirror);
         if (raw.ls.v > .5 && raw.rs.v > .5 && raw.lh.v > .3 && raw.rh.v > .3) { cam.kp = smooth(cam.kp, raw); cam.lastSeen = now; }
       }
@@ -290,12 +282,12 @@ function loop(now) {
     kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), { x: W / 2, y: H * .55 }, T);
   }
 
-  // 2. 招式框與吻合度
-  let res = null;
+  // 2. 招式吻合度
+  let res = null, guide = null;
   if (kp && state.mode === 'move' && now - cam.firedAt > 1600) {
     res = matchPose(kp, c.move.pose);
     cam.match += (res.score - cam.match) * .3;
-    drawGuide(ctx, kp, c, res, (Math.sin(now / 250) + 1) / 2);
+    guide = guidePose(kp, c, res);
     if (cam.match > .8 && now > cam.cool) {
       cam.hold ||= now;
       if (now - cam.hold > 650) { cam.firedAt = now; cam.cool = now + 3200; cam.hold = 0; cam.shotAt = now + 450; }
@@ -305,19 +297,20 @@ function loop(now) {
   $('meterText').textContent = kp ? (cam.hold ? '保持住！' : `招式吻合 ${pct}%`) : '找不到人，退後一點';
   $('meterBar').style.width = (kp ? pct : 0) + '%';
 
-  // 3. 服裝與武器
-  if (kp) {
-    if (cam.demo) drawMannequin(ctx, kp, c);
-    else {
-      drawCostume(ctx, kp, c, { H });
-      const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
-      const wp = weaponPose(kp, c, c.move.blade, assist);
-      let tip = null;
-      for (const b of wp.blades) { const t = drawWeapon(ctx, c, b.grip, b.dir, wp.T); tip ||= t; }
+  // 3. 3D 服裝與武器（招式框的淡影一起畫）
+  stage3d.setCharacter(c);
+  if (kp || guide) {
+    const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
+    const wp = kp && weaponPose(kp, c, c.move.blade, cam.demo ? 1 : assist);
+    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1 }), 0, 0);
+    if (guide) drawGuide(ctx, guide.tg, c, res, (Math.sin(now / 250) + 1) / 2);
+    if (wp) {
+      const b0 = wp.blades[0], R = stage3d.reach(wp.T);
+      const tip = { x: b0.grip.x + b0.dir.x * R, y: b0.grip.y + b0.dir.y * R };
       const last = cam.trail.at(-1);
-      if (tip && (!last || Math.hypot(tip.x - last.x, tip.y - last.y) > wp.T * .04)) cam.trail.push({ x: tip.x, y: tip.y, t: now });
+      if (!last || Math.hypot(tip.x - last.x, tip.y - last.y) > wp.T * .04) cam.trail.push({ x: tip.x, y: tip.y, t: now });
       cam.trail = cam.trail.filter((p) => now - p.t < 280);
-      drawTrail(ctx, cam.trail, c, wp.T);
+      if (!cam.demo) drawTrail(ctx, cam.trail, c, wp.T);
     }
   }
 

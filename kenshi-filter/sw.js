@@ -1,7 +1,7 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'kata-v1';
-const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
-  'lib/vision_bundle.mjs', 'models/pose_landmarker_lite.task'];
+const CACHE = 'kata-v2';
+const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'render3d.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
+  'lib/vision_bundle.mjs', 'lib/three.module.min.js', 'lib/RoomEnvironment.js', 'models/pose_landmarker_lite.task'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
