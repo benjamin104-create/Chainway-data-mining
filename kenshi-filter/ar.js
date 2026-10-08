@@ -19,16 +19,43 @@ export function fromLandmarks(lms, map, mirror) {
   return kp;
 }
 
-// 平滑：避免抖動（速度快時跟得比較緊）
-export function smooth(prev, next, base = .45) {
+// 人體追蹤穩定器：以肩膀＋髖部建立每幀的「身體座標」，再讓各關節相對跟隨。
+// 這樣真人左右移動、靠近／遠離、側身時，AR 會一起平移、縮放與旋轉；
+// 某個關節瞬間誤判時也不會把衣服或武器拉飛。
+export function smooth(prev, next, base = .38) {
   if (!prev) return next;
+  const pf = frame(prev), nf = frame(next);
+  const pc = { x: (pf.sh.x + pf.hip.x) / 2, y: (pf.sh.y + pf.hip.y) / 2 };
+  const ncRaw = { x: (nf.sh.x + nf.hip.x) / 2, y: (nf.sh.y + nf.hip.y) / 2 };
+  const maxShift = Math.max(18, pf.T * .42);
+  const shiftX = ncRaw.x - pc.x, shiftY = ncRaw.y - pc.y;
+  const shiftLen = Math.hypot(shiftX, shiftY) || 1;
+  const moveK = Math.min(1, maxShift / shiftLen);
+  const nc = { x: pc.x + shiftX * moveK, y: pc.y + shiftY * moveK };
+  const scale = Math.max(.78, Math.min(1.28, nf.T / pf.T));
+  const pa = Math.atan2(pf.up.y, pf.up.x), na = Math.atan2(nf.up.y, nf.up.x);
+  let da = na - pa;
+  while (da > Math.PI) da -= Math.PI * 2;
+  while (da < -Math.PI) da += Math.PI * 2;
+  da = Math.max(-.18, Math.min(.18, da));
+  const cs = Math.cos(da), sn = Math.sin(da);
   const out = {};
   for (const k in next) {
     const a = prev[k], b = next[k];
     if (!a) { out[k] = b; continue; }
-    const d = Math.hypot(b.x - a.x, b.y - a.y);
-    const t = Math.min(1, base + d / 120);
-    out[k] = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: b.z == null ? b.z : (a.z ?? b.z) + (b.z - (a.z ?? b.z)) * Math.min(1, t * .6), v: b.v };
+    const rx = (a.x - pc.x) * scale, ry = (a.y - pc.y) * scale;
+    const predicted = { x: nc.x + rx * cs - ry * sn, y: nc.y + rx * sn + ry * cs };
+    const confidence = Math.max(0, Math.min(1, b.v ?? 1));
+    const residual = Math.hypot(b.x - predicted.x, b.y - predicted.y);
+    const dynamic = Math.min(.3, residual / Math.max(80, pf.T * 3));
+    const torso = k === 'ls' || k === 'rs' || k === 'lh' || k === 'rh';
+    const t = confidence < .42 ? 0 : Math.min(.72, base + dynamic + (torso ? -.08 : .08));
+    out[k] = {
+      x: predicted.x + (b.x - predicted.x) * t,
+      y: predicted.y + (b.y - predicted.y) * t,
+      z: b.z == null ? b.z : (a.z ?? b.z) + (b.z - (a.z ?? b.z)) * Math.min(.7, Math.max(.18, t * .65)),
+      v: confidence,
+    };
   }
   return out;
 }

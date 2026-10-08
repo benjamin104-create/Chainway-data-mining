@@ -340,18 +340,35 @@ function loop(now) {
       if (lms) {
         const map = (x, y, z) => [mirror ? W - (dx + x * dw) : dx + x * dw, dy + y * dh, -(z || 0) * dw];
         const raw = fromLandmarks(lms, map, mirror);
-        if (raw.ls.v > .5 && raw.rs.v > .5 && raw.lh.v > .3 && raw.rh.v > .3) { cam.kp = smooth(cam.kp, raw); cam.lastSeen = now; }
+        const rf = frame(raw), shoulderW = Math.hypot(raw.rs.x - raw.ls.x, raw.rs.y - raw.ls.y);
+        const bodyRatio = shoulderW / rf.T;
+        // 肩、髖構成可信的人體框才更新；排除背景誤判與瞬間被拉長的骨架。
+        const torsoReady = raw.ls.v > .5 && raw.rs.v > .5 && raw.lh.v > .3 && raw.rh.v > .3
+          && rf.T > Math.min(W, H) * .055 && bodyRatio > .35 && bodyRatio < 2.2;
+        if (torsoReady) { cam.kp = smooth(cam.kp, raw); cam.lastSeen = now; }
       }
     }
     if (now - cam.lastSeen < 400) kp = cam.kp;
+    else if (cam.kp) { cam.kp = null; cam.trail = []; }
   } else if (cam.demo) {
     // 示範人偶：在站姿與招式之間來回
     cam.demoT += 1 / 60;
     const t = (Math.sin(cam.demoT * 1.3) + 1) / 2;
     const partialPreview = params.get('flat') === 'partial';
-    const T = Math.min(W, H) * (partialPreview ? .32 : .2);
+    const trackingPreview = params.has('track');
+    const T = Math.min(W, H) * (partialPreview ? .32 : .2) * (trackingPreview ? .9 + Math.sin(cam.demoT * .7) * .16 : 1);
     ctx.fillStyle = '#231c19'; ctx.fillRect(0, H * .8, W, H * .2);
-    kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), { x: W / 2, y: H * .55 }, T);
+    const anchor = trackingPreview
+      ? { x: W * (.5 + Math.sin(cam.demoT * .9) * .22), y: H * (.54 + Math.cos(cam.demoT * .6) * .06) }
+      : { x: W / 2, y: H * .55 };
+    kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), anchor, T);
+    if (trackingPreview) {
+      const angle = Math.sin(cam.demoT * .65) * .16, cs = Math.cos(angle), sn = Math.sin(angle);
+      for (const p of Object.values(kp)) {
+        const x = p.x - anchor.x, y = p.y - anchor.y;
+        p.x = anchor.x + x * cs - y * sn; p.y = anchor.y + x * sn + y * cs;
+      }
+    }
     if (partialPreview) for (const k of ['le', 're', 'lw', 'rw']) kp[k].v = .1;
   }
 
