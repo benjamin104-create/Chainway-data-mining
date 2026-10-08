@@ -80,8 +80,8 @@ async function loadArt(id) {
   return (art[id] = cutout(img));
 }
 function cutout(img) {
-  // 放大三倍再去背：原圖小，直接去背邊緣會一格一格；放大後邊緣比較平滑
-  const K = 3, w = img.naturalWidth * K, h = img.naturalHeight * K, N = w * h;
+  // 小圖先放大再去背（邊緣才不會一格一格）；已經是高清圖就直接用
+  const K = Math.max(1, Math.min(3, Math.round(560 / img.naturalWidth))), w = img.naturalWidth * K, h = img.naturalHeight * K, N = w * h;
   const c = mk(w, h), g = c.getContext('2d', { willReadFrequently: true });
   g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, w, h);
   const im = g.getImageData(0, 0, w, h), d = im.data;
@@ -94,8 +94,11 @@ function cutout(img) {
   const B = bn ? [br / bn, bgc / bn, bb / bn] : [255, 255, 255];
   const dist = (i) => Math.max(Math.abs(d[i] - B[0]), Math.abs(d[i + 1] - B[1]), Math.abs(d[i + 2] - B[2]));
   const T0 = 12, T1 = 64, FLOOD = 34;          // 與背景差 <T0 全透明、>T1 全不透明，中間漸變
-  // 1. 從四邊往內灌水：連到邊緣、接近背景色的才算背景，角色身上的白色不會被挖掉
-  const bgm = new Uint8Array(N), stack = edgePx.slice();
+  // 1. 從上、左、右三邊往內灌水：連到邊緣、接近背景色的才算背景。
+  //    不從下緣開始：半身像的白衣服延伸到圖的下緣，從那裡灌會把衣服挖掉（破相）
+  const bgm = new Uint8Array(N), stack = [];
+  for (let x = 0; x < w; x++) stack.push(x);
+  for (let y = 0; y < h; y++) stack.push(y * w, y * w + w - 1);
   while (stack.length) {
     const p = stack.pop();
     if (bgm[p]) continue;
@@ -108,17 +111,17 @@ function cutout(img) {
   // 2. 被包住的白色空隙（手臂與身體之間）：很接近背景色、面積夠大的才挖掉
   const lab = new Uint8Array(N);
   for (let s0 = 0; s0 < N; s0++) {
-    if (bgm[s0] || lab[s0] || dist(s0 * 4) >= 6) continue;
+    if (bgm[s0] || lab[s0] || dist(s0 * 4) >= 4) continue;
     const comp = [], st = [s0]; lab[s0] = 1;
     while (st.length) {
       const p = st.pop(); comp.push(p);
       const x = p % w;
       for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w]) {
-        if (q < 0 || q >= N || lab[q] || bgm[q] || dist(q * 4) >= 6) continue;
+        if (q < 0 || q >= N || lab[q] || bgm[q] || dist(q * 4) >= 4) continue;
         lab[q] = 1; st.push(q);
       }
     }
-    if (comp.length > N * .004) for (const p of comp) bgm[p] = 2;
+    if (comp.length > N * .006) for (const p of comp) bgm[p] = 2;   // 只挖和背景幾乎一模一樣的大空隙，白衣服有陰影不會被挖
   }
   // 3. 透明度：背景區依色差漸變；緊貼背景的角色邊緣也依色差柔化，並把混進去的白色扣掉
   const near = (p) => { const x = p % w; return (x > 0 && bgm[p - 1]) || (x < w - 1 && bgm[p + 1]) || (p >= w && bgm[p - w]) || (p < N - w && bgm[p + w]); };
@@ -131,6 +134,18 @@ function cutout(img) {
     if (a < 1 && a > 0) for (let k = 0; k < 3; k++) d[i + k] = Math.max(0, Math.min(255, (d[i + k] - (1 - a) * B[k]) / a));
     d[i + 3] = Math.round(d[i + 3] * a);
     if (d[i + 3] > 24) { const x = p % w, y = (p / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  // 4. 被圖框切到的地方（半身像的下緣、手臂的兩側）慢慢淡出，不會像身體被一刀切斷
+  if (x1 > x0) {
+    const fadeB = y1 >= h - 3 ? (y1 - y0) * .16 : 0, fadeL = x0 <= 2 ? (x1 - x0) * .07 : 0, fadeR = x1 >= w - 3 ? (x1 - x0) * .07 : 0;
+    const sm = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    if (fadeB || fadeL || fadeR) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      let f = 1;
+      if (fadeB && y > y1 - fadeB) f *= sm((y1 - y) / fadeB);
+      if (fadeL && x < x0 + fadeL) f *= sm((x - x0) / fadeL);
+      if (fadeR && x > x1 - fadeR) f *= sm((x1 - x) / fadeR);
+      if (f < 1) { const i = (y * w + x) * 4 + 3; d[i] = Math.round(d[i] * f); }
+    }
   }
   g.putImageData(im, 0, 0);
   if (x1 < x0) return c;
@@ -810,6 +825,13 @@ function render(now) {
   state.personCx = cx;
   const drawGod = () => { if (!a) return;
     const p = L === 'auto' ? placeStand(W, H, bh, headY, a.width / a.height, u) : fixedLayout(L, W, H, u, a.width / a.height);
+    if (L === 'center' && state.personFace) {
+      // 正中央：神站在人正後方，要讓神的臉露在人的頭上面（不被擋住、不破相），必要時把神縮小一點
+      const af = artFaceOf(a), head = state.personFace.y0, minY = TITLE_H * u * .8;
+      let sy = head - 2 * u - af.y1 * p.sh;
+      if (sy < minY) { p.sh = Math.max(p.sh * .55, (head - 2 * u - minY) / Math.max(.05, af.y1)); sy = head - 2 * u - af.y1 * p.sh; }
+      p.sy = Math.max(minY, Math.min(p.sy, sy));
+    }
     let P = state.pose;
     if (!P) P = state.pose = { x: p.x, y: p.sy, sh: p.sh, vx: 0, lean: 0, tx: p.x, tsh: p.sh, side: p.side };
     P.tx = p.x; P.tsh = p.sh; P.side = p.side;

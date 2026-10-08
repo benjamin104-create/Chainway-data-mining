@@ -1,9 +1,9 @@
 // 程式（網頁、JS）每次都先上網拿最新版，沒網路才用手機裡存的；
 // 模型、神明圖這種大檔案才優先用手機裡存的（打開快、省流量）
-const CACHE = 'caishen-tw-v15';
+const CACHE = 'caishen-tw-v16';
 const SHELL = ['./', 'index.html', 'app.js', 'beauty-gl.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs',
-  ...['tudigong', 'mazu', 'chenghuang', 'guangong', 'wenchang', 'xuannu', 'xuantian', 'nezha', 'guanyin', 'yuelao', 'yuhuang', 'caishen'].flatMap((id) => [`stands/${id}.jpg`, `stands/${id}_front.jpg`, `stands/${id}_left.jpg`, `stands/${id}_right.jpg`]), 'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite', 'models/face_landmarker.task'];
+  'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite', 'models/face_landmarker.task'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
