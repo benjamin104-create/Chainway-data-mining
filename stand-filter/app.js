@@ -491,12 +491,12 @@ function placeStand(W, H, bh, headY, ratio, u) {
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
 const BEAUTY_PRESETS = {
-  natural: { smooth: 50, white: 25, light: 22, glow: 25, eyes: 60, soft: 20, slim: 8, chin: 8, big: 0 },
-  standard: { smooth: 75, white: 40, light: 30, glow: 32, eyes: 85, soft: 35, slim: 18, chin: 18, big: 8 },
-  goddess: { smooth: 90, white: 55, light: 36, glow: 40, eyes: 100, soft: 55, slim: 30, chin: 30, big: 15 },
+  natural: { smooth: 50, white: 20, light: 22, glow: 25, eyes: 60, apple: 30, soft: 20, slim: 8, chin: 8, big: 0 },
+  standard: { smooth: 75, white: 30, light: 28, glow: 32, eyes: 85, apple: 50, soft: 30, slim: 18, chin: 18, big: 8 },
+  goddess: { smooth: 90, white: 45, light: 34, glow: 40, eyes: 100, apple: 60, soft: 50, slim: 30, chin: 30, big: 15 },
 };
 const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty6') || {}) };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty7') || {}) };
 if (state.beauty.chin == null) state.beauty.chin = BEAUTY_DEFAULT.chin;
 let glBeauty = null;
 try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
@@ -667,14 +667,14 @@ function beautify(W, H, u) {
   bc.globalCompositeOperation = 'source-over';
   return beautyC;
 }
-const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡化黑眼圈'], ['glow', '氣色紅潤'], ['soft', '柔光'], ['light', '補光'], ['slim', '瘦臉'], ['chin', '下巴拉提'], ['big', '大眼']];
+const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡化黑眼圈'], ['glow', '氣色紅潤'], ['apple', '蘋果肌'], ['soft', '柔光'], ['light', '補光'], ['slim', '瘦臉'], ['chin', '下巴拉提'], ['big', '大眼']];
 (() => {
   const panel = $('beautyPanel');
   const pre = document.createElement('div'); pre.className = 'chips'; pre.setAttribute('role', 'group'); pre.setAttribute('aria-label', '一鍵美顏');
   const syncSliders = () => { for (const [k] of BEAUTY_SLIDERS) { const r = $('b_' + k); if (r) { r.value = state.beauty[k]; r.nextSibling.textContent = state.beauty[k]; } } };
   for (const [id, name] of [['natural', '自然'], ['standard', '標準'], ['goddess', '女神／男神']]) {
     const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ ' + name;
-    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty6', state.beauty); syncSliders(); };
+    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty7', state.beauty); syncSliders(); };
     pre.append(b);
   }
   panel.append(pre);
@@ -683,14 +683,14 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty6', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty7', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty6', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty7', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty6', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty7', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 

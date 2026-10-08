@@ -26,7 +26,7 @@ in vec2 v; out vec4 o;
 uniform sampler2D src, mask, feat;
 uniform vec2 px;
 uniform vec3 tone;
-uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, softK, bloomR;
+uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, softK, bloomR, appleK;
 const vec3 LUM = vec3(.299, .587, .114);
 vec3 softLight(vec3 b, vec3 s) {
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
@@ -103,7 +103,7 @@ void main() {
   if (lightK > 0.) col += col * (1. - col) * lightK * .85;
   if (glowK > 0.) {
     col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * (.4 + .6 * toneW));
-    col = mix(col, softLight(col, vec3(1., .5, .55)), m.b * glowK * .5);
+    col = mix(col, softLight(col, vec3(1., .5, .55)), m.b * glowK * .3);
   }
   if (softK > 0.) {
     // 柔光：周圍亮部暈開成一層柔焦光暈，整體帶一點夢幻感
@@ -119,6 +119,13 @@ void main() {
     vec3 hi = clamp((bl - .5) * 2., 0., 1.);
     col = 1. - (1. - col) * (1. - hi * softK * .45);
     col = mix(col, max(col, bl), softK * .22);
+  }
+  if (appleK > 0.) {
+    // 蘋果肌（最後才上，不會被美白、柔光洗掉）：兩頰粉嫩紅暈，中間一點光澤看起來飽滿；整體膚色也暖一點，不會死白
+    col = mix(col, softLight(col, vec3(1., .6, .54)), appleK * .2 * toneW);
+    float a = m.b * appleK;
+    col = mix(col, softLight(col, vec3(1., .38, .46)), min(.9, a * 1.1));
+    col += vec3(1., .93, .9) * a * a * .05;
   }
   o = vec4(clamp(col, 0., 1.), c0.a);
 }`;
@@ -217,8 +224,8 @@ export function createBeautyGL() {
     // 藍：兩頰腮紅
     mc.filter = 'none';
     for (const i of [50, 280]) {
-      const [x, y] = Pt(i), r = fwid * .21, g = mc.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, 'rgba(0,0,255,.75)'); g.addColorStop(.45, 'rgba(0,0,255,.45)'); g.addColorStop(1, 'rgba(0,0,255,0)');
+      const [x, y] = Pt(i), r = fwid * .19, g = mc.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(0,0,255,.9)'); g.addColorStop(.4, 'rgba(0,0,255,.6)'); g.addColorStop(1, 'rgba(0,0,255,0)');
       mc.fillStyle = g; mc.beginPath(); mc.arc(x, y, r, 0, 7); mc.fill();
     }
     mc.globalCompositeOperation = 'source-over';
@@ -272,7 +279,7 @@ export function createBeautyGL() {
     gl.uniform1f(U(P1, 'lightK'), k('light')); gl.uniform1f(U(P1, 'eyesK'), Math.min(1, k('eyes') * 1.1));
     gl.uniform1f(U(P1, 'evenK'), k('smooth') * .7);                 // 膚色均勻跟著磨皮
     gl.uniform1f(U(P1, 'sharpK'), k('smooth') > 0 ? .25 + k('smooth') * .4 : 0);   // 皮膚越光滑，五官越清楚
-    gl.uniform1f(U(P1, 'softK'), k('soft')); gl.uniform1f(U(P1, 'bloomR'), fwid * .09);
+    gl.uniform1f(U(P1, 'softK'), k('soft')); gl.uniform1f(U(P1, 'appleK'), k('apple')); gl.uniform1f(U(P1, 'bloomR'), fwid * .09);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // 第二步：畫到畫布上
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
