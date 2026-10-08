@@ -192,7 +192,7 @@ $('roster').replaceChildren(...ORDER.map((id) => {
   return b;
 }));
 // 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
-const OUTFITS = [['haori', '只披羽織'], ['full', '全套']];
+const OUTFITS = [['haori', '輕量肩披'], ['full', '肩披＋領口']];
 const WEAPON_CHOICES = [['own', '角色武器'], ['katana', '武士刀'], ['kodachi', '小太刀'], ['nito', '二刀']];
 function gearChips() {
   const mk = (group, id, label) => {
@@ -240,8 +240,8 @@ function updateHint(msg) {
   const c = CHARACTERS[state.char];
   $('hint').hidden = false;
   $('hint').textContent = msg || (state.mode === 'move'
-    ? `站遠一點讓上半身入鏡。照著白色招式框擺姿勢：${c.move.hint}到位會自動發動並拍照。`
-    : '隨意揮刀看看，揮快一點會有刀光。按紅色按鈕拍照。');
+    ? '手持自拍就可以：把臉、雙肩和雙手放進畫面，跟著白色手臂框擺姿勢。到位會自動發動並拍照。'
+    : '把臉、雙肩和持刀手放進畫面。隨意揮刀看看，揮快一點會有刀光。按紅色按鈕拍照。');
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => { $('hint').hidden = true; }, 6000);
 }
@@ -316,6 +316,7 @@ function videoLight() {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   const W = stage.width, H = stage.height, ctx = sctx;
+  if (W < 2 || H < 2) return; // 手機旋轉／瀏覽器改尺寸的瞬間不要把 0×0 畫布交給 WebGL
   const c = gear();
   const mirror = state.facing === 'user';
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -342,9 +343,11 @@ function loop(now) {
         const raw = fromLandmarks(lms, map, mirror);
         const rf = frame(raw), shoulderW = Math.hypot(raw.rs.x - raw.ls.x, raw.rs.y - raw.ls.y);
         const bodyRatio = shoulderW / rf.T;
-        // 肩、髖構成可信的人體框才更新；排除背景誤判與瞬間被拉長的骨架。
-        const torsoReady = raw.ls.v > .5 && raw.rs.v > .5 && raw.lh.v > .3 && raw.rh.v > .3
-          && rf.T > Math.min(W, H) * .055 && bodyRatio > .35 && bodyRatio < 2.2;
+        const hipsReady = raw.lh.v > .32 && raw.rh.v > .32;
+        // 手持自拍只需要頭和雙肩；髖部沒入鏡時由肩線建立虛擬胸腔。
+        const torsoReady = raw.ls.v > .52 && raw.rs.v > .52 && (raw.n.v > .42 || hipsReady)
+          && shoulderW > Math.min(W, H) * .075 && rf.T > Math.min(W, H) * .055
+          && bodyRatio > .35 && bodyRatio < 2.2;
         if (torsoReady) { cam.kp = smooth(cam.kp, raw); cam.lastSeen = now; }
       }
     }
@@ -356,7 +359,7 @@ function loop(now) {
     const t = (Math.sin(cam.demoT * 1.3) + 1) / 2;
     const partialPreview = params.get('flat') === 'partial';
     const trackingPreview = params.has('track');
-    const T = Math.min(W, H) * (partialPreview ? .32 : .2) * (trackingPreview ? .9 + Math.sin(cam.demoT * .7) * .16 : 1);
+    const T = Math.min(W, H) * (partialPreview ? .55 : .2) * (trackingPreview ? .9 + Math.sin(cam.demoT * .7) * .16 : 1);
     ctx.fillStyle = '#231c19'; ctx.fillRect(0, H * .8, W, H * .2);
     const anchor = trackingPreview
       ? { x: W * (.5 + Math.sin(cam.demoT * .9) * .22), y: H * (.54 + Math.cos(cam.demoT * .6) * .06) }
@@ -374,7 +377,7 @@ function loop(now) {
 
   drawAtmosphere(ctx, W, H, c, kp, now);
   const flatPreview = params.has('flat');
-  if (kp && (!cam.demo || flatPreview)) drawAnimeOutfit(ctx, kp, c, state.outfit);
+  if (kp && (!cam.demo || flatPreview)) drawAnimeOutfit(ctx, kp, c, state.outfit, cam.light ?? 1);
 
   // 2. 招式吻合度
   let res = null, guide = null;
@@ -390,7 +393,7 @@ function loop(now) {
     } else cam.hold = 0;
   } else if (!kp || !armsReady) { cam.match = 0; cam.hold = 0; }
   const pct = Math.round(Math.min(1, Math.max(0, (cam.match - .35) / .45)) * 100);
-  $('meterText').textContent = !kp ? '找不到人，退後一點' : !armsReady ? '請讓雙手入鏡' : (cam.hold ? '保持住！' : `招式吻合 ${pct}%`);
+  $('meterText').textContent = !kp ? '請把臉和雙肩放進畫面' : !armsReady ? '再把雙手放進畫面' : (cam.hold ? '保持住！' : `招式吻合 ${pct}%`);
   $('meterBar').style.width = (kp ? pct : 0) + '%';
 
   // 3. 3D 服裝與武器（招式框的淡影一起畫）
