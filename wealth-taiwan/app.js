@@ -518,12 +518,12 @@ function placeStand(W, H, bh, headY, ratio, u) {
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
 const BEAUTY_PRESETS = {
-  natural: { smooth: 50, white: 25, light: 22, glow: 25, eyes: 60, slim: 10, chin: 10, big: 10 },
-  standard: { smooth: 78, white: 45, light: 32, glow: 35, eyes: 85, slim: 25, chin: 25, big: 20 },
-  goddess: { smooth: 96, white: 65, light: 40, glow: 45, eyes: 100, slim: 45, chin: 45, big: 38 },
+  natural: { smooth: 50, white: 25, light: 22, glow: 25, eyes: 60, slim: 8, chin: 8, big: 0 },
+  standard: { smooth: 75, white: 40, light: 30, glow: 32, eyes: 85, slim: 18, chin: 18, big: 8 },
+  goddess: { smooth: 90, white: 55, light: 36, glow: 40, eyes: 100, slim: 30, chin: 30, big: 15 },
 };
 const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty4') || {}) };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty5') || {}) };
 if (state.beauty.chin == null) state.beauty.chin = BEAUTY_DEFAULT.chin;
 let glBeauty = null;
 try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
@@ -701,7 +701,7 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
   const syncSliders = () => { for (const [k] of BEAUTY_SLIDERS) { const r = $('b_' + k); if (r) { r.value = state.beauty[k]; r.nextSibling.textContent = state.beauty[k]; } } };
   for (const [id, name] of [['natural', '自然'], ['standard', '標準'], ['goddess', '女神／男神']]) {
     const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ ' + name;
-    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty4', state.beauty); syncSliders(); };
+    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty5', state.beauty); syncSliders(); };
     pre.append(b);
   }
   panel.append(pre);
@@ -710,14 +710,14 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty4', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty5', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty4', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty5', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty4', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty5', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 
@@ -1252,6 +1252,16 @@ $('shareLine').onclick = () => { location.href = 'https://line.me/R/msg/text/?' 
 $('copyShare').onclick = async () => {
   try { await navigator.clipboard.writeText(shareText()); $('copyShare').textContent = '已複製，貼給朋友吧！'; }
   catch { prompt('複製這段文字：', shareText()); }
+};
+// 儲存照片：iPhone 的網頁「下載」只會存到「檔案」App，改叫出分享選單，按「儲存影像」就會進相簿
+$('save').onclick = async (e) => {
+  if (!lastBlob) return;
+  const file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  if (navigator.canShare?.({ files: [file] })) {
+    e.preventDefault();
+    try { await navigator.share({ files: [file] }); }
+    catch (err) { if (err.name !== 'AbortError') notice('沒有存成功，可以長按上面的照片 →「加入照片」。'); }
+  }
 };
 $('close').onclick = () => { $('sheet').hidden = true; };
 

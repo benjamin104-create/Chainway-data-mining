@@ -60,7 +60,7 @@ void main() {
     col = mix(col, acc / ws, clamp(smoothK * skin, 0., 1.));
   }
   if (m.g > .01 && eyesK > 0.) {
-    // 遮黑眼圈：把眼下的平均色調換成臉頰的膚色（保留皮膚紋理），再抹平陰影
+    // 遮黑眼圈：把眼下的平均色調拉回臉頰的膚色，保留皮膚紋理
     vec3 avg = vec3(0.); float wa = 0.;
     for (int k = 0; k < 12; k++) {
       float an = float(k) * .5236;
@@ -70,9 +70,11 @@ void main() {
     }
     avg = wa > .01 ? avg / wa : col;
     float lc = dot(col, vec3(.299, .587, .114)), la = dot(avg, vec3(.299, .587, .114));
-    vec3 fixd = mix(col * (tone / max(avg, vec3(.04))), tone, .35);
+    // 只換「整體的暗沉和偏色」（低頻），原本的皮膚紋理（col - avg）完整保留，所以不會像塗上去的
+    vec3 target = mix(avg, tone, .8);
+    vec3 fixd = col + (target - avg);
     float keep = smoothstep(.45, .7, lc / max(la, .04));            // 比周圍暗很多的是鏡框／睫毛，不動
-    col = mix(col, clamp(fixd, 0., 1.), clamp(m.g * eyesK * keep, 0., .96));
+    col = mix(col, clamp(fixd, 0., 1.), clamp(m.g * eyesK * keep, 0., .9));
   }
   if (whiteK > 0.) {
     float beta = 1. + whiteK * 3.5;
@@ -170,11 +172,11 @@ export function createBeautyGL() {
     // 綠：眼睛下方（沿著下眼皮往下一段，跟著臉的角度）
     const [ax, ay] = Pt(168), [bx, by] = Pt(152), dl = Math.hypot(bx - ax, by - ay) || 1;
     const dx = (bx - ax) / dl, dy = (by - ay) / dl;
-    blur(mc, fwid * .018); mc.fillStyle = '#0f0';
+    blur(mc, fwid * .04); mc.fillStyle = '#0f0';
     for (const lid of [LID_R, LID_L]) {
       const [x0, y0] = Pt(lid[0]), [x1, y1] = Pt(lid[lid.length - 1]), ew = Math.hypot(x1 - x0, y1 - y0);
-      const top = lid.map((i) => { const [x, y] = Pt(i); return [x + dx * ew * .1, y + dy * ew * .1]; });
-      const bot = lid.map((i) => { const [x, y] = Pt(i); return [x + dx * ew * .48, y + dy * ew * .48]; }).reverse();
+      const top = lid.map((i) => { const [x, y] = Pt(i); return [x + dx * ew * .12, y + dy * ew * .12]; });
+      const bot = lid.map((i) => { const [x, y] = Pt(i); return [x + dx * ew * .55, y + dy * ew * .55]; }).reverse();
       mc.beginPath(); [...top, ...bot].forEach(([x, y], k) => k ? mc.lineTo(x, y) : mc.moveTo(x, y)); mc.closePath(); mc.fill();
     }
     // 藍：兩頰腮紅
@@ -233,21 +235,21 @@ export function createBeautyGL() {
     const [nx, ny] = Px(4), slim = new Float32Array(36), rads = new Float32Array(9), sk = k('slim'), ck = k('chin');
     SLIM.forEach(([i, wgt], j) => {
       const [x, y] = Px(i), d = Math.hypot(nx - x, ny - y) || 1;
-      slim.set([x, y, (nx - x) / d * sk * fwid * .06 * wgt, (ny - y) / d * sk * fwid * .06 * wgt], j * 4);
+      slim.set([x, y, (nx - x) / d * sk * fwid * .035 * wgt, (ny - y) / d * sk * fwid * .035 * wgt], j * 4);
       rads[j] = fwid * .3;
     });
     // 下巴拉提：下巴和下顎往臉的上方收，雙下巴與下巴線條更俐落
     const [tx, ty] = Px(168), [cx, cy] = Px(152), flen = Math.hypot(cx - tx, cy - ty) || 1, ux = (tx - cx) / flen, uy = (ty - cy) / flen;
     CHIN.forEach(([i, wgt], j) => {
       const [x, y] = Px(i);
-      slim.set([x, y, ux * ck * flen * .07 * wgt, uy * ck * flen * .07 * wgt], (6 + j) * 4);
+      slim.set([x, y, ux * ck * flen * .04 * wgt, uy * ck * flen * .04 * wgt], (6 + j) * 4);
       rads[6 + j] = fwid * .34;
     });
     gl.uniform4fv(U(P2, 'slim'), slim); gl.uniform1fv(U(P2, 'slimR'), rads);
     const iris = (a, c1, c2) => L.length > 473 ? Px(a) : [(Px(c1)[0] + Px(c2)[0]) / 2, (Px(c1)[1] + Px(c2)[1]) / 2];
     const [rx, ry] = iris(468, 33, 133), [lx, ly] = iris(473, 263, 362);
-    gl.uniform3fv(U(P2, 'eye'), new Float32Array([rx, ry, ew * 1.05, lx, ly, ew * 1.05]));
-    gl.uniform1f(U(P2, 'bigK'), k('big') * .16);
+    gl.uniform3fv(U(P2, 'eye'), new Float32Array([rx, ry, ew * .8, lx, ly, ew * .8]));
+    gl.uniform1f(U(P2, 'bigK'), k('big') * .09);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     return canvas;
