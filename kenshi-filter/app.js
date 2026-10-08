@@ -1,6 +1,6 @@
 import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawAnimeOutfit, placePose } from './ar.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawRealHaori, drawAnimeOutfit, placePose } from './ar.js';
 import { Stage3D } from './render3d.js';
 
 const stage3d = new Stage3D();
@@ -31,7 +31,7 @@ try {
 
 const rememberedChar = store.get('char');
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'move', facing: 'user',
-  outfit: store.get('outfit') || 'full', weapon: store.get('weapon') || 'own', camOrigin: 'intro' };
+  outfit: 'real', weapon: store.get('weapon') || 'own', camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -192,7 +192,7 @@ $('roster').replaceChildren(...ORDER.map((id) => {
   return b;
 }));
 // 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
-const OUTFITS = [['haori', '輕量肩披'], ['full', '肩披＋領口']];
+const OUTFITS = [['real', '寫實布料']];
 const WEAPON_CHOICES = [['own', '角色武器'], ['katana', '武士刀'], ['kodachi', '小太刀'], ['nito', '二刀']];
 function gearChips() {
   const mk = (group, id, label) => {
@@ -377,7 +377,10 @@ function loop(now) {
 
   drawAtmosphere(ctx, W, H, c, kp, now);
   const flatPreview = params.has('flat');
-  if (kp && (!cam.demo || flatPreview)) drawAnimeOutfit(ctx, kp, c, state.outfit, cam.light ?? 1);
+  if (kp && (!cam.demo || flatPreview)) {
+    const dressed = drawRealHaori(ctx, kp, c, cam.light ?? 1);
+    if (!dressed) drawAnimeOutfit(ctx, kp, c, 'haori', cam.light ?? 1);
+  }
 
   // 2. 招式吻合度
   let res = null, guide = null;

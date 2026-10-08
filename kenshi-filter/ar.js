@@ -147,6 +147,51 @@ export function tile(kind, c1, c2, S = 64) {
   return cv;
 }
 
+// ── 寫實布料羽織 ─────────────────────────────────────
+// 使用透明產品攝影素材作為布料明暗與縫線基底，再依角色套色與紋樣。
+// 整件素材以肩線建立的身體座標貼合，因此可隨真人平移、縮放與側傾。
+const realHaoriImage = new Image();
+realHaoriImage.decoding = 'async';
+realHaoriImage.src = new URL('assets/haori-real-base.png', import.meta.url).href;
+const realHaoriCache = new Map();
+function realHaoriTexture(ch) {
+  const key = [ch.pattern, ch.haori, ch.haori2].join('|');
+  if (realHaoriCache.has(key)) return realHaoriCache.get(key);
+  if (!realHaoriImage.complete || !realHaoriImage.naturalWidth) return null;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1024;
+  const g = cv.getContext('2d');
+  g.drawImage(realHaoriImage, 0, 0, 1024, 1024);
+  // 先用角色色彩染布，再把原圖以正片疊底放回，保留纖維、皺褶與縫線。
+  g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .92;
+  g.fillStyle = ch.haori; g.fillRect(0, 0, 1024, 1024); g.restore();
+  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .48;
+  g.drawImage(realHaoriImage, 0, 0, 1024, 1024); g.restore();
+  // 角色紋樣只覆在布料 alpha 內，並以柔光混合，避免重新變成平面貼紙。
+  const overlay = g.createPattern(tile(ch.pattern, 'rgba(0,0,0,0)', ch.haori2, ch.pattern === 'uroko' ? 78 : 92), 'repeat');
+  if (overlay) {
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .44;
+    g.fillStyle = overlay; g.fillRect(0, 0, 1024, 1024); g.restore();
+  }
+  realHaoriCache.set(key, cv); return cv;
+}
+
+export function drawRealHaori(ctx, kp, ch, light = 1) {
+  if (!kp?.ls || !kp?.rs || !kp?.n) return false;
+  const tex = realHaoriTexture(ch);
+  if (!tex) return false;
+  const { sh, up, side, shoulderW } = frame(kp);
+  if (!Number.isFinite(shoulderW) || shoulderW < 24) return false;
+  const down = mul(up, -1), W = shoulderW * 1.72, H = W;
+  ctx.save();
+  ctx.transform(side.x, side.y, down.x, down.y, sh.x, sh.y);
+  ctx.globalAlpha = .93;
+  ctx.filter = `brightness(${Math.max(.86, Math.min(1.18, light * 1.08))}) saturate(1.1) drop-shadow(0 ${shoulderW * .04}px ${shoulderW * .08}px rgba(0,0,0,.48))`;
+  // 產品照的肩線約在圖片高度 35%；把該位置鎖在真人雙肩中點。
+  ctx.drawImage(tex, -W / 2, -H * .35, W, H);
+  ctx.restore();
+  return true;
+}
+
 // ── 真人相機用的 2D 動畫羽織 ─────────────────────────
 // 3D 寬袖在手肘／手腕離開畫面時容易被錯誤骨架拉成球狀。真人模式改用平面剪影：
 // 輪廓仍跟著骨架，但尺寸只由肩寬與穩定軀幹比例決定；看不到手臂時就不畫袖子。
