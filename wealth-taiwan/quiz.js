@@ -83,35 +83,35 @@ export const STANDS = {
 };
 
 // 篇：之後的日本篇等，換掉這一包資料（神明、圖、文字）就能沿用整套測驗與相機
-export const PACK = { id: 'taiwan', name: { zh: '台灣篇', ja: '台湾編', en: 'TAIWAN' } };
+export const PACK = { id: 'taiwan', name: { zh: '台灣篇', ja: '台湾編', en: 'TAIWAN EDITION' } };
 
 // 三種語言的名字、稱號與祝福語（相機畫面上的標題與對話框用）
 export const LANGS = { zh: '中文', ja: '日本語', en: 'EN' };
 export const LOCALE = {
   tudigong: { names: { zh: '土地公', ja: '土地公', en: 'TUDIGONG' }, titles: { zh: '福德正神', ja: '福徳正神', en: 'God of the Land' },
-    line: { zh: '錢慢慢存，日子會越過越好啦！', ja: 'コツコツ貯めれば、毎日もっと良くなるよ！', en: 'Save little by little, life keeps getting better!' } },
+    line: { zh: '錢慢慢存，日子會越過越好啦！', ja: '塵も積もれば山となる。コツコツいこうな！', en: 'Every penny counts. Slow and steady wins the race!' } },
   mazu: { names: { zh: '媽祖', ja: '媽祖', en: 'MAZU' }, titles: { zh: '天上聖母', ja: '天上聖母', en: 'Goddess of the Sea' },
-    line: { zh: '出外打拚免驚，媽祖婆罩你！', ja: '外で頑張るあなたを、ちゃんと見守ってるよ！', en: "Go out and work hard. I've got you covered!" } },
+    line: { zh: '出外打拚免驚，媽祖婆罩你！', ja: '安心して行っておいで。ちゃんと見てるからね。', en: "Go on, kiddo. I'll be watching over you." } },
   chenghuang: { names: { zh: '城隍爺', ja: '城隍神', en: 'CHENGHUANG' }, titles: { zh: '城隍爺', ja: '城隍神', en: 'The City God' },
-    line: { zh: '做人清清楚楚，錢就賺得心安！', ja: '誠実にいれば、安心して稼げるよ！', en: 'Stay honest, and every dollar feels good!' } },
+    line: { zh: '做人清清楚楚，錢就賺得心安！', ja: 'お天道様は見ている。正直者が最後に笑うんだ。', en: 'Honesty pays. Always has, always will.' } },
   guangong: { names: { zh: '關公', ja: '関羽', en: 'GUAN GONG' }, titles: { zh: '關聖帝君', ja: '関聖帝君', en: 'God of Loyalty and Wealth' },
-    line: { zh: '講話算話，客人自然一直回來！', ja: '約束を守れば、お客さんはまた来てくれる！', en: 'Keep your word, and customers keep coming back!' } },
+    line: { zh: '講話算話，客人自然一直回來！', ja: '信用は金では買えない。約束は守れよ。', en: "Your word is your bond. Keep it, and they'll keep coming back." } },
   wenchang: { names: { zh: '文昌帝君', ja: '文昌帝君', en: 'WENCHANG' }, titles: { zh: '文昌帝君', ja: '学問の神', en: 'God of Learning' },
-    line: { zh: '多學一點，以後都是你的本事！', ja: '今学んだことは、全部あなたの力になる！', en: 'Everything you learn becomes your superpower!' } },
+    line: { zh: '多學一點，以後都是你的本事！', ja: '学んだことは、誰にも奪えない。', en: 'Knowledge is the one thing nobody can take from you.' } },
   xuannu: { names: { zh: '九天玄女', ja: '九天玄女', en: 'XUANNU' }, titles: { zh: '九天玄女', ja: '九天玄女', en: 'Lady of the Nine Heavens' },
-    line: { zh: '手藝練好，走到哪都有飯吃！', ja: '腕を磨けば、どこでもやっていける！', en: 'Master your craft, and you will never go hungry!' } },
+    line: { zh: '手藝練好，走到哪都有飯吃！', ja: '芸は身を助ける。腕を磨きなさい。', en: "Hone your craft, and you'll never go hungry." } },
   xuantian: { names: { zh: '玄天上帝', ja: '玄天上帝', en: 'XUANTIAN' }, titles: { zh: '玄天上帝', ja: '北極の帝', en: 'Emperor of the Dark Heaven' },
-    line: { zh: '低潮過了就是好運，撐住，你可以！', ja: 'つらい時を越えたら幸運が来る。大丈夫、できる！', en: 'Good luck comes after the hard part. Hang in there!' } },
+    line: { zh: '低潮過了就是好運，撐住，你可以！', ja: '明けない夜はない。踏ん張れ！', en: "It's always darkest before the dawn. Hang in there!" } },
   nezha: { names: { zh: '三太子', ja: '哪吒', en: 'NEZHA' }, titles: { zh: '中壇元帥', ja: '中壇元帥', en: 'The Third Prince' },
-    line: { zh: '想做就去做啦，衝一波！', ja: 'やりたいならやっちゃおう！行くぞ！', en: "Want to do it? Let's gooo!" } },
+    line: { zh: '想做就去做啦，衝一波！', ja: '迷ったらGOだ！一気にいくぞ！', en: "Fortune favors the bold. Let's gooo!" } },
   guanyin: { names: { zh: '觀音', ja: '観音', en: 'GUANYIN' }, titles: { zh: '觀世音菩薩', ja: '観世音菩薩', en: 'Bodhisattva of Compassion' },
-    line: { zh: '對人好，福氣會自己找上門。', ja: '人に優しくすれば、福は自然とやってくる。', en: 'Be kind, and good fortune finds its way to you.' } },
+    line: { zh: '對人好，福氣會自己找上門。', ja: '情けは人のためならず。優しさは必ず返ってくるよ。', en: 'What goes around comes around. Be kind.' } },
   yuelao: { names: { zh: '月老', ja: '月下老人', en: 'YUE LAO' }, titles: { zh: '月下老人', ja: '縁結びの神', en: 'God of Connections' },
-    line: { zh: '好朋友就是貴人，記得常聯絡喔！', ja: 'いい友達こそ恩人。こまめに連絡してね！', en: 'Good friends are lucky charms. Keep in touch!' } },
+    line: { zh: '好朋友就是貴人，記得常聯絡喔！', ja: 'ご縁は大事にね。いい出会いが福を運んでくるよ。', en: "It's not what you know, it's who you know. Call your friends!" } },
   yuhuang: { names: { zh: '玉皇大帝', ja: '玉皇大帝', en: 'JADE EMPEROR' }, titles: { zh: '玉皇大帝', ja: '天界の帝', en: 'Ruler of Heaven' },
-    line: { zh: '眼光放遠一點，好日子在後頭！', ja: '遠くを見て。いい日はこれからだよ！', en: 'Look a little further. The best days are ahead!' } },
+    line: { zh: '眼光放遠一點，好日子在後頭！', ja: '焦るな。大器は晩成するものだ。', en: 'Play the long game. Your best days are still ahead.' } },
   caishen: { names: { zh: '財神', ja: '財神', en: 'CAISHEN' }, titles: { zh: '五路財神', ja: '五路財神', en: 'God of Wealth' },
-    line: { zh: '好運旺旺來，今年發大財！', ja: '運気上昇！今年は大きく稼ごう！', en: 'Good luck is rolling in. This is your year!' } },
+    line: { zh: '好運旺旺來，今年發大財！', ja: '商売繁盛！今年はあなたの年だ！', en: 'Show me the money! This is your year!' } },
 };
 
 // 財富建議：主性格決定「你的財富類型」，副性格給混搭，每一題選的選項再各給一句
@@ -186,12 +186,12 @@ export const QUESTIONS = [
 // 財運六項：每一角都有自己的意思
 export const STAT_KEYS = [['pow', '正財'], ['spd', '偏財'], ['rng', '貴人'], ['dur', '守財'], ['pre', '事業'], ['gro', '福報']];
 export const STAT_INFO = {
-  pow: { short: { zh: '正財', ja: '正財', en: 'SALARY' }, desc: '工作、本業帶來的穩定收入' },
-  spd: { short: { zh: '偏財', ja: '偏財', en: 'WINDFALL' }, desc: '投資、副業、意外之財' },
+  pow: { short: { zh: '正財', ja: '本業運', en: 'SALARY' }, desc: '工作、本業帶來的穩定收入' },
+  spd: { short: { zh: '偏財', ja: '臨時収入', en: 'WINDFALL' }, desc: '投資、副業、意外之財' },
   rng: { short: { zh: '貴人', ja: '人脈', en: 'HELPERS' }, desc: '有人幫你、替你介紹機會' },
   dur: { short: { zh: '守財', ja: '貯蓄', en: 'SAVING' }, desc: '把錢留住、不亂花的能力' },
-  pre: { short: { zh: '事業', ja: '事業', en: 'CAREER' }, desc: '升遷、創業、事業發展' },
-  gro: { short: { zh: '福報', ja: '福徳', en: 'BLESSING' }, desc: '善緣與好心帶回來的福氣' },
+  pre: { short: { zh: '事業', ja: '仕事運', en: 'CAREER' }, desc: '升遷、創業、事業發展' },
+  gro: { short: { zh: '福報', ja: '福運', en: 'BLESSING' }, desc: '善緣與好心帶回來的福氣' },
 };
 
 export function standById(id, owner = '') {

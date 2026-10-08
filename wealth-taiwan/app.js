@@ -729,7 +729,7 @@ function standGuide(W, H, u, t) {
   ctx.quadraticCurveTo(x + r * 2.4, y + r * 1.6, x + r * 2.6, H); ctx.stroke();    // 肩膀
   ctx.setLineDash([]); ctx.globalAlpha = .9; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
   ctx.font = `700 ${3.4 * u}px "Noto Sans TC", system-ui, sans-serif`;
-  ctx.fillText({ zh: '站進虛線，擺個 pose', ja: '点線に入ってポーズ', en: 'Step into the outline and pose' }[state.lang], x, y - r * 1.35);
+  ctx.fillText({ zh: '站進虛線，擺個 pose', ja: 'この枠に入って、ポーズ！', en: 'Step into the frame and strike a pose!' }[state.lang], x, y - r * 1.35);
   ctx.restore();
 }
 function sideBand(W, H, s) {
@@ -749,7 +749,7 @@ function openingCaption(W, H, s, u, ease, t) {
   const x0 = 5 * u - (1 - slide) * 20 * u;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.glow; ctx.font = `700 ${3.2 * u}px system-ui, sans-serif`;
-  const top = `${{ zh: '財神偵測器', ja: '財神診断', en: 'FORTUNE DEITY' }[L]} ・ ${PACK.name[L]}`;
+  const top = `${{ zh: '財神偵測器', ja: '金運の神さま診断', en: 'WHO BRINGS YOUR FORTUNE?' }[L]} ・ ${PACK.name[L]}`;
   ctx.fillText(L === 'en' ? top.toUpperCase() : top, x0, H * .8);
   const big = L === 'en' ? s.names.en : s.names[L];
   let px = 11 * u; ctx.font = FONT[L](900, px);
@@ -822,7 +822,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const LABEL = { zh: '眷顧你的財神', ja: 'あなたの財神', en: 'YOUR FORTUNE DEITY' };
+const LABEL = { zh: '眷顧你的財神', ja: 'あなたの金運の神さま', en: 'YOUR GOD OF FORTUNE' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
@@ -1007,7 +1007,7 @@ function wishBubble(W, H, s, u, box) {
   const px = 4.3 * u, lh = px * 1.32;
   ctx.save(); ctx.font = FONT.zh(700, px);
   const lines = wrapLines(text, Math.min(W * .56, 50 * u), mode).slice(0, 3);
-  const label = { zh: '我的心願', ja: 'わたしの願い', en: 'MY WISH' }[L];
+  const label = { zh: '我的心願', ja: '願いごと', en: 'MY WISH' }[L];
   const bw = Math.max(26 * u, ...lines.map((l) => ctx.measureText(l).width)) + 7 * u;
   const bh = lines.length * lh + 8.4 * u;
   const hx = (box.hx0 + box.hx1) / 2 * W, hy = box.y0 * H, hw = (box.hx1 - box.hx0) * W;
