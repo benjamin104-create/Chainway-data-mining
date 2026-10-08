@@ -24,8 +24,9 @@ const FS_BEAUTY = `#version 300 es
 precision highp float;
 in vec2 v; out vec4 o;
 uniform sampler2D src, mask;
-uniform vec2 px, down;
-uniform float rad, smoothK, whiteK, glowK, lightK, eyesK;
+uniform vec2 px;
+uniform vec3 tone;
+uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK;
 vec3 softLight(vec3 b, vec3 s) {
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
 }
@@ -42,7 +43,7 @@ void main() {
   vec4 m = texture(mask, v);
   float like = skinLike(col);
   float skin = max(m.r, .45 * like);              // 磨皮：臉全力，其他皮膚輕一點
-  float tone = max(m.r, like);                     // 美白、氣色：所有皮膚一樣，不留分界
+  float toneW = max(m.r, like);                    // 美白、氣色：所有皮膚一樣，不留分界
   if (skin > .01 && smoothK > 0.) {
     // 雙邊濾波：只和「顏色相近」的鄰居平均，所以斑點和細紋被抹平，五官輪廓留著
     vec3 acc = col; float ws = 1.;
@@ -59,20 +60,28 @@ void main() {
     col = mix(col, acc / ws, clamp(smoothK * skin, 0., 1.));
   }
   if (m.g > .01 && eyesK > 0.) {
-    // 遮黑眼圈：借眼睛下方一點的臉頰膚色
-    vec3 cc = vec3(0.);
-    for (int k = -2; k <= 2; k++) cc += texture(src, v + down * (1. + .12 * float(k)) + vec2(px.x * float(k) * 3., 0.)).rgb;
-    cc /= 5.;
-    col = mix(col, cc * 1.03 + .01, clamp(m.g * eyesK, 0., .95));
+    // 遮黑眼圈：把眼下的平均色調換成臉頰的膚色（保留皮膚紋理），再抹平陰影
+    vec3 avg = vec3(0.); float wa = 0.;
+    for (int k = 0; k < 12; k++) {
+      float an = float(k) * .5236;
+      vec3 s = texture(src, v + vec2(cos(an), sin(an)) * ringR * px).rgb;
+      float w = smoothstep(.12, .3, dot(s, vec3(.299, .587, .114)));   // 鏡框、睫毛這種很暗的不算
+      avg += s * w; wa += w;
+    }
+    avg = wa > .01 ? avg / wa : col;
+    float lc = dot(col, vec3(.299, .587, .114)), la = dot(avg, vec3(.299, .587, .114));
+    vec3 fixd = mix(col * (tone / max(avg, vec3(.04))), tone, .35);
+    float keep = smoothstep(.45, .7, lc / max(la, .04));            // 比周圍暗很多的是鏡框／睫毛，不動
+    col = mix(col, clamp(fixd, 0., 1.), clamp(m.g * eyesK * keep, 0., .96));
   }
   if (whiteK > 0.) {
     float beta = 1. + whiteK * 3.5;
     vec3 wc = log(col * (beta - 1.) + 1.) / log(beta);
-    col = mix(col, wc, (.3 + .7 * tone) * min(1., whiteK * 1.2));
+    col = mix(col, wc, (.12 + .88 * toneW) * min(1., whiteK * 1.2));
   }
   if (lightK > 0.) col += col * (1. - col) * lightK * .85;
   if (glowK > 0.) {
-    col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * (.4 + .6 * tone));
+    col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * (.4 + .6 * toneW));
     col = mix(col, softLight(col, vec3(1., .5, .55)), m.b * glowK * .5);
   }
   o = vec4(clamp(col, 0., 1.), c0.a);
@@ -123,6 +132,24 @@ export function createBeautyGL() {
   const layerC = document.createElement('canvas'), lc = layerC.getContext('2d');
   // 平滑後的定位點（避免抖動）
   let sm = null;
+  // 臉頰膚色：在鏡框下面的兩頰取樣（隔幾格更新一次），遮黑眼圈時用這個顏色
+  const toneC = document.createElement('canvas'); toneC.width = toneC.height = 8;
+  const tc = toneC.getContext('2d', { willReadFrequently: true });
+  let tone = null, toneFrame = 0;
+  function sampleTone(src, Px, fwid) {
+    if (tone && toneFrame++ % 4) return tone;
+    const acc = [0, 0, 0]; let n = 0;
+    for (const i of [205, 425, 50, 280]) {
+      const [x, y] = Px(i), r = Math.max(2, fwid * .025);
+      tc.clearRect(0, 0, 8, 8); tc.drawImage(src, x - r, y - r, r * 2, r * 2, 0, 0, 8, 8);
+      const d = tc.getImageData(0, 0, 8, 8).data;
+      for (let j = 0; j < d.length; j += 4) if (d[j + 3] > 200) { acc[0] += d[j]; acc[1] += d[j + 1]; acc[2] += d[j + 2]; n++; }
+    }
+    if (!n) return tone || [.8, .65, .58];
+    const t = acc.map((c) => Math.min(1, c / n / 255 * 1.03));
+    tone = tone ? tone.map((c, k) => c + (t[k] - c) * .5) : t;
+    return tone;
+  }
 
   function drawMask(L, mw, mh, fwid) {
     const Pt = (i) => [L[i].x * mw, L[i].y * mh];
@@ -158,7 +185,6 @@ export function createBeautyGL() {
       mc.fillStyle = g; mc.beginPath(); mc.arc(x, y, r, 0, 7); mc.fill();
     }
     mc.globalCompositeOperation = 'source-over';
-    return { down: [dx, dy] };
   }
 
   function render(srcCanvas, lmRaw, b, W, H) {
@@ -170,7 +196,7 @@ export function createBeautyGL() {
     const fwid = Math.hypot(Px(454)[0] - Px(234)[0], Px(454)[1] - Px(234)[1]);
     const mw = Math.max(2, W >> 1), mh = Math.max(2, H >> 1);
     if (maskC.width !== mw || maskC.height !== mh) { maskC.width = layerC.width = mw; maskC.height = layerC.height = mh; }
-    const { down } = drawMask(L, mw, mh, fwid / 2);
+    drawMask(L, mw, mh, fwid / 2);
     const ewR = Math.hypot(Px(133)[0] - Px(33)[0], Px(133)[1] - Px(33)[1]);
     const ewL = Math.hypot(Px(362)[0] - Px(263)[0], Px(362)[1] - Px(263)[1]);
     const ew = (ewR + ewL) / 2;
@@ -191,7 +217,8 @@ export function createBeautyGL() {
     const a1 = gl.getAttribLocation(P1, 'p'); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(a1); gl.vertexAttribPointer(a1, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1f(U(P1, 'flipY'), 0); gl.uniform1i(U(P1, 'src'), 0); gl.uniform1i(U(P1, 'mask'), 1);
     gl.uniform2f(U(P1, 'px'), 1 / W, 1 / H);
-    gl.uniform2f(U(P1, 'down'), down[0] * ew * .55 / W, down[1] * ew * .55 / H);
+    gl.uniform3f(U(P1, 'tone'), ...sampleTone(srcCanvas, Px, fwid));
+    gl.uniform1f(U(P1, 'ringR'), ew * .32);
     gl.uniform1f(U(P1, 'rad'), fwid * (.012 + k('smooth') * .03));
     gl.uniform1f(U(P1, 'smoothK'), Math.min(1, k('smooth') * 1.15));
     gl.uniform1f(U(P1, 'whiteK'), k('white')); gl.uniform1f(U(P1, 'glowK'), k('glow'));
@@ -225,5 +252,5 @@ export function createBeautyGL() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     return canvas;
   }
-  return { render, reset() { sm = null; } };
+  return { render, reset() { sm = null; tone = null; } };
 }

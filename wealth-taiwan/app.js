@@ -29,7 +29,7 @@ function loadImage(src) {
 async function loadArt(id) {
   if (art[id]) return art[id];
   let img;
-  try { img = await loadImage(`stands/${id}.png`); } catch { img = await loadImage(`stands/${id}.jpg`); }
+  try { img = await loadImage(`stands/${id}.jpg`); } catch { img = await loadImage(`stands/${id}.png`); }
   return (art[id] = cutout(img));
 }
 function cutout(img) {
@@ -518,15 +518,16 @@ function placeStand(W, H, bh, headY, ratio, u) {
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
 const BEAUTY_PRESETS = {
-  natural: { smooth: 40, white: 20, light: 20, glow: 25, eyes: 45, slim: 10, chin: 10, big: 10 },
-  standard: { smooth: 65, white: 35, light: 30, glow: 35, eyes: 65, slim: 25, chin: 25, big: 20 },
-  goddess: { smooth: 88, white: 55, light: 40, glow: 45, eyes: 85, slim: 45, chin: 45, big: 38 },
+  natural: { smooth: 50, white: 25, light: 22, glow: 25, eyes: 60, slim: 10, chin: 10, big: 10 },
+  standard: { smooth: 78, white: 45, light: 32, glow: 35, eyes: 85, slim: 25, chin: 25, big: 20 },
+  goddess: { smooth: 96, white: 65, light: 40, glow: 45, eyes: 100, slim: 45, chin: 45, big: 38 },
 };
 const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty3') || {}) };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty4') || {}) };
 if (state.beauty.chin == null) state.beauty.chin = BEAUTY_DEFAULT.chin;
 let glBeauty = null;
 try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
+window.__beautyGL = () => !!glBeauty;   // 測試用：GPU 美顏有沒有在跑
 let faceFrame = 0;
 let lmFrame = 0;
 function detectFace(now) {
@@ -700,7 +701,7 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
   const syncSliders = () => { for (const [k] of BEAUTY_SLIDERS) { const r = $('b_' + k); if (r) { r.value = state.beauty[k]; r.nextSibling.textContent = state.beauty[k]; } } };
   for (const [id, name] of [['natural', '自然'], ['standard', '標準'], ['goddess', '女神／男神']]) {
     const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ ' + name;
-    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty3', state.beauty); syncSliders(); };
+    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty4', state.beauty); syncSliders(); };
     pre.append(b);
   }
   panel.append(pre);
@@ -709,14 +710,14 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty3', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty4', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty3', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty4', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty3', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty4', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 
