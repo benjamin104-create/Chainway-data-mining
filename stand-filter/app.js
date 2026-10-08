@@ -1023,7 +1023,9 @@ function standGuide(W, H, u, t) {
   ctx.quadraticCurveTo(x + r * 2.4, y + r * 1.6, x + r * 2.6, H); ctx.stroke();    // 肩膀
   ctx.setLineDash([]); ctx.globalAlpha = .9; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
   ctx.font = `700 ${3.4 * u}px "Noto Sans TC", system-ui, sans-serif`;
-  ctx.fillText({ zh: '站進虛線，擺個 pose', ja: 'この枠に入って、ポーズ！', en: 'Step into the frame and strike a pose!' }[state.lang], x, y - r * 1.35);
+  const tip = { zh: '站進虛線，擺個 pose', ja: 'この枠に入って、ポーズ！', en: 'Step in and strike a pose!' }[state.lang];
+  const tw = ctx.measureText(tip).width / 2 + 2 * u;                          // 字不能超出畫面
+  ctx.fillText(tip, Math.max(tw, Math.min(W - tw, x)), y - r * 1.35);
   ctx.restore();
 }
 function sideBand(W, H, s) {
@@ -1043,7 +1045,7 @@ function openingCaption(W, H, s, u, ease, t) {
   const x0 = 5 * u - (1 - slide) * 20 * u;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.glow; ctx.font = `700 ${3.2 * u}px system-ui, sans-serif`;
-  const top = `${{ zh: '守護神偵測器', ja: '守護神診断', en: 'WHO GUARDS YOU?' }[L]} ・ ${PACK.name[L]}`;
+  const top = `${{ zh: '守護神偵測器', ja: '守護神、召喚', en: 'YOUR GUARDIAN HAS ARRIVED' }[L]} ・ ${PACK.name[L]}`;
   ctx.fillText(L === 'en' ? top.toUpperCase() : top, x0, H * .8);
   const big = L === 'en' ? s.names.en : s.names[L];
   let px = 11 * u; ctx.font = FONT[L](900, px);
@@ -1128,7 +1130,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const LABEL = { zh: '守護神', ja: 'あなたの守護神', en: 'YOUR GUARDIAN' };
+const LABEL = { zh: '守護神', ja: '守護神', en: 'GUARDIAN' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
@@ -1314,7 +1316,9 @@ function wishBubble(W, H, s, u, box) {
   const f = state.face;
   const face = f ? { x0: (f.cx - f.w * .6) * W, x1: (f.cx + f.w * .6) * W, y0: (f.cy - f.h * .75) * H, y1: (f.cy + f.h * .6) * H }
     : { x0: hx - hw * .6, x1: hx + hw * .6, y0: hy, y1: hy + hw * 1.35 };
-  const avoid = [[face, 4], [state.godFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2.5], [state.speechRect, 2.5], [state.cardRect, 2]];
+  const avoid = [[face, 4], [state.godFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3],
+    [state.layout === 'opening' ? { x0: 0, y0: H * .72, x1: W, y1: H } : null, 6],   // 片頭的大標題字幕
+    [state.stampRect, 2.5], [state.speechRect, 2.5], [state.cardRect, 2]];
   const cost = (x, y) => {
     let c = 0;
     for (const [r, w] of avoid) {
