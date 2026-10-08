@@ -115,7 +115,7 @@ export function weaponPose(kp, ch, target, matchT) {
   const hand = ch.move.hand;
   const both = dist(kp.lw, kp.rw) < T * .45;
   let grip, dir;
-  if (both || hand === 'both' && ch.weapon.kind !== 'twin') {
+  if (!ch.offhand && (both || hand === 'both' && ch.weapon.kind !== 'twin')) {
     grip = mid(handOf('l'), handOf('r'));
     // 雙手握刀：兩手靠很近 → 刀朝上；兩手分開（橫架）→ 刀沿著兩手的連線
     dir = both ? up : norm(sub(kp.rw, kp.lw));
@@ -130,7 +130,7 @@ export function weaponPose(kp, ch, target, matchT) {
   }
   const z = (k) => kp[k]?.z ?? 0;
   const out = [{ grip, dir, z: both || hand === 'both' ? (z('lw') + z('rw')) / 2 : z('rw') }];
-  if (ch.weapon.kind === 'twin') {
+  if (ch.weapon.kind === 'twin' || ch.offhand) {
     out.push({ grip: handOf('l'), dir: fore('l'), z: z('lw') });
   }
   return { T, blades: out };

@@ -1,5 +1,5 @@
 import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
-import { TYPES, CHARACTERS, ORDER, QUESTIONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
+import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
 import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, placePose } from './ar.js';
 import { Stage3D } from './render3d.js';
 
@@ -29,7 +29,8 @@ try {
   if (Array.isArray(carry) && carry.length === QUESTIONS.length) store.set('answers', carry);
 } catch { /* 沒有就算了 */ }
 
-const state = { answers: [], qi: 0, type: null, scores: null, char: null, mode: 'move', facing: 'user' };
+const state = { answers: [], qi: 0, type: null, scores: null, char: null, mode: 'move', facing: 'user',
+  outfit: store.get('outfit') || 'haori', weapon: store.get('weapon') || 'own' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -160,7 +161,35 @@ $('roster').replaceChildren(...ORDER.map((id) => {
   b.onclick = () => { state.char = id; syncChips(); updateHint(); cam.hold = 0; };
   return b;
 }));
+// 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
+const OUTFITS = [['haori', '只披羽織'], ['full', '全套']];
+const WEAPON_CHOICES = [['own', '角色武器'], ['katana', '武士刀'], ['kodachi', '小太刀'], ['nito', '二刀']];
+function gearChips() {
+  const mk = (group, id, label) => {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.dataset.group = group; b.dataset.id = id;
+    b.onclick = () => { state[group] = id; store.set(group, id); syncChips(); };
+    return b;
+  };
+  const sep = document.createElement('span'); sep.className = 'sep';
+  $('gear').replaceChildren(...OUTFITS.map(([id, l]) => mk('outfit', id, l)), sep, ...WEAPON_CHOICES.map(([id, l]) => mk('weapon', id, l)));
+}
+gearChips();
+// 目前畫面上的角色：角色資料＋換過的武器（同一組合回傳同一個物件，3D 舞台才不會每幀重建）
+const gearCache = new Map();
+function gear(id = state.char) {
+  const key = id + '|' + state.weapon;
+  if (!gearCache.has(key)) {
+    const ch = CHARACTERS[id], own = { tsuba: ch.weapon.tsuba, grip: ch.weapon.grip };
+    const spec = (k) => ({ ...own, ...WEAPONS[k] });
+    const g = state.weapon === 'own' ? ch
+      : state.weapon === 'nito' ? { ...ch, weapon: spec('katana'), offhand: spec('kodachi') }
+      : { ...ch, weapon: spec(state.weapon) };
+    gearCache.set(key, g);
+  }
+  return gearCache.get(key);
+}
 function syncChips() {
+  for (const b of $('gear').querySelectorAll('.chip')) b.setAttribute('aria-pressed', String(state[b.dataset.group] === b.dataset.id));
   for (const b of $('modes').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.mode));
   for (const b of $('roster').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.char));
   const c = CHARACTERS[state.char], t = TYPES[state.char];
@@ -247,7 +276,7 @@ function videoLight() {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   const W = stage.width, H = stage.height, ctx = sctx;
-  const c = CHARACTERS[state.char];
+  const c = gear();
   const mirror = state.facing === 'user';
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#0f0c0b'; ctx.fillRect(0, 0, W, H);
@@ -305,7 +334,7 @@ function loop(now) {
     // 招式發動時吹一陣風：衣服往刀的反方向翻飛
     const ft0 = (now - cam.firedAt) / 1000, gust = cam.firedAt && ft0 < 1.4 ? (1 - ft0 / 1.4) * (wp?.T || 0) * (1.2 + .4 * Math.sin(now / 45)) : 0;
     const bd = c.move.blade, wind = gust ? { x: -bd[0] * gust, y: -bd[1] * gust - gust * .2 } : null;
-    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1, now, wind }), 0, 0);
+    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1, now, wind, outfit: state.outfit }), 0, 0);
     if (guide) drawGuide(ctx, guide.tg, c, res, (Math.sin(now / 250) + 1) / 2);
     if (wp) {
       const b0 = wp.blades[0], R = stage3d.reach(wp.T);

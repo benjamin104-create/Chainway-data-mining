@@ -69,6 +69,8 @@ export const TYPES = {
 //   不要用龜甲（kikko）、蝶翼、火焰紋：這三種是原作角色羽織已註冊的商標圖案
 // patternScale：花紋大小（小於 1 = 格子更大）
 // weapon.kind：katana 打刀／long 細身長刀／twin 雙短刀（可用）／odachi 大太刀／naginata 薙刀
+// art（可選）：設計師／GPT 畫好的圖，有填就取代程式產生的花紋與武器。格式見 ART_GUIDE.md
+//   { haori: 'assets/devote/haori.png', sleeve: 'assets/devote/sleeve.png', inner: …, hakama: …, weapon: 'assets/weapons/x.glb' }
 // move.pose：招式的目標姿勢，座標以「兩髖中點」為原點、軀幹長度為 1、y 往下（畫面方向，已鏡像）
 //   s=肩 e=肘 w=腕 h=髖 k=膝 a=踝，l=畫面左、r=畫面右，n=鼻子
 //   blade：招式完成時刀的方向（畫面座標）　hand：持刀的手（r／l／both）
@@ -145,6 +147,12 @@ export const CHARACTERS = {
         lh: [-.2, 0], rh: [.2, 0], lk: [-.4, .72], rk: [.35, .75], la: [-.45, 1.55], ra: [.62, 1.5] },
     },
   },
+};
+
+// ── 相機裡可以換的武器（不分角色）。model 填 .glb 路徑就會改用外部模型（見 ART_GUIDE.md）
+export const WEAPONS = {
+  katana: { kind: 'katana', len: 1.75, model: null },     // 武士刀（打刀）
+  kodachi: { kind: 'kodachi', len: 1.05, model: null },   // 小太刀
 };
 
 export const ORDER = ['devote', 'detach', 'recognize', 'compete', 'duty', 'harmony'];

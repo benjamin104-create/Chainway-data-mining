@@ -5,6 +5,7 @@
 // 座標：畫面像素。three 的 X = x、Y = -y、Z = 往鏡頭的深度（像素）。
 import * as THREE from './lib/three.module.min.js';
 import { RoomEnvironment } from './lib/RoomEnvironment.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
 import { tile, frame } from './ar.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -133,8 +134,9 @@ function bladeGeo(len, width, curve, broad = false) {
   g.translate(0, 0, -.006);
   return g;
 }
-function buildWeapon(ch, env) {
-  const w = ch.weapon, grp = new THREE.Group();
+// w：{ kind, len, tsuba, grip, model? }。有 model（.glb）時載入外部模型，載入前先用程式畫的刀頂著
+function buildWeapon(ch, w = ch.weapon) {
+  const grp = new THREE.Group();
   const steel = new THREE.MeshStandardMaterial({ color: '#e6ebf0', metalness: 1, roughness: .16, envMapIntensity: 1.4, emissive: new THREE.Color(ch.tint), emissiveIntensity: .12 });
   const gold = new THREE.MeshStandardMaterial({ color: w.tsuba, metalness: .9, roughness: .3 });
   const grip = new THREE.MeshStandardMaterial({ map: wrapTex(w.grip), roughness: .8, normalMap: weave(), normalScale: new THREE.Vector2(.4, .4) });
@@ -147,7 +149,7 @@ function buildWeapon(ch, env) {
     const blade = new THREE.Mesh(bladeGeo(L * .38, .12, -.12, true), steel); blade.position.y = L * .47; grp.add(blade);
     grp.userData.reach = L * .9;
   } else {
-    const gl = w.kind === 'twin' ? .22 : w.kind === 'odachi' ? .55 : .38;
+    const gl = w.kind === 'twin' || w.kind === 'kodachi' ? .24 : w.kind === 'odachi' ? .55 : .38;
     const bw = w.kind === 'odachi' ? .11 : w.kind === 'long' ? .06 : .075;
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(bw * .58, bw * .62, gl, 16), grip);
     handle.position.y = 0; grp.add(handle);
@@ -157,7 +159,31 @@ function buildWeapon(ch, env) {
     const blade = new THREE.Mesh(bladeGeo(w.len, bw, -.05), steel); blade.position.y = gl * .5 + .03; grp.add(blade);
     grp.userData.reach = gl * .5 + w.len;
   }
+  const model = w.model || (w === ch.weapon ? ch.art?.weapon : null);
+  if (model) loadModel(model, grp);
   return grp;
+}
+// 外部武器模型：握柄中心在原點、刀尖朝 +Y、長度單位 = 軀幹長（約 50 公分）。說明見 ART_GUIDE.md
+const gltfCache = new Map();
+function loadModel(url, grp) {
+  if (!gltfCache.has(url)) gltfCache.set(url, new GLTFLoader().loadAsync(url).catch((e) => { console.warn('武器模型載入失敗，改用內建刀', url, e); return null; }));
+  gltfCache.get(url).then((g) => {
+    if (!g) return;
+    const opacity = grp.userData.ghostOpacity;
+    grp.clear(); grp.add(g.scene.clone(true));
+    if (opacity) setGhost(grp, opacity);
+  });
+}
+function setGhost(grp, opacity) {
+  grp.userData.ghostOpacity = opacity;
+  grp.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = opacity; o.material.depthWrite = false; } });
+}
+// 外部布料貼圖（png/jpg）：載入後換掉程式產生的花紋
+function loadTexture(url, mat) {
+  new THREE.TextureLoader().load(url, (t) => {
+    t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+    mat.map?.dispose(); mat.map = t; mat.color?.set('#ffffff'); mat.needsUpdate = true;
+  }, undefined, () => console.warn('貼圖載入失敗，改用內建花紋', url));
 }
 
 // ── 動畫風（賽璐璐）著色：三階明暗＋黑色描邊 ─────────────────
@@ -236,8 +262,14 @@ class Outfit {
       trim: toon({ color: ch.trim }),
       hakama: toon({ map: stripes(ch.hakama) }),
     };
+    // 設計師／GPT 畫好的貼圖：data.js 的 art 欄位（見 ART_GUIDE.md）
+    if (!ghost) for (const k of ['haori', 'sleeve', 'inner', 'hakama']) if (ch.art?.[k]) loadTexture(ch.art[k], this.mat[k]);
     this.outline = ghost ? null : outlineMat();
-    const add = (s, line = true) => { this.group.add(s.mesh); if (this.outline && line) { const o = new THREE.Mesh(s.geo, this.outline); o.frustumCulled = false; this.group.add(o); } return s; };
+    const add = (s, line = true) => {
+      this.group.add(s.mesh);
+      if (this.outline && line) { const o = new THREE.Mesh(s.geo, this.outline); o.frustumCulled = false; this.group.add(o); s.line = o; }
+      return s;
+    };
     this.legs = [add(new Sweep(20, 40, this.mat.hakama)), add(new Sweep(20, 40, this.mat.hakama))];
     this.inner = add(new Sweep(20, 40, this.mat.inner));
     this.belt = add(new Sweep(4, 40, this.mat.trim), false);
@@ -245,9 +277,21 @@ class Outfit {
     this.lapels = [add(new Sweep(34, 10, this.mat.trim), false), add(new Sweep(34, 10, this.mat.trim), false)];
     this.arms = [add(new Sweep(30, 40, this.mat.sleeve)), add(new Sweep(30, 40, this.mat.sleeve))];
     this.cuffs = [add(new Sweep(3, 40, this.mat.trim), false), add(new Sweep(3, 40, this.mat.trim), false)];
+    // 「只披羽織」時：看不見的身體（只寫深度），擋住羽織內側，讓使用者自己的衣服露出來
+    this.occluder = new THREE.Mesh(this.inner.geo, new THREE.MeshBasicMaterial({ colorWrite: false }));
+    this.occluder.frustumCulled = false; this.occluder.renderOrder = -1; this.group.add(this.occluder);
+    this.setMode('full');
     // 布料慣性：下擺、兩個袖兜、兩條袴腳
     this.sp = { hem: new Spring(55, 7), sleeves: [new Spring(45, 6), new Spring(45, 6)], legs: [new Spring(60, 8), new Spring(60, 8)] };
     this.prev = null; this.t = 0;
+  }
+  // mode：'full' 全套（羽織＋內襯＋袴）／'haori' 只披羽織（其他是使用者自己的衣服）
+  setMode(mode) {
+    if (this.mode === mode) return;
+    this.mode = mode;
+    const full = mode === 'full';
+    for (const s of [this.inner, this.belt, ...this.legs]) { s.mesh.visible = full; if (s.line) s.line.visible = full; }
+    this.occluder.visible = !full;
   }
   dispose() { this.group.parent?.remove(this.group); this.group.traverse((o) => { o.geometry?.dispose(); }); for (const m of Object.values(this.mat)) { m.map?.dispose(); m.dispose(); } this.outline?.dispose(); }
 
@@ -432,6 +476,7 @@ export class Stage3D {
     this.fill = new THREE.DirectionalLight('#cfd8ff', .5); this.fill.position.set(1, -.2, 1); this.scene.add(this.fill); this.scene.add(this.rim);
     this.ch = null;
   }
+  // ch：角色（data.js）；ch.weapon 可以是 { kind, ... }，ch.offhand 有值時左手再拿一把（二刀）
   setCharacter(ch) {
     if (this.ch === ch) return;
     this.ch = ch;
@@ -442,15 +487,16 @@ export class Stage3D {
     this.outfit = new Outfit(this.scene, ch, false);
     this.ghost = new Outfit(this.scene, ch, true);
     this.doll = new Doll(this.scene, ch);
-    this.weapons = [buildWeapon(ch), buildWeapon(ch)];
-    this.ghostWeapons = [buildWeapon(ch), buildWeapon(ch)];
-    for (const g of this.ghostWeapons) g.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .25; o.material.depthWrite = false; } });
+    const second = ch.offhand || ch.weapon;
+    this.weapons = [buildWeapon(ch), buildWeapon(ch, second)];
+    this.ghostWeapons = [buildWeapon(ch), buildWeapon(ch, second)];
+    for (const g of this.ghostWeapons) setGhost(g, .25);
     for (const w of [...this.weapons, ...this.ghostWeapons]) this.scene.add(w);
     this.rim.color.set(ch.tint);
   }
   // 刀尖在畫面上的位置（給刀光殘影用）
   reach(T) { return (this.weapons?.[0].userData.reach || 2) * T; }
-  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light, now, wind }
+  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light, now, wind, outfit:'full'|'haori' }
   render(W, H, opts) {
     const r = this.renderer;
     if (this.canvas.width !== W || this.canvas.height !== H) {
@@ -467,6 +513,7 @@ export class Stage3D {
       grp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(b.dir.x, -b.dir.y, 0).normalize());
       grp.scale.setScalar(T);
     };
+    this.outfit.setMode(opts.outfit || 'full'); this.ghost.setMode(opts.outfit || 'full');
     this.outfit.group.visible = !!opts.kp;
     if (opts.kp) this.outfit.update(opts.kp, { now: opts.now, wind: opts.wind });
     this.ghost.group.visible = !!opts.ghostKp;
