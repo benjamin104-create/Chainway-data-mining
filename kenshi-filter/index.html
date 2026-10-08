@@ -151,8 +151,11 @@
       <button class="entry entry-camera" id="quickCam"><span class="entry-icon">◉</span><span><strong>直接拍照</strong><small>立刻進入沉浸式 AR 相機</small></span></button>
       <button class="entry entry-quiz" id="start"><span class="entry-icon">籤</span><span><strong>劍士測驗</strong><small>抽出 SR／SSR 與能力值</small></span></button>
     </div>
+    <button class="secondary" id="uploadPhoto">上傳照片試穿</button>
+    <p class="fine" id="photoError" role="status" hidden></p>
     <button class="secondary" id="resume" hidden>看上次的測驗結果</button>
-    <p class="fine">這是娛樂性的自我探索，不是心理診斷。角色都是原創的大正風劍士。相機畫面只在你的手機上計算，不會上傳。</p>
+    <p class="fine">建議使用正面、臉與雙肩清楚的上半身照片。相機與照片都只在你的瀏覽器內處理，不會上傳伺服器。</p>
+    <p class="fine">這是娛樂性的自我探索，不是心理診斷。角色為原創的大正風劍士。</p>
     <div class="card" id="inapp" hidden>
       <h3>在 App 裡打開的嗎？</h3>
       <p>Instagram、Facebook 等 App 內建的瀏覽器常常不能開相機。測驗可以先玩，要拍照時建議改用手機瀏覽器開。</p>
@@ -212,6 +215,8 @@
 
     <div class="stack">
       <button class="primary" id="toCam">穿上羽織，打開 AR 相機</button>
+      <button class="secondary" id="resultPhoto">用照片試穿這個角色</button>
+      <p class="fine" id="resultPhotoError" role="status" hidden></p>
     </div>
 
     <div class="card">
@@ -237,7 +242,7 @@
   </div>
   <div class="hint" id="hint"></div>
   <div class="hud-bot">
-    <div class="cam-quick"><div class="chips" id="modes"></div><button class="chip" id="customizeBtn" aria-expanded="false">造型</button></div>
+    <div class="cam-quick"><div class="chips" id="modes"></div><span class="fine" id="photoModeLabel" hidden>照片試穿</span><button class="chip" id="customizeBtn" aria-expanded="false">造型</button></div>
     <div class="customize" id="customizer" hidden>
       <div class="chips" id="gear"></div>
       <div class="chips" id="roster"></div>
@@ -249,6 +254,8 @@
     </div>
   </div>
 </section>
+
+<input id="photoInput" type="file" accept="image/*" aria-label="選擇試穿照片" hidden>
 
 <div id="sheet" hidden>
   <div class="col">

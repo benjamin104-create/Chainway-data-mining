@@ -1,5 +1,5 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'kata-v9';
+const CACHE = 'kata-v10';
 const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'render3d.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'composite.js', 'assets/haori-real-base.png', 'assets/haori-real-thunder.png', 'assets/haori-real-flame.png',
   'lib/vision_bundle.mjs', 'lib/three.module.min.js', 'lib/RoomEnvironment.js', 'lib/GLTFLoader.js', 'lib/BufferGeometryUtils.js', 'models/pose_landmarker_lite.task'];
