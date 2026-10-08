@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter, FaceDetector } from './lib/vision_bundle.mjs';
-import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, computeStand, standById } from './quiz.js';
+import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
@@ -12,7 +12,7 @@ const state = {
   segmenter: null, mask: null, box: null, lastTs: 0,
   stand: null, summonAt: 0,
   lang: /^ja/i.test(navigator.language) ? 'ja' : /^zh/i.test(navigator.language) ? 'zh' : 'en',
-  colTop: null, pose: null,
+  colTop: null, pose: null, layout: 'auto', capturing: false,
 };
 window.__state = state;
 const store = {
@@ -154,6 +154,7 @@ function useStand(s) {
   document.documentElement.style.setProperty('--accent', s.text);
   $('camTitle').textContent = `《${s.name}》`;
   loadArt(s.id).catch(() => {});
+  loadArt(s.id + '_front').catch(() => {});   // 正中央／片頭構圖用的正面立繪
 }
 // 自媒體建議：全部依本人的 10 個答案，不看守護神的六角圖
 // 主標籤給定位，副標籤給混搭，每一題選的選項各給一句具體建議
@@ -271,6 +272,17 @@ for (const [id, name] of Object.entries(LANGS)) {
   langRow.append(b);
 }
 $('sfx').after(langRow);
+const LAYOUTS = [['auto', '自動'], ['center', '正中央'], ['left', '左側'], ['right', '右側'], ['opening', '片頭']];
+state.layout = store.get('layout') || 'auto';
+const layoutRow = document.createElement('div'); layoutRow.className = 'chips'; layoutRow.setAttribute('role', 'group'); layoutRow.setAttribute('aria-label', '構圖');
+for (const [id, name] of LAYOUTS) {
+  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = name;
+  b.setAttribute('aria-pressed', String(state.layout === id));
+  b.onclick = () => { state.layout = id; state.pose = null; state.summonAt = performance.now(); store.set('layout', id);
+    for (const x of layoutRow.children) x.setAttribute('aria-pressed', String(x === b)); };
+  layoutRow.append(b);
+}
+$('sfx').before(layoutRow);
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
@@ -310,6 +322,7 @@ async function startCamera() {
       video: { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 1280 } },
     });
   } catch (e) {
+    if (state.src && state.src !== video) return;      // 使用者已經改用相簿照片，就不再顯示相機錯誤
     if (window.IN_APP) { cameraBlocked(); return; }      // App 內建瀏覽器擋相機：給一鍵切換
     notice(e.name === 'NotAllowedError'
       ? '相機權限被拒絕了。請到瀏覽器設定允許這個網站使用相機，再重新整理。'
@@ -560,11 +573,12 @@ function render(now) {
   // 4. 替身：站在本人斜後方，頭比本人高，緩慢浮動；剛召喚時從下方升起
   const bw = (box.x1 - box.x0) * W, bh = (box.y1 - box.y0) * H;
   const cx = (box.x0 + box.x1) / 2 * W, headY = box.y0 * H;
-  const a = art[s.id];
+  const L = state.layout, front = L === 'center' || L === 'opening';
+  const a = (front && art[s.id + '_front']) || art[s.id];
   const enter = Math.min(1, (now - state.summonAt) / 900), ease = 1 - Math.pow(1 - enter, 3);
   state.personCx = cx;
-  if (a) {
-    const p = placeStand(W, H, bh, headY, a.width / a.height, u);
+  const drawGod = () => { if (!a) return;
+    const p = L === 'auto' ? placeStand(W, H, bh, headY, a.width / a.height, u) : fixedLayout(L, W, H, u, a.width / a.height);
     let P = state.pose;
     if (!P) P = state.pose = { x: p.x, y: p.sy, sh: p.sh, vx: 0, lean: 0, tx: p.x, tsh: p.sh, side: p.side };
     P.tx = p.x; P.tsh = p.sh; P.side = p.side;
@@ -590,7 +604,8 @@ function render(now) {
       ctx.restore();
     }
     ctx.save();
-    ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale, scale);   // 以腳底為支點
+    const flip = L === 'right' ? -1 : 1;           // 右側構圖把神左右翻轉，讓祂朝向你
+    ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale * flip, scale);   // 以腳底為支點
     ctx.globalAlpha = .14 * ease;                  // 殘影
     ctx.drawImage(a, -sw * .52 - P.side * u * 2 - P.vx * 3, -sh * 1.02, sw * 1.04, sh * 1.04);
     ctx.globalAlpha = .88 * ease;
@@ -598,9 +613,10 @@ function render(now) {
     ctx.shadowColor = s.glow; ctx.shadowBlur = (3 + pulse * 4) * u;
     ctx.drawImage(a, -sw / 2, -sh, sw, sh);
     ctx.restore();
-  } else {
-    speedLines(cx, headY, W, H, t, s);
-  }
+  };
+  if (!a) speedLines(cx, headY, W, H, t, s);
+  if (L === 'opening') sideBand(W, H, s);          // 片頭：人那一側鋪半透明深色帶
+  else drawGod();                                  // 其他構圖：神在人後面
 
   // 5. 本人的氣場與本人（擋在替身前面）
   ctx.globalCompositeOperation = 'lighter';
@@ -610,12 +626,77 @@ function render(now) {
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(beautify(W, H, u), 0, 0);
+  if (L === 'opening') drawGod();                  // 片頭：神在最前面
 
   vignette(W, H);
-  if (state.card && s.owner) standCard(W, H, s);
-  tagStamp(W, H, s, u, now);
-  titleBanner(W, H, s, u, ease);
-  if (state.standHead) speech(W, H, s, u, t, ease);
+  if (L === 'opening') { openingCaption(W, H, s, u, ease, t); }
+  else {
+    if (state.card && s.owner) standCard(W, H, s);
+    tagStamp(W, H, s, u, now);
+    titleBanner(W, H, s, u, ease);
+    if (state.standHead) speech(W, H, s, u, t, ease);
+  }
+  if (L !== 'auto' && !state.capturing) standGuide(W, H, u, t);   // 站位虛線（拍下來的照片不會有）
+}
+
+// ── 構圖：正中央／左側／右側／片頭 都是固定位置，使用者自己對著虛線站 ──
+const GUIDE = { center: [.5, .52], left: [.68, .44], right: [.32, .44], opening: [.26, .46] };
+function fixedLayout(L, W, H, u, ratio) {
+  const top = TITLE_H * u;
+  if (L === 'center') { const sh = Math.min(H * .95, W * 1.15 / ratio); return { x: W / 2, sy: top - u, sh, sw: sh * ratio, side: 1 }; }
+  if (L === 'opening') { const sh = Math.min(H * .9, W * .78 / ratio); return { x: W * .66, sy: H * .06, sh, sw: sh * ratio, side: 1 }; }
+  const sh = Math.min(H * .86, W * .85 / ratio), side = L === 'left' ? -1 : 1;
+  return { x: L === 'left' ? W * .3 : W * .7, sy: top, sh, sw: sh * ratio, side };
+}
+function standGuide(W, H, u, t) {
+  const [gx, gy] = GUIDE[state.layout], x = gx * W, y = gy * H, r = Math.min(W, H) * .1;
+  ctx.save();
+  ctx.globalAlpha = .55 + Math.sin(t * 3) * .2;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = .6 * u; ctx.setLineDash([2 * u, 1.6 * u]);
+  ctx.beginPath(); ctx.ellipse(x, y, r * .8, r, 0, 0, 7); ctx.stroke();          // 頭
+  ctx.beginPath(); ctx.moveTo(x - r * 2.6, H); ctx.quadraticCurveTo(x - r * 2.4, y + r * 1.6, x, y + r * 1.4);
+  ctx.quadraticCurveTo(x + r * 2.4, y + r * 1.6, x + r * 2.6, H); ctx.stroke();    // 肩膀
+  ctx.setLineDash([]); ctx.globalAlpha = .9; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.font = `700 ${2.6 * u}px "Noto Sans TC", system-ui, sans-serif`;
+  ctx.fillText({ zh: '站進虛線，擺個 pose', ja: '点線に入ってポーズ', en: 'Step into the outline and pose' }[state.lang], x, y - r * 1.35);
+  ctx.restore();
+}
+function sideBand(W, H, s) {
+  const g = ctx.createLinearGradient(0, 0, W * .62, 0);
+  g.addColorStop(0, 'rgba(8,5,16,.62)'); g.addColorStop(.7, 'rgba(8,5,16,.35)'); g.addColorStop(1, 'rgba(8,5,16,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.globalAlpha = .5; ctx.fillStyle = s.tint; ctx.fillRect(0, 0, W * .5, H); ctx.restore();
+}
+// 片頭字幕：像動畫開場的標題卡
+function openingCaption(W, H, s, u, ease, t) {
+  const L = state.lang, k = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - .4) / .6));
+  const slide = (1 - Math.pow(1 - k, 3));
+  ctx.save(); ctx.globalAlpha = slide;
+  const g = ctx.createLinearGradient(0, H * .66, 0, H);
+  g.addColorStop(0, 'rgba(8,5,16,0)'); g.addColorStop(.35, 'rgba(8,5,16,.7)'); g.addColorStop(1, 'rgba(8,5,16,.9)');
+  ctx.fillStyle = g; ctx.fillRect(0, H * .66, W, H * .34);
+  const x0 = 5 * u - (1 - slide) * 20 * u;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = s.glow; ctx.font = `700 ${2.5 * u}px system-ui, sans-serif`;
+  const top = `${{ zh: '守護神偵測器', ja: '守護神診断', en: 'GUARDIAN DEITY' }[L]} ・ ${PACK.name[L]}`;
+  ctx.fillText(L === 'en' ? top.toUpperCase() : top, x0, H * .8);
+  const big = L === 'en' ? s.names.en : s.names[L];
+  let px = 11 * u; ctx.font = FONT[L](900, px);
+  while (ctx.measureText(big).width > W * .9 && px > 5 * u) { px *= .92; ctx.font = FONT[L](900, px); }
+  ctx.save(); ctx.translate(x0, H * .8 + px * 1.02); ctx.transform(1, 0, -.12, 1, 0, 0);
+  ctx.lineJoin = 'round'; ctx.lineWidth = px * .16; ctx.strokeStyle = '#0c0814'; ctx.strokeText(big, 0, 0);
+  const gg = ctx.createLinearGradient(0, -px, 0, 0); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
+  ctx.fillStyle = gg; ctx.fillText(big, 0, 0); ctx.restore();
+  ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = '#fff';
+  ctx.fillText(`${s.titles[L]}　${L === 'en' ? '' : s.names.en}`, x0, H * .8 + px * 1.02 + 4.5 * u);
+  ctx.font = `500 ${2.6 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.fillText(L === 'en' ? `“${s.line.en}”` : `「${s.line[L]}」`, x0, H * .8 + px * 1.02 + 9 * u, W - x0 - 4 * u);
+  // 右上角的人格標籤小章
+  const tag = s.tagNames?.[L] || s.tag;
+  ctx.textAlign = 'right'; ctx.font = `900 ${4.4 * u}px "Noto Sans TC", sans-serif`;
+  ctx.lineWidth = u; ctx.strokeStyle = '#0c0814'; ctx.strokeText(tag, W - 4 * u, 8 * u);
+  ctx.fillStyle = s.glow; ctx.fillText(tag, W - 4 * u, 8 * u);
+  ctx.restore();
 }
 
 // ── 人格標籤大字：「守護」「創造」這種一眼就懂的直排大字，放在守護靈的另一側 ──
@@ -826,7 +907,9 @@ function standCard(W, H, s) {
 let lastBlob = null, lastUrl = null;
 $('shot').onclick = () => {
   const f = $('flash'); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
-  view.toBlob((blob) => {
+  state.capturing = true;                        // 先畫一格沒有站位虛線的畫面再存
+  requestAnimationFrame(() => requestAnimationFrame(() => view.toBlob((blob) => {
+    state.capturing = false;
     if (!blob) return;
     lastBlob = blob;
     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -835,7 +918,7 @@ $('shot').onclick = () => {
     const file = new File([blob], 'stand.jpg', { type: 'image/jpeg' });
     $('share').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
     $('sheet').hidden = false;
-  }, 'image/jpeg', .92);
+  }, 'image/jpeg', .92)));
 };
 $('share').onclick = async () => {
   const file = new File([lastBlob], 'stand.jpg', { type: 'image/jpeg' });

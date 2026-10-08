@@ -76,6 +76,9 @@ export const STANDS = {
     ability: '守護家人與約定的天后。被她牽起的關係，不會輕易斷掉。' },
 };
 
+// 篇：之後的「台灣篇」「日本篇」換掉這一包資料（神祇、圖、文字）就能沿用整套測驗與相機
+export const PACK = { id: 'greek', name: { zh: '希臘篇', ja: 'ギリシャ編', en: 'GREEK MYTHS' } };
+
 // 三種語言的名字、稱號與台詞（相機畫面上的標題與對話框用）
 export const LANGS = { zh: '中文', ja: '日本語', en: 'EN' };
 export const TAG_NAMES = {
