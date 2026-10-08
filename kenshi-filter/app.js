@@ -76,7 +76,7 @@ function finish() {
   $('who').textContent = `你是「${t.name}」`;
   $('quote').textContent = `「${t.line}」`;
   for (const k of ['healthy', 'shadow', 'adler', 'maslow', 'try']) $(k).textContent = t[k];
-  drawPortrait($('heroCanvas'), c, params.has('pt') ? +params.get('pt') : .55);
+  drawPortrait($('heroCanvas'), c, params.has('pt') ? +params.get('pt') : .8);
 
   // 和每位劍士的相似度：用分數本身（每一型 0～100）
   const ranked = ORDER.map((id) => [id, state.scores[id]]).sort((a, b) => b[1] - a[1]);
@@ -302,7 +302,10 @@ function loop(now) {
   if (kp || guide) {
     const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
     const wp = kp && weaponPose(kp, c, c.move.blade, cam.demo ? 1 : assist);
-    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1 }), 0, 0);
+    // 招式發動時吹一陣風：衣服往刀的反方向翻飛
+    const ft0 = (now - cam.firedAt) / 1000, gust = cam.firedAt && ft0 < 1.4 ? (1 - ft0 / 1.4) * (wp?.T || 0) * (1.2 + .4 * Math.sin(now / 45)) : 0;
+    const bd = c.move.blade, wind = gust ? { x: -bd[0] * gust, y: -bd[1] * gust - gust * .2 } : null;
+    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: guide?.tg, ghostBlades: guide?.blades, doll: cam.demo, light: cam.light ?? 1, now, wind }), 0, 0);
     if (guide) drawGuide(ctx, guide.tg, c, res, (Math.sin(now / 250) + 1) / 2);
     if (wp) {
       const b0 = wp.blades[0], R = stage3d.reach(wp.T);

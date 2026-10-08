@@ -117,7 +117,8 @@ export function weaponPose(kp, ch, target, matchT) {
   let grip, dir;
   if (both || hand === 'both' && ch.weapon.kind !== 'twin') {
     grip = mid(handOf('l'), handOf('r'));
-    dir = both ? up : fore('r');
+    // 雙手握刀：兩手靠很近 → 刀朝上；兩手分開（橫架）→ 刀沿著兩手的連線
+    dir = both ? up : norm(sub(kp.rw, kp.lw));
   } else {
     grip = handOf('r');
     dir = fore('r');

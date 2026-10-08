@@ -1,6 +1,6 @@
 // 3D 渲染的劍士服裝與武器（three.js）：
-// 羽織、內襯、寬袖、袴都是跟著骨架即時變形的立體布料（有布料光澤、皺褶、褶襉），
-// 刀是金屬材質、會反射環境光。頭和手不蓋住，直接露出相機裡的本人。
+// 羽織、內襯、寬袖、袴都是跟著骨架即時變形的立體布料，用動畫風的賽璐璐著色＋描邊；
+// 下擺、袖兜、袴腳有慣性（彈簧），動作一大會甩動；刀是金屬材質、會反射環境光。頭和手不蓋住，直接露出相機裡的本人。
 //
 // 座標：畫面像素。three 的 X = x、Y = -y、Z = 往鏡頭的深度（像素）。
 import * as THREE from './lib/three.module.min.js';
@@ -160,9 +160,45 @@ function buildWeapon(ch, env) {
   return grp;
 }
 
+// ── 動畫風（賽璐璐）著色：三階明暗＋黑色描邊 ─────────────────
+let ramp = null;
+function toonRamp() {
+  if (ramp) return ramp;
+  ramp = new THREE.DataTexture(new Uint8Array([95, 170, 255]), 3, 1, THREE.RedFormat);
+  ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true;
+  return ramp;
+}
+// 描邊：把同一份形狀往外推一點、只畫遠側那一面（inverted hull）
+function outlineMat() {
+  return new THREE.ShaderMaterial({
+    uniforms: { thick: { value: 2 }, color: { value: new THREE.Color('#140d0b') } },
+    vertexShader: 'uniform float thick; void main(){ vec3 p = position - normalize(normal) * thick; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
+    fragmentShader: 'uniform vec3 color; void main(){ gl_FragColor = vec4(color, 1.0); }',
+    // 掃掠管的三角形繞向讓法線朝內，所以往「-法線」推＝往外，畫正面＝外殼的遠側
+    side: THREE.FrontSide,
+  });
+}
+// 鱗紋（散落的白色三角）＋由上往下的漸層，整件羽織一張貼圖
+function gradTex(ch) {
+  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512;
+  const g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, ch.grad[0]); gr.addColorStop(1, ch.grad[1]);
+  g.fillStyle = gr; g.fillRect(0, 0, 1024, 512);
+  g.fillStyle = ch.haori2;
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let y = 18; y < 512; y += 46) for (let x = (y / 46 % 2) * 34; x < 1024; x += 68) {
+    const cx = x + (rnd() - .5) * 22, cy = y + (rnd() - .5) * 16, r = 13 + rnd() * 5, a = (rnd() - .5) * .9;
+    g.beginPath();
+    for (let k = 0; k < 3; k++) { const t = a - Math.PI / 2 + k * Math.PI * 2 / 3; g.lineTo(cx + Math.cos(t) * r, cy + Math.sin(t) * r); }
+    g.closePath(); g.fill();
+  }
+  return canvasTex(cv, 1, 1);
+}
+
 // ── 一套衣服（真人用一套、招式框的淡影用一套） ──────────────
 const TORSO = [ // [離肩線的高度（往上為正）, 寬半徑, 厚半徑]（軀幹長 = 1）
-  [.15, .12, .11], [.09, .28, .16], [.03, .42, .22], [-.1, .45, .23], [-.5, .41, .22], [-1, .42, .27], [-1.4, .47, .31], [-1.72, .5, .33]];
+  [.15, .12, .11], [.09, .3, .17], [.03, .45, .23], [-.1, .48, .25], [-.5, .44, .24], [-1, .45, .29], [-1.45, .52, .34], [-1.85, .58, .38]];
 function profile(h) {
   for (let i = 1; i < TORSO.length; i++) {
     const [h0, a0, b0] = TORSO[i - 1], [h1, a1, b1] = TORSO[i];
@@ -170,37 +206,55 @@ function profile(h) {
   }
   return h > 0 ? TORSO[0].slice(1) : TORSO.at(-1).slice(1);
 }
+// 動畫風皺褶：|sin| 做出尖銳的凹摺、圓潤的凸面
+const crease = (x) => Math.abs(Math.sin(x)) - .62;
+
+// 布料的慣性：彈簧＋阻尼。身體一動，下擺和袖子會慢半拍跟上、再晃回來
+class Spring {
+  constructor(k, d) { this.k = k; this.d = d; this.x = V3(0, 0, 0); this.v = V3(0, 0, 0); }
+  step(target, dt) {
+    const acc = target.clone().sub(this.x).multiplyScalar(this.k).sub(this.v.clone().multiplyScalar(this.d));
+    this.v.add(acc.multiplyScalar(dt)); this.x.add(this.v.clone().multiplyScalar(dt));
+    return this.x;
+  }
+}
+const clampLen = (v, m) => (v.length() > m ? v.setLength(m) : v);
 
 class Outfit {
   constructor(scene, ch, ghost) {
     this.group = new THREE.Group(); scene.add(this.group);
     this.ghost = ghost;
-    const W = ghost ? null : weave(), ns = new THREE.Vector2(.35, .35);
-    const silk = (opts) => ghost
+    const toon = (opts) => ghost
       ? new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .16, depthWrite: false, side: THREE.DoubleSide })
-      : new THREE.MeshPhysicalMaterial({ roughness: .6, sheen: 1, sheenRoughness: .4, envMapIntensity: .45, normalMap: W, normalScale: ns, side: THREE.DoubleSide, ...opts });
+      : new THREE.MeshToonMaterial({ gradientMap: toonRamp(), side: THREE.DoubleSide, ...opts });
     const ps = ch.patternScale || 1;   // 花紋大小：數字越小，格子越大
-    const pat = (rx, ry) => canvasTex(tile(ch.pattern, ch.haori, ch.haori2, 256), rx * ps, ry * ps);
+    const pat = (rx, ry) => (ch.grad ? gradTex(ch) : canvasTex(tile(ch.pattern, ch.haori, ch.haori2, 256), rx * ps, ry * ps));
     this.mat = {
-      haori: silk({ map: pat(7, 4.5), sheenColor: new THREE.Color(ch.haori2).lerp(new THREE.Color('#fff'), .4) }),
-      sleeve: silk({ map: pat(4, 2.5), sheenColor: new THREE.Color(ch.haori2).lerp(new THREE.Color('#fff'), .4) }),
-      inner: silk({ color: ch.inner, roughness: .75, sheen: .6, sheenColor: new THREE.Color('#888') }),
-      trim: silk({ color: ch.trim, roughness: .45, sheenColor: new THREE.Color('#fff') }),
-      hakama: silk({ map: stripes(ch.hakama), roughness: .85, sheen: .5, sheenColor: new THREE.Color(ch.hakama).lerp(new THREE.Color('#fff'), .5) }),
+      haori: toon({ map: pat(7, 4.5) }),
+      sleeve: toon({ map: pat(4, 2.5) }),
+      inner: toon({ color: ch.inner }),
+      trim: toon({ color: ch.trim }),
+      hakama: toon({ map: stripes(ch.hakama) }),
     };
-    const add = (s) => { this.group.add(s.mesh); return s; };
-    this.legs = [add(new Sweep(18, 36, this.mat.hakama)), add(new Sweep(18, 36, this.mat.hakama))];
+    this.outline = ghost ? null : outlineMat();
+    const add = (s, line = true) => { this.group.add(s.mesh); if (this.outline && line) { const o = new THREE.Mesh(s.geo, this.outline); o.frustumCulled = false; this.group.add(o); } return s; };
+    this.legs = [add(new Sweep(20, 40, this.mat.hakama)), add(new Sweep(20, 40, this.mat.hakama))];
     this.inner = add(new Sweep(20, 40, this.mat.inner));
-    this.belt = add(new Sweep(4, 40, this.mat.trim));
-    this.haori = add(new Sweep(30, 56, this.mat.haori));
-    this.lapels = [add(new Sweep(30, 10, this.mat.trim)), add(new Sweep(30, 10, this.mat.trim))];
-    this.arms = [add(new Sweep(26, 32, this.mat.sleeve)), add(new Sweep(26, 32, this.mat.sleeve))];
-    this.cuffs = [add(new Sweep(3, 32, this.mat.trim)), add(new Sweep(3, 32, this.mat.trim))];
+    this.belt = add(new Sweep(4, 40, this.mat.trim), false);
+    this.haori = add(new Sweep(34, 72, this.mat.haori));
+    this.lapels = [add(new Sweep(34, 10, this.mat.trim), false), add(new Sweep(34, 10, this.mat.trim), false)];
+    this.arms = [add(new Sweep(30, 40, this.mat.sleeve)), add(new Sweep(30, 40, this.mat.sleeve))];
+    this.cuffs = [add(new Sweep(3, 40, this.mat.trim), false), add(new Sweep(3, 40, this.mat.trim), false)];
+    // 布料慣性：下擺、兩個袖兜、兩條袴腳
+    this.sp = { hem: new Spring(55, 7), sleeves: [new Spring(45, 6), new Spring(45, 6)], legs: [new Spring(60, 8), new Spring(60, 8)] };
+    this.prev = null; this.t = 0;
   }
-  dispose() { this.group.parent?.remove(this.group); this.group.traverse((o) => { o.geometry?.dispose(); }); for (const m of Object.values(this.mat)) { m.map?.dispose(); m.dispose(); } }
+  dispose() { this.group.parent?.remove(this.group); this.group.traverse((o) => { o.geometry?.dispose(); }); for (const m of Object.values(this.mat)) { m.map?.dispose(); m.dispose(); } this.outline?.dispose(); }
 
-  update(kp) {
+  // opts：{ now（毫秒）, wind（像素向量，招式發動時的風） }
+  update(kp, opts = {}) {
     const { T } = frame(kp);
+    if (this.outline) this.outline.uniforms.thick.value = Math.max(1.5, T * .026);
     const hip = P(kp.lh).add(P(kp.rh)).multiplyScalar(.5), sh = P(kp.ls).add(P(kp.rs)).multiplyScalar(.5);
     const U = sh.clone().sub(hip); U.z = 0; U.normalize();
     let S = V3(U.y, -U.x, 0);                                          // 畫面上與身體垂直、指向畫面右肩
@@ -213,14 +267,35 @@ class Outfit {
     const B = new THREE.Vector3().crossVectors(U, A).normalize();      // 身體正面（朝鏡頭）
     if (B.z < 0) B.negate();
     const at = (h) => sh.clone().add(U.clone().multiplyScalar(h * T));
-    const fold = (v, k) => (th) => 1 + .045 * v * Math.sin(th * k + v * 3) + .02 * Math.sin(th * 3);
+    const down = V3(0, -1, 0);
 
-    // 羽織：正面敞開
-    const gap = (v) => lerp(.5, .3, Math.min(1, v * 3)) + v * .12;
+    // ── 慣性：用關鍵點的速度推動彈簧（布料往動作的反方向甩） ──
+    const now = opts.now ?? performance.now();
+    const dt = this.prev ? Math.min(.05, Math.max(.001, (now - this.prev.now) / 1000)) : .016;
+    this.t += dt;
+    const vel = (k) => (this.prev ? P(kp[k]).sub(this.prev[k]).divideScalar(dt) : V3(0, 0, 0));
+    const wind = opts.wind ? V3(opts.wind.x, -opts.wind.y, 0) : V3(0, 0, 0);
+    const flutter = (ph) => V3(Math.sin(this.t * 2.1 + ph), Math.sin(this.t * 1.3 + ph * 2) * .3, 0).multiplyScalar(T * .02);
+    const still = this.ghost;
+    const hipV = vel('lh').add(vel('rh')).multiplyScalar(.5);
+    const hemOff = still ? V3(0, 0, 0) : clampLen(this.sp.hem.step(clampLen(hipV.multiplyScalar(-.07).add(wind).add(flutter(0)), .7 * T), dt).clone(), .8 * T);
+    const sleeveOff = ['lw', 'rw'].map((k, i) => (still ? V3(0, 0, 0)
+      : clampLen(this.sp.sleeves[i].step(clampLen(vel(k).multiplyScalar(-.06).add(wind.clone().multiplyScalar(.8)).add(flutter(i + 1)), .6 * T), dt).clone(), .7 * T)));
+    const legOff = ['la', 'ra'].map((k, i) => (still ? V3(0, 0, 0)
+      : clampLen(this.sp.legs[i].step(clampLen(vel(k).multiplyScalar(-.04).add(wind.clone().multiplyScalar(.5)), .4 * T), dt).clone(), .45 * T)));
+    this.prev = { now }; for (const k of ['lh', 'rh', 'lw', 'rw', 'la', 'ra']) this.prev[k] = P(kp[k]);
+    const swing = hemOff.dot(A) / T;                                  // 下擺甩動時，皺褶也跟著偏移
+
+    // 羽織：正面敞開，往下擺越來越寬、皺褶越來越深，下擺被慣性甩動
+    const gap = (v) => lerp(.5, .3, Math.min(1, v * 3)) + v * .14;
     const edgePts = [[], []];
     this.haori.update((i, v) => {
-      const h = lerp(.15, -1.72, v), [ra, rb] = profile(h), g = gap(v);
-      const r = { c: at(h), a: A, b: B, ra: ra * T, rb: rb * T, th0: Math.PI / 2 + g, th1: Math.PI / 2 + Math.PI * 2 - g, mod: fold(v, 9) };
+      const h = lerp(.15, -1.85, v), [ra, rb] = profile(h), g = gap(v);
+      const w = Math.pow(Math.max(0, v - .25) / .75, 1.6);            // 腰以下才會被甩動
+      const c = at(h).add(hemOff.clone().multiplyScalar(w));
+      const depth = .1 * Math.pow(v, 1.4);
+      const r = { c, a: A, b: B, ra: ra * T * (1 + .12 * w * Math.min(1, hemOff.length() / T * 2)), rb: rb * T, th0: Math.PI / 2 + g, th1: Math.PI / 2 + Math.PI * 2 - g,
+        mod: (th) => 1 + depth * crease(th * 5.5 + swing * 2.5 + v * 1.2) + .03 * Math.sin(th * 2 + v * 4) };
       for (const [k, th] of [[0, r.th0], [1, r.th1]]) {
         const m = r.mod(th);
         edgePts[k].push(r.c.clone().add(A.clone().multiplyScalar(Math.cos(th) * r.ra * m)).add(B.clone().multiplyScalar(Math.sin(th) * r.rb * m)));
@@ -230,68 +305,77 @@ class Outfit {
     // 衣襟滾邊
     this.lapels.forEach((s, k) => {
       const pts = edgePts[k];
-      s.update((i, v) => {
+      s.update((i) => {
         const j = Math.min(pts.length - 1, i), tan = pts[Math.min(pts.length - 1, j + 1)].clone().sub(pts[Math.max(0, j - 1)]).normalize();
         const [a, b] = axes(tan, B);
-        return { c: pts[j], a, b, ra: T * .022, rb: T * .045 };
+        return { c: pts[j], a, b, ra: T * .024, rb: T * .05 };
       });
     });
     this.inner.update((i, v) => {
       const h = lerp(.2, -1.6, v), [ra, rb] = profile(h);
-      return { c: at(h), a: A, b: B, ra: ra * T * (h > .1 ? .95 : .93), rb: rb * T * .93 };
+      return { c: at(h), a: A, b: B, ra: ra * T * (h > .1 ? .95 : .9), rb: rb * T * .9, mod: (th) => 1 + .03 * crease(th * 4 + v * 2) * v };
     });
     this.belt.update((i, v) => {
       const h = lerp(-.8, -.95, v), [ra, rb] = profile(h);
-      return { c: at(h), a: A, b: B, ra: ra * T * .955, rb: rb * T * .955 };
+      return { c: at(h), a: A, b: B, ra: ra * T * .93, rb: rb * T * .93 };
     });
 
     // 手肘、手腕在身體前面時，往鏡頭推，避免穿進身體
     const front = (p) => {
       const d = p.clone().sub(hip), across = Math.abs(d.dot(S)), hgt = d.dot(U) / T;
-      if (across < .5 * T && hgt > -.9 && hgt < 1.2) p.z = Math.max(p.z, hip.z + .32 * T);
+      if (across < .5 * T && hgt > -.9 && hgt < 1.2) p.z = Math.max(p.z, hip.z + .36 * T);
       return p;
     };
-    // 袖子：上臂一段、前臂一段，前臂越水平袖兜越往下垂；袖口停在手腕前，手露出來
+    // 袖子：寬大有份量。前臂越水平袖兜越往下垂；手一甩，袖兜慢半拍跟上；手肘處有擠出來的橫向皺褶
     ['l', 'r'].forEach((s, k) => {
       const sideSign = s === 'l' ? -1 : 1;
-      const Sp = sh.clone().add(A.clone().multiplyScalar(sideSign * .3 * T)).add(U.clone().multiplyScalar(-.02 * T));
+      const Sp = sh.clone().add(A.clone().multiplyScalar(sideSign * .32 * T)).add(U.clone().multiplyScalar(-.02 * T));
       if (kp[s + 's'].z != null) Sp.z = lerp(Sp.z, kp[s + 's'].z, .5);
       const E = front(P(kp[s + 'e'])), Wr = front(P(kp[s + 'w']));
       if (kp[s + 'e'].z == null) E.z = Sp.z * .6; if (kp[s + 'w'].z == null) Wr.z = Math.max(Wr.z, E.z);
       front(E); front(Wr);
-      const fore = Wr.clone().sub(E), cuff = E.clone().add(fore.multiplyScalar(Math.max(.7, 1 - .05 * T / (fore.length() || 1))));
+      const fore = Wr.clone().sub(E), up = Math.max(0, fore.clone().normalize().y);
+      const cuff = E.clone().add(fore.multiplyScalar(Math.max(.4, 1 - .05 * T / (fore.length() || 1) - .45 * up)));
       const samples = along([Sp, E, cuff], this.arms[k].rings);
-      const down = V3(0, -1, 0);
       const elbowU = Sp.distanceTo(E) / (Sp.distanceTo(E) + E.distanceTo(cuff));
+      const off = sleeveOff[k];
       let last = null;
       this.arms[k].update((i) => {
         const { p, tanS, u } = samples[i];
         const fu = Math.max(0, (u - elbowU) / (1 - elbowU));             // 前臂上的位置 0～1
         const horiz = 1 - Math.abs(tanS.dot(down));
-        const sag = T * (.04 + .34 * Math.pow(fu, .8) * (.35 + .65 * horiz));
-        const r = T * lerp(.17, .21, Math.min(1, u / elbowU)) + T * .05 * fu;
-        const [a, b] = axes(tanS, down);
-        last = { c: p.clone().add(a.clone().multiplyScalar(sag * .5)), a, b, ra: r + sag * .5, rb: r * .85, mod: (th) => 1 + .03 * Math.sin(th * 7 + u * 5) };
+        const raised = Math.max(0, -tanS.dot(down));                     // 手往上舉：袖子滑落到手肘、不擋臉
+        const sag = T * (.06 + .42 * Math.pow(fu, .75) * (.35 + .65 * horiz)) * (1 - .85 * raised);
+        // 袖兜下垂的方向：重力＋慣性
+        const pull = down.clone().multiplyScalar(sag).add(off.clone().multiplyScalar(Math.pow(fu, 1.3)));
+        const r = T * lerp(.19, .24, Math.min(1, u / elbowU)) + T * .06 * fu;
+        const [a, b] = axes(tanS, pull.lengthSq() > 1e-6 ? pull.clone().normalize() : down);
+        const bunch = .09 * Math.exp(-Math.pow((u - elbowU) / .1, 2)) * Math.abs(Math.sin(u * 46));   // 手肘處的擠壓皺褶
+        const L = pull.length();
+        last = { c: p.clone().add(a.clone().multiplyScalar(L * .5)), a, b, ra: r + L * .5, rb: r * .82,
+          mod: (th) => 1 - bunch + .06 * fu * crease(th * 4 + u * 3) };
         return last;
       });
-      this.cuffs[k].update((i, v) => ({ ...last, ra: last.ra * (1.02 + v * .02), rb: last.rb * (1.04 + v * .02), c: last.c.clone().add(samples.at(-1).tanS.clone().multiplyScalar((v - 1) * T * .05)) }));
+      this.cuffs[k].update((i, v) => ({ ...last, mod: null, ra: last.ra * (1.0 + v * .02), rb: last.rb * (1.03 + v * .02), c: last.c.clone().add(samples.at(-1).tanS.clone().multiplyScalar((v - 1) * T * .05)) }));
     });
 
-    // 袴：從腰到腳踝往下張開，有褶襉；看不到腳就往下延伸
+    // 袴：從腰到腳踝往下張開，有褶襉；腳一動，褲腳會晃
     ['l', 'r'].forEach((s, k) => {
       const sideSign = s === 'l' ? -1 : 1;
       const top = at(-.82).add(A.clone().multiplyScalar(sideSign * .13 * T));
-      let K = kp[s + 'k'], An = kp[s + 'a'];
+      const K = kp[s + 'k'], An = kp[s + 'a'];
       const Hh = P(kp[s + 'h']).add(A.clone().multiplyScalar(sideSign * .04 * T));
       const Kp = K && K.v > .35 ? P(K) : Hh.clone().add(U.clone().multiplyScalar(-1.05 * T));
       const Ap = An && An.v > .35 ? P(An) : Kp.clone().add(Kp.clone().sub(Hh).normalize().multiplyScalar(T));
       for (const p of [Kp, Ap]) p.z = (p.z || 0) * .5;
       const samples = along([top, Hh, Kp, Ap], this.legs[k].rings);
+      const off = legOff[k];
       this.legs[k].update((i) => {
         const { p, tanS, u } = samples[i];
         const [a, b] = axes(tanS, A);
-        const r = T * lerp(.19, .38, Math.pow(u, .9));
-        return { c: p, a, b, ra: r, rb: r * .8, mod: (th) => 1 + .07 * Math.abs(Math.sin(th * 4 + .4)) * (.4 + u) };
+        const r = T * lerp(.19, .4, Math.pow(u, .9));
+        return { c: p.clone().add(off.clone().multiplyScalar(u * u)), a, b, ra: r, rb: r * .8,
+          mod: (th) => 1 + .09 * crease(th * 4 + .4) * (.4 + u) };
       });
     });
   }
@@ -301,9 +385,9 @@ class Outfit {
 class Doll {
   constructor(scene, ch) {
     this.group = new THREE.Group(); scene.add(this.group);
-    const skin = new THREE.MeshPhysicalMaterial({ color: '#f1cdb3', roughness: .55, sheen: .4, sheenColor: new THREE.Color('#ffdcc8') });
-    const hair = new THREE.MeshPhysicalMaterial({ color: '#1d1617', roughness: .35, clearcoat: .6, clearcoatRoughness: .3 });
-    const band = new THREE.MeshPhysicalMaterial({ color: ch.trim, roughness: .5, sheen: 1 });
+    const skin = new THREE.MeshToonMaterial({ color: '#f6d6bf', gradientMap: toonRamp() });
+    const hair = new THREE.MeshToonMaterial({ color: '#2a2024', gradientMap: toonRamp() });
+    const band = new THREE.MeshToonMaterial({ color: ch.trim, gradientMap: toonRamp() });
     const eye = new THREE.MeshStandardMaterial({ color: '#1d1617', roughness: .2 });
     this.head = new THREE.Group();
     const face = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), skin); face.scale.set(.82, 1, .9); this.head.add(face);
@@ -337,7 +421,7 @@ export class Stage3D {
     this.canvas = document.createElement('canvas');
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = .95;
+    this.renderer.toneMapping = THREE.NoToneMapping;
     this.scene = new THREE.Scene();
     const pm = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pm.fromScene(new RoomEnvironment(this.renderer), .04).texture;
@@ -366,7 +450,7 @@ export class Stage3D {
   }
   // 刀尖在畫面上的位置（給刀光殘影用）
   reach(T) { return (this.weapons?.[0].userData.reach || 2) * T; }
-  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light }
+  // opts：{ kp, ghostKp, blades:[{grip,dir}], ghostBlades, doll, light, now, wind }
   render(W, H, opts) {
     const r = this.renderer;
     if (this.canvas.width !== W || this.canvas.height !== H) {
@@ -374,7 +458,7 @@ export class Stage3D {
       Object.assign(this.camera, { left: 0, right: W, top: 0, bottom: -H }); this.camera.updateProjectionMatrix();
     }
     const light = opts.light ?? 1;
-    this.hemi.intensity = .25 + .35 * light; this.key.intensity = 1.6 + 1.6 * light;
+    this.hemi.intensity = .3 + .2 * light; this.key.intensity = 2.2 + 1.2 * light;
     const place = (grp, b, kp) => {
       if (!b) { grp.visible = false; return; }
       const { T } = frame(kp);
@@ -384,7 +468,7 @@ export class Stage3D {
       grp.scale.setScalar(T);
     };
     this.outfit.group.visible = !!opts.kp;
-    if (opts.kp) this.outfit.update(opts.kp);
+    if (opts.kp) this.outfit.update(opts.kp, { now: opts.now, wind: opts.wind });
     this.ghost.group.visible = !!opts.ghostKp;
     if (opts.ghostKp) { this.ghost.update(opts.ghostKp); this.ghost.group.position.z = -2000; }
     this.doll.group.visible = !!(opts.doll && opts.kp);
