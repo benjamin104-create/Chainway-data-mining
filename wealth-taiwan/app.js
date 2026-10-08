@@ -1,4 +1,5 @@
-import { FilesetResolver, ImageSegmenter, FaceDetector } from './lib/vision_bundle.mjs';
+import { FilesetResolver, ImageSegmenter, FaceDetector, FaceLandmarker } from './lib/vision_bundle.mjs';
+import { createBeautyGL } from './beauty-gl.js';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
@@ -366,10 +367,15 @@ async function loadModel() {
     });
     try { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('GPU')); }
     catch { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('CPU')); }
-    // 臉部偵測（淡化黑眼圈用，只要眼睛位置）：載入失敗不影響其他功能
+    // 臉部 478 個定位點（美顏用）：載入失敗就退回只找眼睛位置的臉部偵測，不影響其他功能
+    const lopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/face_landmarker.task', location.href).href, delegate }, runningMode: 'VIDEO', numFaces: 1 });
     const fopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/blaze_face_short_range.tflite', location.href).href, delegate }, runningMode: 'VIDEO', minDetectionConfidence: .5 });
-    FaceDetector.createFromOptions(fs, fopts('GPU')).catch(() => FaceDetector.createFromOptions(fs, fopts('CPU')))
-      .then((d) => { state.faceDetector = d; }).catch((e) => console.warn('face detector failed', e));
+    FaceLandmarker.createFromOptions(fs, lopts('GPU')).catch(() => FaceLandmarker.createFromOptions(fs, lopts('CPU')))
+      .then((d) => { state.landmarker = d; })
+      .catch((e) => { console.warn('face landmarker failed', e);
+        return FaceDetector.createFromOptions(fs, fopts('GPU')).catch(() => FaceDetector.createFromOptions(fs, fopts('CPU')))
+          .then((d) => { state.faceDetector = d; }); })
+      .catch((e) => console.warn('face detector failed', e));
     $('loadState').textContent = '人像辨識準備好了';
   } catch (e) {
     console.warn('segmenter failed', e);
@@ -415,7 +421,7 @@ function useSource(src, mirror) {
   const k = Math.min(1, 1080 / Math.max(w, h));
   const W = Math.round(w * k), H = Math.round(h * k);
   for (const c of [view, srcC, personC, auraC, beautyC, eyeC]) { c.width = W; c.height = H; }
-  state.face = null;
+  state.face = null; state.lm = null; glBeauty?.reset();
   $('start').hidden = true; notice('');
   $('shot').disabled = false;
 }
@@ -511,10 +517,34 @@ function placeStand(W, H, bh, headY, ratio, u) {
 }
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
-const BEAUTY_DEFAULT = { smooth: 55, white: 30, light: 30, glow: 35, eyes: 60 };
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty2') || {}) };
+const BEAUTY_PRESETS = {
+  natural: { smooth: 40, white: 20, light: 20, glow: 25, eyes: 45, slim: 10, big: 10 },
+  standard: { smooth: 65, white: 35, light: 30, glow: 35, eyes: 65, slim: 25, big: 20 },
+  goddess: { smooth: 88, white: 55, light: 40, glow: 45, eyes: 85, slim: 45, big: 38 },
+};
+const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty3') || {}) };
+let glBeauty = null;
+try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
 let faceFrame = 0;
+let lmFrame = 0;
 function detectFace(now) {
+  const lmk = state.landmarker;
+  if (lmk) {                                          // 臉部定位點：隔一格算一次
+    if (lmFrame++ % 2) return;
+    try {
+      state.lmTs = Math.max(now, (state.lmTs || 0) + 1);
+      const L = lmk.detectForVideo(srcC, state.lmTs).faceLandmarks?.[0];
+      state.lm = L || null;
+      if (L) {                                        // 也算出眼睛、臉框，給沒有 GPU 的備用美顏用
+        const xs = L.map((p) => p.x), ys = L.map((p) => p.y);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const e = (a, b) => [(L[a].x + L[b].x) / 2, (L[a].y + L[b].y) / 2];
+        state.face = { eyes: [e(33, 133), e(263, 362)], w: x1 - x0, h: y1 - y0, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, mouth: [L[13].x, L[13].y] };
+      } else state.face = null;
+    } catch (e) { console.warn(e); }
+    return;
+  }
   const d = state.faceDetector, b = state.beauty; if (!d || (b.eyes <= 0 && b.glow <= 0 && b.smooth <= 0 && b.white <= 0)) return;
   if (faceFrame++ % 3) return;                       // 每 3 格偵測一次就夠，省電
   try {
@@ -589,6 +619,11 @@ function onSkin(bc, sk, filter, alpha) {
   bc.globalAlpha = alpha; bc.drawImage(workC, 0, 0); bc.globalAlpha = 1;
 }
 function beautify(W, H, u) {
+  // 有 GPU 又找到臉：用臉部定位點做 B612 等級的美顏（磨皮、美白、遮瑕、腮紅、瘦臉、大眼）
+  if (glBeauty && state.lm) {
+    try { return glBeauty.render(personC, state.lm, state.beauty, W, H); }
+    catch (e) { console.warn('beauty gl failed', e); glBeauty = null; }
+  }
   const b = state.beauty, bc = beautyC.getContext('2d');
   if (workC.width !== W || workC.height !== H) { workC.width = W; workC.height = H; }
   bc.globalCompositeOperation = 'source-over'; bc.globalAlpha = 1; bc.clearRect(0, 0, W, H);
@@ -657,22 +692,30 @@ function beautify(W, H, u) {
   bc.globalCompositeOperation = 'source-over';
   return beautyC;
 }
-const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['light', '補光'], ['glow', '氣色紅潤'], ['eyes', '淡化黑眼圈']];
+const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡化黑眼圈'], ['glow', '氣色紅潤'], ['light', '補光'], ['slim', '瘦臉'], ['big', '大眼']];
 (() => {
   const panel = $('beautyPanel');
+  const pre = document.createElement('div'); pre.className = 'chips'; pre.setAttribute('role', 'group'); pre.setAttribute('aria-label', '一鍵美顏');
+  const syncSliders = () => { for (const [k] of BEAUTY_SLIDERS) { const r = $('b_' + k); if (r) { r.value = state.beauty[k]; r.nextSibling.textContent = state.beauty[k]; } } };
+  for (const [id, name] of [['natural', '自然'], ['standard', '標準'], ['goddess', '女神／男神']]) {
+    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ ' + name;
+    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty3', state.beauty); syncSliders(); };
+    pre.append(b);
+  }
+  panel.append(pre);
   for (const [k, label] of BEAUTY_SLIDERS) {
     const row = document.createElement('label'); row.className = 'slider';
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty2', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty3', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty2', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty3', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty2', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty3', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 
