@@ -13,6 +13,7 @@ const LID_R = [33, 7, 163, 144, 145, 153, 154, 155, 133];
 const LID_L = [263, 249, 390, 373, 374, 380, 381, 382, 362];
 const NOSTRILS = [[48, 64, 98, 97, 2, 326, 327, 294, 278]];
 const SLIM = [[58, .55], [172, 1], [136, .8], [288, .55], [397, 1], [365, .8]];
+const CHIN = [[152, 1], [148, .7], [377, .7]];
 
 const VS = `#version 300 es
 in vec2 p; out vec2 v; uniform float flipY;
@@ -28,12 +29,20 @@ uniform float rad, smoothK, whiteK, glowK, lightK, eyesK;
 vec3 softLight(vec3 b, vec3 s) {
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
 }
+// 膚色可能性（YCbCr）：讓脖子、手也一起美顏，臉和脖子之間就不會有一條分界
+float skinLike(vec3 c) {
+  float y = dot(c, vec3(.299, .587, .114));
+  float cb = .5 - .168736 * c.r - .331264 * c.g + .5 * c.b, cr = .5 + .5 * c.r - .418688 * c.g - .081312 * c.b;
+  return clamp(1. - (abs(cr - .596) - .067) / .035, 0., 1.) * clamp(1. - (abs(cb - .416) - .086) / .035, 0., 1.) * clamp((y - .15) / .12, 0., 1.);
+}
 void main() {
   vec4 c0 = texture(src, v);
   if (c0.a < .004) { o = vec4(0.); return; }
   vec3 col = c0.rgb;
   vec4 m = texture(mask, v);
-  float skin = m.r;
+  float like = skinLike(col);
+  float skin = max(m.r, .45 * like);              // 磨皮：臉全力，其他皮膚輕一點
+  float tone = max(m.r, like);                     // 美白、氣色：所有皮膚一樣，不留分界
   if (skin > .01 && smoothK > 0.) {
     // 雙邊濾波：只和「顏色相近」的鄰居平均，所以斑點和細紋被抹平，五官輪廓留著
     vec3 acc = col; float ws = 1.;
@@ -59,30 +68,31 @@ void main() {
   if (whiteK > 0.) {
     float beta = 1. + whiteK * 3.5;
     vec3 wc = log(col * (beta - 1.) + 1.) / log(beta);
-    col = mix(col, wc, (.45 + .55 * skin) * min(1., whiteK * 1.2));
+    col = mix(col, wc, (.3 + .7 * tone) * min(1., whiteK * 1.2));
   }
   if (lightK > 0.) col += col * (1. - col) * lightK * .85;
   if (glowK > 0.) {
-    col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * clamp(skin + .4, 0., 1.));
+    col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * (.4 + .6 * tone));
     col = mix(col, softLight(col, vec3(1., .5, .55)), m.b * glowK * .5);
   }
   o = vec4(clamp(col, 0., 1.), c0.a);
 }`;
 
-// 第二步：瘦臉（下巴兩側往內推）、大眼（以眼珠為中心放大），輸出預乘的顏色給畫布
+// 第二步：瘦臉（下巴兩側往內推）、下巴拉提（下巴往上收）、大眼（以眼珠為中心放大），輸出預乘的顏色給畫布
 const FS_WARP = `#version 300 es
 precision highp float;
 in vec2 v; out vec4 o;
 uniform sampler2D img;
 uniform vec2 size;
-uniform vec4 slim[6];
-uniform float slimR, bigK;
+uniform vec4 slim[9];
+uniform float slimR[9];
+uniform float bigK;
 uniform vec3 eye[2];
 void main() {
   vec2 p = v * size;
-  for (int i = 0; i < 6; i++) {
-    float d = distance(p, slim[i].xy);
-    if (d < slimR) { float t = 1. - d * d / (slimR * slimR); p -= slim[i].zw * t * t; }
+  for (int i = 0; i < 9; i++) {
+    float r = slimR[i], d = distance(p, slim[i].xy);
+    if (r > 0. && d < r) { float t = 1. - d * d / (r * r); p -= slim[i].zw * t * t; }
   }
   if (bigK > 0.) for (int i = 0; i < 2; i++) {
     vec2 c = eye[i].xy; float r = eye[i].z, d = distance(p, c);
@@ -193,12 +203,20 @@ export function createBeautyGL() {
     const a2 = gl.getAttribLocation(P2, 'p'); gl.enableVertexAttribArray(a2); gl.vertexAttribPointer(a2, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1f(U(P2, 'flipY'), 1); gl.uniform1i(U(P2, 'img'), 2);
     gl.uniform2f(U(P2, 'size'), W, H);
-    const [nx, ny] = Px(4), slim = new Float32Array(24), sk = k('slim');
+    const [nx, ny] = Px(4), slim = new Float32Array(36), rads = new Float32Array(9), sk = k('slim'), ck = k('chin');
     SLIM.forEach(([i, wgt], j) => {
       const [x, y] = Px(i), d = Math.hypot(nx - x, ny - y) || 1;
       slim.set([x, y, (nx - x) / d * sk * fwid * .06 * wgt, (ny - y) / d * sk * fwid * .06 * wgt], j * 4);
+      rads[j] = fwid * .3;
     });
-    gl.uniform4fv(U(P2, 'slim'), slim); gl.uniform1f(U(P2, 'slimR'), fwid * .3);
+    // 下巴拉提：下巴和下顎往臉的上方收，雙下巴與下巴線條更俐落
+    const [tx, ty] = Px(168), [cx, cy] = Px(152), flen = Math.hypot(cx - tx, cy - ty) || 1, ux = (tx - cx) / flen, uy = (ty - cy) / flen;
+    CHIN.forEach(([i, wgt], j) => {
+      const [x, y] = Px(i);
+      slim.set([x, y, ux * ck * flen * .07 * wgt, uy * ck * flen * .07 * wgt], (6 + j) * 4);
+      rads[6 + j] = fwid * .34;
+    });
+    gl.uniform4fv(U(P2, 'slim'), slim); gl.uniform1fv(U(P2, 'slimR'), rads);
     const iris = (a, c1, c2) => L.length > 473 ? Px(a) : [(Px(c1)[0] + Px(c2)[0]) / 2, (Px(c1)[1] + Px(c2)[1]) / 2];
     const [rx, ry] = iris(468, 33, 133), [lx, ly] = iris(473, 263, 362);
     gl.uniform3fv(U(P2, 'eye'), new Float32Array([rx, ry, ew * 1.05, lx, ly, ew * 1.05]));

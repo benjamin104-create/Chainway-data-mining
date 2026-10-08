@@ -518,12 +518,13 @@ function placeStand(W, H, bh, headY, ratio, u) {
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
 const BEAUTY_PRESETS = {
-  natural: { smooth: 40, white: 20, light: 20, glow: 25, eyes: 45, slim: 10, big: 10 },
-  standard: { smooth: 65, white: 35, light: 30, glow: 35, eyes: 65, slim: 25, big: 20 },
-  goddess: { smooth: 88, white: 55, light: 40, glow: 45, eyes: 85, slim: 45, big: 38 },
+  natural: { smooth: 40, white: 20, light: 20, glow: 25, eyes: 45, slim: 10, chin: 10, big: 10 },
+  standard: { smooth: 65, white: 35, light: 30, glow: 35, eyes: 65, slim: 25, chin: 25, big: 20 },
+  goddess: { smooth: 88, white: 55, light: 40, glow: 45, eyes: 85, slim: 45, chin: 45, big: 38 },
 };
 const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
 state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty3') || {}) };
+if (state.beauty.chin == null) state.beauty.chin = BEAUTY_DEFAULT.chin;
 let glBeauty = null;
 try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
 let faceFrame = 0;
@@ -692,7 +693,7 @@ function beautify(W, H, u) {
   bc.globalCompositeOperation = 'source-over';
   return beautyC;
 }
-const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡化黑眼圈'], ['glow', '氣色紅潤'], ['light', '補光'], ['slim', '瘦臉'], ['big', '大眼']];
+const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡化黑眼圈'], ['glow', '氣色紅潤'], ['light', '補光'], ['slim', '瘦臉'], ['chin', '下巴拉提'], ['big', '大眼']];
 (() => {
   const panel = $('beautyPanel');
   const pre = document.createElement('div'); pre.className = 'chips'; pre.setAttribute('role', 'group'); pre.setAttribute('aria-label', '一鍵美顏');
