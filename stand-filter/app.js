@@ -484,34 +484,100 @@ function placeStand(W, H, bh, headY, ratio, u) {
 }
 
 // ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
-const BEAUTY_DEFAULT = { smooth: 35, light: 30, glow: 20, eyes: 30 };
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty') || {}) };
+const BEAUTY_DEFAULT = { smooth: 55, white: 30, light: 30, glow: 35, eyes: 60 };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty2') || {}) };
 let faceFrame = 0;
 function detectFace(now) {
-  const d = state.faceDetector; if (!d || state.beauty.eyes <= 0) return;
+  const d = state.faceDetector, b = state.beauty; if (!d || (b.eyes <= 0 && b.glow <= 0 && b.smooth <= 0 && b.white <= 0)) return;
   if (faceFrame++ % 3) return;                       // 每 3 格偵測一次就夠，省電
   try {
     const r = d.detectForVideo(srcC, Math.max(now, state.lastTs + 1));
     const f = r.detections?.[0]; if (!f) { state.face = null; return; }
     const W = srcC.width, H = srcC.height, k = f.keypoints;
-    const nf = { eyes: [[k[0].x, k[0].y], [k[1].x, k[1].y]], w: f.boundingBox.width / W, h: f.boundingBox.height / H };
+    const bb = f.boundingBox;
+    const nf = { eyes: [[k[0].x, k[0].y], [k[1].x, k[1].y]], w: bb.width / W, h: bb.height / H, cx: (bb.originX + bb.width / 2) / W, cy: (bb.originY + bb.height / 2) / H, mouth: [k[3].x, k[3].y] };
     if (!state.face) state.face = nf;
     else {                                            // 平滑，避免抖動
       const p = state.face, a = .5;
-      p.w += (nf.w - p.w) * a; p.h += (nf.h - p.h) * a;
+      p.w += (nf.w - p.w) * a; p.h += (nf.h - p.h) * a; p.cx += (nf.cx - p.cx) * a; p.cy += (nf.cy - p.cy) * a; p.mouth[0] += (nf.mouth[0] - p.mouth[0]) * a; p.mouth[1] += (nf.mouth[1] - p.mouth[1]) * a;
       p.eyes.forEach((e, i) => { e[0] += (nf.eyes[i][0] - e[0]) * a; e[1] += (nf.eyes[i][1] - e[1]) * a; });
     }
   } catch (e) { console.warn(e); }
 }
+// 皮膚範圍：用 1/4 解析度依膚色（YCbCr）找出皮膚，眼睛、眉毛、嘴唇、頭髮不算，磨皮時就不會糊掉
+const skinC = mk(), skinTmp = mk(), workC = mk();
+let skinFrame = 0;
+const clamp01 = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
+// 五官保護區：眼睛（含眉毛）和嘴巴挖空，磨皮和遮瑕都不會蓋到
+function faceAngle(f, W, H) { const [[x0, y0], [x1, y1]] = f.eyes; return Math.atan2((y1 - y0) * H, (x1 - x0) * W); }
+function protectFeatures(c, f, W, H) {
+  const th = faceAngle(f, W, H), dnx = -Math.sin(th), dny = Math.cos(th), fw = f.w * W, fh = f.h * H;
+  const hole = (x, y, rx, ry) => {
+    c.save(); c.translate(x, y); c.rotate(th); c.scale(1, ry / rx);
+    const g = c.createRadialGradient(0, 0, rx * .68, 0, 0, rx);
+    g.addColorStop(0, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, rx, 0, 7); c.fill(); c.restore();
+  };
+  c.save(); c.globalCompositeOperation = 'destination-out';
+  for (const [ex, ey] of f.eyes) hole(ex * W - dnx * fh * .04, ey * H - dny * fh * .04, fw * .17, fh * .11);
+  if (f.mouth) hole(f.mouth[0] * W, f.mouth[1] * H, fw * .22, fh * .1);
+  c.restore();
+}
+function skinMask(W, H) {
+  if (skinC.width !== W || skinC.height !== H) { skinC.width = W; skinC.height = H; skinFrame = 0; }
+  if (skinFrame++ % 2) return skinC;                  // 隔一格更新一次
+  const w = Math.max(1, W >> 2), h = Math.max(1, H >> 2);
+  if (skinTmp.width !== w || skinTmp.height !== h) { skinTmp.width = w; skinTmp.height = h; }
+  const t = skinTmp.getContext('2d', { willReadFrequently: true });
+  t.clearRect(0, 0, w, h); t.drawImage(personC, 0, 0, w, h);
+  const im = t.getImageData(0, 0, w, h), d = im.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], bl = d[i + 2];
+    const y = .299 * r + .587 * g + .114 * bl;
+    const cb = 128 - .168736 * r - .331264 * g + .5 * bl, cr = 128 + .5 * r - .418688 * g - .081312 * bl;
+    const s = clamp01(1 - (Math.abs(cr - 152) - 17) / 9) * clamp01(1 - (Math.abs(cb - 106) - 22) / 9) * clamp01((y - 38) / 30);
+    d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = d[i + 3] * s;
+  }
+  t.putImageData(im, 0, 0);
+  const sc = skinC.getContext('2d'); sc.clearRect(0, 0, W, H);
+  if (FILTER_OK) sc.filter = `blur(${Math.max(1, W / 360)}px)`;
+  sc.drawImage(skinTmp, 0, 0, W, H); sc.filter = 'none';
+  const f = state.face;                              // 有找到臉：只處理臉和脖子，頭髮不會被抹糊
+  if (f) {
+    const x = f.cx * W, y = (f.cy + f.h * .12) * H, rx = f.w * W * .66, ry = f.h * H * .95;
+    sc.save(); sc.globalCompositeOperation = 'destination-in'; sc.translate(x, y); sc.scale(1, ry / rx);
+    const g = sc.createRadialGradient(0, 0, rx * .7, 0, 0, rx);
+    g.addColorStop(0, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    sc.fillStyle = g; sc.fillRect(-rx, -rx, rx * 2, rx * 2); sc.restore();
+    protectFeatures(sc, f, W, H);
+  }
+  return skinC;
+}
+// 把 beautyC 做某種處理後，只疊在皮膚上
+function onSkin(bc, sk, filter, alpha) {
+  const wc = workC.getContext('2d');
+  wc.globalCompositeOperation = 'source-over'; wc.clearRect(0, 0, workC.width, workC.height);
+  wc.filter = filter; wc.drawImage(beautyC, 0, 0); wc.filter = 'none';
+  wc.globalCompositeOperation = 'destination-in'; wc.drawImage(sk, 0, 0); wc.globalCompositeOperation = 'source-over';
+  bc.globalAlpha = alpha; bc.drawImage(workC, 0, 0); bc.globalAlpha = 1;
+}
 function beautify(W, H, u) {
   const b = state.beauty, bc = beautyC.getContext('2d');
+  if (workC.width !== W || workC.height !== H) { workC.width = W; workC.height = H; }
   bc.globalCompositeOperation = 'source-over'; bc.globalAlpha = 1; bc.clearRect(0, 0, W, H);
-  if (FILTER_OK) bc.filter = 'contrast(1.04) brightness(1.04) saturate(1.05)';
+  if (FILTER_OK) bc.filter = 'contrast(1.03) brightness(1.04) saturate(1.04)';
   bc.drawImage(personC, 0, 0); bc.filter = 'none';
-  // 美肌：疊一層模糊的自己，細紋和毛孔變柔和
-  if (b.smooth > 0 && FILTER_OK) {
-    bc.globalAlpha = b.smooth / 100 * .75; bc.filter = `blur(${(.25 + b.smooth / 100 * .45) * u}px)`;
-    bc.drawImage(personC, 0, 0); bc.filter = 'none'; bc.globalAlpha = 1;
+  const sk = FILTER_OK && (b.smooth > 0 || b.white > 0) ? skinMask(W, H) : null;
+  // 磨皮：皮膚區域疊上大範圍模糊（兩層：先抹平斑點，再抹平細紋），五官不動
+  if (sk && b.smooth > 0) {
+    const k = b.smooth / 100;
+    onSkin(bc, sk, `blur(${(.5 + k * 1.6) * u}px)`, Math.min(.9, k * 1.05));
+    onSkin(bc, sk, `blur(${(.2 + k * .5) * u}px)`, k * .5);
+  }
+  // 美白：皮膚提亮、稍微降低暗沉的黃
+  if (sk && b.white > 0) {
+    const k = b.white / 100;
+    onSkin(bc, sk, `brightness(${1 + k * .32}) saturate(${1 - k * .22}) contrast(${1 - k * .08})`, Math.min(1, k * 1.1));
   }
   // 補光：「濾色」疊加，暗部提亮得多、亮部幾乎不變，專治頂光造成的臉黑
   if (b.light > 0) {
@@ -519,35 +585,52 @@ function beautify(W, H, u) {
     if (FILTER_OK) bc.filter = `brightness(${1 + b.light / 100 * .25})`;
     bc.drawImage(personC, 0, 0); bc.filter = 'none'; bc.globalAlpha = 1; bc.globalCompositeOperation = 'source-over';
   }
-  // 氣色：一層很淡的蜜桃色柔光
+  const f = state.face;
+  // 氣色：整體淡淡的蜜桃色柔光＋兩頰腮紅
   if (b.glow > 0) {
-    bc.globalCompositeOperation = 'soft-light'; bc.globalAlpha = b.glow / 100 * .7;
+    const k = b.glow / 100;
+    bc.globalCompositeOperation = 'soft-light'; bc.globalAlpha = k * .7;
     bc.fillStyle = '#ff9a84'; bc.fillRect(0, 0, W, H);
     bc.globalAlpha = 1; bc.globalCompositeOperation = 'source-over';
+    if (f) {
+      const mx = (f.eyes[0][0] + f.eyes[1][0]) / 2;
+      bc.globalCompositeOperation = 'source-atop';
+      for (const [ex, ey] of f.eyes) {
+        const x = (ex + (ex - mx) * .35) * W, y = ey * H + f.h * H * .3, r = f.w * W * .2;
+        const g = bc.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(255,110,120,${.32 * k})`); g.addColorStop(1, 'rgba(255,110,120,0)');
+        bc.fillStyle = g; bc.beginPath(); bc.arc(x, y, r, 0, 7); bc.fill();
+      }
+      bc.globalCompositeOperation = 'source-over';
+    }
   }
-  // 淡化黑眼圈：只在眼睛正下方，用柔邊橢圓提亮
-  const f = state.face;
+  // 淡化黑眼圈：把眼睛正下方換成「下面一點的臉頰膚色」（跟著臉的角度），再輕輕提亮
   if (b.eyes > 0 && f) {
-    const ec = eyeC.getContext('2d');
-    ec.globalCompositeOperation = 'source-over'; ec.clearRect(0, 0, W, H);
+    const k = b.eyes / 100, ec = eyeC.getContext('2d');
+    const th = faceAngle(f, W, H);
+    const dnx = -Math.sin(th), dny = Math.cos(th);     // 臉的「往下」方向
+    const off = f.h * H * .16;
+    ec.globalCompositeOperation = 'source-over'; ec.globalAlpha = 1; ec.clearRect(0, 0, W, H);
     for (const [ex, ey] of f.eyes) {
-      const x = ex * W, y = ey * H + f.h * H * .09, rx = f.w * W * .16, ry = f.h * H * .07;
-      ec.save(); ec.translate(x, y); ec.scale(1, ry / rx);
+        const x = ex * W + dnx * f.h * H * .1, y = ey * H + dny * f.h * H * .1, rx = f.w * W * .15, ry = f.h * H * .055;
+      ec.save(); ec.translate(x, y); ec.rotate(th); ec.scale(1, ry / rx);
       const g = ec.createRadialGradient(0, 0, 0, 0, 0, rx);
-      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.6, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.5, 'rgba(255,255,255,.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
       ec.fillStyle = g; ec.beginPath(); ec.arc(0, 0, rx, 0, 7); ec.fill(); ec.restore();
     }
     ec.globalCompositeOperation = 'source-in';
-    if (FILTER_OK) ec.filter = `brightness(1.35) saturate(.85) blur(${.2 * u}px)`;
-    ec.drawImage(beautyC, 0, 0); ec.filter = 'none';
-    bc.globalAlpha = b.eyes / 100 * .85; bc.drawImage(eyeC, 0, 0); bc.globalAlpha = 1;
+    if (FILTER_OK) ec.filter = `brightness(${1.04 + k * .1}) blur(${.35 * u}px)`;
+    ec.drawImage(beautyC, -dnx * off, -dny * off);      // 借下面臉頰的皮膚
+    ec.filter = 'none'; ec.globalCompositeOperation = 'source-over';
+    protectFeatures(ec, f, W, H);
+    bc.globalAlpha = Math.min(.92, k * .95); bc.drawImage(eyeC, 0, 0); bc.globalAlpha = 1;
   }
   // 最後用人的輪廓裁一次，美顏效果不會溢到背景
   bc.globalCompositeOperation = 'destination-in'; bc.drawImage(personC, 0, 0);
   bc.globalCompositeOperation = 'source-over';
   return beautyC;
 }
-const BEAUTY_SLIDERS = [['smooth', '美肌'], ['light', '補光'], ['glow', '氣色'], ['eyes', '淡化黑眼圈']];
+const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['light', '補光'], ['glow', '氣色紅潤'], ['eyes', '淡化黑眼圈']];
 (() => {
   const panel = $('beautyPanel');
   for (const [k, label] of BEAUTY_SLIDERS) {
@@ -555,14 +638,14 @@ const BEAUTY_SLIDERS = [['smooth', '美肌'], ['light', '補光'], ['glow', '氣
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty2', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty2', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty2', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 

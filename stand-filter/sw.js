@@ -1,5 +1,5 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'stand-cam-v21';
+const CACHE = 'stand-cam-v22';
 const SHELL = ['./', 'index.html', 'app.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs',
   ...['courage', 'nike', 'wisdom', 'apollo', 'guard', 'zeus', 'freedom', 'iris', 'create', 'hephaestus', 'bond', 'hera'].flatMap((id) => [`stands/${id}.jpg`, `stands/${id}_front.jpg`, `stands/${id}_left.jpg`, `stands/${id}_right.jpg`]), 'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite'];
