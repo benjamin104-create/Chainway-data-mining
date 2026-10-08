@@ -34,7 +34,8 @@ function artFaceOf(c) {
   const det = state.artFaceDet; if (!det) return guess;
   let r = guess;
   try {
-    const d = det.detect(c).detections?.[0];
+    // 神的臉一定在圖的上半部；偵測到下面去的（手、樂器、盾牌上的臉）不算
+    const d = det.detect(c).detections?.find((d) => (d.boundingBox.originY + d.boundingBox.height / 2) / c.height < .42);
     if (d) {
       const b = d.boundingBox, w = c.width, h = c.height;
       r = { x0: (b.originX - b.width * .2) / w, x1: (b.originX + b.width * 1.2) / w,
@@ -62,6 +63,70 @@ function overlapCost(x, y, bw, bh, avoid) {
   }
   return c;
 }
+// 神的臉不能被人擋住：用人像每一欄的頭頂高度檢查，臉被擋住（或跑出畫面）的比例
+function godFaceCover(x, sy, sh, sw, af, flip, W, H) {
+  const top = state.colTop; if (!top) return 0;
+  const n = top.length, fw = (af.x1 - af.x0) * sw;
+  const fx0 = flip > 0 ? x - sw / 2 + af.x0 * sw : x + sw / 2 - af.x1 * sw, fx1 = fx0 + fw;
+  const fy0 = sy + af.y0 * sh, fy1 = sy + af.y1 * sh, fh = Math.max(1, fy1 - fy0);
+  const c0 = Math.max(0, Math.floor(fx0 / W * n)), c1 = Math.min(n, Math.ceil(fx1 / W * n));
+  let cov = 0, cnt = 0;
+  for (let c = c0; c < c1; c++) { cov += Math.max(0, Math.min(1, (fy1 - Math.max(fy0, top[c] * H)) / fh)); cnt++; }
+  const vis = Math.max(0, Math.min(1, (Math.min(W, fx1) - Math.max(0, fx0)) / Math.max(1, fw)));
+  const visY = Math.max(0, Math.min(1, (Math.min(H, fy1) - Math.max(0, fy0)) / fh));
+  return (cnt ? cov / cnt : 0) * vis + (1 - vis * visY);
+}
+// 神的上半身有多少是看得到的（沒被人擋住、沒跑出畫面）
+function godUpperVis(x, sy, sh, sw, W, H) {
+  const top = state.colTop, n = top.length, y1 = sy + sh * .5;
+  let seen = 0;
+  for (let c = Math.max(0, Math.floor((x - sw / 2) / W * n)); c < Math.min(n, Math.ceil((x + sw / 2) / W * n)); c++)
+    seen += Math.max(0, Math.min(y1, top[c] * H) - Math.max(0, sy)) / (y1 - sy);
+  return seen / Math.max(1, sw / W * n);
+}
+// 被擋住時：把神往空的地方移、必要時縮小、把臉提到人的頭上面（人靠很近自拍時也看得到神）
+function keepGodFace(p, a, flip, W, H, u) {
+  const af = artFaceOf(a), ratio = a.width / a.height, minY = TITLE_H * u * .8, top = state.colTop;
+  if (!top) return p;
+  // 「看不到神」的程度：臉被擋住、身體跑出畫面、縮得太小、上半身幾乎都被人擋住
+  const hidden = (x, sy, sh, sw) => {
+    const off = (Math.max(0, sw / 2 - x) + Math.max(0, x + sw / 2 - W)) / sw;
+    return godFaceCover(x, sy, sh, sw, af, flip, W, H) + Math.max(0, off - .2) * 1.5 + Math.max(0, .38 - sh / H) * 5 + Math.max(0, .55 - godUpperVis(x, sy, sh, sw, W, H)) * 2;
+  };
+  if (hidden(p.x, p.sy, p.sh, p.sh * ratio) < .2) return p;
+  const prevX = state.pose?.tx ?? p.x, n = top.length;
+  let best = null;
+  for (const k of [1, .85, .72, .62, .55]) {
+    const sh = p.sh * k, sw = sh * ratio;
+    for (let i = 0; i <= 20; i++) {
+      const x = W * (.08 + .84 * i / 20);
+      const fx0 = flip > 0 ? x - sw / 2 + af.x0 * sw : x + sw / 2 - af.x1 * sw, fx1 = fx0 + (af.x1 - af.x0) * sw;
+      let head = H;
+      for (let c = Math.max(0, Math.floor(fx0 / W * n)); c < Math.min(n, Math.ceil(fx1 / W * n)); c++) head = Math.min(head, top[c] * H);
+      for (const sy of [p.sy, Math.max(minY, Math.min(p.sy, head - 2 * u - af.y1 * sh))]) {
+        const c = hidden(x, sy, sh, sw);
+        const score = c * 8 + Math.abs(x - p.x) / W * .8 + Math.abs(x - prevX) / W * .8 + (1 - k) * 1.5 + Math.abs(sy - p.sy) / H * .6;
+        if (!best || score < best.score) best = { score, c, x, sy, sh, sw };
+      }
+    }
+  }
+  const side = Math.sign(best.x - (state.personCx ?? W / 2)) || p.side;
+  if (best.c < .2) { state.godFrontNext = false; return { ...p, x: best.x, sy: best.sy, sh: best.sh, sw: best.sw, side }; }
+  // 人把整個畫面都佔滿（很近的自拍），神後面已經沒有位置：改成縮小、浮在人前面的上方角落，避開人的臉
+  state.godFrontNext = true;
+  const pf = state.personFace, pcx = pf ? (pf.x0 + pf.x1) / 2 : W / 2;
+  let fb = null;
+  for (const k of [.4, .34, .28]) {
+    const sh = H * k, sw = sh * ratio;
+    for (const x of [sw * .3, sw * .45, W - sw * .45, W - sw * .3]) {
+      const sy = minY;
+      const c = overlapCost(x, sy, sw * .6, sh * .8, [[pf, 1]]) / Math.max(1, sw * .6 * sh * .8) + (x < pcx === pcx > W / 2 ? 0 : .3) + (.4 - k) * .8 + Math.abs(x - prevX) / W * .3;
+      if (!fb || c < fb.c) fb = { c, x, sy, sh, sw };
+    }
+  }
+  return { ...p, x: fb.x, sy: fb.sy, sh: fb.sh, sw: fb.sw, side: Math.sign(fb.x - pcx) || 1 };
+}
+
 function bestSpot(cands, bw, bh, avoid, W, u, minY, maxY) {
   let best = null, bc = Infinity;
   cands.forEach(([x, y], i) => {
@@ -851,7 +916,7 @@ function render(now) {
   const enter = Math.min(1, (now - state.summonAt) / 900), ease = 1 - Math.pow(1 - enter, 3);
   state.personCx = cx;
   const drawGod = () => { if (!a) return;
-    const p = L === 'auto' ? placeStand(W, H, bh, headY, a.width / a.height, u) : fixedLayout(L, W, H, u, a.width / a.height);
+    let p = L === 'auto' ? placeStand(W, H, bh, headY, a.width / a.height, u) : fixedLayout(L, W, H, u, a.width / a.height);
     if (L === 'center' && state.personFace) {
       // 正中央：神站在人正後方，要讓神的臉露在人的頭上面（不被擋住、不破相），必要時把神縮小一點
       const af = artFaceOf(a), head = state.personFace.y0, minY = TITLE_H * u * .8;
@@ -859,6 +924,8 @@ function render(now) {
       if (sy < minY) { p.sh = Math.max(p.sh * .55, (head - 2 * u - minY) / Math.max(.05, af.y1)); sy = head - 2 * u - af.y1 * p.sh; }
       p.sy = Math.max(minY, Math.min(p.sy, sy));
     }
+    state.godFrontNext = false;
+    if (L !== 'opening') p = keepGodFace(p, a, L === 'right' && !sideArt ? -1 : 1, W, H, u);   // 人靠太近擋到神的臉時，神自己讓開
     let P = state.pose;
     if (!P) P = state.pose = { x: p.x, y: p.sy, sh: p.sh, vx: 0, lean: 0, tx: p.x, tsh: p.sh, side: p.side };
     P.tx = p.x; P.tsh = p.sh; P.side = p.side;
@@ -902,8 +969,9 @@ function render(now) {
   if (!a) speedLines(cx, headY, W, H, t, s);
   state.speechRect = state.stampRect = state.cardRect = state.godFace = null;
   state.personFace = personFaceRect(W, H, state.box || box);
+  const godFront = L !== 'opening' && state.godFront;   // 人佔滿畫面時，神浮在人前面
   if (L === 'opening') sideBand(W, H, s);          // 片頭：人那一側鋪半透明深色帶
-  else drawGod();                                  // 其他構圖：神在人後面
+  else if (!godFront) drawGod();                                  // 其他構圖：神在人後面
 
   // 5. 本人的氣場與本人（擋在替身前面）
   ctx.globalCompositeOperation = 'lighter';
@@ -913,8 +981,9 @@ function render(now) {
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(beautify(W, H, u), 0, 0);
-  if (L === 'opening') drawGod();                  // 片頭：神在最前面
+  if (L === 'opening' || godFront) drawGod();      // 片頭／人太近：神在最前面
 
+  state.godFront = state.godFrontNext;
   vignette(W, H);
   if (L === 'opening') { openingCaption(W, H, s, u, ease, t); }
   else {
@@ -925,6 +994,13 @@ function render(now) {
   }
   wishBubble(W, H, s, u, box);
   credit(W, H, u);
+  if (state.godFront && !state.capturing) {               // 只在預覽時提示，拍下來的照片不會有
+    const msg = { zh: '往後退一點，讓神明站到你身後', ja: '少し下がると、神さまが後ろに立てます', en: 'Step back a little so your deity can stand behind you' }[state.lang];
+    ctx.save(); ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(msg).width + 5 * u, ty = H * .6;
+    ctx.fillStyle = 'rgba(10,6,20,.6)'; ctx.beginPath(); ctx.roundRect(W / 2 - tw / 2, ty - 2.8 * u, tw, 5.6 * u, 2.8 * u); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(msg, W / 2, ty); ctx.restore();
+  }
   if (L !== 'auto' && !state.capturing) standGuide(W, H, u, t);   // 站位虛線（拍下來的照片不會有）
 }
 
@@ -992,13 +1068,19 @@ function openingCaption(W, H, s, u, ease, t) {
 function tagStamp(W, H, s, u, now) {
   const L = state.lang, word = s.tagNames?.[L] || s.tag;
   const t0 = (now - state.summonAt) / 1000 - .5; if (t0 <= 0) return;
+  if (state.godFront) return;                    // 人太近、神浮在角落時，角落讓給神（雷達圖已經有人格標籤）
   const k = Math.min(1, t0 / .35), slam = 1 + (1 - k) * .8;     // 從大往下「砸」進畫面
   const top = TITLE_H * u + 2 * u;
   // 預設放在神的另一邊；如果那邊會擋到神或人的臉，就換邊
-  const pref = -(state.useSide ?? state.side), faces = [[state.godFace, 3], [state.personFace, 3]];
+  const pref = -(state.useSide ?? state.side), faces = [[state.godFace, 6], [state.personFace, 3]];
   const stampBox = (sd) => { const w = W * .22; return { x0: sd > 0 ? W - w : 0, x1: sd > 0 ? W : w, y0: top, y1: top + H * .45 }; };
   const sc = (sd) => { const r = stampBox(sd); return overlapCost((r.x0 + r.x1) / 2, r.y0, r.x1 - r.x0, r.y1 - r.y0, faces); };
-  const side = sc(-pref) < sc(pref) * .6 ? -pref : pref;
+  // 規則：大字絕對不能蓋到神的臉；兩邊都會蓋到就不放（雷達圖上已經有人格標籤）
+  const hitsGod = (sd) => { const r = stampBox(sd); return overlapCost((r.x0 + r.x1) / 2, r.y0, r.x1 - r.x0, r.y1 - r.y0, [[state.godFace, 1]]) > 0; };
+  let side = pref;
+  if (hitsGod(pref)) side = -pref;
+  else if (!hitsGod(-pref) && sc(-pref) < sc(pref) * .9) side = -pref;
+  if (hitsGod(side)) return;
   ctx.save(); ctx.globalAlpha = k;
   if (L === 'en') {
     let px = 9 * u; ctx.font = FONT.en(900, px);
@@ -1093,10 +1175,11 @@ function speech(W, H, s, u, t, ease) {
   const gcx = (gf.x0 + gf.x1) / 2, gcy = (gf.y0 + gf.y1) / 2;
   const out = gcx >= (state.personCx ?? W / 2) ? 1 : -1;
   const outerX = out > 0 ? gf.x1 + 2 * u + bw / 2 : gf.x0 - 2 * u - bw / 2, innerX = out > 0 ? gf.x0 - 2 * u - bw / 2 : gf.x1 + 2 * u + bw / 2;
-  const avoidS = [[gf, 5], [state.personFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2]];
+  const avoidS = [[gf, 5], [state.personFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 6]];
   const [bx, by] = bestSpot([
     [outerX, gcy - bh * .8], [gcx, gf.y0 - bh - 3 * u], [innerX, gcy - bh * .8],
     [gcx + out * bw * .25, gf.y1 + 3 * u], [outerX, gf.y1 + 2 * u], [W / 2, TITLE_H * u + u],
+    [innerX, gf.y1 + 2 * u], [W / 2, H * .5], [bw / 2, H * .58], [W - bw / 2, H * .58],
   ], bw, bh, avoidS, W, u, TITLE_H * u + u, H - bh - 26 * u);
   state.speechRect = { x0: bx - bw / 2, y0: by, x1: bx + bw / 2, y1: by + bh };
   const pop = 1 + Math.max(0, Math.sin(((t + 1) % 4.5) / .6 * Math.PI)) * ((t + 1) % 4.5 < .6 ? .06 : 0);

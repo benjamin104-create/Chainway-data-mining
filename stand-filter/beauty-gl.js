@@ -44,8 +44,11 @@ void main() {
   vec3 col = c0.rgb;
   vec4 m = texture(mask, v);
   float like = skinLike(col);
-  float skin = max(m.r, .45 * like);              // 磨皮：臉全力，其他皮膚輕一點
-  float toneW = max(m.r, like);                    // 美白、氣色：所有皮膚一樣，不留分界
+  // 比臉頰膚色暗很多的（瀏海、眉毛、鏡框、鬍子）不是皮膚：就算在臉的範圍裡也不美白、不磨，額頭才不會出現一塊「貼上去」的膚色
+  float rl = dot(col, LUM) / max(dot(tone, LUM), .05), notDark = smoothstep(.32, .62, rl);
+  float face = m.r * notDark * mix(.5, 1., like);
+  float skin = max(face, .45 * like * notDark);    // 磨皮：臉全力，其他皮膚輕一點
+  float toneW = max(face, like * notDark);         // 美白、氣色：所有皮膚一樣，不留分界
   if (skin > .01 && smoothK > 0.) {
     // 雙邊濾波：只和「顏色相近」的鄰居平均，所以斑點和細紋被抹平，五官輪廓留著
     vec3 acc = col; float ws = 1.;
@@ -77,10 +80,10 @@ void main() {
     avg = wa > .01 ? avg / wa : col;
     float lc = dot(col, vec3(.299, .587, .114)), la = dot(avg, vec3(.299, .587, .114));
     // 只換「整體的暗沉和偏色」（低頻），原本的皮膚紋理（col - avg）完整保留，所以不會像塗上去的
-    vec3 target = mix(avg, tone, .8);
+    vec3 target = mix(avg, tone, .65);
     vec3 fixd = col + (target - avg);
     float keep = smoothstep(.45, .7, lc / max(la, .04));            // 比周圍暗很多的是鏡框／睫毛，不動
-    col = mix(col, clamp(fixd, 0., 1.), clamp(m.g * eyesK * keep, 0., .9));
+    col = mix(col, clamp(fixd, 0., 1.), clamp(m.g * eyesK * keep * notDark, 0., .75));
   }
   if (whiteK > 0.) {
     float beta = 1. + whiteK * 3.5;
@@ -90,7 +93,7 @@ void main() {
   }
   // 五官清晰：皮膚越光滑，眼睛、眉毛、睫毛越要清楚；眼白提亮；淡淡唇色
   vec4 f = texture(feat, v);
-  float fe = max(max(f.r, f.g * .55), f.b * .5);
+  float fe = max(max(f.r, f.g * .3), f.b * .5);
   if (fe > .01 && sharpK > 0.) {
     vec3 bl4 = (texture(src, v + vec2(px.x, 0.) * 1.5).rgb + texture(src, v - vec2(px.x, 0.) * 1.5).rgb
               + texture(src, v + vec2(0., px.y) * 1.5).rgb + texture(src, v - vec2(0., px.y) * 1.5).rgb) * .25;
@@ -136,9 +139,9 @@ void main() {
   if (appleK > 0.) {
     // 蘋果肌（最後才上，不會被美白、柔光洗掉）：兩頰粉嫩紅暈，中間一點光澤看起來飽滿；整體膚色也暖一點，不會死白
     col = mix(col, softLight(col, vec3(1., .6, .54)), appleK * .2 * toneW);
-    float a = m.b * appleK;
-    col = mix(col, softLight(col, vec3(1., .38, .46)), min(.9, a * 1.1));
-    col += vec3(1., .93, .9) * a * a * .05;
+    float a = m.b * appleK * notDark * (1. - .8 * m.g);              // 腮紅不上到眼下、鏡片裡，也不染到頭髮
+    col = mix(col, softLight(col, vec3(1., .45, .5)), min(.55, a * .7));
+    col += vec3(1., .93, .9) * a * a * .03;
   }
   o = vec4(clamp(col, 0., 1.), c0.a);
 }`;
@@ -240,7 +243,8 @@ export function createBeautyGL() {
     blur(lc, fwid * .07); lc.fillStyle = '#f00'; poly(lc, OVAL); lc.fill();
     lc.globalCompositeOperation = 'destination-out'; blur(lc, fwid * .012);
     lc.lineJoin = 'round'; lc.lineWidth = fwid * .035; lc.strokeStyle = lc.fillStyle = '#000';
-    for (const idx of [EYE_R, EYE_L, BROW_R, BROW_L]) { poly(lc, idx); lc.fill(); lc.stroke(); }
+    blur(lc, fwid * .02);
+    for (const idx of [EYE_R, EYE_L]) { poly(lc, idx); lc.fill(); lc.stroke(); }
     lc.lineWidth = fwid * .025; poly(lc, LIPS); lc.fill(); lc.stroke();
     for (const idx of NOSTRILS) { poly(lc, idx); lc.fill(); }
     lc.filter = 'none'; lc.globalCompositeOperation = 'source-over';
@@ -259,8 +263,9 @@ export function createBeautyGL() {
     }
     // 藍：兩頰腮紅
     mc.filter = 'none';
-    for (const i of [50, 280]) {
-      const [x, y] = Pt(i), r = fwid * .19, g = mc.createRadialGradient(x, y, 0, x, y, r);
+    for (const [i, j] of [[50, 205], [280, 425]]) {
+      const [x1, y1] = Pt(i), [x2, y2] = Pt(j), x = (x1 + x2) / 2, y = (y1 + y2) / 2;
+      const r = fwid * .15, g = mc.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, 'rgba(0,0,255,.9)'); g.addColorStop(.4, 'rgba(0,0,255,.6)'); g.addColorStop(1, 'rgba(0,0,255,0)');
       mc.fillStyle = g; mc.beginPath(); mc.arc(x, y, r, 0, 7); mc.fill();
     }
