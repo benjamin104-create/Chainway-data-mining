@@ -1,0 +1,396 @@
+import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
+import { TYPES, CHARACTERS, ORDER, QUESTIONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
+import { fromLandmarks, smooth, frame, drawCostume, weaponPose, drawWeapon, drawTrail, matchPose, drawGuide, drawFinisher, placePose } from './ar.js';
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('kata-' + k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('kata-' + k, JSON.stringify(v)); } catch { /* 無痕模式存不了就算了 */ } },
+};
+function show(id) {
+  for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
+  $(id).scrollTop = 0;
+  if (id !== 'cam') stopCamera();
+}
+
+// ── 網址參數：朋友的比一比連結、換瀏覽器帶過來的答案 ──────────
+const params = new URLSearchParams(location.search);
+const friend = (() => {
+  const s = decodeScores(params.get('vs'));
+  if (!s) return null;
+  const t = ORDER.includes(params.get('t')) ? params.get('t') : topType(s, [0]);
+  return { scores: s, type: t, name: (params.get('n') || '朋友').slice(0, 12) };
+})();
+try {
+  const carry = JSON.parse(params.get('carry'));
+  if (Array.isArray(carry) && carry.length === QUESTIONS.length) store.set('answers', carry);
+} catch { /* 沒有就算了 */ }
+
+const state = { answers: [], qi: 0, type: null, scores: null, char: null, mode: 'move', facing: 'user' };
+
+// ── 開場 ───────────────────────────────────
+if (friend) {
+  $('inviteMsg').hidden = false;
+  $('inviteMsg').textContent = `${friend.name} 是「${TYPES[friend.type].name}」。做完測驗，看看你們有幾 % 像。`;
+}
+if (store.get('answers')?.length === QUESTIONS.length) $('resume').hidden = false;
+$('start').onclick = () => { state.answers = []; state.qi = 0; show('quiz'); renderQ(); };
+$('resume').onclick = () => { state.answers = store.get('answers'); finish(); };
+
+// ── 題目 ───────────────────────────────────
+function renderQ() {
+  const { q, a } = QUESTIONS[state.qi];
+  $('qnum').textContent = `第 ${state.qi + 1} 題／共 ${QUESTIONS.length} 題`;
+  $('progress').style.width = `${state.qi / QUESTIONS.length * 100}%`;
+  $('qtext').textContent = q;
+  const box = $('opts');
+  box.className = 'opts' + (a.length > 4 ? ' kanji' : '');
+  box.replaceChildren(...a.map(([label], i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(state.answers[state.qi] === i));
+    b.onclick = () => {
+      state.answers[state.qi] = i;
+      if (state.qi < QUESTIONS.length - 1) { state.qi++; renderQ(); } else finish();
+    };
+    return b;
+  }));
+  $('back').disabled = state.qi === 0;
+}
+$('back').onclick = () => { if (state.qi > 0) { state.qi--; renderQ(); } };
+
+// ── 結果 ───────────────────────────────────
+function finish() {
+  store.set('answers', state.answers);
+  state.scores = score(state.answers);
+  state.type = topType(state.scores, state.answers);
+  state.char = state.type;
+  const t = TYPES[state.type], c = CHARACTERS[state.type];
+  show('result');
+  $('hero').style.setProperty('--tint', c.tint);
+  $('heroTag').textContent = `${t.en}・${c.kana}`;
+  $('heroVert').textContent = `${c.title}・${c.name}`;
+  $('who').textContent = `你是「${t.name}」`;
+  $('quote').textContent = `「${t.line}」`;
+  for (const k of ['healthy', 'shadow', 'adler', 'maslow', 'try']) $(k).textContent = t[k];
+  drawPortrait($('heroCanvas'), c, 1);
+
+  // 和每位劍士的相似度：用分數本身（每一型 0～100）
+  const ranked = ORDER.map((id) => [id, state.scores[id]]).sort((a, b) => b[1] - a[1]);
+  $('sims').replaceChildren(...ranked.map(([id, v]) => {
+    const row = document.createElement('div'); row.className = 'sim';
+    const label = document.createElement('span'); label.textContent = `${CHARACTERS[id].title}・${CHARACTERS[id].name}`;
+    const track = document.createElement('div'); track.className = 'track';
+    const fill = document.createElement('i'); fill.style.width = v + '%'; fill.style.background = CHARACTERS[id].tint; track.append(fill);
+    const num = document.createElement('b'); num.textContent = v + '%';
+    row.append(label, track, num); return row;
+  }));
+  const second = ranked.find(([id]) => id !== state.type)[0];
+  $('second').textContent = `你身上也有「${TYPES[second].name}」的影子：${TYPES[second].line}`;
+
+  if (friend) {
+    $('friendCard').hidden = false;
+    $('friendTitle').textContent = `你和 ${friend.name}（${TYPES[friend.type].name}）的相似度`;
+    $('friendPct').textContent = similarity(state.scores, friend.scores) + '%';
+    $('friendNote').textContent = pairNote(state.type, friend.type);
+  }
+  $('nick').value = store.get('nick') || '';
+}
+$('retry').onclick = () => { state.answers = []; state.qi = 0; show('quiz'); renderQ(); };
+$('toCam').onclick = () => openCam();
+
+$('shareLink').onclick = async () => {
+  const nick = $('nick').value.trim().slice(0, 12);
+  store.set('nick', nick);
+  const url = new URL(location.pathname, location.href);
+  url.searchParams.set('vs', encodeScores(state.scores));
+  url.searchParams.set('t', state.type);
+  if (nick) url.searchParams.set('n', nick);
+  const text = `我是「${TYPES[state.type].name}」，最像${CHARACTERS[state.type].title}・${CHARACTERS[state.type].name}。你呢？做完看看我們有幾 % 像：`;
+  try {
+    if (navigator.share) { await navigator.share({ title: '心之型・劍士測驗', text, url: url.href }); return; }
+    await navigator.clipboard.writeText(text + url.href);
+    $('shareMsg').textContent = '已複製連結，貼給朋友就可以。';
+  } catch (e) {
+    if (e?.name !== 'AbortError') prompt('長按複製這個連結', url.href);
+  }
+};
+
+// ── 立繪：沒有相機時用一個簡單的人偶示範服裝與招式 ──────────
+const NEUTRAL = { n: [0, -1.35], ls: [-.36, -1], rs: [.36, -1], le: [-.44, -.5], re: [.44, -.5], lw: [-.4, -.04], rw: [.42, -.1],
+  lh: [-.2, 0], rh: [.2, 0], lk: [-.22, .88], rk: [.22, .88], la: [-.24, 1.75], ra: [.24, 1.75] };
+function blendPose(a, b, t) {
+  const out = {};
+  for (const k in a) out[k] = [a[k][0] + (b[k][0] - a[k][0]) * t, a[k][1] + (b[k][1] - a[k][1]) * t];
+  return out;
+}
+function drawMannequin(ctx, kp, c) {
+  const { T } = frame(kp);
+  drawCostume(ctx, kp, c, {});
+  // 手
+  ctx.fillStyle = '#f2d2bb'; ctx.strokeStyle = '#120d0b'; ctx.lineWidth = Math.max(2, T * .025);
+  for (const s of ['l', 'r']) {
+    const w = kp[s + 'w'], e = kp[s + 'e'];
+    const d = Math.hypot(w.x - e.x, w.y - e.y) || 1;
+    const x = w.x + (w.x - e.x) / d * T * .05, y = w.y + (w.y - e.y) / d * T * .05;
+    ctx.beginPath(); ctx.arc(x, y, T * .1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  const wp = weaponPose(kp, c, c.move.blade, 1);
+  for (const b of wp.blades) drawWeapon(ctx, c, b.grip, b.dir, T);
+  // 頭：脖子、臉、頭髮
+  const sh = { x: (kp.ls.x + kp.rs.x) / 2, y: (kp.ls.y + kp.rs.y) / 2 };
+  const head = { x: kp.n.x, y: kp.n.y - T * .05 }, r = T * .24;
+  ctx.fillStyle = '#e8c4aa';
+  ctx.beginPath(); ctx.moveTo(sh.x - T * .07, sh.y + T * .02); ctx.lineTo(head.x - T * .07, head.y); ctx.lineTo(head.x + T * .07, head.y); ctx.lineTo(sh.x + T * .07, sh.y + T * .02); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f2d2bb';
+  ctx.beginPath(); ctx.ellipse(head.x, head.y, r * .82, r, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1b1414';
+  ctx.beginPath(); ctx.ellipse(head.x, head.y - r * .35, r * .95, r * .72, 0, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(head.x - r * .9, head.y - r * .3); ctx.lineTo(head.x - r * .3, head.y - r * .1); ctx.lineTo(head.x, head.y - r * .5);
+  ctx.lineTo(head.x + r * .35, head.y - r * .12); ctx.lineTo(head.x + r * .92, head.y - r * .3); ctx.lineTo(head.x + r * .8, head.y - r * .9); ctx.lineTo(head.x - r * .8, head.y - r * .9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = c.trim; ctx.fillRect(head.x - r * .9, head.y - r * .62, r * 1.8, r * .14);   // 頭帶
+  ctx.fillStyle = '#1b1414';
+  for (const dx of [-.32, .32]) { ctx.beginPath(); ctx.ellipse(head.x + dx * r, head.y + r * .12, r * .08, r * .13, 0, 0, Math.PI * 2); ctx.fill(); }
+}
+function drawPortrait(cv, c, t) {
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const T = cv.height * .2;
+  const pose = blendPose(NEUTRAL, c.move.pose, t);
+  const kp = placePose(pose, { x: cv.width / 2, y: cv.height * .5 }, T);
+  ctx.save(); ctx.globalAlpha = .9;
+  drawMannequin(ctx, kp, c);
+  ctx.restore();
+}
+
+// ── AR 相機 ─────────────────────────────────
+const stage = $('stage'), sctx = stage.getContext('2d');
+const video = document.createElement('video');
+video.playsInline = true; video.muted = true; video.setAttribute('playsinline', '');
+const cam = { stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
+
+const MODES = [['move', '招式挑戰'], ['free', '自由揮刀']];
+$('modes').replaceChildren(...MODES.map(([id, label]) => {
+  const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.dataset.id = id;
+  b.onclick = () => { state.mode = id; syncChips(); updateHint(); };
+  return b;
+}));
+$('roster').replaceChildren(...ORDER.map((id) => {
+  const b = document.createElement('button'); b.className = 'chip'; b.dataset.id = id;
+  b.textContent = `${CHARACTERS[id].title}・${CHARACTERS[id].name}`;
+  b.onclick = () => { state.char = id; syncChips(); updateHint(); cam.hold = 0; };
+  return b;
+}));
+function syncChips() {
+  for (const b of $('modes').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.mode));
+  for (const b of $('roster').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.char));
+  const c = CHARACTERS[state.char], t = TYPES[state.char];
+  $('camName').innerHTML = '';
+  $('camName').append(`${c.title}・${c.name}`);
+  const sm = document.createElement('small'); sm.textContent = state.mode === 'move' ? c.move.name : `${t.name}・${c.element}`;
+  $('camName').append(sm);
+  $('meter').style.visibility = state.mode === 'move' ? 'visible' : 'hidden';
+}
+let hintTimer = 0;
+function updateHint(msg) {
+  const c = CHARACTERS[state.char];
+  $('hint').hidden = false;
+  $('hint').textContent = msg || (state.mode === 'move'
+    ? `站遠一點讓上半身入鏡。照著白色招式框擺姿勢：${c.move.hint}到位會自動發動並拍照。`
+    : '隨意揮刀看看，揮快一點會有刀光。按紅色按鈕拍照。');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { $('hint').hidden = true; }, 6000);
+}
+
+async function loadModel() {
+  try {
+    const fs = await FilesetResolver.forVisionTasks(new URL('lib/wasm', location.href).href);
+    const opts = (delegate) => ({
+      baseOptions: { modelAssetPath: new URL('models/pose_landmarker_lite.task', location.href).href, delegate },
+      runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: .5, minTrackingConfidence: .5,
+    });
+    try { cam.pose = await PoseLandmarker.createFromOptions(fs, opts('GPU')); }
+    catch { cam.pose = await PoseLandmarker.createFromOptions(fs, opts('CPU')); }
+    $('loadState').textContent = '';
+  } catch (e) {
+    console.warn('pose failed', e);
+    $('loadState').textContent = '姿勢辨識載入失敗';
+  }
+}
+let modelReady = null;
+
+async function openCam() {
+  show('cam');
+  modelReady ||= loadModel();
+  syncChips(); updateHint();
+  fitStage();
+  await startCamera();
+  cancelAnimationFrame(cam.raf);
+  cam.raf = requestAnimationFrame(loop);
+}
+function fitStage() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  stage.width = Math.round(stage.clientWidth * dpr); stage.height = Math.round(stage.clientHeight * dpr);
+}
+addEventListener('resize', () => { if (!$('cam').hidden) fitStage(); });
+
+async function startCamera() {
+  stopStream();
+  if (!navigator.mediaDevices?.getUserMedia || params.has('demo')) { cam.demo = true; return; }
+  try {
+    cam.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 1280 } } });
+    video.srcObject = cam.stream; await video.play();
+    cam.demo = false;
+  } catch (e) {
+    cam.demo = true;
+    updateHint(e.name === 'NotAllowedError'
+      ? '相機權限被拒絕了，先用示範人偶看看效果。要用相機的話，請到瀏覽器設定允許這個網站使用相機再重新整理。'
+      : '打不開相機，先用示範人偶看看效果。' + (window.IN_APP ? '在 App 裡的話，請改用手機瀏覽器開。' : ''));
+  }
+}
+function stopStream() { cam.stream?.getTracks().forEach((t) => t.stop()); cam.stream = null; }
+function stopCamera() { stopStream(); cancelAnimationFrame(cam.raf); }
+$('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; cam.kp = null; startCamera(); };
+$('camBack').onclick = () => show('result');
+
+function loop(now) {
+  cam.raf = requestAnimationFrame(loop);
+  const W = stage.width, H = stage.height, ctx = sctx;
+  const c = CHARACTERS[state.char];
+  const mirror = state.facing === 'user';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#0f0c0b'; ctx.fillRect(0, 0, W, H);
+
+  // 1. 背景：相機畫面（cover 填滿，前鏡頭鏡像）
+  let kp = null;
+  if (!cam.demo && video.readyState >= 2 && video.videoWidth) {
+    const vw = video.videoWidth, vh = video.videoHeight, s = Math.max(W / vw, H / vh);
+    const dw = vw * s, dh = vh * s, dx = (W - dw) / 2, dy = (H - dh) / 2;
+    ctx.save();
+    if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(video, dx, dy, dw, dh);
+    ctx.restore();
+    if (cam.pose && video.currentTime !== cam.lastVideoTime) {
+      cam.lastVideoTime = video.currentTime;
+      const res = cam.pose.detectForVideo(video, now);
+      const lms = res.landmarks?.[0];
+      if (lms) {
+        const map = (x, y) => [mirror ? W - (dx + x * dw) : dx + x * dw, dy + y * dh];
+        const raw = fromLandmarks(lms, map, mirror);
+        if (raw.ls.v > .5 && raw.rs.v > .5 && raw.lh.v > .3 && raw.rh.v > .3) { cam.kp = smooth(cam.kp, raw); cam.lastSeen = now; }
+      }
+    }
+    if (now - cam.lastSeen < 400) kp = cam.kp;
+  } else if (cam.demo) {
+    // 示範人偶：在站姿與招式之間來回
+    cam.demoT += 1 / 60;
+    const t = (Math.sin(cam.demoT * 1.3) + 1) / 2;
+    const T = Math.min(W, H) * .2;
+    ctx.fillStyle = '#231c19'; ctx.fillRect(0, H * .8, W, H * .2);
+    kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), { x: W / 2, y: H * .55 }, T);
+  }
+
+  // 2. 招式框與吻合度
+  let res = null;
+  if (kp && state.mode === 'move' && now - cam.firedAt > 1600) {
+    res = matchPose(kp, c.move.pose);
+    cam.match += (res.score - cam.match) * .3;
+    drawGuide(ctx, kp, c, res, (Math.sin(now / 250) + 1) / 2);
+    if (cam.match > .8 && now > cam.cool) {
+      cam.hold ||= now;
+      if (now - cam.hold > 650) { cam.firedAt = now; cam.cool = now + 3200; cam.hold = 0; cam.shotAt = now + 450; }
+    } else cam.hold = 0;
+  } else if (!kp) { cam.match = 0; cam.hold = 0; }
+  const pct = Math.round(Math.min(1, Math.max(0, (cam.match - .35) / .45)) * 100);
+  $('meterText').textContent = kp ? (cam.hold ? '保持住！' : `招式吻合 ${pct}%`) : '找不到人，退後一點';
+  $('meterBar').style.width = (kp ? pct : 0) + '%';
+
+  // 3. 服裝與武器
+  if (kp) {
+    if (cam.demo) drawMannequin(ctx, kp, c);
+    else {
+      drawCostume(ctx, kp, c, { H });
+      const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
+      const wp = weaponPose(kp, c, c.move.blade, assist);
+      let tip = null;
+      for (const b of wp.blades) { const t = drawWeapon(ctx, c, b.grip, b.dir, wp.T); tip ||= t; }
+      const last = cam.trail.at(-1);
+      if (tip && (!last || Math.hypot(tip.x - last.x, tip.y - last.y) > wp.T * .04)) cam.trail.push({ x: tip.x, y: tip.y, t: now });
+      cam.trail = cam.trail.filter((p) => now - p.t < 280);
+      drawTrail(ctx, cam.trail, c, wp.T);
+    }
+  }
+
+  // 4. 招式發動
+  const ft = (now - cam.firedAt) / 1000;
+  if (kp && cam.firedAt && ft < 1.6) {
+    drawFinisher(ctx, W, H, c, kp, ft);
+    drawMoveName(ctx, W, H, c, ft);
+  }
+  if (cam.shotAt && now >= cam.shotAt) { cam.shotAt = 0; cam.wantShot = true; }
+  if (cam.wantShot) { cam.wantShot = false; takeShot(); }
+}
+
+function drawMoveName(ctx, W, H, c, t) {
+  const a = Math.min(1, t * 4) * Math.min(1, (1.6 - t) * 3);
+  const [head, tail] = c.move.name.split('・');
+  const size = Math.min(W * .16, H * .085);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `900 ${size}px "Noto Serif TC", serif`;
+  ctx.lineWidth = size * .14; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff';
+  ctx.shadowColor = c.tint; ctx.shadowBlur = size * .5;
+  // 直排：每個字一行
+  const x = W - size * .9, chars = [...tail];
+  const y0 = H * .18 + (1 - Math.min(1, t * 4)) * -size;
+  chars.forEach((ch, i) => { ctx.strokeText(ch, x, y0 + i * size * 1.05); ctx.fillText(ch, x, y0 + i * size * 1.05); });
+  ctx.font = `700 ${size * .42}px "Noto Serif TC", serif`; ctx.lineWidth = size * .08;
+  [...head].forEach((ch, i) => { ctx.strokeText(ch, x - size * .95, H * .18 + i * size * .48); ctx.fillText(ch, x - size * .95, H * .18 + i * size * .48); });
+  ctx.restore();
+}
+
+// ── 拍照 ───────────────────────────────────
+let shotBlob = null;
+function takeShot() {
+  const W = stage.width, H = stage.height;
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const o = out.getContext('2d');
+  o.drawImage(stage, 0, 0);
+  // 底部標籤：社會姿態＋角色
+  const c = CHARACTERS[state.char], t = TYPES[state.char];
+  const s = Math.min(W, H) / 22;
+  const g = o.createLinearGradient(0, H - s * 5, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.75)');
+  o.fillStyle = g; o.fillRect(0, H - s * 5, W, s * 5);
+  o.fillStyle = '#fff'; o.textBaseline = 'alphabetic';
+  o.font = `900 ${s * 1.3}px "Noto Serif TC", serif`;
+  o.fillText(`${c.title}・${c.name}`, s, H - s * 2.1);
+  o.font = `500 ${s * .75}px "Noto Sans TC", sans-serif`;
+  o.fillStyle = '#f3ead8';
+  o.fillText(`我是「${t.name}」｜心之型・劍士測驗`, s, H - s * .9);
+  out.toBlob((b) => {
+    shotBlob = b;
+    const url = URL.createObjectURL(b);
+    $('shot').src = url; $('save').href = url;
+    $('sheet').hidden = false;
+  }, 'image/jpeg', .92);
+}
+$('shutter').onclick = () => { cam.wantShot = true; };
+$('close').onclick = () => { $('sheet').hidden = true; };
+$('share').onclick = async () => {
+  if (!shotBlob) return;
+  const file = new File([shotBlob], 'kokoro-no-kata.jpg', { type: 'image/jpeg' });
+  try {
+    if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: '心之型・劍士測驗' });
+    else $('save').click();
+  } catch { /* 使用者取消 */ }
+};
+
+// 直接帶 ?demo=1 開啟時，跳過測驗看示範（方便預覽）
+if (params.has('demo')) {
+  state.answers = store.get('answers') || QUESTIONS.map(() => 0);
+  finish();
+  if (ORDER.includes(params.get('c'))) state.char = params.get('c');
+  if (params.get('demo') === 'cam') openCam();
+}
