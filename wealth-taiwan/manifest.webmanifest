@@ -1,0 +1,16 @@
+{
+  "name": "財神偵測器・台灣篇",
+  "short_name": "財神偵測器",
+  "description": "誰是眷顧你的財神？回答十個金錢心理題，再請神明和你合照。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0a14",
+  "theme_color": "#0d0a14",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

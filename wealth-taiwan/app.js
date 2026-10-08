@@ -160,8 +160,8 @@ function useStand(s) {
 // 主標籤給定位，副標籤給混搭，每一題選的選項各給一句具體建議
 function renderMedia(s) {
   const m = MEDIA[s.tagId], counts = s.counts || {}, a = s.answers || {};
-  const title = $('mediaTitle'); title.textContent = '你適合當自媒體的「';
-  const em = document.createElement('em'); em.textContent = m.role; title.append(em, '」');
+  const title = $('mediaTitle'); title.textContent = '你是「';
+  const em = document.createElement('em'); em.textContent = m.role; title.append(em, '」的財富性格');
   $('mPitch').textContent = m.pitch;
   const bars = $('mBars'); bars.innerHTML = '';
   const total = Object.values(counts).reduce((x, y) => x + y, 0) || 1;
@@ -185,21 +185,21 @@ function renderMedia(s) {
   $('mFormats').textContent = m.formats;
   $('mPlatforms').textContent = m.platforms;
   $('mMixCard').hidden = !s.second;
-  if (s.second) $('mMix').textContent = `你的副標籤是「${TAGS[s.second].tag}」（${counts[s.second]} 題）：${MEDIA[s.second].mix}，讓「${m.role}」的內容更有你的味道。`;
+  if (s.second) $('mMix').textContent = `你的第二財富性格是「${TAGS[s.second].tag}」（${counts[s.second]} 題）：${MEDIA[s.second].mix}，讓「${m.role}」的財運更完整。`;
   $('mFirst').textContent = m.first;
-  $('mWatch').textContent = `提醒：${m.watch}`;
+  $('mWatch').textContent = `小心破財：${m.watch}`;
 }
 
 async function showResult(s) {
   useStand(s);
-  $('rOwner').textContent = `${s.owner}　的守護神是`;
-  $('rTag').textContent = `人格標籤｜${s.tag}`;
+  $('rOwner').textContent = `眷顧 ${s.owner} 的財神是`;
+  $('rTag').textContent = `財富性格｜${s.tag}`;
   $('rTagBig').textContent = s.tag;
   $('rTagSub').textContent = s.tagNames.en;
   $('rName').textContent = `《${s.name}》`;
   $('rZh').textContent = s.names ? `${s.zh}・${s.titles.ja}「${s.names.ja}」・${s.titles.en}` : s.zh;
   $('rLine').textContent = `「${s.line.zh}」`; $('rLineJa').textContent = `「${s.line.ja}」`; $('rLineEn').textContent = `“${s.line.en}”`;
-  $('rImg').alt = `${s.zh}的守護神立繪`;
+  $('rImg').alt = `${s.zh}的神像`;
   drawHexSvg($('rHex'), s.grade);
   const dl = $('rStats'); dl.innerHTML = '';
   for (const [k, label] of STAT_KEYS) {
@@ -212,7 +212,7 @@ async function showResult(s) {
   renderMedia(s);
   $('rNote').textContent = s.note;
   $('rTry').textContent = `這週試試：${s.try}`;
-  $('copy').textContent = '複製我的守護神文字';
+  $('copy').textContent = '複製我的財神結果';
   show('result');
   try { $('rImg').src = (await loadArt(s.id)).toDataURL(); } catch {}
 }
@@ -222,9 +222,9 @@ $('toResult').onclick = () => show(state.stand?.owner ? 'result' : 'intro');
 $('copy').onclick = async () => {
   const s = state.stand; if (!s) return;
   const text = [
-    `名字：${s.owner}`, `人格標籤：${s.tag}`, `守護神：《${s.name}》${s.zh}`,
+    `名字：${s.owner}`, `財富性格：${s.tag}`, `眷顧我的財神：${s.zh}`,
     STAT_KEYS.map(([k, l]) => `${l} ${s.grade[k]}`).join('／'),
-    `能力：${s.ability}`, `自媒體定位：${MEDIA[s.tagId].role}｜${MEDIA[s.tagId].formats}`, `哪位希臘神祇是你的守護神？來測 → ${location.origin + location.pathname}`,
+    `祝福：「${s.line.zh}」`, `財富類型：${MEDIA[s.tagId].role}`, `誰是眷顧你的財神？來測 → ${location.origin + location.pathname}`,
   ].join('\n');
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
@@ -244,7 +244,7 @@ const progress = store.get('stand-progress');
 if (progress?.answers) $('begin').textContent = `繼續作答（第 ${progress.qi + 1} 步）`;
 const saved = store.get('stand-answers');
 if (saved?.q5) {
-  const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的守護神';
+  const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的財神';
   b.onclick = () => { answers = saved; showResult(computeStand(saved)); };
   $('skip').before(b);
 }
@@ -678,7 +678,7 @@ function openingCaption(W, H, s, u, ease, t) {
   const x0 = 5 * u - (1 - slide) * 20 * u;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.glow; ctx.font = `700 ${3.2 * u}px system-ui, sans-serif`;
-  const top = `${{ zh: '守護神偵測器', ja: '守護神診断', en: 'GUARDIAN DEITY' }[L]} ・ ${PACK.name[L]}`;
+  const top = `${{ zh: '財神偵測器', ja: '財神診断', en: 'FORTUNE DEITY' }[L]} ・ ${PACK.name[L]}`;
   ctx.fillText(L === 'en' ? top.toUpperCase() : top, x0, H * .8);
   const big = L === 'en' ? s.names.en : s.names[L];
   let px = 11 * u; ctx.font = FONT[L](900, px);
@@ -725,7 +725,7 @@ function tagStamp(W, H, s, u, now) {
     chars.forEach((c, i) => stampText(c, 0, -h / 2 + px * (i * 1.05 + .88), px, s, u));
     // 旁邊的小字：人格標籤 / タイプ
     ctx.font = `700 ${2.2 * u}px system-ui, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    const sub = L === 'ja' ? 'タイプ' : '人格標籤';
+    const sub = L === 'ja' ? 'タイプ' : '財富性格';
     [...sub].forEach((c, i) => ctx.fillText(c, -side * px * .95, -h / 2 + 2.4 * u * (i + 1)));
   }
   ctx.restore();
@@ -751,7 +751,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const LABEL = { zh: '守護神', ja: '守護神', en: 'GUARDIAN DEITY' };
+const LABEL = { zh: '眷顧你的財神', ja: 'あなたの財神', en: 'YOUR FORTUNE DEITY' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
@@ -897,7 +897,7 @@ function standCard(W, H, s) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = `600 ${2.9 * u}px system-ui, sans-serif`;
   const L = state.lang, tg = s.tagNames?.[L] || s.tag;
-  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜人格標籤：${tg}`, tx, y + 8.5 * u, maxW);
+  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜財富性格：${tg}`, tx, y + 8.5 * u, maxW);
   ctx.fillStyle = s.text; ctx.font = `${5.4 * u}px "Dela Gothic One", sans-serif`;
   ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 17 * u, maxW + 1.2 * u);
   ctx.fillStyle = '#fff'; ctx.font = `600 ${3 * u}px system-ui, sans-serif`;
@@ -925,7 +925,7 @@ $('shot').onclick = () => {
 $('share').onclick = async () => {
   const file = new File([lastBlob], 'stand.jpg', { type: 'image/jpeg' });
   const s = state.stand;
-  try { await navigator.share({ files: [file], title: s ? `我的守護神《${s.name}》` : '我的守護神' }); }
+  try { await navigator.share({ files: [file], title: s ? `眷顧我的財神：${s.zh}` : '我的財神' }); }
   catch (e) { if (e.name !== 'AbortError') notice('分享沒有成功，可以改用「儲存照片」再到 LINE 傳送。'); }
 };
 $('close').onclick = () => { $('sheet').hidden = true; };
