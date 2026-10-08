@@ -45,6 +45,10 @@
   .display { font: 900 clamp(38px, 12vw, 60px)/1.1 var(--heading); letter-spacing: .02em; margin: 0; text-wrap: balance; }
   .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
   .fine { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+  .credit { color: var(--muted); font-size: 12px; text-align: center; letter-spacing: .04em; margin: 18px 0 0; }
+  .wish { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+  .wish .field { padding: 11px 14px; font-size: 16px; }
+  .chip-label { flex: none; align-self: center; font-size: 13px; color: var(--muted); padding-right: 2px; }
   .primary {
     border: 0; background: var(--accent); color: #fff; padding: 15px 26px; border-radius: 999px;
     font: 600 16px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center;
@@ -115,6 +119,18 @@
   .inapp-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
   .inapp .small { padding: 10px 16px; font-size: 14px; }
   .inapp.switch { position: absolute; inset: auto 16px 16px; z-index: 4; }
+  /* 擲筊 */
+  .bwa-col { min-height: 100%; align-content: center; text-align: center; justify-items: center; }
+  .bwa-pair { display: flex; gap: 18px; justify-content: center; padding: 24px 0; }
+  .bwa { width: 120px; height: 70px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.4)); }
+  .bwa .flat { fill: #f2b48a; } .bwa .round { fill: #b3261e; }
+  .bwa[data-face="down"] .flat { fill: #b3261e; } .bwa[data-face="down"] .round { fill: #7d1712; }
+  .bwa.mirror { transform: scaleX(-1); }
+  .bwa.toss { animation: toss .9s cubic-bezier(.3,.6,.4,1); }
+  .bwa.mirror.toss { animation-name: toss-m; }
+  @keyframes toss { 0% { transform: translateY(0) rotate(0); } 45% { transform: translateY(-120px) rotate(400deg); } 100% { transform: translateY(0) rotate(720deg); } }
+  @keyframes toss-m { 0% { transform: scaleX(-1) translateY(0) rotate(0); } 45% { transform: scaleX(-1) translateY(-110px) rotate(-380deg); } 100% { transform: scaleX(-1) translateY(0) rotate(-720deg); } }
+  @media (prefers-reduced-motion: reduce) { .bwa.toss, .bwa.mirror.toss { animation: none; } }
   /* 自媒體建議 */
   .media { display: grid; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
   .media-title { margin: 0; font: 900 28px/1.25 var(--heading); text-wrap: balance; }
@@ -188,10 +204,10 @@
     <div class="sfx-hero" aria-hidden="true">✦ 財神到 ✦</div>
     <span class="eyebrow">Fortune Deity Detector ・ 台灣篇</span>
     <h1 class="display">誰是眷顧你的財神？</h1>
-    <p class="lead">玉皇大帝、媽祖、土地公、關公、三太子……台灣十二尊神明裡，有一位特別眷顧你的財富。回答十個金錢心理題，看看你的財富性格，再請神明和你合照。</p>
+    <p class="lead">玉皇大帝、媽祖、土地公、關公、三太子……台灣十二尊神明裡，有一位特別眷顧你的財富。走一趟參拜之旅、擲出聖筊，看看你的財富性格，再請神明和你合照。</p>
     <ul class="steps">
-      <li><b>回答</b>十個金錢心理題，再選你想要的財運</li>
-      <li><b>獲得</b>財富性格：守財、信用、智慧、開創、貴人、格局</li>
+      <li><b>參拜</b>走一趟十站的「參拜之旅」，每一站選一個反應</li>
+      <li><b>擲筊</b>擲出聖筊，眷顧你的神明就會現身</li>
       <li><b>合照</b>開相機，神明會用 AR 出現在你身邊，拍照分享</li>
     </ul>
     <div class="inapp" id="inapp" hidden>
@@ -199,16 +215,18 @@
       <div class="inapp-row"><a class="primary small" data-open-browser href="#">用瀏覽器開啟</a><button class="secondary small" type="button" data-copy-link>複製網址</button></div>
     </div>
     <div class="stack">
-      <button class="primary" id="begin">開始偵測（約 2 分鐘）</button>
+      <button class="primary" id="begin">開始參拜（約 2 分鐘）</button>
       <button class="secondary" id="skip">先直接拍照</button>
     </div>
     <p class="fine">這是認識自己金錢習慣的小遊戲，以尊敬的心介紹台灣民間信仰的神明，不是宗教儀式，也不是投資建議。答案只存在你的手機裡。</p>
   </div>
+<p class="credit">Presented by 小潔米株式会社</p>
 </section>
 
 <!-- 測驗 -->
 <section class="screen" id="quiz" hidden>
   <div class="col">
+    <span class="eyebrow" id="qscene"></span>
     <div class="qtop">
       <button class="link" id="back">← 上一題</button>
       <span class="fine" id="count">1 / 8</span>
@@ -217,6 +235,24 @@
     <h2 class="q" id="qtext"></h2>
     <p class="lead" id="qhint"></p>
     <div class="stack" id="qbody"></div>
+  </div>
+</section>
+
+<!-- 擲筊 -->
+<section class="screen" id="bwa" hidden>
+  <div class="col bwa-col">
+    <span class="eyebrow">參拜之旅 ・ 擲筊</span>
+    <h2 class="q">請神明現身</h2>
+    <div class="bwa-pair" aria-hidden="true">
+      <svg class="bwa" id="bwaL" viewBox="0 0 120 70" data-face="down"><path class="flat" d="M8 40 Q60 -6 112 40 Q60 22 8 40Z"/><path class="round" d="M8 40 Q60 22 112 40 Q60 78 8 40Z"/></svg>
+      <svg class="bwa mirror" id="bwaR" viewBox="0 0 120 70" data-face="up"><path class="flat" d="M8 40 Q60 -6 112 40 Q60 22 8 40Z"/><path class="round" d="M8 40 Q60 22 112 40 Q60 78 8 40Z"/></svg>
+    </div>
+    <p class="lead" id="bwaMsg" aria-live="polite"></p>
+    <div class="stack">
+      <button class="primary" id="bwaThrow" type="button">擲筊</button>
+      <button class="primary" id="bwaGo" type="button" hidden>看看是哪位神明眷顧你</button>
+    </div>
+    <p class="fine">聖筊：一平一凸，代表神明應允。笑筊：兩平。陰筊：兩凸。</p>
   </div>
 </section>
 
@@ -262,6 +298,7 @@
     <p class="fine">以尊敬的心介紹台灣民間信仰的神明，圖為原創繪製。本測驗是金錢習慣的自我覺察，不是宗教儀式、算命或投資建議；理財決定請依自己的狀況審慎評估。</p>
     <div class="sticky-cta"><button class="primary" id="summon">請神明一起拍照</button></div>
   </div>
+<p class="credit">Presented by 小潔米株式会社</p>
 </section>
 
 <!-- 相機 -->
@@ -296,6 +333,7 @@
   </main>
   <footer>
     <div class="beauty" id="beautyPanel" hidden></div>
+    <label class="wish"><span>✍️ 寫下你的心願或想說的話（會出現在照片上）</span><input id="wish" class="field" maxlength="36" placeholder="例如：今年存到第一桶金！" enterkeyhint="done" autocomplete="off"></label>
     <div class="chips" id="sfx" role="group" aria-label="美顏與資訊卡"></div>
     <div class="controls">
       <button class="round" id="side" aria-label="神明換邊" title="神明換邊">
@@ -312,8 +350,10 @@
 <div class="sheet" id="sheet" hidden>
   <img id="photo" alt="和神明的合照">
   <div class="row">
-    <button class="primary" id="share">分享到 LINE／其他 App</button>
+    <button class="primary" id="share">分享照片</button>
     <a class="secondary" id="save" download="stand.jpg">儲存照片</a>
+    <button class="secondary" id="shareLine" type="button">把測驗傳給 LINE 好友</button>
+    <button class="secondary" id="copyShare" type="button">複製邀請文字＋網址</button>
     <button class="secondary" id="close">再拍一張</button>
     <p class="fine">iPhone 也可以長按照片 →「加入照片」。</p>
   </div>

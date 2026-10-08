@@ -32,32 +32,60 @@ async function loadArt(id) {
   return (art[id] = cutout(img));
 }
 function cutout(img) {
-  const w = img.naturalWidth, h = img.naturalHeight, c = mk(w, h), g = c.getContext('2d', { willReadFrequently: true });
-  g.drawImage(img, 0, 0);
+  // 放大三倍再去背：原圖小，直接去背邊緣會一格一格；放大後邊緣比較平滑
+  const K = 3, w = img.naturalWidth * K, h = img.naturalHeight * K, N = w * h;
+  const c = mk(w, h), g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, w, h);
   const im = g.getImageData(0, 0, w, h), d = im.data;
-  const isBg = (i) => d[i + 3] < 20 || (d[i] > 228 && d[i + 1] > 228 && d[i + 2] > 228);
-  // 從四邊往內灌水：連到邊緣的白色才算背景，角色身上的白色不會被挖掉
-  const seen = new Uint8Array(w * h), stack = [];
-  for (let x = 0; x < w; x++) stack.push(x, (h - 1) * w + x);
-  for (let y = 0; y < h; y++) stack.push(y * w, y * w + w - 1);
+  // 背景色：取四邊偏亮像素的平均（不一定是純白）
+  let br = 0, bgc = 0, bb = 0, bn = 0;
+  const edgePx = [];
+  for (let x = 0; x < w; x++) edgePx.push(x, (h - 1) * w + x);
+  for (let y = 0; y < h; y++) edgePx.push(y * w, y * w + w - 1);
+  for (const p of edgePx) { const i = p * 4; if (d[i] + d[i + 1] + d[i + 2] > 600) { br += d[i]; bgc += d[i + 1]; bb += d[i + 2]; bn++; } }
+  const B = bn ? [br / bn, bgc / bn, bb / bn] : [255, 255, 255];
+  const dist = (i) => Math.max(Math.abs(d[i] - B[0]), Math.abs(d[i + 1] - B[1]), Math.abs(d[i + 2] - B[2]));
+  const T0 = 12, T1 = 64, FLOOD = 34;          // 與背景差 <T0 全透明、>T1 全不透明，中間漸變
+  // 1. 從四邊往內灌水：連到邊緣、接近背景色的才算背景，角色身上的白色不會被挖掉
+  const bgm = new Uint8Array(N), stack = edgePx.slice();
   while (stack.length) {
     const p = stack.pop();
-    if (seen[p] || !isBg(p * 4)) continue;
-    seen[p] = 1; d[p * 4 + 3] = 0;
+    if (bgm[p]) continue;
+    const i = p * 4; if (d[i + 3] > 20 && dist(i) >= FLOOD) continue;
+    bgm[p] = 1;
     const x = p % w;
     if (x > 0) stack.push(p - 1); if (x < w - 1) stack.push(p + 1);
-    if (p >= w) stack.push(p - w); if (p < w * (h - 1)) stack.push(p + w);
+    if (p >= w) stack.push(p - w); if (p < N - w) stack.push(p + w);
   }
-  // 邊緣柔化：緊貼背景的淺色像素變半透明
+  // 2. 被包住的白色空隙（手臂與身體之間）：很接近背景色、面積夠大的才挖掉
+  const lab = new Uint8Array(N);
+  for (let s0 = 0; s0 < N; s0++) {
+    if (bgm[s0] || lab[s0] || dist(s0 * 4) >= 6) continue;
+    const comp = [], st = [s0]; lab[s0] = 1;
+    while (st.length) {
+      const p = st.pop(); comp.push(p);
+      const x = p % w;
+      for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w]) {
+        if (q < 0 || q >= N || lab[q] || bgm[q] || dist(q * 4) >= 6) continue;
+        lab[q] = 1; st.push(q);
+      }
+    }
+    if (comp.length > N * .004) for (const p of comp) bgm[p] = 2;
+  }
+  // 3. 透明度：背景區依色差漸變；緊貼背景的角色邊緣也依色差柔化，並把混進去的白色扣掉
+  const near = (p) => { const x = p % w; return (x > 0 && bgm[p - 1]) || (x < w - 1 && bgm[p + 1]) || (p >= w && bgm[p - w]) || (p < N - w && bgm[p + w]); };
   let x0 = w, y0 = h, x1 = 0, y1 = 0;
-  for (let p = 0; p < w * h; p++) {
-    if (seen[p]) continue;
-    const x = p % w, y = (p / w) | 0, i = p * 4;
-    const edge = (x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (p >= w && seen[p - w]) || (p < w * (h - 1) && seen[p + w]);
-    if (edge) { const lum = (d[i] + d[i + 1] + d[i + 2]) / 3; d[i + 3] = Math.min(d[i + 3], Math.max(60, 255 - (lum - 150) * 2.5)); }
-    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  for (let p = 0; p < N; p++) {
+    const i = p * 4; let a;
+    if (bgm[p]) { const dd = dist(i); a = dd <= T0 ? 0 : Math.min(1, (dd - T0) / (T1 - T0)) * .6; }
+    else if (near(p)) a = Math.min(1, Math.max(.35, (dist(i) - T0) / (T1 - T0)));
+    else a = 1;
+    if (a < 1 && a > 0) for (let k = 0; k < 3; k++) d[i + k] = Math.max(0, Math.min(255, (d[i + k] - (1 - a) * B[k]) / a));
+    d[i + 3] = Math.round(d[i + 3] * a);
+    if (d[i + 3] > 24) { const x = p % w, y = (p / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   }
   g.putImageData(im, 0, 0);
+  if (x1 < x0) return c;
   const out = mk(x1 - x0 + 1, y1 - y0 + 1);
   out.getContext('2d').drawImage(c, -x0, -y0);
   return out;
@@ -65,7 +93,7 @@ function cutout(img) {
 
 // ── 畫面切換 ───────────────────────────────────────────
 function show(id) {
-  for (const s of ['intro', 'quiz', 'result', 'cam']) $(s).hidden = s !== id;
+  for (const s of ['intro', 'quiz', 'bwa', 'result', 'cam']) $(s).hidden = s !== id;
   if (id !== 'cam') stopCamera();
   else { $('start').hidden = false; $('shot').disabled = true; notice(''); }
   $(id).scrollTop = 0;
@@ -78,6 +106,7 @@ function renderQuestion() {
   $('count').textContent = `${qi + 1} / ${QUESTIONS.length}`;
   $('progress').style.width = `${(qi + 1) / QUESTIONS.length * 100}%`;
   $('qtext').textContent = Q.q;
+  $('qscene').textContent = Q.scene ? `參拜之旅 ・ ${Q.scene}` : '參拜之旅 ・ 出發';
   $('qhint').textContent = Q.hint || '';
   $('qhint').hidden = !Q.hint;
   const body = $('qbody'); body.innerHTML = '';
@@ -110,8 +139,34 @@ function advance() {
     renderQuestion(); $('quiz').scrollTop = 0; return;
   }
   store.set('stand-answers', answers); store.set('stand-progress', null);
-  showResult(computeStand(answers));
+  startBwa(computeStand(answers));
 }
+
+// ── 擲筊：擲出聖筊（一平一凸），神明才現身。前兩次可能是笑筊或陰筊，第三次一定是聖筊 ──
+let bwaResult = null, bwaTries = 0;
+function startBwa(s) { bwaResult = s; bwaTries = 0; setBwa('ready'); show('bwa'); }
+function setBwa(kind) {
+  const L = $('bwaL'), R = $('bwaR'), msg = $('bwaMsg'), btn = $('bwaThrow'), go = $('bwaGo');
+  const face = { holy: ['up', 'down'], laugh: ['up', 'up'], yin: ['down', 'down'], ready: ['down', 'up'] }[kind];
+  L.dataset.face = face[0]; R.dataset.face = face[1];
+  msg.textContent = {
+    ready: '請雙手合十，在心裡說出你的名字，誠心擲筊。',
+    holy: '聖筊！神明答應了，祂已經在等你。',
+    laugh: '笑筊：神明笑了笑，再誠心擲一次。',
+    yin: '陰筊：再靜下心想一想，再擲一次。',
+  }[kind];
+  btn.hidden = kind === 'holy'; go.hidden = kind !== 'holy';
+}
+$('bwaThrow').onclick = () => {
+  const L = $('bwaL'), R = $('bwaR'); $('bwaThrow').disabled = true;
+  L.classList.remove('toss'); R.classList.remove('toss'); void L.offsetWidth;
+  L.classList.add('toss'); R.classList.add('toss');
+  bwaTries++;
+  const roll = Math.random();
+  const kind = bwaTries >= 3 || roll < .5 ? 'holy' : roll < .75 ? 'laugh' : 'yin';
+  setTimeout(() => { setBwa(kind); $('bwaThrow').disabled = false; }, 900);
+};
+$('bwaGo').onclick = () => showResult(bwaResult);
 $('begin').onclick = () => {
   const p = store.get('stand-progress');
   if (p?.answers) { qi = p.qi; answers = p.answers; } else { qi = 0; answers = {}; }
@@ -155,6 +210,7 @@ function useStand(s) {
   $('camTitle').textContent = `《${s.name}》`;
   loadArt(s.id).catch(() => {});
   loadArt(s.id + '_front').catch(() => {});   // 正中央／片頭構圖用的正面立繪
+  for (const k of ['_left', '_right']) loadArt(s.id + k).catch(() => {});   // 左側／右側構圖各有一個不同的 pose
 }
 // 自媒體建議：全部依本人的 10 個答案，不看守護神的六角圖
 // 主標籤給定位，副標籤給混搭，每一題選的選項各給一句具體建議
@@ -256,13 +312,23 @@ if (saved?.q5) {
   b.onclick = () => { const p = $('beautyPanel'); p.hidden = !p.hidden; b.setAttribute('aria-pressed', String(!p.hidden)); };
   $('sfx').append(b);
 }
-for (const [id, name] of [['card', '資訊卡']]) {
+// 六角圖（能力值卡）：不放／左下／右下，拍照時由使用者決定
+state.card = store.get('cardPos') ?? 'left';
+const cardRow = document.createElement('div'); cardRow.className = 'chips'; cardRow.setAttribute('role', 'group'); cardRow.setAttribute('aria-label', '六角圖');
+{ const lb = document.createElement('span'); lb.className = 'chip-label'; lb.textContent = '六角圖'; cardRow.append(lb); }
+for (const [id, name] of [['off', '不放'], ['left', '左下'], ['right', '右下']]) {
   const b = document.createElement('button');
   b.className = 'chip'; b.type = 'button'; b.textContent = name;
-  b.setAttribute('aria-pressed', String(state[id]));
-  b.onclick = () => { state[id] = !state[id]; b.setAttribute('aria-pressed', String(state[id])); };
-  $('sfx').append(b);
+  b.setAttribute('aria-pressed', String(state.card === id));
+  b.onclick = () => { state.card = id; store.set('cardPos', id); for (const x of cardRow.querySelectorAll('.chip')) x.setAttribute('aria-pressed', String(x === b)); };
+  cardRow.append(b);
 }
+$('sfx').after(cardRow);
+// 心願：使用者自己寫的一句話，印在照片上自己頭上的對話框
+state.wish = store.get('wish') || '';
+$('wish').value = state.wish;
+$('wish').oninput = () => { state.wish = $('wish').value.trim(); store.set('wish', state.wish); };
+$('wish').onkeydown = (e) => { if (e.key === 'Enter') $('wish').blur(); };
 const langRow = document.createElement('div'); langRow.className = 'chips'; langRow.setAttribute('role', 'group'); langRow.setAttribute('aria-label', '語言');
 for (const [id, name] of Object.entries(LANGS)) {
   const b = document.createElement('button');
@@ -567,14 +633,13 @@ function render(now) {
   if (!FILTER_OK) { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(0, 0, W, H); }
   ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = s.tint; ctx.globalAlpha = .2; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  halftone ||= halftonePattern();
-  ctx.globalAlpha = .15; ctx.fillStyle = halftone; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
 
   // 4. 替身：站在本人斜後方，頭比本人高，緩慢浮動；剛召喚時從下方升起
   const bw = (box.x1 - box.x0) * W, bh = (box.y1 - box.y0) * H;
   const cx = (box.x0 + box.x1) / 2 * W, headY = box.y0 * H;
   const L = state.layout, front = L === 'center' || L === 'opening';
-  const a = (front && art[s.id + '_front']) || art[s.id];
+  const sideArt = L === 'left' || L === 'right' ? art[s.id + '_' + L] : null;   // 左右構圖用各自的 pose
+  const a = sideArt || (front && art[s.id + '_front']) || art[s.id];
   const enter = Math.min(1, (now - state.summonAt) / 900), ease = 1 - Math.pow(1 - enter, 3);
   state.personCx = cx;
   const drawGod = () => { if (!a) return;
@@ -590,31 +655,35 @@ function render(now) {
     const sh = P.sh, sw = sh * a.width / a.height;
     // 擺 pose：每 4.5 秒用力一次（放大＋光圈），其餘時間呼吸、輕晃
     const ph = (t + 1) % 4.5, pulse = ph < .6 ? Math.sin(ph / .6 * Math.PI) : 0;
-    const scale = (1 + Math.sin(t * 1.6) * .012 + pulse * .07) * (.75 + .25 * ease);
-    const rot = P.lean + Math.sin(t * 1.1) * .025 - pulse * .04 * P.side;
+    const scale = (1 + Math.sin(t * 1.2) * .008 + pulse * .015) * (.85 + .15 * ease);
+    const rot = P.lean * .5 + Math.sin(t * .9) * .01;
     const bob = Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .3;
     const fx = P.x, fy = P.y + bob;                // 頭頂位置
     state.standHead = { x: fx, y: fy, sw, sh };
-    speedLines(fx, fy + sh * .25, W, H, t, s);
-    stars(fx, fy + sh * .3, sh * .62 * (1 + pulse * .15), t, s, u);
-    if (pulse > 0) {                               // 擺 pose 時的衝擊光圈
+    holyLight(fx, fy, sw, sh, t, s, u);            // 神明身後的透明神光
+    if (false) {                                   // 台灣篇不用衝擊光圈
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       ctx.strokeStyle = s.glow; ctx.globalAlpha = pulse * .7; ctx.lineWidth = u * (1.5 - pulse);
       ctx.beginPath(); ctx.ellipse(fx, fy + sh * .35, sw * (.3 + ph), sh * (.25 + ph * .6), 0, 0, 7); ctx.stroke();
       ctx.restore();
     }
     ctx.save();
-    const flip = L === 'right' ? -1 : 1;           // 右側構圖把神左右翻轉，讓祂朝向你
+    const flip = L === 'right' && !sideArt ? -1 : 1;   // 沒有右側專用 pose 時才把神左右翻轉
     ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale * flip, scale);   // 以腳底為支點
-    ctx.globalAlpha = .14 * ease;                  // 殘影
-    ctx.drawImage(a, -sw * .52 - P.side * u * 2 - P.vx * 3, -sh * 1.02, sw * 1.04, sh * 1.04);
-    ctx.globalAlpha = .88 * ease;
-    if (FILTER_OK) ctx.filter = 'saturate(.7) brightness(.88) contrast(.95)';   // 顏色收斂，不搶本人
-    ctx.shadowColor = s.glow; ctx.shadowBlur = (3 + pulse * 4) * u;
+    // 柔和：降低對比、微微柔焦、半透明；再疊一層模糊的光，讓神明像是從光裡現身
+    ctx.globalAlpha = .82 * ease;
+    if (FILTER_OK) ctx.filter = `saturate(.8) contrast(.86) brightness(1.08) blur(${.12 * u}px)`;
+    ctx.shadowColor = s.glow; ctx.shadowBlur = 9 * u;
     ctx.drawImage(a, -sw / 2, -sh, sw, sh);
+    ctx.shadowBlur = 0;
+    if (FILTER_OK) {
+      ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = .32 * ease;
+      ctx.filter = `blur(${1.6 * u}px) brightness(1.2)`;
+      ctx.drawImage(a, -sw / 2, -sh, sw, sh);
+    }
     ctx.restore();
   };
-  if (!a) speedLines(cx, headY, W, H, t, s);
+  state.speechRect = null;
   if (L === 'opening') sideBand(W, H, s);          // 片頭：人那一側鋪半透明深色帶
   else drawGod();                                  // 其他構圖：神在人後面
 
@@ -631,11 +700,13 @@ function render(now) {
   vignette(W, H);
   if (L === 'opening') { openingCaption(W, H, s, u, ease, t); }
   else {
-    if (state.card && s.owner) standCard(W, H, s);
+    if (state.card !== 'off' && s.owner) standCard(W, H, s, state.card);
     tagStamp(W, H, s, u, now);
     titleBanner(W, H, s, u, ease);
     if (state.standHead) speech(W, H, s, u, t, ease);
   }
+  wishBubble(W, H, s, u, box);
+  credit(W, H, u);
   if (L !== 'auto' && !state.capturing) standGuide(W, H, u, t);   // 站位虛線（拍下來的照片不會有）
 }
 
@@ -799,6 +870,7 @@ function speech(W, H, s, u, t, ease) {
   if (bx - bw / 2 < 2 * u || bx + bw / 2 > W - 2 * u) { bx = hd.x; by = hd.y - bh - 2 * u; }
   bx = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, bx));
   by = Math.max(TITLE_H * u + u, Math.min(H - bh - 26 * u, by));
+  state.speechRect = { x0: bx - bw / 2, y0: by, x1: bx + bw / 2, y1: by + bh };
   const pop = 1 + Math.max(0, Math.sin(((t + 1) % 4.5) / .6 * Math.PI)) * ((t + 1) % 4.5 < .6 ? .06 : 0);
   ctx.globalAlpha = show * ease;
   ctx.translate(bx, by + bh / 2); ctx.scale(pop * (.8 + .2 * show), pop * (.8 + .2 * show));
@@ -824,6 +896,32 @@ function speech(W, H, s, u, t, ease) {
   shape(); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.fillStyle = '#120a1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   lines.forEach((l, i) => ctx.fillText(l, 0, y0 + 2.2 * u + px * 1.3 * (i + .5)));
+  ctx.restore();
+}
+
+// ── 神光：大片柔和的透明光暈＋緩緩上升的光點（取代希臘篇的星座與集中線）──
+const MOTES = Array.from({ length: 22 }, (_, i) => [((i * 53) % 100) / 100, ((i * 29) % 100) / 100, .5 + ((i * 7) % 5) / 6, i * 1.3]);
+function holyLight(x, y, sw, sh, t, s, u) {
+  const cx = x, cy = y + sh * .32, R = Math.max(sw, sh) * .62 * (1 + Math.sin(t * .8) * .03);
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  let g = ctx.createRadialGradient(cx, cy, R * .05, cx, cy, R);
+  g.addColorStop(0, s.glow + 'cc'); g.addColorStop(.35, s.glow + '66'); g.addColorStop(.7, s.tint + '22'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  // 頭頂的圓光
+  const hy = y + sh * .14, hr = sw * .26;
+  g = ctx.createRadialGradient(cx, hy, hr * .5, cx, hy, hr * 1.25);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.75, s.glow + '55'); g.addColorStop(.88, '#fff8e08a'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, hy, hr * 1.25, 0, 7); ctx.fill();
+  // 緩緩上升的光點
+  for (const [px, py, k, ph] of MOTES) {
+    const yy = cy + R * .9 - ((t * 18 * k + py * R * 2) % (R * 1.8));
+    const xx = cx + (px - .5) * R * 1.6 + Math.sin(t + ph) * u;
+    const a = Math.min(1, (cy + R * .9 - yy) / (R * .4)) * .8;
+    const r = k * u * .7;
+    g = ctx.createRadialGradient(xx, yy, 0, xx, yy, r * 3);
+    g.addColorStop(0, `rgba(255,250,225,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(xx, yy, r * 3, 0, 7); ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -870,38 +968,94 @@ function vignette(W, H) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 }
 
-// 照片左下角的替身資訊卡：名字、本體、人格標籤、六項能力值
-function standCard(W, H, s) {
+// 照片角落的六角圖小卡：名字、人格標籤、六項能力值（左下或右下）
+function standCard(W, H, s, pos) {
   const u = Math.min(W, H) / 100, pad = 3 * u;
-  const cw = Math.min(W - pad * 2, 76 * u), ch = 30 * u, x = pad, y = H - ch - pad;
+  const cw = 44 * u, ch = 46 * u, x = pos === 'right' ? W - cw - pad : pad, y = H - ch - pad - 3 * u;
   ctx.save();
-  ctx.fillStyle = 'rgba(12,8,20,.8)'; ctx.strokeStyle = s.text; ctx.lineWidth = .5 * u;
-  ctx.beginPath(); ctx.moveTo(x + 2 * u, y); ctx.lineTo(x + cw, y); ctx.lineTo(x + cw - 2 * u, y + ch); ctx.lineTo(x, y + ch); ctx.closePath();
-  ctx.fill(); ctx.stroke();
-  const r = 6.5 * u, hx = x + cw - r - 9 * u, hy = y + ch / 2;
+  ctx.fillStyle = 'rgba(12,8,20,.78)'; ctx.strokeStyle = s.text; ctx.lineWidth = .5 * u;
+  ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 2.4 * u); ctx.fill(); ctx.stroke();
+  const L = state.lang, tg = s.tagNames?.[L] || s.tag;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = `700 ${2.7 * u}px "Noto Sans TC", system-ui, sans-serif`;
+  ctx.fillText(`${s.owner}｜${tg}`, x + cw / 2, y + 4.6 * u, cw - 4 * u);
+  const r = 8.4 * u, hx = x + cw / 2, hy = y + 22.5 * u;
   const pts = (rr, vals) => hexPoints(hx, hy, rr, vals);
   const poly = (p) => { ctx.beginPath(); p.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); };
-  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .25 * u; poly(pts(r, Array(6).fill(1))); ctx.stroke();
-  ctx.fillStyle = s.tint + 'aa'; ctx.strokeStyle = s.text; ctx.lineWidth = .4 * u;
+  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .25 * u;
+  for (const k of [1, .6]) { poly(pts(r * k, Array(6).fill(1))); ctx.stroke(); }
+  ctx.fillStyle = s.tint + 'bb'; ctx.strokeStyle = s.text; ctx.lineWidth = .45 * u;
   poly(pts(r, STAT_KEYS.map(([k]) => GRADE_V[s.grade[k]] / 5))); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const Ls = state.lang;
-  pts(r + 4.2 * u, Array(6).fill(1)).forEach(([px, py], i) => {
+  ctx.textBaseline = 'middle';
+  pts(r + 4.6 * u, Array(6).fill(1)).forEach(([px, py], i) => {
     const k = STAT_KEYS[i][0];
-    ctx.font = `700 ${1.6 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.fillText(STAT_INFO[k].short[Ls], px, py - 1.2 * u);
-    ctx.font = `${2.3 * u}px "Dela Gothic One", sans-serif`; ctx.fillStyle = '#fff';
-    ctx.fillText(s.grade[k], px, py + 1.2 * u);
+    ctx.font = `700 ${1.9 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.fillText(STAT_INFO[k].short[L], px, py - 1.4 * u);
+    ctx.font = `${2.6 * u}px "Dela Gothic One", sans-serif`; ctx.fillStyle = '#fff';
+    ctx.fillText(s.grade[k], px, py + 1.3 * u);
   });
-  const tx = x + 4 * u, maxW = hx - r - 9 * u - tx;
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = `600 ${2.9 * u}px system-ui, sans-serif`;
-  const L = state.lang, tg = s.tagNames?.[L] || s.tag;
-  ctx.fillText(L === 'en' ? `NAME: ${s.owner} | TYPE: ${tg}` : L === 'ja' ? `名前：${s.owner}｜タイプ：${tg}` : `名字：${s.owner}｜財富性格：${tg}`, tx, y + 8.5 * u, maxW);
-  ctx.fillStyle = s.text; ctx.font = `${5.4 * u}px "Dela Gothic One", sans-serif`;
-  ctx.fillText(`《${s.name}》`, tx - 1.2 * u, y + 17 * u, maxW + 1.2 * u);
-  ctx.fillStyle = '#fff'; ctx.font = `600 ${3 * u}px system-ui, sans-serif`;
-  ctx.fillText(s.titles ? `${s.titles[L]}・${s.names[L]}` : s.zh, tx, y + 23.5 * u, maxW);
+  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = s.text;
+  ctx.font = L === 'en' ? `${3.6 * u}px "Dela Gothic One", sans-serif` : `900 ${3.8 * u}px "Noto Sans TC", sans-serif`;
+  ctx.fillText(L === 'en' ? s.names.en : (s.names?.[L] || s.zh), x + cw / 2, y + ch - 2.6 * u, cw - 4 * u);
+  ctx.restore();
+}
+
+// 使用者自己的心願／想說的話：從自己頭上冒出來的對話框
+function wishBubble(W, H, s, u, box) {
+  const text = state.wish; if (!text) return;
+  const L = state.lang, mode = /^[\x00-\x7F]*$/.test(text) ? 'en' : 'zh';
+  const px = 4.3 * u, lh = px * 1.32;
+  ctx.save(); ctx.font = FONT.zh(700, px);
+  const lines = wrapLines(text, Math.min(W * .56, 50 * u), mode).slice(0, 3);
+  const label = { zh: '我的心願', ja: 'わたしの願い', en: 'MY WISH' }[L];
+  const bw = Math.max(26 * u, ...lines.map((l) => ctx.measureText(l).width)) + 7 * u;
+  const bh = lines.length * lh + 8.4 * u;
+  const hx = (box.hx0 + box.hx1) / 2 * W, hy = box.y0 * H, hw = (box.hx1 - box.hx0) * W;
+  const minY = TITLE_H * u + 2 * u;
+  let bx = hx, by = hy - bh - 6 * u;
+  if (by < minY) {                                    // 頭上放不下：放在頭的旁邊（神的另一側）
+    const side = -(state.useSide ?? state.side);
+    bx = hx + side * (bw / 2 + hw * .55 + 2 * u); by = hy;
+  }
+  bx = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, bx));
+  by = Math.max(minY, Math.min(H - bh - 52 * u, by));
+  // 不要蓋到神明的台詞框：先往旁邊閃，閃不開就移到台詞框上方或下方
+  const R = state.speechRect;
+  const hit = (x, y) => R && x - bw / 2 < R.x1 + u && x + bw / 2 > R.x0 - u && y < R.y1 + u && y + bh > R.y0 - u;
+  if (hit(bx, by)) {
+    const lx = R.x0 - 2 * u - bw / 2, rx = R.x1 + 2 * u + bw / 2;
+    if (lx - bw / 2 >= 2 * u) bx = lx;
+    else if (rx + bw / 2 <= W - 2 * u) bx = rx;
+    else if (R.y0 - bh - 2 * u >= minY) by = R.y0 - bh - 2 * u;
+    else by = R.y1 + 2 * u;
+  }
+  const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1.4) * 2));
+  ctx.globalAlpha = show;
+  const x0 = bx - bw / 2, r = 3.4 * u;
+  // 想法泡泡：從對話框往頭頂排兩顆小圓
+  const ex = Math.max(x0 + r, Math.min(x0 + bw - r, hx)), ey = Math.max(by, Math.min(by + bh, hy));
+  const dx = hx - ex, dy = hy - 1.5 * u - ey, dl = Math.hypot(dx, dy);
+  ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = s.text; ctx.lineWidth = .7 * u;
+  if (dl > 5 * u) for (const [k, rr] of [[.35, 1.6], [.7, 1]]) { const qx = ex + dx * k, qy = ey + dy * k; if (R && qx > R.x0 && qx < R.x1 && qy > R.y0 && qy < R.y1) continue; ctx.beginPath(); ctx.arc(ex + dx * k, ey + dy * k, rr * u, 0, 7); ctx.fill(); ctx.stroke(); }
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 2 * u;
+  ctx.beginPath(); ctx.roundRect(x0, by, bw, bh, r); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = s.text; ctx.font = `800 ${2.5 * u}px "Noto Sans TC", system-ui, sans-serif`;
+  ctx.fillText(`✦ ${label} ✦`, bx, by + 4 * u);
+  ctx.fillStyle = '#2a1a10'; ctx.font = FONT.zh(700, px);
+  lines.forEach((l, i) => ctx.fillText(l, bx, by + 5.2 * u + lh * (i + .78)));
+  ctx.restore();
+}
+
+// 署名：放在六角圖的另一個角落
+function credit(W, H, u) {
+  const right = state.card !== 'right' || state.layout === 'opening';
+  ctx.save();
+  ctx.font = `600 ${2.3 * u}px "Noto Sans TC", system-ui, sans-serif`;
+  ctx.textAlign = right ? 'right' : 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.7)'; ctx.shadowBlur = .8 * u;
+  ctx.fillStyle = 'rgba(255,255,255,.88)';
+  ctx.fillText('Presented by 小潔米株式会社', right ? W - 3 * u : 3 * u, H - 2 * u);
   ctx.restore();
 }
 
@@ -917,16 +1071,27 @@ $('shot').onclick = () => {
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = URL.createObjectURL(blob);
     $('photo').src = lastUrl; $('save').href = lastUrl;
-    const file = new File([blob], 'stand.jpg', { type: 'image/jpeg' });
-    $('share').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+    $('copyShare').textContent = '複製邀請文字＋網址';
     $('sheet').hidden = false;
   }, 'image/jpeg', .92)));
 };
+function shareText() {
+  const s = state.stand, url = location.origin + location.pathname;
+  return s ? `眷顧我的財神是${s.zh}！誰是眷顧你的財神？來測 → ${url}` : url;
+}
 $('share').onclick = async () => {
-  const file = new File([lastBlob], 'stand.jpg', { type: 'image/jpeg' });
-  const s = state.stand;
-  try { await navigator.share({ files: [file], title: s ? `眷顧我的財神：${s.zh}` : '我的財神' }); }
-  catch (e) { if (e.name !== 'AbortError') notice('分享沒有成功，可以改用「儲存照片」再到 LINE 傳送。'); }
+  const s = state.stand, file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  const title = s ? `眷顧我的財神：${s.zh}` : '';
+  try {
+    if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title, text: shareText() });
+    else if (navigator.share) await navigator.share({ title, text: shareText() });
+    else location.href = 'https://line.me/R/msg/text/?' + encodeURIComponent(shareText());
+  } catch (e) { if (e.name !== 'AbortError') notice('分享沒有成功，可以改用「儲存照片」再到 LINE 傳送。'); }
+};
+$('shareLine').onclick = () => { location.href = 'https://line.me/R/msg/text/?' + encodeURIComponent(shareText()); };
+$('copyShare').onclick = async () => {
+  try { await navigator.clipboard.writeText(shareText()); $('copyShare').textContent = '已複製，貼給朋友吧！'; }
+  catch { prompt('複製這段文字：', shareText()); }
 };
 $('close').onclick = () => { $('sheet').hidden = true; };
 

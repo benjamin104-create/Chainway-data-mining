@@ -45,6 +45,10 @@
   .display { font: 900 clamp(38px, 12vw, 60px)/1.1 var(--heading); letter-spacing: .02em; margin: 0; text-wrap: balance; }
   .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
   .fine { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+  .credit { color: var(--muted); font-size: 12px; text-align: center; letter-spacing: .04em; margin: 18px 0 0; }
+  .wish { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+  .wish .field { padding: 11px 14px; font-size: 16px; }
+  .chip-label { flex: none; align-self: center; font-size: 13px; color: var(--muted); padding-right: 2px; }
   .primary {
     border: 0; background: var(--accent); color: #fff; padding: 15px 26px; border-radius: 999px;
     font: 600 16px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center;
@@ -204,6 +208,7 @@
     </div>
     <p class="fine">這是讓人認識自己的小遊戲，參考心流理論、阿德勒心理學與馬斯洛需求層次設計，不是心理診斷。答案只存在你的手機裡。</p>
   </div>
+<p class="credit">Presented by 小潔米株式会社</p>
 </section>
 
 <!-- 測驗 -->
@@ -262,6 +267,7 @@
     <p class="fine">參考心流理論、阿德勒個體心理學、馬斯洛需求層次設計的小遊戲，不是心理診斷。守護神以希臘神話為原型，圖為原創繪製。</p>
     <div class="sticky-cta"><button class="primary" id="summon">召喚守護神拍照</button></div>
   </div>
+<p class="credit">Presented by 小潔米株式会社</p>
 </section>
 
 <!-- 相機 -->
@@ -296,6 +302,7 @@
   </main>
   <footer>
     <div class="beauty" id="beautyPanel" hidden></div>
+    <label class="wish"><span>✍️ 寫下你的心願或想說的話（會出現在照片上）</span><input id="wish" class="field" maxlength="36" placeholder="例如：今年要勇敢做自己想做的事！" enterkeyhint="done" autocomplete="off"></label>
     <div class="chips" id="sfx" role="group" aria-label="美顏與資訊卡"></div>
     <div class="controls">
       <button class="round" id="side" aria-label="守護神換邊" title="守護神換邊">
@@ -312,8 +319,10 @@
 <div class="sheet" id="sheet" hidden>
   <img id="photo" alt="拍好的守護神照片">
   <div class="row">
-    <button class="primary" id="share">分享到 LINE／其他 App</button>
+    <button class="primary" id="share">分享照片</button>
     <a class="secondary" id="save" download="stand.jpg">儲存照片</a>
+    <button class="secondary" id="shareLine" type="button">把測驗傳給 LINE 好友</button>
+    <button class="secondary" id="copyShare" type="button">複製邀請文字＋網址</button>
     <button class="secondary" id="close">再拍一張</button>
     <p class="fine">iPhone 也可以長按照片 →「加入照片」。</p>
   </div>

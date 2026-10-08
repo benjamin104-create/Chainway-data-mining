@@ -1,4 +1,4 @@
-// 財神偵測器・台灣篇：十題金錢心理測驗 → 財富性格 → 細水長流或一次到位 → 眷顧你的神明
+// 財神偵測器・台灣篇：參拜之旅十題情境測驗 → 財富性格 → 細水長流或一次到位 → 眷顧你的神明
 // 文化娛樂與自我覺察，不是宗教儀式，也不是投資建議。
 
 // 六種財富性格：說明與練習屬於性格，每種性格由兩尊神明眷顧（A 細水長流、B 一次到位）
@@ -89,29 +89,29 @@ export const PACK = { id: 'taiwan', name: { zh: '台灣篇', ja: '台湾編', en
 export const LANGS = { zh: '中文', ja: '日本語', en: 'EN' };
 export const LOCALE = {
   tudigong: { names: { zh: '土地公', ja: '土地公', en: 'TUDIGONG' }, titles: { zh: '福德正神', ja: '福徳正神', en: 'God of the Land' },
-    line: { zh: '腳踏實地，有土斯有財。', ja: '地道に歩めば、財は必ず実る。', en: 'Stay grounded, and wealth will grow.' } },
+    line: { zh: '錢慢慢存，日子會越過越好啦！', ja: 'コツコツ貯めれば、毎日もっと良くなるよ！', en: 'Save little by little, life keeps getting better!' } },
   mazu: { names: { zh: '媽祖', ja: '媽祖', en: 'MAZU' }, titles: { zh: '天上聖母', ja: '天上聖母', en: 'Goddess of the Sea' },
-    line: { zh: '放心去闖，我護你平安回航。', ja: '安心して行きなさい。無事に帰れるよう守ります。', en: 'Go boldly. I will guide you safely home.' } },
+    line: { zh: '出外打拚免驚，媽祖婆罩你！', ja: '外で頑張るあなたを、ちゃんと見守ってるよ！', en: "Go out and work hard. I've got you covered!" } },
   chenghuang: { names: { zh: '城隍爺', ja: '城隍神', en: 'CHENGHUANG' }, titles: { zh: '城隍爺', ja: '城隍神', en: 'The City God' },
-    line: { zh: '帳清心安，正財長長久久。', ja: '帳簿が清ければ、財は長く続く。', en: 'Clear accounts, lasting fortune.' } },
+    line: { zh: '做人清清楚楚，錢就賺得心安！', ja: '誠実にいれば、安心して稼げるよ！', en: 'Stay honest, and every dollar feels good!' } },
   guangong: { names: { zh: '關公', ja: '関羽', en: 'GUAN GONG' }, titles: { zh: '關聖帝君', ja: '関聖帝君', en: 'God of Loyalty and Wealth' },
-    line: { zh: '守信重義，財自然來。', ja: '信義を守れば、財は自ずと来る。', en: 'Keep your word, and fortune follows.' } },
+    line: { zh: '講話算話，客人自然一直回來！', ja: '約束を守れば、お客さんはまた来てくれる！', en: 'Keep your word, and customers keep coming back!' } },
   wenchang: { names: { zh: '文昌帝君', ja: '文昌帝君', en: 'WENCHANG' }, titles: { zh: '文昌帝君', ja: '学問の神', en: 'God of Learning' },
-    line: { zh: '讀進腦裡的，誰也拿不走。', ja: '学んだものは、誰にも奪えない。', en: 'What you learn, no one can take away.' } },
+    line: { zh: '多學一點，以後都是你的本事！', ja: '今学んだことは、全部あなたの力になる！', en: 'Everything you learn becomes your superpower!' } },
   xuannu: { names: { zh: '九天玄女', ja: '九天玄女', en: 'XUANNU' }, titles: { zh: '九天玄女', ja: '九天玄女', en: 'Lady of the Nine Heavens' },
-    line: { zh: '一技在手，天下可走。', ja: '一芸あれば、天下を渡れる。', en: 'Master one craft, and the world opens up.' } },
+    line: { zh: '手藝練好，走到哪都有飯吃！', ja: '腕を磨けば、どこでもやっていける！', en: 'Master your craft, and you will never go hungry!' } },
   xuantian: { names: { zh: '玄天上帝', ja: '玄天上帝', en: 'XUANTIAN' }, titles: { zh: '玄天上帝', ja: '北極の帝', en: 'Emperor of the Dark Heaven' },
-    line: { zh: '撐過寒冬，就是你的春天。', ja: '冬を越えれば、春はあなたのもの。', en: 'Endure the winter, and spring is yours.' } },
+    line: { zh: '低潮過了就是好運，撐住，你可以！', ja: 'つらい時を越えたら幸運が来る。大丈夫、できる！', en: 'Good luck comes after the hard part. Hang in there!' } },
   nezha: { names: { zh: '三太子', ja: '哪吒', en: 'NEZHA' }, titles: { zh: '中壇元帥', ja: '中壇元帥', en: 'The Third Prince' },
-    line: { zh: '想做就衝，風火輪借你！', ja: 'やりたいなら走れ！風火輪を貸してやる！', en: 'Want it? Go for it. My wheels are yours!' } },
+    line: { zh: '想做就去做啦，衝一波！', ja: 'やりたいならやっちゃおう！行くぞ！', en: "Want to do it? Let's gooo!" } },
   guanyin: { names: { zh: '觀音', ja: '観音', en: 'GUANYIN' }, titles: { zh: '觀世音菩薩', ja: '観世音菩薩', en: 'Bodhisattva of Compassion' },
-    line: { zh: '你給出去的善，都會回到你身邊。', ja: 'あなたの優しさは、必ず巡って返ってくる。', en: 'Every kindness you give finds its way back.' } },
+    line: { zh: '對人好，福氣會自己找上門。', ja: '人に優しくすれば、福は自然とやってくる。', en: 'Be kind, and good fortune finds its way to you.' } },
   yuelao: { names: { zh: '月老', ja: '月下老人', en: 'YUE LAO' }, titles: { zh: '月下老人', ja: '縁結びの神', en: 'God of Connections' },
-    line: { zh: '對的人，我已經幫你牽好線了。', ja: '必要な縁は、もう結んでおいたよ。', en: 'The right people are already on their way to you.' } },
+    line: { zh: '好朋友就是貴人，記得常聯絡喔！', ja: 'いい友達こそ恩人。こまめに連絡してね！', en: 'Good friends are lucky charms. Keep in touch!' } },
   yuhuang: { names: { zh: '玉皇大帝', ja: '玉皇大帝', en: 'JADE EMPEROR' }, titles: { zh: '玉皇大帝', ja: '天界の帝', en: 'Ruler of Heaven' },
-    line: { zh: '眼光放遠，天地自寬。', ja: '遠くを見れば、天地は広がる。', en: 'Look far, and the world grows wide.' } },
+    line: { zh: '眼光放遠一點，好日子在後頭！', ja: '遠くを見て。いい日はこれからだよ！', en: 'Look a little further. The best days are ahead!' } },
   caishen: { names: { zh: '財神', ja: '財神', en: 'CAISHEN' }, titles: { zh: '五路財神', ja: '五路財神', en: 'God of Wealth' },
-    line: { zh: '五路財來，四方都是你的財路！', ja: '五方から財が来る！どこもあなたの財の道！', en: 'Fortune from every direction is coming your way!' } },
+    line: { zh: '好運旺旺來，今年發大財！', ja: '運気上昇！今年は大きく稼ごう！', en: 'Good luck is rolling in. This is your year!' } },
 };
 
 // 財富建議：主性格決定「你的財富類型」，副性格給混搭，每一題選的選項再各給一句
@@ -142,54 +142,45 @@ export const MEDIA = {
     first: '把收入分成三份：生活、存下、讓錢滾錢，今天就設好比例。', watch: '想一步登天，或把所有資金押在同一個地方。', mix: '把眼光放遠，想三年後的自己' },
 };
 
-// 依「本人實際選的答案」產生的財富分析：每一題的每個選項都有一句對應的建議
+// 依「本人實際選的答案」產生的財富分析：每一題選的選項各給一句
 export const ANSWER_MEDIA = [
-  ['q2', '你的賺錢強項', { shou: '穩定、不出錯，越重要的工作越放心交給你', xin: '說到做到，最容易累積長期客戶', zhi: '專業又有想法，最適合靠技術和知識收費', chuang: '敢衝、執行力強，適合開發新業務', yuan: '人緣好、會牽線，適合業務與合作', wang: '有遠見、能帶頭，適合管理和布局' }],
-  ['q6', '最適合你的收入來源', { shou: '穩定薪水加上固定收益', xin: '長期合作的老客戶', zhi: '專業接案、顧問或教學', chuang: '自己的品牌或事業', yuan: '介紹合作與分潤', wang: '投資與多元收入管道' }],
-  ['q1', '意外之財怎麼用最旺', { shou: '先放進緊急預備金，心安就是財運', xin: '先把人情和帳還清，信用會替你加分', zhi: '投資一門能加薪的課，報酬最高', chuang: '當成副業的第一筆本金，小試身手', yuan: '請重要的人吃頓飯，貴人運會更旺', wang: '分成三份配置，讓錢替你工作' }],
-  ['q8', '你的花錢習慣', { shou: '花在家和生活必需品，踏實但記得也要犒賞自己', xin: '花在送禮回禮，人情周到但要訂預算', zhi: '花在書、課程和工具，是好習慣', chuang: '花在新嘗試和冒險，記得設上限', yuan: '花在聚會請客，熱情要配上預算', wang: '花在品質與升級，買值得的就好' }],
-  ['q7', '借貸與人情的界線', { shou: '先顧好自己的存款再說，很健康', xin: '白紙黑字寫清楚，保護雙方', zhi: '先幫對方想辦法，比直接借錢更有用', chuang: '一起做生意前，先把分工和分潤談好', yuan: '能幫就幫，但只借「不還也不心痛」的金額', wang: '看人看事再決定，值得就大方支持' }],
-  ['q4', '你要小心的破財點', { shou: '太怕沒錢而不敢投資自己', xin: '被人情綁住而作保或借錢', zhi: '能力沒跟上時代而被淘汰', chuang: '衝太快、成本沒算清楚', yuan: '為了錢跟重要的人鬧翻', wang: '想一次賭太大、錯過分散風險' }],
-  ['q9', '低潮時的翻身方式', { shou: '縮減開銷、先守住，等待時機', xin: '誠實面對，一筆一筆還，信用會留下來', zhi: '學一項新技能，從專業找出口', chuang: '換跑道重新開始，你有這個膽識', yuan: '找信任的人商量，貴人會出現', wang: '拉高視野，找更大的機會' }],
-  ['q3', '你對財富的心態', { shou: '你相信努力和時間，這是最穩的心態', xin: '你在乎賺得光明正大，錢會留得久', zhi: '你好奇方法，代表你學得會', chuang: '你看到機會就想試，這是創業者的直覺', yuan: '你樂見別人成功，合作運很好', wang: '你想得更大，記得也要一步一步來' }],
-  ['q5', '你的招財法寶', { shou: '聚寶盆：守住本金，慢慢變多', xin: '算盤：帳目清楚就是最好的風水', zhi: '妙筆：把點子寫成能賣的東西', chuang: '風火輪：行動就是你的運氣', yuan: '紅線：人脈就是你的金脈', wang: '大元寶：格局決定你的財富上限' }],
-  ['q10', '十年後的財富目標', { shou: '有房有存款，不用為錢擔心', xin: '事業有口碑，客人一直回來', zhi: '靠專業就能過好生活', chuang: '擁有自己的事業', yuan: '身邊都是互相扶持的貴人', wang: '財務自由，還能照顧更多人' }],
+  ['q1', '你天生的財富雷達', { wang: '你被氣勢與格局吸引，適合做大格局的事', yuan: '你被熱鬧和人氣吸引，適合人多的生意', xin: '你會注意細節和紀錄，天生會管帳', zhi: '你欣賞好手藝，懂得品質值多少錢' }],
+  ['q2', '你的開運方式', { shou: '照規矩來最安心，穩穩的規劃最適合你', wang: '你喜歡好彩頭，正向的心態本身就招財', zhi: '親手做的最有誠意，你的手藝就是財源', chuang: '心意最重要，你做事看本心、不拘形式' }],
+  ['q3', '遇到卡關時', { chuang: '越挫越勇，適合需要衝刺的工作', yuan: '懂得開口請人幫忙，貴人就在身邊', zhi: '先觀察再調整，最會解決問題', shou: '沉得住氣，等待時機也是一種本事' }],
+  ['q4', '你心裡最在意的事', { shou: '家人平安是你最大的動力，賺錢是為了守護他們', xin: '你希望努力被看見，做出成績就是最好的名片', wang: '你在等一個大機會，平常就要把實力準備好', chuang: '你需要的是勇氣，第一步跨出去，運氣就來了' }],
+  ['q5', '面對低潮的方式', { shou: '懂得忍耐，時間會替你加分', chuang: '主動出擊，自己就能創造轉機', xin: '誠實面對，問題反而解得快', yuan: '相信貴人，也記得讓人知道你需要幫忙' }],
+  ['q6', '你在團體裡的角色', { yuan: '熱心幫忙，是大家都喜歡的好夥伴', zhi: '愛問愛學，走到哪都學得到東西', wang: '會帶人，適合當組織者或主管', xin: '做事有條理，交給你最放心' }],
+  ['q7', '你看見商機的眼光', { shou: '先想到家人，花錢有溫度', yuan: '很會聊天，人情就是你的生意', chuang: '一眼看到改良空間，有創業眼光', zhi: '好奇背後的做法，適合鑽研技術' }],
+  ['q8', '你的金錢品格', { xin: '一絲不苟，信用就是你最大的資產', yuan: '樂於結緣，連撿到錢包都能交到朋友', shou: '求穩求安心，不讓自己惹麻煩', wang: '有同理心又有行動力，適合當領導' }],
+  ['q9', '你心中的財富目標', { shou: '一輩子不缺錢用，最實在', zhi: '讓興趣變收入，最快樂', xin: '賺得心安理得，最長久', wang: '財務自由，最有底氣' }],
+  ['q10', '你和財富的長期關係', { yuan: '好東西想分享，人脈會越滾越大', xin: '重承諾，財運會跟著信用一起長大', chuang: '有目標就會拚，成功後記得回饋', wang: '想著回饋，代表你的格局夠大' }],
 ];
 
+export const STORY = '你來到一座香火鼎盛的老廟。從廟口到離開，一路上的選擇，會透露你的財富性格。';
 export const QUESTIONS = [
-  { id: 'name', kind: 'text', q: '先告訴神明你的名字', hint: '會印在你和神明的合照上。', placeholder: '例如：小安', max: 12 },
-  { id: 'q1', q: '突然拿到一筆 10 萬元的意外之財，你會？', options: [
-    ['shou', '存起來當緊急預備金'], ['zhi', '報名一門課投資自己'], ['xin', '先還清欠的人情和帳'],
-    ['wang', '研究投資，讓錢滾錢'], ['chuang', '拿去當副業或創業本金'], ['yuan', '請家人朋友吃飯，也捐一部分'] ] },
-  { id: 'q2', q: '你最常被稱讚的工作特質是？', options: [
-    ['xin', '說到做到'], ['chuang', '敢衝、執行力強'], ['shou', '穩定、不出錯'],
-    ['yuan', '人緣好、很會牽線'], ['wang', '有遠見、能帶頭'], ['zhi', '專業又有想法'] ] },
-  { id: 'q3', q: '看到別人賺大錢，你的第一個念頭是？', options: [
-    ['zhi', '好奇他用了什麼方法'], ['shou', '他背後一定很辛苦'], ['yuan', '恭喜他，說不定能合作'],
-    ['chuang', '我也要試試看'], ['xin', '希望他賺得光明正大'], ['wang', '想想我能不能做得更大'] ] },
-  { id: 'q4', q: '你最怕遇到哪一種財務狀況？', options: [
-    ['chuang', '一輩子領死薪水'], ['xin', '被倒帳或被騙'], ['wang', '格局太小錯過機會'],
-    ['shou', '突然沒有存款'], ['zhi', '能力跟不上時代'], ['yuan', '為了錢跟人鬧翻'] ] },
-  { id: 'q5', q: '如果神明送你一件招財法寶，你選？', options: [
-    ['shou', '聚寶盆'], ['xin', '一把公正的算盤'], ['zhi', '一支能寫出好點子的筆'],
-    ['chuang', '一雙踏火前進的風火輪'], ['yuan', '一捆牽起貴人的紅線'], ['wang', '一顆會發光的大元寶'] ] },
-  { id: 'q6', q: '你理想中的收入來源是？', options: [
-    ['yuan', '介紹合作與分潤'], ['wang', '投資與多元收入'], ['shou', '穩定的月薪加上租金'],
-    ['zhi', '專業接案或教學'], ['xin', '長期合作的老客戶'], ['chuang', '自己的品牌或公司'] ] },
-  { id: 'q7', q: '朋友開口跟你借錢，你會？', options: [
-    ['wang', '看人看事，值得就大方支持'], ['yuan', '能幫就幫，不求回報'], ['chuang', '不如一起做點生意'],
-    ['xin', '白紙黑字寫清楚'], ['shou', '先看看自己的存款再決定'], ['zhi', '先幫他想辦法解決問題'] ] },
-  { id: 'q8', q: '你花錢最不手軟的地方是？', options: [
-    ['zhi', '書、課程、工具'], ['wang', '品質好、能升級的東西'], ['shou', '家和生活必需品'],
-    ['yuan', '聚會請客'], ['chuang', '新嘗試與旅行冒險'], ['xin', '送禮與回禮'] ] },
-  { id: 'q9', q: '遇到財務低潮時，你會？', options: [
-    ['chuang', '換跑道重新開始'], ['shou', '縮衣節食，先守住'], ['wang', '拉高視野，找更大的機會'],
-    ['zhi', '學新技能找出路'], ['yuan', '找信任的人商量'], ['xin', '誠實面對，一筆一筆還'] ] },
-  { id: 'q10', q: '十年後，你希望自己的財富狀態是？', options: [
-    ['yuan', '身邊都是互相扶持的貴人'], ['shou', '有房有存款，不用擔心'], ['zhi', '靠專業就能過好生活'],
-    ['wang', '財務自由，還能照顧更多人'], ['xin', '事業有口碑，客人一直回來'], ['chuang', '擁有自己的事業'] ] },
-  { id: 'sex', kind: 'choice', q: '最後，你想要哪一種財運？', options: [
-    ['a', '細水長流，越存越多'], ['b', '大展身手，一次到位'], ['any', '交給神明安排'] ] },
+  { id: 'name', kind: 'text', q: '參拜前，先告訴神明你的名字', hint: '會印在你和神明的合照上。', placeholder: '例如：小安', max: 12 },
+  { id: 'q1', scene: '廟口', q: '走到廟口，你最先注意到什麼？', options: [
+    ['wang', '門口的石獅子，威風凜凜'], ['yuan', '熱鬧的小吃攤和人潮'], ['xin', '牆上一筆一筆的捐獻芳名錄'], ['zhi', '屋簷上精緻的剪黏彩繪'] ] },
+  { id: 'q2', scene: '供品', q: '準備供品時，你會帶什麼？', options: [
+    ['zhi', '自己動手做的點心'], ['shou', '照長輩教的：水果三樣、餅乾一盒'], ['chuang', '一包自己最愛吃的零食，心意最重要'], ['wang', '鳳梨（旺來），討個好彩頭'] ] },
+  { id: 'q3', scene: '點香', q: '點香時，一陣風把火吹熄了，你會？', options: [
+    ['chuang', '擋住風再點，點到好為止'], ['shou', '不急，等風停了再點'], ['zhi', '觀察風向，換個角度再點'], ['yuan', '跟旁邊的阿姨借打火機'] ] },
+  { id: 'q4', scene: '許願', q: '雙手合十，你最想跟神明說什麼？', options: [
+    ['xin', '「讓我的努力被看見」'], ['chuang', '「給我勇氣去做想做的事」'], ['shou', '「保佑家人平安健康」'], ['wang', '「給我一個翻身的大機會」'] ] },
+  { id: 'q5', scene: '抽籤', q: '你抽到一支籤：「守得雲開見月明」。你覺得是在說？', options: [
+    ['shou', '現在先忍耐，好事在後頭'], ['yuan', '會有貴人來幫我撥開雲'], ['chuang', '要我主動去把雲撥開'], ['xin', '誠實面對，答案自然會清楚'] ] },
+  { id: 'q6', scene: '志工阿伯', q: '廟裡的志工阿伯請你幫忙搬椅子，你會？', options: [
+    ['wang', '招呼其他人一起來，分工更快'], ['xin', '先問清楚要搬去哪、搬幾張'], ['yuan', '二話不說馬上幫'], ['zhi', '幫完順便問廟的歷史'] ] },
+  { id: 'q7', scene: '平安符', q: '廟口的攤位在賣平安符，你的第一個反應是？', options: [
+    ['chuang', '心想：換個設計一定更好賣'], ['zhi', '好奇它是怎麼做出來的'], ['shou', '買一個給家人'], ['yuan', '跟老闆聊開了，結果多送你一個'] ] },
+  { id: 'q8', scene: '回程', q: '回程路上撿到一個錢包，你會？', options: [
+    ['yuan', '照裡面的名片聯絡失主，順便交個朋友'], ['wang', '想到失主有多著急，馬上處理到好'], ['xin', '送到派出所，一毛都不少'], ['shou', '交給廟公處理，最安心'] ] },
+  { id: 'q9', scene: '心願', q: '如果能許一個關於錢的願，你會許？', options: [
+    ['zhi', '「做喜歡的事也能賺錢」'], ['wang', '「早日財務自由」'], ['shou', '「一輩子不缺錢用」'], ['xin', '「賺得心安理得」'] ] },
+  { id: 'q10', scene: '離開', q: '離開前，你回頭看了廟一眼，心裡想的是？', options: [
+    ['xin', '「謝謝，我會照約定努力」'], ['wang', '「希望有一天我也能回饋這裡」'], ['yuan', '「下次帶朋友一起來」'], ['chuang', '「等我成功了，回來還願」'] ] },
+  { id: 'sex', kind: 'choice', scene: '擲筊前', q: '擲筊之前，你想跟神明求哪一種財運？', options: [
+    ['a', '細水長流，越存越多'], ['b', '大展身手，一次到位'], ['any', '讓神明決定'] ] },
 ];
 
 // 財運六項：每一角都有自己的意思
@@ -212,7 +203,7 @@ export function computeStand(a) {
   const count = {};
   for (const q of QUESTIONS) if (/^q\d+$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
   const best = Math.max(0, ...Object.values(count));
-  // 同分時，以第五題（招財法寶）為準，其次按題目順序
+  // 同分時，以第五題（抽籤）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
   const tagId = tied.includes(a.q5) ? a.q5 : tied[0] || 'shou';
   const second = Object.keys(count).filter((k) => k !== tagId).sort((x, y) => count[y] - count[x])[0] || null;
