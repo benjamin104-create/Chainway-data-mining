@@ -64,7 +64,8 @@ export const TYPES = {
 };
 
 // ── 原創劍士角色：服裝、武器、招式 ──────────────────────
-// pattern：和風紋樣（市松、立涌、矢絣、稻妻、龜甲、青海波；另有七寶 shippo 可用）
+// pattern：和風紋樣（市松、立涌、矢絣、稻妻、菱、青海波；另有七寶 shippo 可用）
+//   不要用龜甲（kikko）、蝶翼、火焰紋：這三種是原作角色羽織已註冊的商標圖案
 // patternScale：花紋大小（小於 1 = 格子更大）
 // weapon.kind：katana 打刀／long 細身長刀／twin 雙短刀／odachi 大太刀／naginata 薙刀
 // move.pose：招式的目標姿勢，座標以「兩髖中點」為原點、軀幹長度為 1、y 往下（畫面方向，已鏡像）
@@ -122,7 +123,7 @@ export const CHARACTERS = {
   duty: {
     title: '岩之劍士', name: '巌', kana: 'IWAO', element: '磐岩',
     haori: '#6b5a45', haori2: '#d9c9a8', inner: '#1d1a16', hakama: '#3d342a', trim: '#d9c9a8',
-    pattern: 'kikko', tint: '#d9b26b', glow: '#fff0cc', fx: 'rock',
+    pattern: 'hishi', patternScale: 1.6, tint: '#d9b26b', glow: '#fff0cc', fx: 'rock',
     weapon: { kind: 'odachi', len: 2.2, tsuba: '#8a7a60', grip: '#2b241c' },
     move: {
       name: '岩之型・不動構', hint: '雙腳打開站穩，雙手握刀，刀身直立在胸前。',

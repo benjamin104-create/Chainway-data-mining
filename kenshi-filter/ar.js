@@ -88,11 +88,10 @@ export function tile(kind, c1, c2, S = 64) {
       for (let i = 1; i <= 4; i++) g.lineTo(i * S / 4, y0 + (i % 2 ? -S / 8 : S / 8));
       g.stroke();
     }
-  } else if (kind === 'kikko') {         // 龜甲：六角形
-    const r = S / 4;
-    const hex = (cx, cy) => { g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); g.stroke(); };
-    const h = r * Math.sqrt(3);
-    for (const [x, y] of [[0, 0], [0, h], [r * 1.5, h / 2], [r * 3, 0], [r * 3, h]]) hex(x, y);
+  } else if (kind === 'hishi') {         // 菱：斜向的菱形格子
+    g.lineWidth = 3.5;
+    g.beginPath(); g.moveTo(0, S / 2); g.lineTo(S / 2, 0); g.lineTo(S, S / 2); g.lineTo(S / 2, S); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(S / 2, S * .3); g.lineTo(S * .7, S / 2); g.lineTo(S / 2, S * .7); g.lineTo(S * .3, S / 2); g.closePath(); g.fill();
   } else if (kind === 'seigaiha') {      // 青海波：一層層的扇形，由上往下疊
     g.lineWidth = 2.2;
     const arcs = (cx, cy) => {
