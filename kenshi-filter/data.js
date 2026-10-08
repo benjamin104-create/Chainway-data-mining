@@ -77,8 +77,9 @@ export const TYPES = {
 export const CHARACTERS = {
   devote: {
     title: '燈之劍士', name: '灯里', kana: 'AKARI', element: '燈火',
-    haori: '#1f9e7d', haori2: '#141414', inner: '#16161a', hakama: '#1c1c22', trim: '#f2f2ee',
+    haori: '#087c61', haori2: '#101312', inner: '#181319', hakama: '#201a22', trim: '#e8e1d5', hair: '#47181b', eye: '#6f241f',
     pattern: 'ichimatsu', patternScale: .55, tint: '#ff7a3d', glow: '#ffd27a', fx: 'flame',
+    silhouette: { hem: -1.62, flare: 1.12, sleeve: 1.04 },
     weapon: { kind: 'katana', len: 1.75, tsuba: '#2a2a2a', grip: '#16161a' },
     move: {
       name: '燈之型・守火上段', hint: '雙手把刀高舉過頭，站穩。',
@@ -89,7 +90,7 @@ export const CHARACTERS = {
   },
   detach: {
     title: '月之劍士', name: '朔', kana: 'SAKU', element: '新月',
-    haori: '#2f3e63', haori2: '#c9d3e6', inner: '#14161d', hakama: '#20232c', trim: '#c9d3e6',
+    haori: '#2f3e63', haori2: '#c9d3e6', inner: '#14161d', hakama: '#20232c', trim: '#c9d3e6', hair: '#171b2b', eye: '#647fbb',
     pattern: 'tatewaku', tint: '#9fc4ff', glow: '#e8f0ff', fx: 'moon',
     weapon: { kind: 'long', len: 2.05, tsuba: '#c9d3e6', grip: '#1c2236' },
     move: {
@@ -101,7 +102,7 @@ export const CHARACTERS = {
   },
   recognize: {
     title: '陽之劍士', name: '晴', kana: 'HARE', element: '朝陽',
-    haori: '#f2a516', haori2: '#b3261e', inner: '#2a1c10', hakama: '#7a1f17', trim: '#fff1b8',
+    haori: '#f2a516', haori2: '#b3261e', inner: '#2a1c10', hakama: '#7a1f17', trim: '#fff1b8', hair: '#7b321c', eye: '#b75c28',
     pattern: 'yagasuri', tint: '#ffd23f', glow: '#fff6c0', fx: 'sun',
     weapon: { kind: 'katana', len: 1.8, tsuba: '#ffd23f', grip: '#7a1f17' },
     move: {
@@ -113,8 +114,8 @@ export const CHARACTERS = {
   },
   compete: {
     title: '雷之劍士', name: '迅', kana: 'JIN', element: '迅雷',
-    haori: '#f6b425', haori2: '#fffaf0', grad: ['#ffd84a', '#f07a1a'], inner: '#17151c', hakama: '#1d1b24', trim: '#fffaf0',
-    pattern: 'uroko', tint: '#ffd23f', glow: '#fff5a8', fx: 'thunder',
+    haori: '#f7b51d', haori2: '#fff8e9', grad: ['#ffd83d', '#f26b18'], inner: '#15131a', hakama: '#1b1920', trim: '#fff8e9', hair: '#e9a52a', eye: '#9b5d27',
+    pattern: 'uroko', tint: '#ffd31f', glow: '#fff6a8', fx: 'thunder', silhouette: { hem: -1.48, flare: 1.16, sleeve: 1.1 },
     weapon: { kind: 'katana', len: 1.75, tsuba: '#2a2a2a', grip: '#f2efe6' },
     move: {
       name: '雷之型・迅雷拔刀', hint: '側身蹲低、上身往前壓，雙手握住腰間的刀柄，後腳往後伸直——準備拔刀的那一瞬間。',
@@ -125,7 +126,7 @@ export const CHARACTERS = {
   },
   duty: {
     title: '岩之劍士', name: '巌', kana: 'IWAO', element: '磐岩',
-    haori: '#6b5a45', haori2: '#d9c9a8', inner: '#1d1a16', hakama: '#3d342a', trim: '#d9c9a8',
+    haori: '#6b5a45', haori2: '#d9c9a8', inner: '#1d1a16', hakama: '#3d342a', trim: '#d9c9a8', hair: '#302821', eye: '#6f5435',
     pattern: 'hishi', patternScale: 1.6, tint: '#d9b26b', glow: '#fff0cc', fx: 'rock',
     weapon: { kind: 'odachi', len: 2.2, tsuba: '#8a7a60', grip: '#2b241c' },
     move: {
@@ -137,7 +138,7 @@ export const CHARACTERS = {
   },
   harmony: {
     title: '潮之劍士', name: '汐', kana: 'SHIO', element: '潮汐',
-    haori: '#1f8f8a', haori2: '#e9f7f2', inner: '#10201f', hakama: '#184845', trim: '#e9f7f2',
+    haori: '#1f8f8a', haori2: '#e9f7f2', inner: '#10201f', hakama: '#184845', trim: '#e9f7f2', hair: '#163e3d', eye: '#247b78',
     pattern: 'seigaiha', tint: '#5fe0d0', glow: '#e0fffa', fx: 'wave',
     weapon: { kind: 'naginata', len: 2.4, tsuba: '#e9f7f2', grip: '#5b3a22' },
     move: {

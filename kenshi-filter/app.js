@@ -1,6 +1,6 @@
 import { FilesetResolver, PoseLandmarker } from './lib/vision_bundle.mjs';
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, placePose } from './ar.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, placePose } from './ar.js';
 import { Stage3D } from './render3d.js';
 
 const stage3d = new Stage3D();
@@ -29,8 +29,9 @@ try {
   if (Array.isArray(carry) && carry.length === QUESTIONS.length) store.set('answers', carry);
 } catch { /* 沒有就算了 */ }
 
-const state = { answers: [], qi: 0, type: null, scores: null, char: null, mode: 'move', facing: 'user',
-  outfit: store.get('outfit') || 'haori', weapon: store.get('weapon') || 'own' };
+const rememberedChar = store.get('char');
+const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'move', facing: 'user',
+  outfit: store.get('outfit') || 'full', weapon: store.get('weapon') || 'own', camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -40,6 +41,7 @@ if (friend) {
 if (store.get('answers')?.length === QUESTIONS.length) $('resume').hidden = false;
 $('start').onclick = () => { state.answers = []; state.qi = 0; show('quiz'); renderQ(); };
 $('resume').onclick = () => { state.answers = store.get('answers'); finish(); };
+$('quickCam').onclick = () => openCam('intro');
 
 // ── 題目 ───────────────────────────────────
 function renderQ() {
@@ -81,6 +83,13 @@ function finish() {
 
   // 和每位劍士的相似度：用分數本身（每一型 0～100）
   const ranked = ORDER.map((id) => [id, state.scores[id]]).sort((a, b) => b[1] - a[1]);
+  const rarity = ranked[0][1] >= 65 || ranked[0][1] - ranked[1][1] >= 20 ? 'SSR' : 'SR';
+  $('rarity').textContent = rarity;
+  $('rarityLarge').textContent = rarity;
+  $('rarityNote').textContent = rarity === 'SSR'
+    ? '你的核心姿態非常鮮明，這張角色卡帶有更強的專屬招式共鳴。'
+    : '你的力量分布更均衡，能在不同任務裡切換姿態。';
+  renderAbilities(state.scores, c);
   $('sims').replaceChildren(...ranked.map(([id, v]) => {
     const row = document.createElement('div'); row.className = 'sim';
     const label = document.createElement('span'); label.textContent = `${CHARACTERS[id].title}・${CHARACTERS[id].name}`;
@@ -102,6 +111,27 @@ function finish() {
 }
 $('retry').onclick = () => { state.answers = []; state.qi = 0; show('quiz'); renderQ(); };
 $('toCam').onclick = () => openCam();
+
+function renderAbilities(scores, c) {
+  const avg = (...ids) => ids.reduce((n, id) => n + scores[id], 0) / ids.length;
+  const stats = [
+    ['守護', avg('devote', 'duty')],
+    ['洞察', avg('detach', 'harmony')],
+    ['行動', avg('compete', 'recognize')],
+    ['意志', avg('duty', 'compete')],
+    ['共鳴', avg('harmony', 'devote', 'recognize')],
+  ].map(([name, value]) => [name, Math.round(Math.min(100, 28 + value * .72))]);
+  $('abilityStats').replaceChildren(...stats.map(([name, value]) => {
+    const row = document.createElement('div'); row.className = 'stat';
+    const label = document.createElement('span'); label.textContent = name;
+    const track = document.createElement('div'); track.className = 'stat-track';
+    const fill = document.createElement('i'); fill.style.setProperty('--stat', c.tint); track.append(fill);
+    const num = document.createElement('b'); num.textContent = value;
+    row.append(label, track, num);
+    requestAnimationFrame(() => { fill.style.width = value + '%'; });
+    return row;
+  }));
+}
 
 $('shareLink').onclick = async () => {
   const nick = $('nick').value.trim().slice(0, 12);
@@ -158,7 +188,7 @@ $('modes').replaceChildren(...MODES.map(([id, label]) => {
 $('roster').replaceChildren(...ORDER.map((id) => {
   const b = document.createElement('button'); b.className = 'chip'; b.dataset.id = id;
   b.textContent = `${CHARACTERS[id].title}・${CHARACTERS[id].name}`;
-  b.onclick = () => { state.char = id; syncChips(); updateHint(); cam.hold = 0; };
+  b.onclick = () => { state.char = id; store.set('char', id); syncChips(); updateHint(); cam.hold = 0; };
   return b;
 }));
 // 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
@@ -227,7 +257,8 @@ async function loadModel() {
 }
 let modelReady = null;
 
-async function openCam() {
+async function openCam(origin = 'result') {
+  state.camOrigin = origin;
   show('cam');
   modelReady ||= loadModel();
   syncChips(); updateHint();
@@ -259,7 +290,7 @@ async function startCamera() {
 function stopStream() { cam.stream?.getTracks().forEach((t) => t.stop()); cam.stream = null; }
 function stopCamera() { stopStream(); cancelAnimationFrame(cam.raf); }
 $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; cam.kp = null; startCamera(); };
-$('camBack').onclick = () => show('result');
+$('camBack').onclick = () => show(state.camOrigin === 'result' ? 'result' : 'intro');
 
 // 估計現場亮度（0.4～1.4），讓衣服的打光跟環境接近
 const lightC = document.createElement('canvas'); lightC.width = lightC.height = 8;
@@ -288,7 +319,9 @@ function loop(now) {
     const dw = vw * s, dh = vh * s, dx = (W - dw) / 2, dy = (H - dh) / 2;
     ctx.save();
     if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+    ctx.filter = 'contrast(1.08) saturate(1.12) brightness(.94)';
     ctx.drawImage(video, dx, dy, dw, dh);
+    ctx.filter = 'none';
     ctx.restore();
     if (!(cam.frame++ % 20)) cam.light = videoLight();
     if (cam.pose && video.currentTime !== cam.lastVideoTime) {
@@ -310,6 +343,8 @@ function loop(now) {
     ctx.fillStyle = '#231c19'; ctx.fillRect(0, H * .8, W, H * .2);
     kp = placePose(blendPose(NEUTRAL, c.move.pose, t * t), { x: W / 2, y: H * .55 }, T);
   }
+
+  drawAtmosphere(ctx, W, H, c, kp, now);
 
   // 2. 招式吻合度
   let res = null, guide = null;
@@ -352,6 +387,7 @@ function loop(now) {
     drawFinisher(ctx, W, H, c, kp, ft);
     drawMoveName(ctx, W, H, c, ft);
   }
+  drawCinematicFrame(ctx, W, H, c, cam.firedAt && ft < 1.6 ? ft : -1);
   if (cam.shotAt && now >= cam.shotAt) { cam.shotAt = 0; cam.wantShot = true; }
   if (cam.wantShot) { cam.wantShot = false; takeShot(); }
 }

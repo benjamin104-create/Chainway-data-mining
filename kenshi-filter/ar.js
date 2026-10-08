@@ -220,6 +220,52 @@ export function drawGuide(ctx, tg, ch, res, pulse) {
   ctx.restore();
 }
 
+// ── 鏡頭氛圍：常駐的屬性微粒、色調與動畫式取景暗角 ──────────
+export function drawAtmosphere(ctx, W, H, ch, kp, now) {
+  const t = now / 1000, T = kp ? frame(kp).T : Math.min(W, H) * .2;
+  const center = kp ? mid(frame(kp).hip, frame(kp).sh) : V(W * .5, H * .52);
+  ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.lineCap = 'round';
+  for (let i = 0; i < 24; i++) {
+    const seed = (i * 73 % 101) / 101, phase = t * (.12 + (i % 5) * .025) + seed * 9;
+    const x = (seed * W * 1.4 + Math.sin(phase * 1.7) * T * .45) % (W * 1.15) - W * .06;
+    const y = H - ((phase * H * .14 + i * H * .19) % (H * 1.1));
+    const a = .08 + (i % 4) * .025;
+    if (ch.fx === 'thunder') {
+      ctx.strokeStyle = ch.glow; ctx.globalAlpha = a * 1.4; ctx.lineWidth = Math.max(1, T * .012);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + T * .06, y - T * .08); ctx.lineTo(x + T * .01, y - T * .14); ctx.stroke();
+    } else if (ch.fx === 'flame' || ch.fx === 'sun') {
+      ctx.fillStyle = i % 3 ? ch.tint : ch.glow; ctx.globalAlpha = a * 1.5;
+      ctx.beginPath(); ctx.arc(x, y, T * (.012 + (i % 3) * .006), 0, Math.PI * 2); ctx.fill();
+    } else if (ch.fx === 'wave') {
+      ctx.strokeStyle = ch.glow; ctx.globalAlpha = a; ctx.lineWidth = T * .009;
+      ctx.beginPath(); ctx.arc(center.x, center.y, T * (.7 + (i % 8) * .16 + Math.sin(phase) * .05), Math.PI * 1.05, Math.PI * 1.8); ctx.stroke();
+    } else {
+      ctx.fillStyle = ch.glow; ctx.globalAlpha = a;
+      ctx.fillRect(x, y, Math.max(1, T * .012), Math.max(1, T * .012));
+    }
+  }
+  // 人物背後的淡色輪廓光，讓服裝從真實背景裡浮出來。
+  const aura = ctx.createRadialGradient(center.x, center.y, T * .25, center.x, center.y, T * 1.75);
+  aura.addColorStop(0, ch.tint + '24'); aura.addColorStop(.45, ch.tint + '12'); aura.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalAlpha = .8; ctx.fillStyle = aura; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+export function drawCinematicFrame(ctx, W, H, ch, finisherT = -1) {
+  ctx.save();
+  const vignette = ctx.createRadialGradient(W * .5, H * .44, Math.min(W, H) * .22, W * .5, H * .5, Math.max(W, H) * .72);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)'); vignette.addColorStop(.7, 'rgba(0,0,0,.08)'); vignette.addColorStop(1, 'rgba(0,0,0,.58)');
+  ctx.fillStyle = vignette; ctx.fillRect(0, 0, W, H);
+  const bars = ctx.createLinearGradient(0, 0, 0, H);
+  bars.addColorStop(0, 'rgba(0,0,0,.48)'); bars.addColorStop(.14, 'rgba(0,0,0,0)'); bars.addColorStop(.78, 'rgba(0,0,0,0)'); bars.addColorStop(1, 'rgba(0,0,0,.6)');
+  ctx.fillStyle = bars; ctx.fillRect(0, 0, W, H);
+  if (finisherT >= 0 && finisherT < .24) {
+    ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = (1 - finisherT / .24) * .42;
+    ctx.fillStyle = ch.glow; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
 // ── 招式發動特效 ───────────────────────────
 export function drawFinisher(ctx, W, H, ch, kp, t) {
   // t：發動後經過的秒數
@@ -239,11 +285,20 @@ export function drawFinisher(ctx, W, H, ch, kp, t) {
   ctx.globalAlpha = Math.min(1, a * 1.3);
   const R = T * (1.2 + t * 1.6);
   ctx.strokeStyle = ch.tint; ctx.fillStyle = ch.glow; ctx.shadowColor = ch.tint; ctx.shadowBlur = 24;
+  // 沿刀勢掠過的雙層斬擊弧：外層屬性色、內層白熱高光。
+  const ba = Math.atan2(ch.move.blade[1], ch.move.blade[0]);
+  ctx.lineCap = 'round'; ctx.lineWidth = T * (.24 - Math.min(.14, t * .08));
+  ctx.globalAlpha = Math.min(1, a * 1.6);
+  ctx.beginPath(); ctx.arc(c.x, c.y, R * .86, ba - Math.PI * .9, ba + Math.PI * .42); ctx.stroke();
+  ctx.strokeStyle = '#fffdf0'; ctx.lineWidth = T * .055; ctx.shadowBlur = 34;
+  ctx.beginPath(); ctx.arc(c.x, c.y, R * .82, ba - Math.PI * .86, ba + Math.PI * .38); ctx.stroke();
+  ctx.strokeStyle = ch.tint; ctx.fillStyle = ch.glow;
   if (ch.fx === 'flame') {
-    for (let i = 0; i < 26; i++) {
-      const ang = i / 26 * Math.PI * 2, rr = R * (.8 + (i * 7 % 5) / 10);
+    for (let i = 0; i < 34; i++) {
+      const ang = i / 34 * Math.PI * 2 + t * .35, rr = R * (.72 + (i * 7 % 5) / 11);
       const x = c.x + Math.cos(ang) * rr, y = c.y + Math.sin(ang) * rr - t * T * .8;
-      ctx.beginPath(); ctx.moveTo(x, y - T * .25); ctx.quadraticCurveTo(x + T * .12, y, x, y + T * .1); ctx.quadraticCurveTo(x - T * .12, y, x, y - T * .25); ctx.fill();
+      ctx.fillStyle = i % 3 ? ch.tint : ch.glow;
+      ctx.beginPath(); ctx.moveTo(x, y - T * .32); ctx.quadraticCurveTo(x + T * .16, y - T * .02, x, y + T * .12); ctx.quadraticCurveTo(x - T * .16, y - T * .02, x, y - T * .32); ctx.fill();
     }
   } else if (ch.fx === 'moon') {
     ctx.lineWidth = T * .14; ctx.lineCap = 'round';
@@ -255,11 +310,12 @@ export function drawFinisher(ctx, W, H, ch, kp, t) {
     for (let i = 0; i < 18; i++) { const ang = i / 18 * Math.PI * 2 + t; ctx.beginPath();
       ctx.moveTo(c.x + Math.cos(ang) * R * .6, c.y + Math.sin(ang) * R * .6); ctx.lineTo(c.x + Math.cos(ang) * R * 1.2, c.y + Math.sin(ang) * R * 1.2); ctx.stroke(); }
   } else if (ch.fx === 'thunder') {
-    ctx.lineWidth = T * .05; ctx.lineJoin = 'miter';
-    for (let j = 0; j < 7; j++) {
-      const ang = j / 7 * Math.PI * 2 + 0.3; let x = c.x, y = c.y; ctx.beginPath(); ctx.moveTo(x, y);
-      for (let k = 1; k <= 6; k++) { const rr = R * k / 6 * 1.3; x = c.x + Math.cos(ang) * rr + ((k * j * 31) % 7 - 3) * T * .05; y = c.y + Math.sin(ang) * rr + ((k * j * 17) % 7 - 3) * T * .05; ctx.lineTo(x, y); }
+    ctx.lineWidth = T * .055; ctx.lineJoin = 'miter';
+    for (let j = 0; j < 11; j++) {
+      const ang = j / 11 * Math.PI * 2 + 0.3; let x = c.x, y = c.y; ctx.beginPath(); ctx.moveTo(x, y);
+      for (let k = 1; k <= 7; k++) { const rr = R * k / 7 * 1.45; x = c.x + Math.cos(ang) * rr + ((k * j * 31) % 7 - 3) * T * .07; y = c.y + Math.sin(ang) * rr + ((k * j * 17) % 7 - 3) * T * .07; ctx.lineTo(x, y); }
       ctx.stroke();
+      ctx.save(); ctx.strokeStyle = '#fff'; ctx.globalAlpha *= .72; ctx.lineWidth = T * .014; ctx.stroke(); ctx.restore();
     }
   } else if (ch.fx === 'rock') {
     for (let i = 0; i < 16; i++) {

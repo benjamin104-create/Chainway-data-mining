@@ -211,14 +211,17 @@ function gradTex(ch) {
   const gr = g.createLinearGradient(0, 0, 0, 512);
   gr.addColorStop(0, ch.grad[0]); gr.addColorStop(1, ch.grad[1]);
   g.fillStyle = gr; g.fillRect(0, 0, 1024, 512);
+  // 規整的傳統鱗紋：比隨機散落更有動畫服裝的辨識度，仍維持通用傳統紋樣。
   g.fillStyle = ch.haori2;
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let y = 18; y < 512; y += 46) for (let x = (y / 46 % 2) * 34; x < 1024; x += 68) {
-    const cx = x + (rnd() - .5) * 22, cy = y + (rnd() - .5) * 16, r = 13 + rnd() * 5, a = (rnd() - .5) * .9;
+  for (let row = 0, y = 28; y < 512; row++, y += 54) for (let x = (row % 2 ? 34 : 0); x < 1024; x += 72) {
+    const r = 15, a = -Math.PI / 2;
     g.beginPath();
-    for (let k = 0; k < 3; k++) { const t = a - Math.PI / 2 + k * Math.PI * 2 / 3; g.lineTo(cx + Math.cos(t) * r, cy + Math.sin(t) * r); }
+    for (let k = 0; k < 3; k++) { const t = a + k * Math.PI * 2 / 3; g.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r); }
     g.closePath(); g.fill();
   }
+  const shine = g.createLinearGradient(0, 0, 1024, 0);
+  shine.addColorStop(0, 'rgba(255,255,255,.08)'); shine.addColorStop(.5, 'rgba(255,255,255,0)'); shine.addColorStop(1, 'rgba(70,20,0,.1)');
+  g.fillStyle = shine; g.fillRect(0, 0, 1024, 512);
   return canvasTex(cv, 1, 1);
 }
 
@@ -249,6 +252,7 @@ const clampLen = (v, m) => (v.length() > m ? v.setLength(m) : v);
 class Outfit {
   constructor(scene, ch, ghost) {
     this.group = new THREE.Group(); scene.add(this.group);
+    this.ch = ch;
     this.ghost = ghost;
     const toon = (opts) => ghost
       ? new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .16, depthWrite: false, side: THREE.DoubleSide })
@@ -332,9 +336,11 @@ class Outfit {
 
     // 羽織：正面敞開，往下擺越來越寬、皺褶越來越深，下擺被慣性甩動
     const gap = (v) => lerp(.5, .3, Math.min(1, v * 3)) + v * .14;
+    const hem = this.ch.silhouette?.hem ?? -1.85;
+    const flare = this.ch.silhouette?.flare ?? 1;
     const edgePts = [[], []];
     this.haori.update((i, v) => {
-      const h = lerp(.15, -1.85, v), [ra, rb] = profile(h), g = gap(v);
+      const h = lerp(.15, hem, v), [baseRa, rb] = profile(h), ra = baseRa * lerp(1, flare, Math.pow(v, 1.3)), g = gap(v);
       const w = Math.pow(Math.max(0, v - .25) / .75, 1.6);            // 腰以下才會被甩動
       const c = at(h).add(hemOff.clone().multiplyScalar(w));
       const depth = .1 * Math.pow(v, 1.4);
@@ -392,7 +398,8 @@ class Outfit {
         const sag = T * (.06 + .42 * Math.pow(fu, .75) * (.35 + .65 * horiz)) * (1 - .85 * raised);
         // 袖兜下垂的方向：重力＋慣性
         const pull = down.clone().multiplyScalar(sag).add(off.clone().multiplyScalar(Math.pow(fu, 1.3)));
-        const r = T * lerp(.19, .24, Math.min(1, u / elbowU)) + T * .06 * fu;
+        const sleeve = this.ch.silhouette?.sleeve ?? 1;
+        const r = (T * lerp(.19, .24, Math.min(1, u / elbowU)) + T * .06 * fu) * sleeve;
         const [a, b] = axes(tanS, pull.lengthSq() > 1e-6 ? pull.clone().normalize() : down);
         const bunch = .09 * Math.exp(-Math.pow((u - elbowU) / .1, 2)) * Math.abs(Math.sin(u * 46));   // 手肘處的擠壓皺褶
         const L = pull.length();
@@ -430,14 +437,20 @@ class Doll {
   constructor(scene, ch) {
     this.group = new THREE.Group(); scene.add(this.group);
     const skin = new THREE.MeshToonMaterial({ color: '#f6d6bf', gradientMap: toonRamp() });
-    const hair = new THREE.MeshToonMaterial({ color: '#2a2024', gradientMap: toonRamp() });
+    const hair = new THREE.MeshToonMaterial({ color: ch.hair || '#2a2024', gradientMap: toonRamp() });
     const band = new THREE.MeshToonMaterial({ color: ch.trim, gradientMap: toonRamp() });
-    const eye = new THREE.MeshStandardMaterial({ color: '#1d1617', roughness: .2 });
+    const eye = new THREE.MeshStandardMaterial({ color: ch.eye || '#1d1617', roughness: .2 });
     this.head = new THREE.Group();
     const face = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), skin); face.scale.set(.82, 1, .9); this.head.add(face);
     const cap = new THREE.Mesh(new THREE.SphereGeometry(1.06, 32, 16, 0, Math.PI * 2, 0, Math.PI * .5), hair); cap.scale.set(.86, 1, .95); cap.rotation.x = -.35; cap.position.y = .08; this.head.add(cap);
     const tail = new THREE.Mesh(new THREE.SphereGeometry(.42, 16, 12), hair); tail.position.set(0, .2, -.95); tail.scale.set(1, 1.6, .8); this.head.add(tail);
-    const hb = new THREE.Mesh(new THREE.TorusGeometry(.92, .06, 8, 40), band); hb.rotation.x = Math.PI / 2 - .35; hb.position.y = .38; hb.scale.set(.92, 1, 1); this.head.add(hb);
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, dir = V3(Math.cos(a), .35 + (i % 3) * .12, Math.sin(a)).normalize();
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(.2, .62, 7), hair);
+      spike.position.set(Math.cos(a) * .64, .43 + (i % 2) * .14, Math.sin(a) * .62);
+      spike.quaternion.setFromUnitVectors(V3(0, 1, 0), dir); this.head.add(spike);
+    }
+    if (ch.headband) { const hb = new THREE.Mesh(new THREE.TorusGeometry(.92, .06, 8, 40), band); hb.rotation.x = Math.PI / 2 - .35; hb.position.y = .38; hb.scale.set(.92, 1, 1); this.head.add(hb); }
     for (const x of [-.3, .3]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), eye); e.scale.set(1, 1.5, .5); e.position.set(x, .02, .82); this.head.add(e); }
     this.group.add(this.head);
     this.neck = new THREE.Mesh(new THREE.CylinderGeometry(.5, .55, 1, 16), skin); this.group.add(this.neck);

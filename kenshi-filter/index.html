@@ -52,11 +52,20 @@
   .card p { margin: 0; color: var(--muted); line-height: 1.75; font-size: 15px; }
 
   /* 開場 */
+  #intro { background: radial-gradient(circle at 85% 4%, rgba(255,184,52,.13), transparent 28%), radial-gradient(circle at 6% 76%, rgba(224,80,58,.13), transparent 34%), #0f0c0b; }
   #intro .col { min-height: 100%; align-content: center; }
   .hanko { width: 64px; height: 64px; border-radius: 14px; background: var(--accent); color: #fff; display: grid; place-items: center; font: 900 30px/1 var(--serif); transform: rotate(-6deg); }
   .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; line-height: 1.6; }
   .steps b { color: var(--fg); margin-right: 6px; }
   .invite { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; color: var(--fg); }
+  .entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .entry { min-height: 154px; border-radius: 20px; padding: 18px; display: grid; align-content: space-between; gap: 16px; text-align: left; cursor: pointer; color: var(--fg); }
+  .entry strong { display: block; font: 900 21px/1.35 var(--serif); }
+  .entry small { display: block; margin-top: 6px; color: inherit; opacity: .74; font-size: 12px; line-height: 1.55; }
+  .entry .entry-icon { font-size: 32px; line-height: 1; }
+  .entry-camera { border: 1px solid rgba(255,210,90,.55); background: linear-gradient(145deg, #aa351f, #e66b28 56%, #f5b52e); box-shadow: 0 18px 44px rgba(224,80,58,.2); }
+  .entry-quiz { border: 1px solid var(--line); background: linear-gradient(145deg, #221d1b, #151211); }
+  @media (max-width: 360px) { .entry-grid { grid-template-columns: 1fr; } .entry { min-height: 116px; } }
 
   /* 題目 */
   .bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; }
@@ -73,6 +82,7 @@
   .hero canvas { display: block; width: 100%; aspect-ratio: 3 / 4; }
   .hero .tag { position: absolute; left: 16px; bottom: 14px; font: 900 13px/1 var(--body); letter-spacing: .2em; color: #fff; opacity: .85; }
   .hero .vert { position: absolute; right: 12px; top: 12px; writing-mode: vertical-rl; font: 900 clamp(30px, 9vw, 44px)/1.1 var(--serif); color: #fff; text-shadow: 0 2px 0 #000, 0 0 18px rgba(0,0,0,.6); letter-spacing: .08em; }
+  .rarity { position: absolute; left: 14px; top: 14px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.42); border-radius: 999px; background: rgba(10,8,7,.58); backdrop-filter: blur(10px); color: #fff7d4; font: 900 16px/1 var(--serif); letter-spacing: .12em; box-shadow: 0 0 26px color-mix(in srgb, var(--tint, #e0503a) 65%, transparent); }
   .who { font: 900 clamp(28px, 8vw, 40px)/1.25 var(--serif); margin: 0; }
   .quote { font: 700 18px/1.6 var(--serif); margin: 0; color: var(--fg); }
   .sims { display: grid; gap: 8px; }
@@ -80,6 +90,13 @@
   .sim .track { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
   .sim .track i { display: block; height: 100%; border-radius: 6px; }
   .sim b { text-align: right; font-variant-numeric: tabular-nums; }
+  .stats { display: grid; gap: 12px; }
+  .stat { display: grid; grid-template-columns: 3.2em 1fr 2.6em; gap: 10px; align-items: center; font-size: 14px; }
+  .stat-track { height: 8px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.08); }
+  .stat-track i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--stat, #ffd25a)); box-shadow: 0 0 14px var(--stat, #ffd25a); transition: width .7s cubic-bezier(.2,.8,.2,1); }
+  .stat b { text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .result-id { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .result-id strong { font: 900 32px/1 var(--serif); color: #ffe58f; letter-spacing: .08em; }
   .friend { display: grid; gap: 10px; }
   .friend .pct { font: 900 44px/1 var(--serif); color: var(--accent); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -88,12 +105,13 @@
 
   /* 相機 */
   #cam { padding: 0; position: relative; overflow: hidden; background: #000; }
+  #cam::after { content: ""; pointer-events: none; position: absolute; inset: 0; border: 1px solid rgba(255,220,140,.22); box-shadow: inset 0 0 90px rgba(0,0,0,.45); }
   #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .hud-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px; display: flex; gap: 10px; align-items: flex-start; background: linear-gradient(#000a, #0000); }
+  .hud-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px; display: flex; gap: 10px; align-items: flex-start; background: linear-gradient(#000d, #0000); }
   .hud-top .name { flex: 1; font: 900 20px/1.25 var(--serif); text-shadow: 0 1px 4px #000; }
   .hud-top .name small { display: block; font: 500 12px/1.5 var(--body); color: var(--fg); opacity: .85; }
   .icon { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font-size: 18px; cursor: pointer; flex: none; }
-  .hud-bot { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 14px); display: grid; gap: 10px; background: linear-gradient(#0000, #000c 40%); }
+  .hud-bot { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 14px); display: grid; gap: 10px; background: linear-gradient(#0000, #000e 38%); }
   .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
   .chips::-webkit-scrollbar { display: none; }
   .chip { flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 9px 13px; border-radius: 999px; font-size: 14px; cursor: pointer; white-space: nowrap; }
@@ -120,17 +138,17 @@
     <p class="eyebrow">KOKORO NO KATA・大正劍士篇</p>
     <h1 class="display">在人群裡，<br>你是哪一型劍士？</h1>
     <p class="invite" id="inviteMsg" hidden></p>
-    <p class="lead">十個任務情境，看看你和別人相處時的「社會姿態」——是犧牲奉獻、疏離獨行、渴求認同，還是別的樣子。然後打開 AR 相機，穿上你那一型劍士的羽織、拿起他的刀，擺出招式拍一張。</p>
+    <p class="lead">直接打開 AR，穿上羽織、拔刀拍照；或先完成十個任務情境，抽出你的 SR／SSR 劍士與能力值。</p>
     <ol class="steps">
-      <li><b>一</b>十題情境選擇，大約兩分鐘</li>
-      <li><b>二</b>看你的社會姿態、你和哪位劍士最像</li>
-      <li><b>三</b>AR 換裝：照著招式框擺姿勢，到位就自動發動、拍照</li>
-      <li><b>四</b>傳給朋友，看你們有幾 % 像</li>
+      <li><b>AR</b>不必先做測驗，按下拍照入口就能直接進相機</li>
+      <li><b>測驗</b>十題情境，大約兩分鐘，取得專屬稀有度與能力值</li>
+      <li><b>招式</b>照著姿勢框擺好，雷光、刀氣與火焰會自動發動</li>
     </ol>
-    <div class="stack">
-      <button class="primary" id="start">開始測驗</button>
-      <button class="secondary" id="resume" hidden>看上次的結果</button>
+    <div class="entry-grid">
+      <button class="entry entry-camera" id="quickCam"><span class="entry-icon">◉</span><span><strong>直接拍照</strong><small>立刻進入沉浸式 AR 相機</small></span></button>
+      <button class="entry entry-quiz" id="start"><span class="entry-icon">籤</span><span><strong>劍士測驗</strong><small>抽出 SR／SSR 與能力值</small></span></button>
     </div>
+    <button class="secondary" id="resume" hidden>看上次的測驗結果</button>
     <p class="fine">這是娛樂性的自我探索，不是心理診斷。角色都是原創的大正風劍士。相機畫面只在你的手機上計算，不會上傳。</p>
     <div class="card" id="inapp" hidden>
       <h3>在 App 裡打開的嗎？</h3>
@@ -158,11 +176,18 @@
     <p class="eyebrow">你的社會姿態</p>
     <div class="hero" id="hero">
       <canvas id="heroCanvas" width="600" height="800" aria-label="你的劍士角色"></canvas>
+      <span class="rarity" id="rarity"></span>
       <span class="tag" id="heroTag"></span>
       <span class="vert" id="heroVert"></span>
     </div>
     <h2 class="who" id="who"></h2>
     <p class="quote" id="quote"></p>
+
+    <div class="card">
+      <div class="result-id"><h3>劍士鑑定</h3><strong id="rarityLarge"></strong></div>
+      <p id="rarityNote"></p>
+      <div class="stats" id="abilityStats" aria-label="依心理測驗結果計算的能力值"></div>
+    </div>
 
     <div class="card"><h3>健康的時候</h3><p id="healthy"></p></div>
     <div class="card"><h3>用力過頭的時候</h3><p id="shadow"></p></div>
