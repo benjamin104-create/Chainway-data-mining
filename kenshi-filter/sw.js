@@ -1,7 +1,7 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'kata-v8';
+const CACHE = 'kata-v9';
 const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'render3d.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
-  'assets/haori-real-base.png',
+  'composite.js', 'assets/haori-real-base.png', 'assets/haori-real-thunder.png', 'assets/haori-real-flame.png',
   'lib/vision_bundle.mjs', 'lib/three.module.min.js', 'lib/RoomEnvironment.js', 'lib/GLTFLoader.js', 'lib/BufferGeometryUtils.js', 'models/pose_landmarker_lite.task'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -14,14 +14,14 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   // 頁面導覽先向網路拿最新版，避免部署後手機仍被舊版首頁卡住；離線時再回退快取。
-  if (url.origin === location.origin && e.request.mode === 'navigate') {
+  if (url.origin === location.origin && (e.request.mode === 'navigate' || /\.(?:js|mjs)$/.test(url.pathname))) {
     e.respondWith(fetch(e.request).then((res) => {
       if (res.ok) {
         const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put('./', copy));
+        caches.open(CACHE).then((c) => c.put(e.request.mode === 'navigate' ? './' : e.request, copy));
       }
       return res;
-    }).catch(() => caches.match('./')));
+    }).catch(() => caches.match(e.request.mode === 'navigate' ? './' : e.request, { ignoreSearch: true })));
     return;
   }
   // 網址帶參數（朋友連結）也用同一份頁面

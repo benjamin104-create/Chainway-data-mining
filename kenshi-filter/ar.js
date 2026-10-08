@@ -5,7 +5,7 @@
 // l／r 指畫面左右（前鏡頭已鏡像，所以像照鏡子）
 
 // MediaPipe Pose 33 點的索引 → 我們用的名字（mirror=true 時左右對調，讓 l 永遠在畫面左邊）
-const MP = { n: 0, ls: 11, rs: 12, le: 13, re: 14, lw: 15, rw: 16, lp: 17, rp: 18, li: 19, ri: 20, lh: 23, rh: 24, lk: 25, rk: 26, la: 27, ra: 28 };
+const MP = { n: 0, ls: 11, rs: 12, le: 13, re: 14, lw: 15, rw: 16, lp: 17, rp: 18, li: 19, ri: 20, lt: 21, rt: 22, lh: 23, rh: 24, lk: 25, rk: 26, la: 27, ra: 28 };
 export function fromLandmarks(lms, map, mirror) {
   const kp = {};
   for (const k in MP) {
@@ -154,17 +154,24 @@ const realHaoriImage = new Image();
 realHaoriImage.decoding = 'async';
 realHaoriImage.src = new URL('assets/haori-real-base.png', import.meta.url).href;
 const realHaoriCache = new Map();
+const realPhotos = Object.fromEntries(['thunder', 'flame'].map((fx) => {
+  const img = new Image(); img.decoding = 'async';
+  img.src = new URL(`assets/haori-real-${fx}.png`, import.meta.url).href;
+  return [fx, img];
+}));
 function realHaoriTexture(ch) {
+  const photo = realPhotos[ch.fx];
+  if (photo?.complete && photo.naturalWidth) return photo;
   const key = [ch.pattern, ch.haori, ch.haori2].join('|');
   if (realHaoriCache.has(key)) return realHaoriCache.get(key);
   if (!realHaoriImage.complete || !realHaoriImage.naturalWidth) return null;
   const cv = document.createElement('canvas'); cv.width = cv.height = 1024;
   const g = cv.getContext('2d');
   g.drawImage(realHaoriImage, 0, 0, 1024, 1024);
-  // 先用角色色彩染布，再把原圖以正片疊底放回，保留纖維、皺褶與縫線。
-  g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .92;
+  // 使用 color 混色保留原照片明暗，衣領及每一道皺褶都留在材質內。
+  g.save(); g.globalCompositeOperation = 'color'; g.globalAlpha = .88;
   g.fillStyle = ch.haori; g.fillRect(0, 0, 1024, 1024); g.restore();
-  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .48;
+  g.save(); g.globalCompositeOperation = 'destination-in';
   g.drawImage(realHaoriImage, 0, 0, 1024, 1024); g.restore();
   // 角色紋樣只覆在布料 alpha 內，並以柔光混合，避免重新變成平面貼紙。
   const overlay = g.createPattern(tile(ch.pattern, 'rgba(0,0,0,0)', ch.haori2, ch.pattern === 'uroko' ? 78 : 92), 'repeat');
@@ -172,6 +179,9 @@ function realHaoriTexture(ch) {
     g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .44;
     g.fillStyle = overlay; g.fillRect(0, 0, 1024, 1024); g.restore();
   }
+  // 印花也需要布料陰影，否則高光和皺褶會在印花位置消失。
+  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .25;
+  g.drawImage(realHaoriImage, 0, 0, 1024, 1024); g.restore();
   realHaoriCache.set(key, cv); return cv;
 }
 
@@ -181,11 +191,11 @@ export function drawRealHaori(ctx, kp, ch, light = 1) {
   if (!tex) return false;
   const { sh, up, side, shoulderW } = frame(kp);
   if (!Number.isFinite(shoulderW) || shoulderW < 24) return false;
-  const down = mul(up, -1), W = shoulderW * 1.72, H = W;
+  const down = mul(up, -1), W = shoulderW * 1.46, H = W;
   ctx.save();
   ctx.transform(side.x, side.y, down.x, down.y, sh.x, sh.y);
-  ctx.globalAlpha = .93;
-  ctx.filter = `brightness(${Math.max(.86, Math.min(1.18, light * 1.08))}) saturate(1.1) drop-shadow(0 ${shoulderW * .04}px ${shoulderW * .08}px rgba(0,0,0,.48))`;
+  ctx.globalAlpha = 1;
+  ctx.filter = `brightness(${Math.max(.72, Math.min(1.12, light))}) saturate(.98) drop-shadow(0 ${shoulderW * .025}px ${shoulderW * .04}px rgba(0,0,0,.32))`;
   // 產品照的肩線約在圖片高度 35%；把該位置鎖在真人雙肩中點。
   ctx.drawImage(tex, -W / 2, -H * .35, W, H);
   ctx.restore();
@@ -264,13 +274,21 @@ export function drawAnimeOutfit(ctx, kp, ch, mode = 'haori', light = 1) {
 }
 // ── 武器的位置與方向（3D 模型在 render3d.js）──────────
 // 依手的位置估刀的方向；招式吻合度越高，越貼近招式預先算好的方向
-export function weaponPose(kp, ch, target, matchT) {
+export function weaponPose(kp, ch, target, matchT, freeHand = null) {
   const { T, up } = frame(kp);
   const handOf = (s) => {
     const w = kp[s + 'w'], i = kp[s + 'i'], p = kp[s + 'p'];
     return i && p && i.v > .3 ? lerp(w, mid(i, p), .55) : w;
   };
   const fore = (s) => norm(sub(kp[s + 'w'], kp[s + 'e']));
+  if (freeHand) {
+    const out = [{ grip: handOf(freeHand), dir: fore(freeHand), z: kp[freeHand + 'w']?.z ?? 0 }];
+    const other = freeHand === 'l' ? 'r' : 'l';
+    if ((ch.weapon.kind === 'twin' || ch.offhand) && kp[other + 'w']?.v > .55 && kp[other + 'e']?.v > .55) {
+      out.push({ grip: handOf(other), dir: fore(other), z: kp[other + 'w'].z ?? 0 });
+    }
+    return { T, blades: out };
+  }
   const hand = ch.move.hand;
   const both = dist(kp.lw, kp.rw) < T * .45;
   let grip, dir;

@@ -311,6 +311,13 @@
 <script type="module" src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    // An older installed shell may still supply old modules on the first visit
+    // after deployment. Refresh once when its replacement takes control.
+    const wasControlled = !!navigator.serviceWorker.controller;
+    let refreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (wasControlled && !refreshed) { refreshed = true; location.reload(); }
+    });
     addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
 </script>
