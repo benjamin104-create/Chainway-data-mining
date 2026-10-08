@@ -1,6 +1,6 @@
 // 程式（網頁、JS）每次都先上網拿最新版，沒網路才用手機裡存的；
 // 模型、神明圖這種大檔案才優先用手機裡存的（打開快、省流量）
-const CACHE = 'stand-cam-v34';
+const CACHE = 'stand-cam-v35';
 const SHELL = ['./', 'index.html', 'app.js', 'beauty-gl.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs',
   'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite', 'models/face_landmarker.task'];

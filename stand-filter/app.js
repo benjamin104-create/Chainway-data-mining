@@ -73,11 +73,38 @@ function bestSpot(cands, bw, bh, avoid, W, u, minY, maxY) {
   return best;
 }
 
+window.__cutoutOf = (id) => loadArt(id);   // 測試用：檢查神明去背有沒有破洞
 async function loadArt(id) {
   if (art[id]) return art[id];
-  let img;
-  try { img = await loadImage(`stands/${id}.jpg`); } catch { img = await loadImage(`stands/${id}.png`); }
-  return (art[id] = cutout(img));
+  // 優先用事先去好背的透明圖（人物去背模型處理過，白衣服、白鬍子不會被挖洞）；舊手機不支援再自己去背
+  try { return (art[id] = prepAlpha(await loadImage(`stands/${id}.webp`))); } catch {}
+  return (art[id] = cutout(await loadImage(`stands/${id}.jpg`)));
+}
+// 透明圖：扣掉邊緣混到的白色、裁到人物範圍，被圖框切到的地方慢慢淡出
+function prepAlpha(img) {
+  const w = img.naturalWidth, h = img.naturalHeight, c = mk(w, h), g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0);
+  const im = g.getImageData(0, 0, w, h), d = im.data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let p = 0, i = 0; p < w * h; p++, i += 4) {
+    const a = d[i + 3] / 255;
+    if (a > 0 && a < .98) for (let k = 0; k < 3; k++) d[i + k] = Math.max(0, Math.min(255, (d[i + k] - (1 - a) * 255) / a));
+    if (d[i + 3] > 24) { const x = p % w, y = (p / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < x0) return c;
+  const fadeB = y1 >= h - 3 ? (y1 - y0) * .16 : 0, fadeL = x0 <= 2 ? (x1 - x0) * .07 : 0, fadeR = x1 >= w - 3 ? (x1 - x0) * .07 : 0;
+  const sm = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  if (fadeB || fadeL || fadeR) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    let f = 1;
+    if (fadeB && y > y1 - fadeB) f *= sm((y1 - y) / fadeB);
+    if (fadeL && x < x0 + fadeL) f *= sm((x - x0) / fadeL);
+    if (fadeR && x > x1 - fadeR) f *= sm((x1 - x) / fadeR);
+    if (f < 1) { const i = (y * w + x) * 4 + 3; d[i] = Math.round(d[i] * f); }
+  }
+  g.putImageData(im, 0, 0);
+  const out = mk(x1 - x0 + 1, y1 - y0 + 1);
+  out.getContext('2d').drawImage(c, -x0, -y0);
+  return out;
 }
 function cutout(img) {
   // 小圖先放大再去背（邊緣才不會一格一格）；已經是高清圖就直接用
