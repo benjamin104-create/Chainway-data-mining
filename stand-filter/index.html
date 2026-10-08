@@ -103,6 +103,12 @@
 
   .sticky-cta { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 5; display: grid; }
   .sticky-cta .primary { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+  /* 美顏面板 */
+  .beauty { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--raise); border: 1px solid var(--line); }
+  .slider { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 2.2em; gap: 10px; align-items: center; font-size: 13px; }
+  .slider input { width: 100%; accent-color: var(--accent); }
+  .slider em { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .slider-actions { display: flex; gap: 18px; justify-content: flex-end; }
   /* App 內建瀏覽器提示 */
   .inapp { display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--raise)); border: 1px solid var(--accent); font-size: 14px; line-height: 1.6; }
   .inapp b { font-size: 15px; }
@@ -277,7 +283,7 @@
     <div class="start" id="start">
       <div class="sfx-hero" aria-hidden="true">✦ 守護神 ✦</div>
       <p>開啟相機後，守護神會出現在你身後，跟著你移動。點畫面可以讓祂換邊站。</p>
-      <div><button class="primary" id="go">開啟相機</button></div>
+      <div class="stack"><button class="primary" id="go">開啟相機</button><button class="secondary" id="pick2" type="button">用相簿裡的照片</button></div>
       <p id="loadState">正在載入人像辨識…</p>
     </div>
     <div class="notice" id="notice" hidden></div>
@@ -289,7 +295,8 @@
     </div>
   </main>
   <footer>
-    <div class="chips" id="sfx" role="group" aria-label="資訊卡"></div>
+    <div class="beauty" id="beautyPanel" hidden></div>
+    <div class="chips" id="sfx" role="group" aria-label="美顏與資訊卡"></div>
     <div class="controls">
       <button class="round" id="side" aria-label="守護神換邊" title="守護神換邊">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>

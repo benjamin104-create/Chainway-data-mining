@@ -1,4 +1,4 @@
-import { FilesetResolver, ImageSegmenter } from './lib/vision_bundle.mjs';
+import { FilesetResolver, ImageSegmenter, FaceDetector } from './lib/vision_bundle.mjs';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
@@ -14,6 +14,7 @@ const state = {
   lang: /^ja/i.test(navigator.language) ? 'ja' : /^zh/i.test(navigator.language) ? 'zh' : 'en',
   colTop: null, pose: null,
 };
+window.__state = state;
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -248,6 +249,12 @@ if (saved?.q5) {
 }
 
 // ── 相機介面 ───────────────────────────────────────────
+{
+  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ 美顏';
+  b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-controls', 'beautyPanel');
+  b.onclick = () => { const p = $('beautyPanel'); p.hidden = !p.hidden; b.setAttribute('aria-pressed', String(!p.hidden)); };
+  $('sfx').append(b);
+}
 for (const [id, name] of [['card', '資訊卡']]) {
   const b = document.createElement('button');
   b.className = 'chip'; b.type = 'button'; b.textContent = name;
@@ -269,7 +276,7 @@ function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !m
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
 const FILTER_OK = (() => { const c = document.createElement('canvas').getContext('2d'); c.filter = 'blur(1px)'; return c.filter === 'blur(1px)'; })();
 function mk(w = 1, h = 1) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
-const srcC = mk(), personC = mk(), auraC = mk(), maskC = mk(256, 256), tinyC = mk(48, 48);
+const srcC = mk(), personC = mk(), auraC = mk(), maskC = mk(256, 256), tinyC = mk(48, 48), beautyC = mk(), eyeC = mk();
 const maskCtx = maskC.getContext('2d');
 
 async function loadModel() {
@@ -281,6 +288,10 @@ async function loadModel() {
     });
     try { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('GPU')); }
     catch { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('CPU')); }
+    // 臉部偵測（淡化黑眼圈用，只要眼睛位置）：載入失敗不影響其他功能
+    const fopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/blaze_face_short_range.tflite', location.href).href, delegate }, runningMode: 'VIDEO', minDetectionConfidence: .5 });
+    FaceDetector.createFromOptions(fs, fopts('GPU')).catch(() => FaceDetector.createFromOptions(fs, fopts('CPU')))
+      .then((d) => { state.faceDetector = d; }).catch((e) => console.warn('face detector failed', e));
     $('loadState').textContent = '人像辨識準備好了';
   } catch (e) {
     console.warn('segmenter failed', e);
@@ -324,7 +335,8 @@ function useSource(src, mirror) {
   const w = src.videoWidth || src.naturalWidth, h = src.videoHeight || src.naturalHeight;
   const k = Math.min(1, 1080 / Math.max(w, h));
   const W = Math.round(w * k), H = Math.round(h * k);
-  for (const c of [view, srcC, personC, auraC]) { c.width = W; c.height = H; }
+  for (const c of [view, srcC, personC, auraC, beautyC, eyeC]) { c.width = W; c.height = H; }
+  state.face = null;
   $('start').hidden = true; notice('');
   $('shot').disabled = false;
 }
@@ -419,6 +431,89 @@ function placeStand(W, H, bh, headY, ratio, u) {
   return best;
 }
 
+// ── 美顏：只套在人身上（守護神和背景不變），全部在手機上算 ──────────
+const BEAUTY_DEFAULT = { smooth: 35, light: 30, glow: 20, eyes: 30 };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty') || {}) };
+let faceFrame = 0;
+function detectFace(now) {
+  const d = state.faceDetector; if (!d || state.beauty.eyes <= 0) return;
+  if (faceFrame++ % 3) return;                       // 每 3 格偵測一次就夠，省電
+  try {
+    const r = d.detectForVideo(srcC, Math.max(now, state.lastTs + 1));
+    const f = r.detections?.[0]; if (!f) { state.face = null; return; }
+    const W = srcC.width, H = srcC.height, k = f.keypoints;
+    const nf = { eyes: [[k[0].x, k[0].y], [k[1].x, k[1].y]], w: f.boundingBox.width / W, h: f.boundingBox.height / H };
+    if (!state.face) state.face = nf;
+    else {                                            // 平滑，避免抖動
+      const p = state.face, a = .5;
+      p.w += (nf.w - p.w) * a; p.h += (nf.h - p.h) * a;
+      p.eyes.forEach((e, i) => { e[0] += (nf.eyes[i][0] - e[0]) * a; e[1] += (nf.eyes[i][1] - e[1]) * a; });
+    }
+  } catch (e) { console.warn(e); }
+}
+function beautify(W, H, u) {
+  const b = state.beauty, bc = beautyC.getContext('2d');
+  bc.globalCompositeOperation = 'source-over'; bc.globalAlpha = 1; bc.clearRect(0, 0, W, H);
+  if (FILTER_OK) bc.filter = 'contrast(1.04) brightness(1.04) saturate(1.05)';
+  bc.drawImage(personC, 0, 0); bc.filter = 'none';
+  // 美肌：疊一層模糊的自己，細紋和毛孔變柔和
+  if (b.smooth > 0 && FILTER_OK) {
+    bc.globalAlpha = b.smooth / 100 * .75; bc.filter = `blur(${(.25 + b.smooth / 100 * .45) * u}px)`;
+    bc.drawImage(personC, 0, 0); bc.filter = 'none'; bc.globalAlpha = 1;
+  }
+  // 補光：「濾色」疊加，暗部提亮得多、亮部幾乎不變，專治頂光造成的臉黑
+  if (b.light > 0) {
+    bc.globalCompositeOperation = 'screen'; bc.globalAlpha = b.light / 100 * .95;
+    if (FILTER_OK) bc.filter = `brightness(${1 + b.light / 100 * .25})`;
+    bc.drawImage(personC, 0, 0); bc.filter = 'none'; bc.globalAlpha = 1; bc.globalCompositeOperation = 'source-over';
+  }
+  // 氣色：一層很淡的蜜桃色柔光
+  if (b.glow > 0) {
+    bc.globalCompositeOperation = 'soft-light'; bc.globalAlpha = b.glow / 100 * .7;
+    bc.fillStyle = '#ff9a84'; bc.fillRect(0, 0, W, H);
+    bc.globalAlpha = 1; bc.globalCompositeOperation = 'source-over';
+  }
+  // 淡化黑眼圈：只在眼睛正下方，用柔邊橢圓提亮
+  const f = state.face;
+  if (b.eyes > 0 && f) {
+    const ec = eyeC.getContext('2d');
+    ec.globalCompositeOperation = 'source-over'; ec.clearRect(0, 0, W, H);
+    for (const [ex, ey] of f.eyes) {
+      const x = ex * W, y = ey * H + f.h * H * .09, rx = f.w * W * .16, ry = f.h * H * .07;
+      ec.save(); ec.translate(x, y); ec.scale(1, ry / rx);
+      const g = ec.createRadialGradient(0, 0, 0, 0, 0, rx);
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.6, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ec.fillStyle = g; ec.beginPath(); ec.arc(0, 0, rx, 0, 7); ec.fill(); ec.restore();
+    }
+    ec.globalCompositeOperation = 'source-in';
+    if (FILTER_OK) ec.filter = `brightness(1.35) saturate(.85) blur(${.2 * u}px)`;
+    ec.drawImage(beautyC, 0, 0); ec.filter = 'none';
+    bc.globalAlpha = b.eyes / 100 * .85; bc.drawImage(eyeC, 0, 0); bc.globalAlpha = 1;
+  }
+  // 最後用人的輪廓裁一次，美顏效果不會溢到背景
+  bc.globalCompositeOperation = 'destination-in'; bc.drawImage(personC, 0, 0);
+  bc.globalCompositeOperation = 'source-over';
+  return beautyC;
+}
+const BEAUTY_SLIDERS = [['smooth', '美肌'], ['light', '補光'], ['glow', '氣色'], ['eyes', '淡化黑眼圈']];
+(() => {
+  const panel = $('beautyPanel');
+  for (const [k, label] of BEAUTY_SLIDERS) {
+    const row = document.createElement('label'); row.className = 'slider';
+    const name = document.createElement('span'); name.textContent = label;
+    const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
+    const val = document.createElement('em'); val.textContent = r.value;
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty', state.beauty); };
+    row.append(name, r, val); panel.append(row);
+  }
+  const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty', state.beauty);
+    for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
+  const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty', state.beauty); };
+  const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
+})();
+
 function render(now) {
   requestAnimationFrame(render);
   const src = state.src, s = state.stand; if (!src || !s) return;
@@ -431,6 +526,7 @@ function render(now) {
   sc.drawImage(src, 0, 0, W, H); sc.setTransform(1, 0, 0, 1, 0, 0);
 
   segment(now);
+  detectFace(now);
   if (!state.mask) { if (!state.segmenter) fallbackMask(); else { ctx.drawImage(srcC, 0, 0); return; } }
   const box = state.box || { x0: .25, y0: .15, x1: .75, y1: 1, hx0: .4, hx1: .6 };
 
@@ -513,8 +609,7 @@ function render(now) {
   ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); ctx.drawImage(auraC, 0, 0);
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
-  if (FILTER_OK) ctx.filter = 'contrast(1.06) brightness(1.06) saturate(1.05)';
-  ctx.drawImage(personC, 0, 0); ctx.filter = 'none';
+  ctx.drawImage(beautify(W, H, u), 0, 0);
 
   vignette(W, H);
   if (state.card && s.owner) standCard(W, H, s);
@@ -755,6 +850,7 @@ $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environmen
 $('side').onclick = () => { state.side *= -1; };
 view.onclick = () => { state.side *= -1; };
 $('pick').onclick = () => $('file').click();
+$('pick2').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const f = $('file').files[0]; if (!f) return;
   const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();

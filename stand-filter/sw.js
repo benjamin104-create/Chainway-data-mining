@@ -1,8 +1,8 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'stand-cam-v17';
+const CACHE = 'stand-cam-v18';
 const SHELL = ['./', 'index.html', 'app.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs',
-  ...['courage', 'nike', 'wisdom', 'apollo', 'guard', 'zeus', 'freedom', 'iris', 'create', 'hephaestus', 'bond', 'hera'].map((id) => `stands/${id}.jpg`), 'models/selfie_segmenter.tflite'];
+  ...['courage', 'nike', 'wisdom', 'apollo', 'guard', 'zeus', 'freedom', 'iris', 'create', 'hephaestus', 'bond', 'hera'].map((id) => `stands/${id}.jpg`), 'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
