@@ -26,6 +26,53 @@ const art = {};
 function loadImage(src) {
   return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
 }
+// ── 神的臉在哪裡：每張神明圖用臉部偵測找一次，找不到就用「上方中間」估計 ──
+const artFaces = new WeakMap();
+function artFaceOf(c) {
+  if (artFaces.has(c)) return artFaces.get(c);
+  const guess = { x0: .3, x1: .7, y0: .02, y1: .3 };
+  const det = state.artFaceDet; if (!det) return guess;
+  let r = guess;
+  try {
+    const d = det.detect(c).detections?.[0];
+    if (d) {
+      const b = d.boundingBox, w = c.width, h = c.height;
+      r = { x0: (b.originX - b.width * .2) / w, x1: (b.originX + b.width * 1.2) / w,
+            y0: (b.originY - b.height * .35) / h, y1: (b.originY + b.height * 1.1) / h };
+    }
+  } catch (e) { console.warn('art face', e); }
+  artFaces.set(c, r);
+  return r;
+}
+// 人的臉（單人）：有臉部定位就用，沒有就用人像最上面那段估計
+function personFaceRect(W, H, box) {
+  const f = state.face;
+  if (f) return { x0: (f.cx - f.w * .6) * W, x1: (f.cx + f.w * .6) * W, y0: (f.cy - f.h * .75) * H, y1: (f.cy + f.h * .6) * H };
+  if (!box) return null;
+  const hx = (box.hx0 + box.hx1) / 2 * W, hw = (box.hx1 - box.hx0) * W;
+  return { x0: hx - hw * .6, x1: hx + hw * .6, y0: box.y0 * H, y1: box.y0 * H + hw * 1.35 };
+}
+// 在幾個候選位置裡，挑「蓋到最少重要東西」的那個（x 是中心、y 是上緣）
+function overlapCost(x, y, bw, bh, avoid) {
+  let c = 0;
+  for (const [r, w] of avoid) {
+    if (!r) continue;
+    const ox = Math.min(x + bw / 2, r.x1) - Math.max(x - bw / 2, r.x0), oy = Math.min(y + bh, r.y1) - Math.max(y, r.y0);
+    if (ox > 0 && oy > 0) c += ox * oy * w;
+  }
+  return c;
+}
+function bestSpot(cands, bw, bh, avoid, W, u, minY, maxY) {
+  let best = null, bc = Infinity;
+  cands.forEach(([x, y], i) => {
+    x = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, x));
+    y = Math.max(minY, Math.min(maxY, y));
+    const c = overlapCost(x, y, bw, bh, avoid) + i * u * u;   // 一樣好時，越前面的位置越優先
+    if (c < bc) { bc = c; best = [x, y]; }
+  });
+  return best;
+}
+
 async function loadArt(id) {
   if (art[id]) return art[id];
   let img;
@@ -367,6 +414,9 @@ async function loadModel() {
     });
     try { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('GPU')); }
     catch { state.segmenter = await ImageSegmenter.createFromOptions(fs, opts('CPU')); }
+    // 找神明圖上的臉（文字避開神的臉用）：圖片模式，每張圖只算一次
+    FaceDetector.createFromOptions(fs, { baseOptions: { modelAssetPath: new URL('models/blaze_face_short_range.tflite', location.href).href, delegate: 'CPU' }, runningMode: 'IMAGE', minDetectionConfidence: .3 })
+      .then((d) => { state.artFaceDet = d; }).catch((e) => console.warn('art face detector failed', e));
     // 臉部 478 個定位點（美顏用）：載入失敗就退回只找眼睛位置的臉部偵測，不影響其他功能
     const lopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/face_landmarker.task', location.href).href, delegate }, runningMode: 'VIDEO', numFaces: 1 });
     const fopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/blaze_face_short_range.tflite', location.href).href, delegate }, runningMode: 'VIDEO', minDetectionConfidence: .5 });
@@ -801,8 +851,13 @@ function render(now) {
       ctx.beginPath(); ctx.ellipse(fx, fy + sh * .35, sw * (.3 + ph), sh * (.25 + ph * .6), 0, 0, 7); ctx.stroke();
       ctx.restore();
     }
-    ctx.save();
     const flip = L === 'right' && !sideArt ? -1 : 1;   // 沒有右側專用 pose 時才把神左右翻轉
+    { // 神的臉在畫面上的位置（文字要避開）
+      const af = artFaceOf(a), toScr = (nx, ny) => [fx + flip * scale * (-sw / 2 + nx * sw), fy + sh + scale * (-sh + ny * sh)];
+      const [ax0, ay0] = toScr(af.x0, af.y0), [ax1, ay1] = toScr(af.x1, af.y1);
+      state.godFace = { x0: Math.min(ax0, ax1), x1: Math.max(ax0, ax1), y0: ay0, y1: ay1 };
+    }
+    ctx.save();
     ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale * flip, scale);   // 以腳底為支點
     // 柔和：降低對比、微微柔焦、半透明；再疊一層模糊的光，讓神明像是從光裡現身
     ctx.globalAlpha = .82 * ease;
@@ -817,7 +872,8 @@ function render(now) {
     }
     ctx.restore();
   };
-  state.speechRect = state.stampRect = state.cardRect = null;
+  state.speechRect = state.stampRect = state.cardRect = state.godFace = null;
+  state.personFace = personFaceRect(W, H, state.box || box);
   if (L === 'opening') sideBand(W, H, s);          // 片頭：人那一側鋪半透明深色帶
   else drawGod();                                  // 其他構圖：神在人後面
 
@@ -909,8 +965,12 @@ function tagStamp(W, H, s, u, now) {
   const L = state.lang, word = s.tagNames?.[L] || s.tag;
   const t0 = (now - state.summonAt) / 1000 - .5; if (t0 <= 0) return;
   const k = Math.min(1, t0 / .35), slam = 1 + (1 - k) * .8;     // 從大往下「砸」進畫面
-  const side = -(state.useSide ?? state.side);                   // 守護靈的另一邊
   const top = TITLE_H * u + 2 * u;
+  // 預設放在神的另一邊；如果那邊會擋到神或人的臉，就換邊
+  const pref = -(state.useSide ?? state.side), faces = [[state.godFace, 3], [state.personFace, 3]];
+  const stampBox = (sd) => { const w = W * .22; return { x0: sd > 0 ? W - w : 0, x1: sd > 0 ? W : w, y0: top, y1: top + H * .45 }; };
+  const sc = (sd) => { const r = stampBox(sd); return overlapCost((r.x0 + r.x1) / 2, r.y0, r.x1 - r.x0, r.y1 - r.y0, faces); };
+  const side = sc(-pref) < sc(pref) * .6 ? -pref : pref;
   ctx.save(); ctx.globalAlpha = k;
   if (L === 'en') {
     let px = 9 * u; ctx.font = FONT.en(900, px);
@@ -1000,19 +1060,23 @@ function speech(W, H, s, u, t, ease) {
   const px = 4.6 * u; ctx.save(); ctx.font = FONT[L](700, px);
   const maxW = Math.min(W * .66, 62 * u), lines = wrapLines(text, maxW, L);
   const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 6 * u, bh = lines.length * px * 1.3 + 4.4 * u;
-  // 放在替身頭的外側（遠離本人那一側）；放不下就放在頭的上方
-  const out = hd.x >= (state.personCx ?? W / 2) ? 1 : -1;
-  let bx = hd.x + out * (hd.sw * .18 + bw / 2), by = hd.y + hd.sh * .04;
-  if (bx - bw / 2 < 2 * u || bx + bw / 2 > W - 2 * u) { bx = hd.x; by = hd.y - bh - 2 * u; }
-  bx = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, bx));
-  by = Math.max(TITLE_H * u + u, Math.min(H - bh - 26 * u, by));
+  // 放在神的臉旁邊，但不能擋到神的臉、人的臉、標題和直排大字：先試外側，再試上方、內側、臉的下方
+  const gf = state.godFace || { x0: hd.x - hd.sw * .15, x1: hd.x + hd.sw * .15, y0: hd.y, y1: hd.y + hd.sh * .25 };
+  const gcx = (gf.x0 + gf.x1) / 2, gcy = (gf.y0 + gf.y1) / 2;
+  const out = gcx >= (state.personCx ?? W / 2) ? 1 : -1;
+  const outerX = out > 0 ? gf.x1 + 2 * u + bw / 2 : gf.x0 - 2 * u - bw / 2, innerX = out > 0 ? gf.x0 - 2 * u - bw / 2 : gf.x1 + 2 * u + bw / 2;
+  const avoidS = [[gf, 5], [state.personFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2]];
+  const [bx, by] = bestSpot([
+    [outerX, gcy - bh * .8], [gcx, gf.y0 - bh - 3 * u], [innerX, gcy - bh * .8],
+    [gcx + out * bw * .25, gf.y1 + 3 * u], [outerX, gf.y1 + 2 * u], [W / 2, TITLE_H * u + u],
+  ], bw, bh, avoidS, W, u, TITLE_H * u + u, H - bh - 26 * u);
   state.speechRect = { x0: bx - bw / 2, y0: by, x1: bx + bw / 2, y1: by + bh };
   const pop = 1 + Math.max(0, Math.sin(((t + 1) % 4.5) / .6 * Math.PI)) * ((t + 1) % 4.5 < .6 ? .06 : 0);
   ctx.globalAlpha = show * ease;
   ctx.translate(bx, by + bh / 2); ctx.scale(pop * (.8 + .2 * show), pop * (.8 + .2 * show));
   const x0 = -bw / 2, y0 = -bh / 2, r = 2.2 * u;
   // 尾巴從最靠近替身臉的那一邊伸出去，指向臉
-  const fxr = hd.x - bx, fyr = hd.y + hd.sh * .12 - (by + bh / 2);
+  const fxr = gcx - bx, fyr = gcy - (by + bh / 2);
   let b1, b2, tip;
   if (Math.abs(fxr) > bw / 2) {
     const ex = Math.sign(fxr) * (bw / 2 - 1), yb = Math.max(y0 + r + 2 * u, Math.min(-y0 - r - 2 * u, fyr * .3));
@@ -1165,7 +1229,7 @@ function wishBubble(W, H, s, u, box) {
   const f = state.face;
   const face = f ? { x0: (f.cx - f.w * .6) * W, x1: (f.cx + f.w * .6) * W, y0: (f.cy - f.h * .75) * H, y1: (f.cy + f.h * .6) * H }
     : { x0: hx - hw * .6, x1: hx + hw * .6, y0: hy, y1: hy + hw * 1.35 };
-  const avoid = [[face, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2.5], [state.speechRect, 2.5], [state.cardRect, 2]];
+  const avoid = [[face, 4], [state.godFace, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2.5], [state.speechRect, 2.5], [state.cardRect, 2]];
   const cost = (x, y) => {
     let c = 0;
     for (const [r, w] of avoid) {
