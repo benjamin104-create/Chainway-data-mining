@@ -1,5 +1,5 @@
 // 美顏（GPU 版）：用臉部 478 個定位點畫出皮膚／眼下／臉頰的範圍，
-// 在手機 GPU 上做「保留輪廓的磨皮」、美白、遮黑眼圈、腮紅，最後再瘦臉、放大眼睛。
+// 在手機 GPU 上做「保留輪廓的磨皮」、膚色均勻、粉嫩美白、遮黑眼圈、五官清晰、唇色、腮紅、柔光，最後再瘦臉、放大眼睛。
 // 全部在手機上算，照片不會上傳。
 
 // 臉部網格的點位編號（MediaPipe Face Mesh）
@@ -19,14 +19,15 @@ const VS = `#version 300 es
 in vec2 p; out vec2 v; uniform float flipY;
 void main() { v = vec2(p.x * .5 + .5, flipY > .5 ? .5 - p.y * .5 : p.y * .5 + .5); gl_Position = vec4(p, 0., 1.); }`;
 
-// 第一步：磨皮、美白、遮黑眼圈、補光、氣色（輸出不預乘的顏色）
+// 第一步：磨皮、膚色均勻、美白（粉嫩）、遮黑眼圈、五官清晰、唇色、補光、氣色、柔光（輸出不預乘的顏色）
 const FS_BEAUTY = `#version 300 es
 precision highp float;
 in vec2 v; out vec4 o;
-uniform sampler2D src, mask;
+uniform sampler2D src, mask, feat;
 uniform vec2 px;
 uniform vec3 tone;
-uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK;
+uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, softK, bloomR;
+const vec3 LUM = vec3(.299, .587, .114);
 vec3 softLight(vec3 b, vec3 s) {
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
 }
@@ -57,7 +58,11 @@ void main() {
         acc += s.rgb * w; ws += w;
       }
     }
-    col = mix(col, acc / ws, clamp(smoothK * skin, 0., 1.));
+    vec3 bil = acc / ws;
+    col = mix(col, bil, clamp(smoothK * skin, 0., 1.));
+    // 膚色均勻：只把泛紅、暗黃的「顏色」拉回臉頰膚色，明暗（臉的立體感）不動
+    vec3 cd = tone - bil; cd -= dot(cd, LUM);
+    col += cd * clamp(evenK * skin * like, 0., .85);              // 只動真的是膚色的地方（鏡框、頭髮不會被染色）
   }
   if (m.g > .01 && eyesK > 0.) {
     // 遮黑眼圈：把眼下的平均色調拉回臉頰的膚色，保留皮膚紋理
@@ -80,11 +85,40 @@ void main() {
     float beta = 1. + whiteK * 3.5;
     vec3 wc = log(col * (beta - 1.) + 1.) / log(beta);
     col = mix(col, wc, (.12 + .88 * toneW) * min(1., whiteK * 1.2));
+    col = mix(col, softLight(col, vec3(1., .8, .83)), whiteK * .4 * toneW);   // 粉嫩透亮，不是死白
+  }
+  // 五官清晰：皮膚越光滑，眼睛、眉毛、睫毛越要清楚；眼白提亮；淡淡唇色
+  vec4 f = texture(feat, v);
+  float fe = max(max(f.r, f.g * .55), f.b * .5);
+  if (fe > .01 && sharpK > 0.) {
+    vec3 bl4 = (texture(src, v + vec2(px.x, 0.) * 1.5).rgb + texture(src, v - vec2(px.x, 0.) * 1.5).rgb
+              + texture(src, v + vec2(0., px.y) * 1.5).rgb + texture(src, v - vec2(0., px.y) * 1.5).rgb) * .25;
+    col += (c0.rgb - bl4) * sharpK * 1.1 * fe;
+    col = mix(col, clamp((col - .45) * 1.1 + .48, 0., 1.), f.r * sharpK * .5);
+  }
+  if (f.b > .01 && glowK > 0.) {
+    vec3 lip = softLight(col, vec3(1., .42, .52));
+    col = mix(col, mix(vec3(dot(lip, LUM)), lip, 1.15), f.b * glowK * .55);
   }
   if (lightK > 0.) col += col * (1. - col) * lightK * .85;
   if (glowK > 0.) {
     col = mix(col, softLight(col, vec3(1., .62, .55)), glowK * .4 * (.4 + .6 * toneW));
     col = mix(col, softLight(col, vec3(1., .5, .55)), m.b * glowK * .5);
+  }
+  if (softK > 0.) {
+    // 柔光：周圍亮部暈開成一層柔焦光暈，整體帶一點夢幻感
+    vec3 bl = vec3(0.); float n = 0.;
+    for (int k = 0; k < 12; k++) {
+      float an = float(k) * .5236;
+      for (int ring = 1; ring <= 2; ring++) {
+        vec4 s = texture(src, v + vec2(cos(an + float(ring)), sin(an + float(ring))) * bloomR * float(ring) * .5 * px);
+        bl += s.rgb * s.a; n += s.a;
+      }
+    }
+    bl = n > .01 ? bl / n : col;
+    vec3 hi = clamp((bl - .5) * 2., 0., 1.);
+    col = 1. - (1. - col) * (1. - hi * softK * .45);
+    col = mix(col, max(col, bl), softK * .22);
   }
   o = vec4(clamp(col, 0., 1.), c0.a);
 }`;
@@ -126,12 +160,13 @@ export function createBeautyGL() {
   const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
     for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
     return t; };
-  const tSrc = tex(), tMask = tex(), tMid = tex();
+  const tSrc = tex(), tMask = tex(), tMid = tex(), tFeat = tex();
   const fbo = gl.createFramebuffer();
   let fw = 0, fh = 0;
   const U = (p, n) => gl.getUniformLocation(p, n);
   const maskC = document.createElement('canvas'), mc = maskC.getContext('2d');
   const layerC = document.createElement('canvas'), lc = layerC.getContext('2d');
+  const featC = document.createElement('canvas'), fc = featC.getContext('2d');
   // 平滑後的定位點（避免抖動）
   let sm = null;
   // 臉頰膚色：在鏡框下面的兩頰取樣（隔幾格更新一次），遮黑眼圈時用這個顏色
@@ -187,6 +222,14 @@ export function createBeautyGL() {
       mc.fillStyle = g; mc.beginPath(); mc.arc(x, y, r, 0, 7); mc.fill();
     }
     mc.globalCompositeOperation = 'source-over';
+    // 五官：紅＝眼睛、綠＝眉毛、藍＝嘴唇（清晰化與唇色用）
+    fc.filter = 'none'; fc.globalCompositeOperation = 'source-over';
+    fc.fillStyle = '#000'; fc.fillRect(0, 0, mw, mh);
+    fc.globalCompositeOperation = 'lighter'; blur(fc, fwid * .01); fc.lineJoin = 'round';
+    for (const [idx, c, w] of [[EYE_R, '#f00', .03], [EYE_L, '#f00', .03], [BROW_R, '#0f0', .02], [BROW_L, '#0f0', .02], [LIPS, '#00f', .01]]) {
+      fc.fillStyle = fc.strokeStyle = c; fc.lineWidth = fwid * w; poly(fc, idx); fc.fill(); fc.stroke();
+    }
+    fc.filter = 'none'; fc.globalCompositeOperation = 'source-over';
   }
 
   function render(srcCanvas, lmRaw, b, W, H) {
@@ -197,7 +240,7 @@ export function createBeautyGL() {
     const L = sm, Px = (i) => [L[i].x * W, L[i].y * H];
     const fwid = Math.hypot(Px(454)[0] - Px(234)[0], Px(454)[1] - Px(234)[1]);
     const mw = Math.max(2, W >> 1), mh = Math.max(2, H >> 1);
-    if (maskC.width !== mw || maskC.height !== mh) { maskC.width = layerC.width = mw; maskC.height = layerC.height = mh; }
+    if (maskC.width !== mw || maskC.height !== mh) { maskC.width = layerC.width = featC.width = mw; maskC.height = layerC.height = featC.height = mh; }
     drawMask(L, mw, mh, fwid / 2);
     const ewR = Math.hypot(Px(133)[0] - Px(33)[0], Px(133)[1] - Px(33)[1]);
     const ewL = Math.hypot(Px(362)[0] - Px(263)[0], Px(362)[1] - Px(263)[1]);
@@ -208,6 +251,8 @@ export function createBeautyGL() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcCanvas);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tMask);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, maskC);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tFeat);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, featC);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tMid);
     if (fw !== W || fh !== H) { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); fw = W; fh = H; }
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -217,7 +262,7 @@ export function createBeautyGL() {
     // 第一步
     gl.useProgram(P1); gl.viewport(0, 0, W, H);
     const a1 = gl.getAttribLocation(P1, 'p'); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(a1); gl.vertexAttribPointer(a1, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform1f(U(P1, 'flipY'), 0); gl.uniform1i(U(P1, 'src'), 0); gl.uniform1i(U(P1, 'mask'), 1);
+    gl.uniform1f(U(P1, 'flipY'), 0); gl.uniform1i(U(P1, 'src'), 0); gl.uniform1i(U(P1, 'mask'), 1); gl.uniform1i(U(P1, 'feat'), 3);
     gl.uniform2f(U(P1, 'px'), 1 / W, 1 / H);
     gl.uniform3f(U(P1, 'tone'), ...sampleTone(srcCanvas, Px, fwid));
     gl.uniform1f(U(P1, 'ringR'), ew * .32);
@@ -225,6 +270,9 @@ export function createBeautyGL() {
     gl.uniform1f(U(P1, 'smoothK'), Math.min(1, k('smooth') * 1.15));
     gl.uniform1f(U(P1, 'whiteK'), k('white')); gl.uniform1f(U(P1, 'glowK'), k('glow'));
     gl.uniform1f(U(P1, 'lightK'), k('light')); gl.uniform1f(U(P1, 'eyesK'), Math.min(1, k('eyes') * 1.1));
+    gl.uniform1f(U(P1, 'evenK'), k('smooth') * .7);                 // 膚色均勻跟著磨皮
+    gl.uniform1f(U(P1, 'sharpK'), k('smooth') > 0 ? .25 + k('smooth') * .4 : 0);   // 皮膚越光滑，五官越清楚
+    gl.uniform1f(U(P1, 'softK'), k('soft')); gl.uniform1f(U(P1, 'bloomR'), fwid * .09);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // 第二步：畫到畫布上
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
