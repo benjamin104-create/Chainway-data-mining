@@ -1,5 +1,6 @@
-// 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'stand-cam-v32';
+// 程式（網頁、JS）每次都先上網拿最新版，沒網路才用手機裡存的；
+// 模型、神明圖這種大檔案才優先用手機裡存的（打開快、省流量）
+const CACHE = 'stand-cam-v33';
 const SHELL = ['./', 'index.html', 'app.js', 'beauty-gl.js', 'quiz.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
   'lib/vision_bundle.mjs',
   ...['courage', 'nike', 'wisdom', 'apollo', 'guard', 'zeus', 'freedom', 'iris', 'create', 'hephaestus', 'bond', 'hera'].flatMap((id) => [`stands/${id}.jpg`, `stands/${id}_front.jpg`, `stands/${id}_left.jpg`, `stands/${id}_right.jpg`]), 'models/selfie_segmenter.tflite', 'models/blaze_face_short_range.tflite', 'models/face_landmarker.task'];
@@ -10,12 +11,15 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
+const HEAVY = /\/(models|lib\/wasm|stands)\/|\.(png|jpg|jpeg|webp|tflite|task|wasm|woff2?)$/i;
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
-    if (res.ok && (new URL(e.request.url).origin === location.origin || e.request.url.includes('fonts.g'))) {
-      const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy));
-    }
-    return res;
-  })));
+  const url = new URL(e.request.url);
+  const mine = url.origin === location.origin || url.hostname.includes('fonts.g');
+  const save = (res) => { if (res.ok && mine) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); } return res; };
+  if (HEAVY.test(url.pathname) || url.hostname.includes('fonts.g')) {
+    e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then(save)));
+  } else {
+    e.respondWith(fetch(e.request).then(save).catch(() => caches.match(e.request, { ignoreSearch: true })));
+  }
 });

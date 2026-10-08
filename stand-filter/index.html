@@ -382,7 +382,12 @@
 <script type="module" src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
-    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    // 有新版時自動重新整理一次，使用者不用手動清快取
+    var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController || reloaded) return; reloaded = true; location.reload();
+    });
+    addEventListener('load', function () { navigator.serviceWorker.register('sw.js').then(function (r) { r.update(); }).catch(function () {}); });
   }
 </script>
 </body>

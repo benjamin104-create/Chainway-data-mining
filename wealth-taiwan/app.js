@@ -355,10 +355,16 @@ if (saved?.q5) {
 
 // ── 相機介面 ───────────────────────────────────────────
 {
-  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ 美顏';
-  b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-controls', 'beautyPanel');
-  b.onclick = () => { const p = $('beautyPanel'); p.hidden = !p.hidden; b.setAttribute('aria-pressed', String(!p.hidden)); };
-  $('sfx').append(b);
+  // 美顏開關（預設開）＋「調整美顏」打開滑桿面板：兩個按鈕分開，一看就懂
+  state.beautyOn = store.get('beautyOn') !== false;
+  const on = document.createElement('button'); on.className = 'chip'; on.type = 'button';
+  const syncOn = () => { on.textContent = state.beautyOn ? '✨ 美顏：開' : '✨ 美顏：關'; on.setAttribute('aria-pressed', String(state.beautyOn)); };
+  on.onclick = () => { state.beautyOn = !state.beautyOn; store.set('beautyOn', state.beautyOn); syncOn(); };
+  syncOn();
+  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '調整美顏 ▾';
+  b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', 'beautyPanel');
+  b.onclick = () => { const p = $('beautyPanel'); p.hidden = !p.hidden; b.setAttribute('aria-expanded', String(!p.hidden)); b.textContent = p.hidden ? '調整美顏 ▾' : '調整美顏 ▴'; };
+  $('sfx').append(on, b);
 }
 // 六角圖（能力值卡）：不放／左下／右下，拍照時由使用者決定
 state.card = store.get('cardPos') ?? 'left';
@@ -671,6 +677,7 @@ function onSkin(bc, sk, filter, alpha) {
   bc.globalAlpha = alpha; bc.drawImage(workC, 0, 0); bc.globalAlpha = 1;
 }
 function beautify(W, H, u) {
+  if (state.beautyOn === false) return personC;      // 使用者關掉美顏：原圖
   // 有 GPU 又找到臉：用臉部定位點做 B612 等級的美顏（磨皮、美白、遮瑕、腮紅、瘦臉、大眼）
   if (glBeauty && state.lm) {
     try { return glBeauty.render(personC, state.lm, state.beauty, W, H); }
@@ -719,7 +726,7 @@ function beautify(W, H, u) {
     }
   }
   // 淡化黑眼圈：把眼睛正下方換成「下面一點的臉頰膚色」（跟著臉的角度），再輕輕提亮
-  if (b.eyes > 0 && f) {
+  if (b.eyes > 0 && f && state.lm) {                  // 只有精準的臉部定位才做遮瑕，避免位置跑掉變成一條白光
     const k = b.eyes / 100, ec = eyeC.getContext('2d');
     const th = faceAngle(f, W, H);
     const dnx = -Math.sin(th), dny = Math.cos(th);     // 臉的「往下」方向
