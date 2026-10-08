@@ -33,13 +33,14 @@
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
+  :root { --badge: 72px; }   /* Netlify 會在右下角放一個標籤，下方留位置，按鈕和說明才不會被蓋住 */
   html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); }
   body { overflow: hidden; }
   button { font-family: inherit; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   button:disabled { opacity: .4; }
 
-  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 28px + var(--badge)); }
   .col { max-width: 34rem; margin: 0 auto; display: grid; gap: 18px; }
   .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
   .display { font: 900 clamp(38px, 12vw, 60px)/1.1 var(--heading); letter-spacing: .02em; margin: 0; text-wrap: balance; }
@@ -105,7 +106,7 @@
   .card .try { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 10px; }
   blockquote { margin: 0; font-size: 17px; line-height: 1.6; }
 
-  .sticky-cta { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 5; display: grid; }
+  .sticky-cta { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--badge)); z-index: 5; display: grid; }
   .sticky-cta .primary { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
   /* 美顏面板 */
   .beauty { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--raise); border: 1px solid var(--line); }
@@ -173,7 +174,7 @@
   }
   .start { position: absolute; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center; padding: 24px; }
   .start p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 30ch; }
-  footer { display: grid; gap: 12px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+  footer { display: grid; gap: 12px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px + var(--badge)); }
   .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   .chips::-webkit-scrollbar { display: none; }
   .chip { flex: none; border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 7px 12px; border-radius: 999px; font: 500 13px/1 var(--body); cursor: pointer; }
@@ -188,7 +189,7 @@
 
   .sheet {
     position: fixed; inset: 0; z-index: 50; background: #0b0812; display: grid; grid-template-rows: minmax(0, 1fr) auto;
-    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); gap: 14px;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px + var(--badge)); gap: 14px;
   }
   .sheet img { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
   .sheet .row { justify-content: center; }
@@ -220,7 +221,7 @@
     </div>
     <p class="fine">這是認識自己金錢習慣的小遊戲，以尊敬的心介紹台灣民間信仰的神明，不是宗教儀式，也不是投資建議。答案只存在你的手機裡。</p>
   </div>
-<p class="credit">Presented by 小潔米株式会社</p>
+<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v20</span></p>
 </section>
 
 <!-- 測驗 -->
