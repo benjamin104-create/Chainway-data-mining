@@ -1100,34 +1100,46 @@ function vignette(W, H) {
 
 // 照片角落的六角圖小卡：名字、人格標籤、六項能力值（左下或右下）
 function standCard(W, H, s, pos) {
+  // 雷達圖直接浮在照片上：沒有底色塊、沒有框，只用一層看不出邊的柔光和文字陰影維持清楚
   const u = Math.min(W, H) / 100, pad = 3 * u;
   const cw = 44 * u, ch = 46 * u, x = pos === 'right' ? W - cw - pad : pad, y = H - ch - pad - 3 * u;
   state.cardRect = { x0: x, y0: y, x1: x + cw, y1: y + ch };
-  ctx.save();
-  ctx.fillStyle = 'rgba(12,8,20,.78)'; ctx.strokeStyle = s.text; ctx.lineWidth = .5 * u;
-  ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 2.4 * u); ctx.fill(); ctx.stroke();
   const L = state.lang, tg = s.tagNames?.[L] || s.tag;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = `700 ${2.7 * u}px "Noto Sans TC", system-ui, sans-serif`;
-  ctx.fillText(`${s.owner}｜${tg}`, x + cw / 2, y + 4.6 * u, cw - 4 * u);
   const r = 8.4 * u, hx = x + cw / 2, hy = y + 22.5 * u;
+  ctx.save();
+  // 柔光：中心淡淡壓暗，往外完全消失，不會有邊
+  const g = ctx.createRadialGradient(hx, hy, r * .3, hx, hy, r * 2.6);
+  g.addColorStop(0, 'rgba(10,6,18,.42)'); g.addColorStop(.55, 'rgba(10,6,18,.22)'); g.addColorStop(1, 'rgba(10,6,18,0)');
+  ctx.fillStyle = g; ctx.fillRect(hx - r * 2.6, hy - r * 2.6, r * 5.2, r * 5.2);
   const pts = (rr, vals) => hexPoints(hx, hy, rr, vals);
   const poly = (p) => { ctx.beginPath(); p.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); };
-  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .25 * u;
-  for (const k of [1, .6]) { poly(pts(r * k, Array(6).fill(1))); ctx.stroke(); }
-  ctx.fillStyle = s.tint + 'bb'; ctx.strokeStyle = s.text; ctx.lineWidth = .45 * u;
-  poly(pts(r, STAT_KEYS.map(([k]) => GRADE_V[s.grade[k]] / 5))); ctx.fill(); ctx.stroke();
-  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 1.2 * u;
+  ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = .22 * u;
+  for (const k of [1, .66, .33]) { poly(pts(r * k, Array(6).fill(1))); ctx.stroke(); }
+  ctx.beginPath(); pts(r, Array(6).fill(1)).forEach(([px, py]) => { ctx.moveTo(hx, hy); ctx.lineTo(px, py); }); ctx.stroke();
+  // 能力值：神明代表色的半透明發光
+  const vals = pts(r, STAT_KEYS.map(([k]) => GRADE_V[s.grade[k]] / 5));
+  ctx.shadowColor = s.glow; ctx.shadowBlur = 2.2 * u;
+  ctx.fillStyle = s.tint + '99'; poly(vals); ctx.fill();
+  ctx.shadowBlur = .8 * u; ctx.strokeStyle = '#fff'; ctx.lineWidth = .45 * u; poly(vals); ctx.stroke();
+  ctx.fillStyle = '#fff'; for (const [px, py] of vals) { ctx.beginPath(); ctx.arc(px, py, .55 * u, 0, 7); ctx.fill(); }
+  // 文字：白字＋深色柔陰影
+  ctx.shadowColor = 'rgba(0,0,0,.85)'; ctx.shadowBlur = 1.1 * u;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   pts(r + 4.6 * u, Array(6).fill(1)).forEach(([px, py], i) => {
     const k = STAT_KEYS[i][0];
-    ctx.font = `700 ${1.9 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.font = `700 ${1.9 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.9)';
     ctx.fillText(STAT_INFO[k].short[L], px, py - 1.4 * u);
-    ctx.font = `${2.6 * u}px "Dela Gothic One", sans-serif`; ctx.fillStyle = '#fff';
+    ctx.font = `${2.7 * u}px "Dela Gothic One", sans-serif`; ctx.fillStyle = '#fff';
     ctx.fillText(s.grade[k], px, py + 1.3 * u);
   });
-  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = s.text;
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 ${2.6 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.fillText(`${s.owner}｜${tg}`, hx, y + 4.4 * u, cw);
   ctx.font = L === 'en' ? `${3.6 * u}px "Dela Gothic One", sans-serif` : `900 ${3.8 * u}px "Noto Sans TC", sans-serif`;
-  ctx.fillText(L === 'en' ? s.names.en : (s.names?.[L] || s.zh), x + cw / 2, y + ch - 2.6 * u, cw - 4 * u);
+  ctx.lineJoin = 'round'; ctx.lineWidth = .7 * u; ctx.strokeStyle = 'rgba(12,8,20,.7)';
+  const nm = L === 'en' ? s.names.en : (s.names?.[L] || s.zh);
+  ctx.strokeText(nm, hx, y + ch - 2.6 * u, cw); ctx.fillStyle = s.text; ctx.fillText(nm, hx, y + ch - 2.6 * u, cw);
   ctx.restore();
 }
 
