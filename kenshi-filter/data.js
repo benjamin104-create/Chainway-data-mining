@@ -64,7 +64,8 @@ export const TYPES = {
 };
 
 // ── 原創劍士角色：服裝、武器、招式 ──────────────────────
-// pattern：和風紋樣（七寶、立涌、矢絣、稻妻、龜甲、青海波）
+// pattern：和風紋樣（市松、立涌、矢絣、稻妻、龜甲、青海波；另有七寶 shippo 可用）
+// patternScale：花紋大小（小於 1 = 格子更大）
 // weapon.kind：katana 打刀／long 細身長刀／twin 雙短刀／odachi 大太刀／naginata 薙刀
 // move.pose：招式的目標姿勢，座標以「兩髖中點」為原點、軀幹長度為 1、y 往下（畫面方向，已鏡像）
 //   s=肩 e=肘 w=腕 h=髖 k=膝 a=踝，l=畫面左、r=畫面右，n=鼻子
@@ -72,9 +73,9 @@ export const TYPES = {
 export const CHARACTERS = {
   devote: {
     title: '燈之劍士', name: '灯里', kana: 'AKARI', element: '燈火',
-    haori: '#d8432f', haori2: '#f6c453', inner: '#2b1d1a', hakama: '#3a2a26', trim: '#f6c453',
-    pattern: 'shippo', tint: '#ff8a3d', glow: '#ffd27a', fx: 'flame',
-    weapon: { kind: 'katana', len: 1.75, tsuba: '#f6c453', grip: '#5a1a12' },
+    haori: '#1f9e7d', haori2: '#141414', inner: '#16161a', hakama: '#1c1c22', trim: '#f2f2ee',
+    pattern: 'ichimatsu', patternScale: .55, tint: '#ff7a3d', glow: '#ffd27a', fx: 'flame',
+    weapon: { kind: 'katana', len: 1.75, tsuba: '#2a2a2a', grip: '#16161a' },
     move: {
       name: '燈之型・守火上段', hint: '雙手把刀高舉過頭，站穩。',
       blade: [0, -1], hand: 'both',

@@ -179,7 +179,8 @@ class Outfit {
     const silk = (opts) => ghost
       ? new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .16, depthWrite: false, side: THREE.DoubleSide })
       : new THREE.MeshPhysicalMaterial({ roughness: .6, sheen: 1, sheenRoughness: .4, envMapIntensity: .45, normalMap: W, normalScale: ns, side: THREE.DoubleSide, ...opts });
-    const pat = (rx, ry) => canvasTex(tile(ch.pattern, ch.haori, ch.haori2, 256), rx, ry);
+    const ps = ch.patternScale || 1;   // 花紋大小：數字越小，格子越大
+    const pat = (rx, ry) => canvasTex(tile(ch.pattern, ch.haori, ch.haori2, 256), rx * ps, ry * ps);
     this.mat = {
       haori: silk({ map: pat(7, 4.5), sheenColor: new THREE.Color(ch.haori2).lerp(new THREE.Color('#fff'), .4) }),
       sleeve: silk({ map: pat(4, 2.5), sheenColor: new THREE.Color(ch.haori2).lerp(new THREE.Color('#fff'), .4) }),

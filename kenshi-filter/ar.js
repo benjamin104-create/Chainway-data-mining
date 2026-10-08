@@ -65,7 +65,9 @@ export function tile(kind, c1, c2, S = 64) {
   g.scale(S / 64, S / 64); S = 64;
   g.fillStyle = c1; g.fillRect(0, 0, S, S);
   g.strokeStyle = c2; g.fillStyle = c2; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
-  if (kind === 'shippo') {               // 七寶：圓圈交疊
+  if (kind === 'ichimatsu') {            // 市松：方格交錯（傳統紋樣）
+    g.fillRect(0, 0, S / 2, S / 2); g.fillRect(S / 2, S / 2, S / 2, S / 2);
+  } else if (kind === 'shippo') {        // 七寶：圓圈交疊
     for (const [x, y] of [[0, 0], [S, 0], [0, S], [S, S], [S / 2, S / 2]]) { g.beginPath(); g.arc(x, y, S / 2, 0, Math.PI * 2); g.stroke(); }
   } else if (kind === 'tatewaku') {      // 立涌：直向的波浪
     for (const x0 of [S / 4, S * 3 / 4]) {
