@@ -187,7 +187,7 @@
   .shutter:active span { transform: scale(.9); }
 
   .sheet {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, .86); display: grid; grid-template-rows: minmax(0, 1fr) auto;
+    position: fixed; inset: 0; z-index: 50; background: #0b0812; display: grid; grid-template-rows: minmax(0, 1fr) auto;
     padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); gap: 14px;
   }
   .sheet img { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
@@ -352,7 +352,7 @@
   <div class="row">
     <button class="primary" id="share">分享照片</button>
     <a class="secondary" id="save" download="stand.jpg">儲存照片</a>
-    <button class="secondary" id="shareLine" type="button">把測驗傳給 LINE 好友</button>
+    <button class="secondary" id="shareLine" type="button">傳給 LINE 好友</button>
     <button class="secondary" id="copyShare" type="button">複製邀請文字＋網址</button>
     <button class="secondary" id="close">再拍一張</button>
     <p class="fine">iPhone 也可以長按照片 →「加入照片」。</p>

@@ -810,7 +810,7 @@ function render(now) {
     }
     ctx.restore();
   };
-  state.speechRect = null;
+  state.speechRect = state.stampRect = state.cardRect = null;
   if (L === 'opening') sideBand(W, H, s);          // 片頭：人那一側鋪半透明深色帶
   else drawGod();                                  // 其他構圖：神在人後面
 
@@ -909,6 +909,7 @@ function tagStamp(W, H, s, u, now) {
     let px = 9 * u; ctx.font = FONT.en(900, px);
     while (ctx.measureText(word).width > W * .5 && px > 4 * u) { px *= .92; ctx.font = FONT.en(900, px); }
     const w = ctx.measureText(word).width, x = side > 0 ? W - 3 * u - w / 2 : 3 * u + w / 2, y = top + px;
+    state.stampRect = { x0: x - w / 2 - 3 * u, x1: x + w / 2 + 3 * u, y0: y - px * 1.2, y1: y + px * .5 };
     ctx.translate(x, y); ctx.rotate(-.12 * side); ctx.scale(slam, slam);
     stampBar(-w / 2 - 2 * u, -px * .95, w + 4 * u, px * 1.25, s);
     stampText(word, 0, 0, px, s, u);
@@ -918,6 +919,7 @@ function tagStamp(W, H, s, u, now) {
     ctx.font = FONT.zh(900, px);                                  // 漢字一律用思源黑體，日文字型缺字
     const x = side > 0 ? W - 4 * u - px / 2 : 4 * u + px / 2;
     const h = chars.length * px * 1.05;
+    state.stampRect = { x0: x - px * 1.6, x1: x + px * 1.6, y0: top - px * .3, y1: top + h + px * .5 };
     ctx.translate(x, top + h / 2); ctx.rotate(.06 * side); ctx.scale(slam, slam);
     stampBar(-px * .62, -h / 2 - px * .2, px * 1.24, h + px * .4, s);
     chars.forEach((c, i) => stampText(c, 0, -h / 2 + px * (i * 1.05 + .88), px, s, u));
@@ -1099,6 +1101,7 @@ function vignette(W, H) {
 function standCard(W, H, s, pos) {
   const u = Math.min(W, H) / 100, pad = 3 * u;
   const cw = 44 * u, ch = 46 * u, x = pos === 'right' ? W - cw - pad : pad, y = H - ch - pad - 3 * u;
+  state.cardRect = { x0: x, y0: y, x1: x + cw, y1: y + ch };
   ctx.save();
   ctx.fillStyle = 'rgba(12,8,20,.78)'; ctx.strokeStyle = s.text; ctx.lineWidth = .5 * u;
   ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 2.4 * u); ctx.fill(); ctx.stroke();
@@ -1138,32 +1141,49 @@ function wishBubble(W, H, s, u, box) {
   const bw = Math.max(26 * u, ...lines.map((l) => ctx.measureText(l).width)) + 7 * u;
   const bh = lines.length * lh + 8.4 * u;
   const hx = (box.hx0 + box.hx1) / 2 * W, hy = box.y0 * H, hw = (box.hx1 - box.hx0) * W;
-  const minY = TITLE_H * u + 2 * u;
-  let bx = hx, by = hy - bh - 6 * u;
-  if (by < minY) {                                    // 頭上放不下：放在頭的旁邊（神的另一側）
-    const side = -(state.useSide ?? state.side);
-    bx = hx + side * (bw / 2 + hw * .55 + 2 * u); by = hy;
-  }
-  bx = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, bx));
-  by = Math.max(minY, Math.min(H - bh - 52 * u, by));
-  // 不要蓋到神明的台詞框：先往旁邊閃，閃不開就移到台詞框上方或下方
+  const minY = TITLE_H * u + 2 * u, maxY = H - bh - 4 * u;
+  // 要避開的東西：臉（最重要）、標題、人格標籤大字、神的台詞框、六角圖
+  const f = state.face;
+  const face = f ? { x0: (f.cx - f.w * .6) * W, x1: (f.cx + f.w * .6) * W, y0: (f.cy - f.h * .75) * H, y1: (f.cy + f.h * .6) * H }
+    : { x0: hx - hw * .6, x1: hx + hw * .6, y0: hy, y1: hy + hw * 1.35 };
+  const avoid = [[face, 4], [{ x0: 0, y0: 0, x1: W, y1: TITLE_H * u }, 3], [state.stampRect, 2.5], [state.speechRect, 2.5], [state.cardRect, 2]];
+  const cost = (x, y) => {
+    let c = 0;
+    for (const [r, w] of avoid) {
+      if (!r) continue;
+      const ox = Math.min(x + bw / 2, r.x1) - Math.max(x - bw / 2, r.x0), oy = Math.min(y + bh, r.y1) - Math.max(y, r.y0);
+      if (ox > 0 && oy > 0) c += ox * oy * w;
+    }
+    return c;
+  };
+  const fcx = (face.x0 + face.x1) / 2, fcy = (face.y0 + face.y1) / 2;
+  const cands = [
+    [fcx, face.y0 - bh - 3 * u],                       // 頭上
+    [face.x0 - bw / 2 - 2 * u, fcy - bh / 2],          // 臉的左邊
+    [face.x1 + bw / 2 + 2 * u, fcy - bh / 2],          // 臉的右邊
+    [fcx, face.y1 + 3 * u],                            // 下巴下面（胸前）
+    [bw / 2 + 3 * u, face.y1 + 3 * u], [W - bw / 2 - 3 * u, face.y1 + 3 * u],
+    [W / 2, maxY], [bw / 2 + 3 * u, maxY], [W - bw / 2 - 3 * u, maxY],
+  ];
+  let bx = W / 2, by = maxY, best = Infinity;
+  cands.forEach(([x, y], i) => {
+    x = Math.max(bw / 2 + 2 * u, Math.min(W - bw / 2 - 2 * u, x));
+    y = Math.max(minY, Math.min(maxY, y));
+    const c = cost(x, y) + i * u * u;                 // 一樣好時，越前面的位置越優先
+    if (c < best) { best = c; bx = x; by = y; }
+  });
   const R = state.speechRect;
-  const hit = (x, y) => R && x - bw / 2 < R.x1 + u && x + bw / 2 > R.x0 - u && y < R.y1 + u && y + bh > R.y0 - u;
-  if (hit(bx, by)) {
-    const lx = R.x0 - 2 * u - bw / 2, rx = R.x1 + 2 * u + bw / 2;
-    if (lx - bw / 2 >= 2 * u) bx = lx;
-    else if (rx + bw / 2 <= W - 2 * u) bx = rx;
-    else if (R.y0 - bh - 2 * u >= minY) by = R.y0 - bh - 2 * u;
-    else by = R.y1 + 2 * u;
-  }
   const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1.4) * 2));
   ctx.globalAlpha = show;
   const x0 = bx - bw / 2, r = 3.4 * u;
   // 想法泡泡：從對話框往頭頂排兩顆小圓
-  const ex = Math.max(x0 + r, Math.min(x0 + bw - r, hx)), ey = Math.max(by, Math.min(by + bh, hy));
-  const dx = hx - ex, dy = hy - 1.5 * u - ey, dl = Math.hypot(dx, dy);
+  // 指向臉最靠近對話框的那一側（不是頭頂），小圓點才不會畫在臉上
+  const tx = Math.max(face.x0, Math.min(face.x1, bx)), ty = Math.max(face.y0, Math.min(face.y1, by + bh / 2));
+  const ex = Math.max(x0 + r, Math.min(x0 + bw - r, tx)), ey = Math.max(by, Math.min(by + bh, ty));
+  const inFace = (x, y) => x > face.x0 && x < face.x1 && y > face.y0 && y < face.y1;
+  const dx = tx - ex, dy = ty - ey, dl = inFace(bx, by + bh / 2) ? 0 : Math.hypot(dx, dy);
   ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = s.text; ctx.lineWidth = .7 * u;
-  if (dl > 5 * u) for (const [k, rr] of [[.35, 1.6], [.7, 1]]) { const qx = ex + dx * k, qy = ey + dy * k; if (R && qx > R.x0 && qx < R.x1 && qy > R.y0 && qy < R.y1) continue; ctx.beginPath(); ctx.arc(ex + dx * k, ey + dy * k, rr * u, 0, 7); ctx.fill(); ctx.stroke(); }
+  if (dl > 5 * u) for (const [k, rr] of [[.35, 1.6], [.7, 1]]) { const qx = ex + dx * k, qy = ey + dy * k; if ((R && qx > R.x0 && qx < R.x1 && qy > R.y0 && qy < R.y1) || inFace(qx, qy)) continue; ctx.beginPath(); ctx.arc(ex + dx * k, ey + dy * k, rr * u, 0, 7); ctx.fill(); ctx.stroke(); }
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 2 * u;
   ctx.beginPath(); ctx.roundRect(x0, by, bw, bh, r); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
