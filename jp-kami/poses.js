@@ -51,6 +51,7 @@ const fireTrig = (kind, at) => { try { S.onTrigger?.(kind, at); } catch (e) { co
 const P = (L, i, W, H) => [L[i].x * W, L[i].y * H];
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const lerp = (a, b, k) => a + (b - a) * k;
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 
 // 手指是不是伸直（指尖比第二關節離手腕遠）
 function openPalm(h, W, H) {
@@ -101,21 +102,34 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     const c = palmCenter(h, W, H);
     if (!openPalm(h, W, H)) continue;
     if (face && Math.abs(c[0] - face.cx) < face.w * .7 && Math.abs(c[1] - face.cy) < face.h * .6) continue;   // 貼著臉是面具，不是狐火
-    if (face ? c[1] < face.y1 + face.h * .2 : c[1] < H * .55) fireHand = c;
+    if (face ? c[1] < face.y1 + face.h * .2 : c[1] < H * .55) { fireHand = c; S.fireLm = h; }
   }
   S.fire = lerp(S.fire, fireHand ? 1 : 0, fireHand ? .25 : .08);
   if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .8) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
   else if (S.fire < .1) S.fireFired = false;
-  if (S.fire > .02 && S.firePalm) drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
+  if (S.fire > .02 && S.firePalm) {
+    if (S.fireLm) drawAnimeFire(ctx, S.fireLm, W, H, u, t, S.fire, dt);
+    else drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
+  }
 
   // ── 3. 結印：兩隻手的手腕、指尖都靠在一起 ──
-  let sealing = false;
+  let sealing = false; S.tri = null;
   if (hands.length === 2) {
     const [a, b] = hands, ref = face ? face.w : W * .25;
-    sealing = dist(P(a, 0, W, H), P(b, 0, W, H)) < ref * .9 && dist(P(a, 8, W, H), P(b, 8, W, H)) < ref * .5;
+    const it = dist(P(a, 8, W, H), P(b, 8, W, H)), th = dist(P(a, 4, W, H), P(b, 4, W, H));
+    const im = mid(P(a, 8, W, H), P(b, 8, W, H)), tm = mid(P(a, 4, W, H), P(b, 4, W, H));
+    if (it < ref * .4 && th < ref * .4 && dist(im, tm) > ref * .22) {
+      // 三角形手印：食指尖相碰在上、拇指尖相碰在下，中間的空洞會發光
+      const poly = [im, ...[7, 6, 5, 2, 3].map((i) => P(a, i, W, H)), tm, ...[3, 2, 5, 6, 7].map((i) => P(b, i, W, H))];
+      S.tri = { poly, c: mid(im, tm), size: dist(im, tm) };
+      sealing = true;
+    } else sealing = dist(P(a, 0, W, H), P(b, 0, W, H)) < ref * .9 && it < ref * .5;   // 雙手合十也算
   }
+  S.triK = lerp(S.triK || 0, S.tri ? 1 : 0, S.tri ? .2 : .1);
+  if (S.tri) S.lastTri = S.tri;
+  if (S.triK > .02 && S.lastTri) drawTriLight(ctx, W, H, u, t, S.lastTri, S.triK, glow, S.sealHold);
   S.sealHold = sealing ? S.sealHold + dt : 0;
-  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; done('seal', t); const [a2, b2] = hands; fireTrig('seal', [(a2[0].x + b2[0].x) / 2 * W, (a2[0].y + b2[0].y) / 2 * H]); }
+  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; done('seal', t); const [a2, b2] = hands; fireTrig('seal', S.tri ? S.tri.c : [(a2[0].x + b2[0].x) / 2 * W, (a2[0].y + b2[0].y) / 2 * H]); }
   if (S.seal && t - S.seal.t0 < 2.6) drawSeal(ctx, W, H, u, t - S.seal.t0, glow);
 
   drawShards(ctx, dt);
@@ -128,7 +142,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
       const k = (t - S.hintAt) / 3.2;
       if (k > 1) { S.hintAt = t + 5; S.hintIdx = (S.hintIdx + 1) % 3; }
       else {
-        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：張開手掌舉高 →「神火」', '彩蛋：雙手合十 →「結印」'][S.hintIdx];
+        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：張開手掌舉高 →「神火」', '彩蛋：雙手比三角形 →「結印之光」'][S.hintIdx];
         ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI);
         ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const tw = ctx.measureText(msg).width + 5 * u, ty = H * .7;
@@ -196,7 +210,7 @@ function drawGuide(ctx, W, H, u, t, face, lm) {
     const x = face.cx, y = face.y1 + face.h * .75;
     handIcon(ctx, x - hr * .32, y, hr * .9, true); handIcon(ctx, x + hr * .32, y, hr * .9, false);
     ring(ctx, x, y + hr * .2, hr * 1.4, S.sealHold / .4, '#ffe08a');
-    label(ctx, W, u, H * .72, '雙手合十放在胸前，停一下 → 結印', '#fff');
+    label(ctx, W, u, H * .72, '拇指碰拇指、食指碰食指，比出三角形 → 結印之光', '#fff');
   }
   ctx.restore();
 }
@@ -346,6 +360,98 @@ function flame(ctx, x, y, r, t, k, seed) {
     ctx.fillStyle = `rgba(170,220,255,${(1 - ph) * .8 * k})`; ctx.beginPath(); ctx.arc(sx, sy, r * .12 * (1 - ph * .5), 0, 7); ctx.fill();
   }
 }
+// ── 動畫火焰：整隻手燃燒。每根指尖冒出一道火舌、掌心一團大火，邊緣是動畫那種一層一層、尖尖的火 ──
+const embers = [];
+function tongue(ctx, x, y, w, h, t, seed, cols, k) {
+  // 一團火：底部圓，上緣是好幾根尖尖、一直跳動的火舌（動畫火焰的剪影），越上面扭得越厲害
+  for (let L = 0; L < cols.length; L++) {
+    const ww = w * (1 - L * .22), hh = h * (1 - L * .2), m = 5, pts = [];
+    for (let i = 0; i <= m * 2; i++) {
+      const xx = -1 + i / m, env = Math.pow(Math.max(0, 1 - xx * xx), .55);
+      const peak = i % 2 === 1;
+      const jump = .8 + .35 * Math.sin(t * (11 + i) + seed * 3 + i * 2.1);
+      const hy = env * (peak ? jump : .45 + .1 * Math.sin(t * 7 + i + seed));
+      const sway = Math.sin(t * 8 + seed + hy * 5) * ww * .35 * hy;
+      pts.push([x + xx * ww * (peak ? .9 : 1) + sway, y - hh * hy]);
+    }
+    ctx.fillStyle = cols[L]; ctx.globalAlpha = k;
+    ctx.beginPath();
+    ctx.moveTo(x - ww, y);
+    for (let q = 0; q < pts.length; q++) {
+      const [px, py] = pts[q];
+      if (q === 0) { ctx.lineTo(px, py); continue; }
+      const [ax, ay] = pts[q - 1];
+      ctx.quadraticCurveTo(ax, ay, (ax + px) / 2, (ay + py) / 2);   // 谷是圓的、尖是尖的
+      if (q % 2 === 1) ctx.lineTo(px, py);
+    }
+    ctx.lineTo(x + ww, y);
+    ctx.arc(x, y, ww, 0, Math.PI);
+    ctx.closePath(); ctx.fill();
+  }
+}
+function drawAnimeFire(ctx, h, W, H, u, t, k, dt) {
+  const pc = palmCenter(h, W, H), hw = dist(P(h, 5, W, H), P(h, 17, W, H));      // 手掌寬
+  const cols = ['rgba(30,70,255,.85)', 'rgba(70,170,255,.92)', 'rgba(190,240,255,.95)', 'rgba(255,255,255,1)'];
+  ctx.save();
+  // 外圍光暈
+  const g = ctx.createRadialGradient(pc[0], pc[1] - hw * .6, 0, pc[0], pc[1] - hw * .6, hw * 2.4);
+  g.addColorStop(0, `rgba(80,150,255,${.55 * k})`); g.addColorStop(1, 'rgba(40,80,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pc[0], pc[1] - hw * .6, hw * 2.4, 0, 7); ctx.fill();
+  ctx.shadowColor = 'rgba(90,160,255,.9)'; ctx.shadowBlur = hw * .15;
+  // 掌心大火
+  tongue(ctx, pc[0], pc[1] + hw * .45, hw * .8, hw * 2.6, t, 0, cols, k);
+  // 每根指尖的火舌
+  [4, 8, 12, 16, 20].forEach((i, j) => {
+    const [x, y] = P(h, i, W, H);
+    tongue(ctx, x, y + hw * .12, hw * .26, hw * (1 + .3 * Math.sin(t * 7 + j)), t, j * 1.9 + 1, cols, k);
+  });
+  ctx.shadowBlur = 0;
+  // 往上飄的火星
+  if (Math.random() < k * .9) embers.push({ x: pc[0] + (Math.random() - .5) * hw, y: pc[1] - hw * .5, vx: (Math.random() - .5) * hw * .8, vy: -hw * (1.5 + Math.random() * 2), life: .9, r: hw * (.03 + Math.random() * .04) });
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = embers.length - 1; i >= 0; i--) {
+    const e = embers[i]; e.life -= dt; if (e.life <= 0) { embers.splice(i, 1); continue; }
+    e.x += e.vx * dt + Math.sin(t * 6 + i) * hw * .01; e.y += e.vy * dt;
+    ctx.globalAlpha = e.life;
+    ctx.fillStyle = '#bfe8ff'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── 結印之光：三角形手印的空洞發出強光，光束往外射 ──
+function drawTriLight(ctx, W, H, u, t, tri, k, glow, hold) {
+  const { poly, c, size } = tri, charge = Math.min(1, hold / .5);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  // 光束：從三角形中心往外，慢慢轉
+  const n = 12, L = Math.hypot(W, H) * (.18 + .3 * charge);
+  for (let i = 0; i < n; i++) {
+    const an = i / n * Math.PI * 2 + t * .4, w = .05 + .03 * Math.sin(t * 5 + i * 1.7);
+    const gg = ctx.createLinearGradient(c[0], c[1], c[0] + Math.cos(an) * L, c[1] + Math.sin(an) * L);
+    gg.addColorStop(0, `rgba(255,250,220,${.3 * k})`); gg.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.moveTo(c[0], c[1]);
+    ctx.lineTo(c[0] + Math.cos(an - w) * L, c[1] + Math.sin(an - w) * L); ctx.lineTo(c[0] + Math.cos(an + w) * L, c[1] + Math.sin(an + w) * L); ctx.fill();
+  }
+  // 大光暈
+  const bloom = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], size * (1.4 + 1.2 * charge));
+  bloom.addColorStop(0, `rgba(255,255,255,${.8 * k})`); bloom.addColorStop(.25, `rgba(255,236,170,${.35 * k})`); bloom.addColorStop(1, 'rgba(255,200,100,0)');
+  ctx.fillStyle = bloom; ctx.beginPath(); ctx.arc(c[0], c[1], size * (1.4 + 1.2 * charge), 0, 7); ctx.fill();
+  // 三角形空洞：填滿白金色的光
+  ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
+  ctx.fillStyle = `rgba(255,248,215,${.85 * k})`; ctx.fill();
+  // 發光的三角形外框（比手大一圈，有點動漫魔法陣的感覺）
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = `rgba(255,220,120,${.9 * k})`; ctx.lineWidth = u * .8; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = u * 4;
+  const R = size * (1.1 + .25 * charge), rot = -Math.PI / 2;
+  for (const [rr, dir] of [[R, 1], [R * 1.35, -1]]) {
+    ctx.beginPath();
+    for (let i = 0; i <= 3; i++) { const an = rot + dir * t * .3 + i * Math.PI * 2 / 3; const x = c[0] + Math.cos(an) * rr, y = c[1] + Math.sin(an) * rr; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(c[0], c[1], R * 1.55, 0, 7); ctx.lineWidth = u * .4; ctx.stroke();
+  ctx.restore();
+}
+
 function drawFoxFire(ctx, c, u, t, k, ref) {
   ctx.save();
   const cx = c[0], cy = c[1] - ref * .35;
@@ -369,7 +475,7 @@ function drawSeal(ctx, W, H, u, age, glow) {
   const k = age < .2 ? age / .2 : Math.max(0, 1 - (age - 1.6) / 1);
   ctx.save();
   // 閃光
-  if (age < .35) { ctx.globalAlpha = (1 - age / .35) * .85; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+  if (age < .25) { ctx.globalAlpha = (1 - age / .25) * .5; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
   // 集中線（漫畫的速度線）：從畫面邊緣往中間
   ctx.globalAlpha = .55 * k; ctx.fillStyle = '#ffffff';
   const cx = W / 2, cy = H * .45, R = Math.hypot(W, H) * .6;
