@@ -122,7 +122,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .75) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
   else if (S.fire < .1) S.fireFired = false;
   if (S.fire > .02 && S.firePalm) {
-    if (S.fireLm) drawRealFire(ctx, S.fireLm, W, H, u, t, S.fire, dt);
+    if (S.fireLm) drawRealFire(ctx, S.fireLm, W, H, u, t, S.fire, dt, stand?.id);
     else drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
   }
 
@@ -451,19 +451,37 @@ function drawAnimeFire(ctx, h, W, H, u, t, k, dt) {
 
 // ── 寫實火焰：幾百顆會發光的小火粒，從指尖和掌心往上竄、左右搖晃，顏色由白熱→金橘→紅→紫慢慢褪去 ──
 const FIRE = [];                     // 火粒
+// 每位神明的火焰顏色：火粒從白熱的火心，一路變成最後的煙色
+const PAL = {
+  default:     [[255, 250, 225], [255, 214, 120], [255, 150, 50], [255, 80, 30], [220, 40, 70], [150, 50, 200], [90, 40, 170]],    // 橘紅→紫
+  inari:       [[245, 252, 255], [190, 235, 255], [110, 190, 255], [60, 120, 255], [80, 70, 230], [120, 60, 210], [70, 40, 150]],  // 狐火：藍白
+  yatagarasu:  [[255, 250, 220], [255, 220, 110], [255, 170, 40], [210, 110, 20], [140, 50, 120], [70, 30, 110], [30, 20, 60]],    // 金→黑紫
+  amaterasu:   [[255, 255, 245], [255, 240, 170], [255, 205, 90], [255, 160, 40], [255, 110, 60], [230, 120, 120], [200, 140, 160]], // 日光金
+  bishamonten: [[240, 248, 255], [170, 210, 255], [90, 150, 255], [50, 90, 230], [40, 50, 180], [90, 40, 170], [40, 20, 100]],   // 戰神藍焰
+  ryujin:      [[240, 255, 252], [170, 255, 235], [80, 235, 210], [30, 190, 190], [30, 130, 170], [40, 80, 150], [30, 50, 110]],  // 龍神青碧
+  tengu:       [[255, 245, 225], [255, 190, 110], [255, 110, 50], [235, 40, 30], [180, 20, 40], [110, 20, 50], [60, 10, 30]],     // 天狗赤焰
+  okami:       [[255, 255, 255], [235, 245, 255], [200, 220, 255], [160, 185, 240], [130, 150, 220], [110, 120, 190], [80, 90, 150]], // 神狼銀白
+  kujaku:      [[245, 255, 245], [190, 255, 200], [90, 230, 170], [30, 190, 160], [40, 140, 190], [70, 80, 190], [50, 40, 140]],  // 孔雀青綠
+  manekineko:  [[255, 255, 235], [255, 240, 150], [255, 210, 70], [255, 160, 40], [240, 110, 60], [220, 90, 110], [170, 70, 120]], // 招財金
+  benzaiten:   [[255, 245, 255], [255, 200, 240], [235, 140, 230], [190, 90, 230], [140, 60, 220], [100, 50, 190], [60, 30, 130]],  // 弁財天紫
+  shirousagi:  [[255, 250, 252], [255, 215, 230], [255, 160, 195], [245, 110, 160], [220, 80, 150], [170, 70, 160], [120, 60, 140]], // 白兔粉
+  daikokuten:  [[255, 252, 230], [255, 225, 130], [250, 185, 60], [225, 135, 30], [180, 90, 30], [130, 60, 50], [80, 40, 40]],    // 大黑天金褐
+};
+const spriteCache = {};
 let sprites = null;
-function fireSprites() {
+function fireSprites(id) {
   // 先畫好幾張柔邊的光點（不同顏色），畫火時直接貼，手機才跑得動
-  const cols = [[255, 250, 225], [255, 214, 120], [255, 150, 50], [255, 80, 30], [220, 40, 70], [150, 50, 200], [90, 40, 170]];
-  sprites = cols.map(([r, g, b]) => {
+  if (spriteCache[id]) return (sprites = spriteCache[id]);
+  const cols = PAL[id] || PAL.default;
+  sprites = spriteCache[id] = cols.map(([r, g, b]) => {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
     const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.35, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
     x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return c;
   });
 }
-function drawRealFire(ctx, h, W, H, u, t, k, dt) {
-  if (!sprites) fireSprites();
+function drawRealFire(ctx, h, W, H, u, t, k, dt, id) {
+  fireSprites(id || 'default');
   const hw = dist(P(h, 5, W, H), P(h, 17, W, H)) || u * 8, pw = .7 + .6 * (S.firePower || 0);
   // 產生新火粒：指尖多、掌心多一點，越用力越多
   const spawn = [[4, 1], [8, 2], [12, 2], [16, 2], [20, 1], [9, 2], [5, 1], [17, 1]];
@@ -479,7 +497,8 @@ function drawRealFire(ctx, h, W, H, u, t, k, dt) {
   // 手上被火照亮的暖光
   const pc = palmCenter(h, W, H);
   const glow = ctx.createRadialGradient(pc[0], pc[1] - hw * .4, 0, pc[0], pc[1] - hw * .4, hw * 2.2);
-  glow.addColorStop(0, `rgba(255,140,60,${.22 * k})`); glow.addColorStop(.5, `rgba(200,60,120,${.08 * k})`); glow.addColorStop(1, 'rgba(120,40,160,0)');
+  const [g1, g2] = [sprites.length > 3 ? (PAL[id] || PAL.default)[2] : [255, 140, 60], (PAL[id] || PAL.default)[5]];
+  glow.addColorStop(0, `rgba(${g1},${.22 * k})`); glow.addColorStop(.5, `rgba(${g2},${.08 * k})`); glow.addColorStop(1, `rgba(${g2},0)`);
   ctx.globalCompositeOperation = 'lighter';
   ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(pc[0], pc[1] - hw * .4, hw * 2.2, 0, 7); ctx.fill();
   for (let i = FIRE.length - 1; i >= 0; i--) {

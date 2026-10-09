@@ -566,6 +566,11 @@ for (const [id, name] of [[null, '一般'], ['mask', '🎭 面具'], ['fire', '�
   $('side').replaceWith(pick);
   footer.prepend(poseRow);
   new ResizeObserver(() => cam.style.setProperty('--foot', footer.offsetHeight + 'px')).observe(footer);
+  let lastAsp = 0;
+  new ResizeObserver(() => requestAnimationFrame(() => {
+    const r = view.parentElement.getBoundingClientRect(), a = r.height / Math.max(1, r.width);
+    if (state.src && r.width > 50 && Math.abs(a - lastAsp) > .03) { lastAsp = a; useSource(state.src, state.mirror); }
+  })).observe(view.parentElement);
 }
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
@@ -612,7 +617,7 @@ async function startCamera() {
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 1280 } },
+      video: { facingMode: state.facing, width: { ideal: 1920 }, height: { ideal: 1080 } },   // 直拿手機時是 1080×1920 的直式畫面
     });
   } catch (e) {
     if (state.src && state.src !== video) return;      // 使用者已經改用相簿照片，就不再顯示相機錯誤
@@ -639,8 +644,12 @@ function useSource(src, mirror) {
   state.src = src; state.mirror = mirror; state.box = null; state.mask = null;
   state.summonAt = performance.now(); state.pose = null; state.colTop = null;
   const w = src.videoWidth || src.naturalWidth, h = src.videoHeight || src.naturalHeight;
-  const k = Math.min(1, 1080 / Math.max(w, h));
-  const W = Math.round(w * k), H = Math.round(h * k);
+  // 畫面要填滿整個取景區（像手機相機），不是一小塊：照取景區的長寬比裁切鏡頭畫面
+  const st = view.parentElement.getBoundingClientRect(), aspect = st.width > 50 && st.height > 50 ? st.height / st.width : h / w;
+  let cw = w, ch = w * aspect; if (ch > h) { ch = h; cw = h / aspect; }
+  state.crop = { sx: (w - cw) / 2, sy: (h - ch) / 2, sw: cw, sh: ch };
+  const k = Math.min(1, 1280 / Math.max(cw, ch));
+  const W = Math.round(cw * k), H = Math.round(ch * k);
   for (const c of [view, srcC, personC, auraC, beautyC, eyeC]) { c.width = W; c.height = H; }
   state.face = null; state.lm = null; glBeauty?.reset(); resetPoses();
   if (!state.handsLoading && state.fs) { state.handsLoading = true; setTimeout(() => initHands(state.fs, HandLandmarker), 1500); }
@@ -959,7 +968,9 @@ function render(now) {
   // 0. 原始畫面（前鏡頭左右翻轉，像照鏡子）
   const sc = srcC.getContext('2d');
   sc.setTransform(state.mirror ? -1 : 1, 0, 0, 1, state.mirror ? W : 0, 0);
-  sc.drawImage(src, 0, 0, W, H); sc.setTransform(1, 0, 0, 1, 0, 0);
+  const cr = state.crop;
+  if (cr) sc.drawImage(src, cr.sx, cr.sy, cr.sw, cr.sh, 0, 0, W, H); else sc.drawImage(src, 0, 0, W, H);
+  sc.setTransform(1, 0, 0, 1, 0, 0);
 
   segment(now);
   detectFace(now);
