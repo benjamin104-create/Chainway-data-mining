@@ -249,7 +249,7 @@
     </div>
     <p class="fine">這是認識自己旅行性格的小遊戲，以尊敬的心介紹日本神話與民間信仰的神獸、神明，不是宗教儀式，也不是算命。答案只存在你的手機裡。</p>
   </div>
-<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v7</span></p>
+<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v8</span></p>
 </section>
 
 <!-- 測驗 -->
@@ -390,6 +390,18 @@
   </div>
 </div>
 
+<script>
+  // 出錯時直接顯示在畫面上，方便截圖回報（平常不會出現）
+  (function () {
+    function show(msg) {
+      var d = document.getElementById('errbox');
+      if (!d) { d = document.createElement('div'); d.id = 'errbox'; d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;padding:10px 12px;border-radius:10px;background:#b3261e;color:#fff;font:12px/1.5 system-ui;white-space:pre-wrap;word-break:break-all'; d.onclick = function () { d.remove(); }; document.body.appendChild(d); }
+      d.textContent = '⚠️ 出了點問題（截圖給我們）\n' + msg + '\n' + navigator.userAgent;
+    }
+    window.addEventListener('error', function (e) { show((e.message || '') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); });
+    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; show('Promise: ' + (r && (r.stack || r.message) || r)); });
+  })();
+</script>
 <script>
   // LINE 內建瀏覽器常常不能開相機：自動加上 openExternalBrowser=1，讓 LINE 改用手機瀏覽器打開
   (function () {
