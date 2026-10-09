@@ -483,6 +483,49 @@ for (const [id, name] of LAYOUTS) {
   layoutRow.append(b);
 }
 $('sfx').before(layoutRow);
+// ── iPhone 相機式介面：拍照畫面填滿取景區，上方一排小圖示（點了才展開設定），快門下方切換拍照／錄影 ──
+{
+  const cam = $('cam'), header = cam.querySelector('header'), footer = cam.querySelector('footer'), controls = footer.querySelector('.controls');
+  cam.classList.add('ios');
+  const tools = document.createElement('div'); tools.className = 'tools'; tools.setAttribute('role', 'toolbar');
+  const pop = document.createElement('div'); pop.className = 'pop'; pop.hidden = true;
+  cam.append(pop);
+  const sideRow = document.createElement('div'); sideRow.className = 'chips';
+  const sideBtn = document.createElement('button'); sideBtn.className = 'chip'; sideBtn.type = 'button'; sideBtn.textContent = '⇄ 神明換邊站';
+  sideBtn.onclick = () => { state.side *= -1; }; sideRow.append(sideBtn);
+  const panels = [
+    ['構圖', '▣', [layoutRow, sideRow]],
+    ['美顏', '✨', [$('sfx'), $('beautyPanel')]],
+    ['心願', '✍️', [document.querySelector('#cam .wish')]],
+    ['六角圖', '⬡', [cardRow]],
+    ['語言', '文', [langRow]],
+  ];
+  let open = null;
+  const close = () => { pop.hidden = true; open = null; for (const x of tools.children) x.setAttribute('aria-expanded', 'false'); };
+  for (const [name, icon, nodes] of panels) {
+    const box = document.createElement('div'); box.className = 'pop-panel'; box.hidden = true;
+    const h = document.createElement('b'); h.textContent = name; box.append(h, ...nodes.filter(Boolean));
+    pop.append(box);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = icon; b.title = name; b.setAttribute('aria-label', name); b.setAttribute('aria-expanded', 'false');
+    b.onclick = () => {
+      if (open === box) return close();
+      close(); open = box; pop.hidden = false; box.hidden = false; b.setAttribute('aria-expanded', 'true');
+      for (const x of pop.children) x.hidden = x !== box;
+    };
+    tools.append(b);
+  }
+  header.append(tools);
+  view.addEventListener('pointerdown', () => { if (open) close(); });
+  // 下方：模式列＋（相簿、快門、翻轉鏡頭）
+  const pick = $('pick'); pick.classList.add('round');
+  $('side').replaceWith(pick);
+  new ResizeObserver(() => cam.style.setProperty('--foot', footer.offsetHeight + 'px')).observe(footer);
+  let lastAsp = 0;
+  new ResizeObserver(() => requestAnimationFrame(() => {
+    const r = view.parentElement.getBoundingClientRect(), a = r.height / Math.max(1, r.width);
+    if (state.src && r.width > 50 && Math.abs(a - lastAsp) > .03) { lastAsp = a; useSource(state.src, state.mirror); }
+  })).observe(view.parentElement);
+}
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
@@ -527,7 +570,7 @@ async function startCamera() {
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 1280 } },
+      video: { facingMode: state.facing, width: { ideal: 1920 }, height: { ideal: 1080 } },   // 直拿手機時是直式畫面
     });
   } catch (e) {
     if (state.src && state.src !== video) return;      // 使用者已經改用相簿照片，就不再顯示相機錯誤
@@ -554,8 +597,12 @@ function useSource(src, mirror) {
   state.src = src; state.mirror = mirror; state.box = null; state.mask = null;
   state.summonAt = performance.now(); state.pose = null; state.colTop = null;
   const w = src.videoWidth || src.naturalWidth, h = src.videoHeight || src.naturalHeight;
-  const k = Math.min(1, 1080 / Math.max(w, h));
-  const W = Math.round(w * k), H = Math.round(h * k);
+  // 畫面要填滿整個取景區（像手機相機），不是一小塊：照取景區的長寬比裁切鏡頭畫面
+  const st = view.parentElement.getBoundingClientRect(), aspect = st.width > 50 && st.height > 50 ? st.height / st.width : h / w;
+  let cw = w, ch = w * aspect; if (ch > h) { ch = h; cw = h / aspect; }
+  state.crop = { sx: (w - cw) / 2, sy: (h - ch) / 2, sw: cw, sh: ch };
+  const k = Math.min(1, 1280 / Math.max(cw, ch));
+  const W = Math.round(cw * k), H = Math.round(ch * k);
   for (const c of [view, srcC, personC, auraC, beautyC, eyeC]) { c.width = W; c.height = H; }
   state.face = null; state.lm = null; glBeauty?.reset();
   $('start').hidden = true; notice('');
@@ -873,7 +920,9 @@ function render(now) {
   // 0. 原始畫面（前鏡頭左右翻轉，像照鏡子）
   const sc = srcC.getContext('2d');
   sc.setTransform(state.mirror ? -1 : 1, 0, 0, 1, state.mirror ? W : 0, 0);
-  sc.drawImage(src, 0, 0, W, H); sc.setTransform(1, 0, 0, 1, 0, 0);
+  const cr = state.crop;
+  if (cr) sc.drawImage(src, cr.sx, cr.sy, cr.sw, cr.sh, 0, 0, W, H); else sc.drawImage(src, 0, 0, W, H);
+  sc.setTransform(1, 0, 0, 1, 0, 0);
 
   segment(now);
   detectFace(now);
@@ -1380,7 +1429,53 @@ function credit(W, H, u) {
 
 // ── 拍照與分享 ─────────────────────────────────────────
 let lastBlob = null, lastUrl = null;
+// ── 錄影：把整個 AR 畫面（神明、特效、靈光）錄成影片，最長 15 秒 ──
+let rec = null, captureType = 'photo', lastName = 'photo.jpg', lastType = 'image/jpeg';
+const typeRow = document.createElement('div'); typeRow.className = 'modes types'; typeRow.setAttribute('role', 'group'); typeRow.setAttribute('aria-label', '拍照或錄影');
+for (const [id, name] of [['video', '錄影'], ['photo', '拍照']]) {
+  const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
+  b.setAttribute('aria-pressed', String(id === captureType));
+  b.onclick = () => { if (rec) return; captureType = id; for (const x of typeRow.children) x.setAttribute('aria-pressed', String(x === b)); $('shot').classList.toggle('video', id === 'video'); };
+  typeRow.append(b);
+}
+document.querySelector('#cam footer').append(typeRow);
+function pickMime() {
+  for (const m of ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']) if (window.MediaRecorder?.isTypeSupported?.(m)) return m;
+  return '';
+}
+function startRec() {
+  if (!view.captureStream || !window.MediaRecorder) { notice('這個瀏覽器不支援錄影，可以改用拍照。'); return; }
+  const mime = pickMime(), stream = view.captureStream(30), chunks = [];
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5e6 } : undefined);
+  mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const type = (mr.mimeType || mime || 'video/webm').split(';')[0];
+    lastBlob = new Blob(chunks, { type }); lastType = type; lastName = type.includes('mp4') ? 'guardian.mp4' : 'guardian.webm';
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(lastBlob);
+    $('photo').hidden = true; const v = $('clip'); v.hidden = false; v.src = lastUrl; v.play().catch(() => {});
+    $('save').href = lastUrl; $('save').download = lastName; $('save').textContent = '存影片到相簿'; $('share').textContent = '分享影片';
+    $('copyShare').textContent = '複製邀請文字＋網址';
+    $('sheet').hidden = false;
+  };
+  mr.start(250);
+  rec = { mr, t0: performance.now(), timer: setInterval(() => {
+    const s = (performance.now() - rec.t0) / 1000;
+    $('recTime').textContent = `● ${Math.floor(s)}s`;
+    if (s >= 15) stopRec();
+  }, 200) };
+  $('shot').classList.add('recording'); $('recTime').hidden = false; $('recTime').textContent = '● 0s';
+}
+function stopRec() {
+  if (!rec) return;
+  clearInterval(rec.timer); rec.mr.stop(); rec = null;
+  $('shot').classList.remove('recording'); $('recTime').hidden = true;
+}
 $('shot').onclick = () => {
+  if (captureType === 'video') { rec ? stopRec() : startRec(); return; }
+  $('clip').hidden = true; $('clip').pause(); $('photo').hidden = false;
+  $('save').download = lastName = 'photo.jpg'; lastType = 'image/jpeg'; $('save').textContent = '存到手機相簿'; $('share').textContent = '分享照片';
   const f = $('flash'); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
   state.capturing = true;                        // 先畫一格沒有站位虛線的畫面再存
   requestAnimationFrame(() => requestAnimationFrame(() => view.toBlob((blob) => {
@@ -1399,7 +1494,7 @@ function shareText() {
   return s ? `我的守護神是《${s.name}》${s.zh}！你的守護神是誰？10 題測出來 → ${url}` : url;
 }
 $('share').onclick = async () => {
-  const s = state.stand, file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  const s = state.stand, file = new File([lastBlob], lastName, { type: lastType });
   const title = s ? `我的守護神《${s.name}》` : '';
   try {
     if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title, text: shareText() });
@@ -1415,7 +1510,7 @@ $('copyShare').onclick = async () => {
 // 儲存照片：iPhone 的網頁「下載」只會存到「檔案」App，改叫出分享選單，按「儲存影像」就會進相簿
 $('save').onclick = async (e) => {
   if (!lastBlob) return;
-  const file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  const file = new File([lastBlob], lastName, { type: lastType });
   if (navigator.canShare?.({ files: [file] })) {
     e.preventDefault();
     try { await navigator.share({ files: [file] }); }
@@ -1426,8 +1521,7 @@ $('close').onclick = () => { $('sheet').hidden = true; };
 
 $('go').onclick = async () => { $('go').disabled = true; await modelReady; await startCamera(); $('go').disabled = false; };
 $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; startCamera(); };
-$('side').onclick = () => { state.side *= -1; };
-view.onclick = () => { state.side *= -1; };
+view.onclick = () => { if (!document.querySelector('#cam .pop:not([hidden])')) state.side *= -1; };
 $('pick').onclick = () => $('file').click();
 $('pick2').onclick = () => $('file').click();
 $('file').onchange = async () => {
