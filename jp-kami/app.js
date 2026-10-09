@@ -1,5 +1,5 @@
 import { FilesetResolver, ImageSegmenter, FaceDetector, FaceLandmarker, HandLandmarker } from './lib/vision_bundle.mjs';
-import { initHands, detectHands, drawPoseFX, resetPoses } from './poses.js';
+import { initHands, detectHands, drawPoseFX, resetPoses, setGuide } from './poses.js';
 import { createBeautyGL } from './beauty-gl.js';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
@@ -92,7 +92,7 @@ function keepGodFace(p, a, flip, W, H, u) {
   // 「看不到神」的程度：臉被擋住、身體跑出畫面、縮得太小、上半身幾乎都被人擋住
   const hidden = (x, sy, sh, sw) => {
     const off = (Math.max(0, sw / 2 - x) + Math.max(0, x + sw / 2 - W)) / sw;
-    return godFaceCover(x, sy, sh, sw, af, flip, W, H) + Math.max(0, off - .2) * 1.5 + Math.max(0, .38 - sh / H) * 5 + Math.max(0, .55 - godUpperVis(x, sy, sh, sw, W, H)) * 2;
+    return godFaceCover(x, sy, sh, sw, af, flip, W, H) + Math.max(0, off - .14) * 1.5 + Math.max(0, .45 - sh / H) * 5 + Math.max(0, .55 - godUpperVis(x, sy, sh, sw, W, H)) * 2;
   };
   if (hidden(p.x, p.sy, p.sh, p.sh * ratio) < .2) return p;
   const prevX = state.pose?.tx ?? p.x, n = top.length;
@@ -117,7 +117,7 @@ function keepGodFace(p, a, flip, W, H, u) {
   state.godFrontNext = true;
   const pf = state.personFace, pcx = pf ? (pf.x0 + pf.x1) / 2 : W / 2;
   let fb = null;
-  for (const k of [.4, .34, .28]) {
+  for (const k of [.48, .41, .34]) {
     const sh = H * k, sw = sh * ratio;
     for (const x of [sw * .3, sw * .45, W - sw * .45, W - sw * .3]) {
       const sy = minY;
@@ -512,6 +512,20 @@ for (const [id, name] of LAYOUTS) {
   layoutRow.append(b);
 }
 $('sfx').before(layoutRow);
+// 動漫姿勢引導：點一下，畫面上會出現手要放哪裡；擺到位就有特效（再點一次取消）
+const poseRow = document.createElement('div'); poseRow.className = 'chips'; poseRow.setAttribute('role', 'group'); poseRow.setAttribute('aria-label', '動漫姿勢');
+{ const lb = document.createElement('span'); lb.className = 'chip-label'; lb.textContent = '動漫 pose'; poseRow.append(lb); }
+for (const [id, name] of [['mask', '🎭 面具'], ['fire', '🔥 神火'], ['seal', '🙏 結印']]) {
+  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = name; b.dataset.pose = id;
+  b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => {
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    for (const x of poseRow.querySelectorAll('.chip')) x.setAttribute('aria-pressed', String(on && x === b));
+    setGuide(on ? id : null, () => b.setAttribute('aria-pressed', 'false'));
+  };
+  poseRow.append(b);
+}
+$('sfx').before(poseRow);
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
@@ -652,14 +666,14 @@ function halftonePattern() {
 const TITLE_H = 15;   // 上方標題列的高度（u），替身的頭不進這一區
 function placeStand(W, H, bh, headY, ratio, u) {
   const top = state.colTop, n = top ? top.length : 0;
-  const base = Math.min(H * .98, Math.max(bh * 1.1, H * .68));   // 守護靈要夠大，比本人還高
+  const base = Math.min(H * 1.18, Math.max(bh * 1.32, H * .82));   // 日本篇：神明比其他篇再大 20%，比本人高很多
   const prev = state.pose, cx = state.personCx ?? W / 2;
   let best = null;
   for (const k of [1, .9, .81, .72, .64, .56]) {
     const sh = base * k, sw = sh * ratio;
     const sy = Math.max(TITLE_H * u, Math.min(headY - sh * .06, H - sh * .75));
     for (let i = 0; i <= 24; i++) {
-      const x = sw * .22 + (W - sw * .44) * i / 24;
+      const x = sw * .38 + (W - sw * .76) * i / 24;              // 左右最多超出畫面 12%（比例相對神明寬度）
       let face = 0, body = 0, cols = 0;
       if (n) {
         const c0 = Math.max(0, Math.floor((x - sw / 2) / W * n)), c1 = Math.min(n, Math.ceil((x + sw / 2) / W * n));
@@ -674,7 +688,7 @@ function placeStand(W, H, bh, headY, ratio, u) {
       }
       const off = (Math.max(0, sw / 2 - x) + Math.max(0, x + sw / 2 - W)) / sw;
       const side = Math.sign(x - cx) || 1;
-      let score = face * 6 + body * .8 + off * .6 + (1 - k) * 2 + (side === state.side ? 0 : .25);
+      let score = face * 6 + body * .5 + off * .6 + (1 - k) * 4 + (side === state.side ? 0 : .25);
       if (prev) score += Math.abs(x - prev.tx) / W * .6 + Math.abs(sh - prev.tsh) / H * .4;
       if (!best || score < best.score) best = { score, x, sy, sh, sw, side };
     }
@@ -1040,11 +1054,12 @@ function render(now) {
 // ── 構圖：正中央／左側／右側／片頭 都是固定位置，使用者自己對著虛線站 ──
 const GUIDE = { center: [.5, .52], left: [.68, .44], right: [.32, .44], opening: [.26, .46] };
 function fixedLayout(L, W, H, u, ratio) {
-  const top = TITLE_H * u;
-  if (L === 'center') { const sh = Math.min(H * .95, W * 1.15 / ratio); return { x: W / 2, sy: top - u, sh, sw: sh * ratio, side: 1 }; }
-  if (L === 'opening') { const sh = Math.min(H * .9, W * .78 / ratio); return { x: W * .66, sy: H * .06, sh, sw: sh * ratio, side: 1 }; }
-  const sh = Math.min(H * .86, W * .85 / ratio), side = L === 'left' ? -1 : 1;
-  return { x: L === 'left' ? W * .3 : W * .7, sy: top, sh, sw: sh * ratio, side };
+  // 日本篇：神明比其他篇大 20%；可以有 5～12% 落在畫面外，比較有魄力
+  const top = TITLE_H * u, G = 1.2, clampX = (x, sw) => Math.max(sw * .38, Math.min(W - sw * .38, x));
+  if (L === 'center') { const sh = Math.min(H * .95, W * 1.15 / ratio) * G, sw = sh * ratio; return { x: W / 2, sy: top - u, sh, sw, side: 1 }; }
+  if (L === 'opening') { const sh = Math.min(H * .9, W * .78 / ratio) * G, sw = sh * ratio; return { x: clampX(W * .66, sw), sy: H * .04, sh, sw, side: 1 }; }
+  const sh = Math.min(H * .86, W * .85 / ratio) * G, sw = sh * ratio, side = L === 'left' ? -1 : 1;
+  return { x: clampX(L === 'left' ? W * .3 : W * .7, sw), sy: top, sh, sw, side };
 }
 function standGuide(W, H, u, t) {
   const [gx, gy] = GUIDE[state.layout], x = gx * W, y = gy * H, r = Math.min(W, H) * .1;

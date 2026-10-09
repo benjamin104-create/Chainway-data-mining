@@ -39,6 +39,8 @@ export function detectHands(src, now) {
     S.hands = (r.landmarks || []).map((lm) => lm);
   } catch (e) { console.warn(e); }
 }
+// 姿勢引導：使用者在相機下方點「面具／神火／結印」，畫面上會出現手要放哪裡的虛線手形和集氣圈
+export function setGuide(kind, onDone) { S.guide = kind; S.guideOk = null; S.onGuideDone = onDone; }
 export function resetPoses() { S.hands = []; S.mask = null; S.seal = null; S.fire = 0; S.shards = []; }
 export const poseState = S;
 
@@ -82,14 +84,14 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     }
   }
   S.maskHold = near ? S.maskHold + dt : 0;
-  if (near && S.maskHold > .35 && (!S.mask || S.mask.until < t + 6)) {
+  if (near && S.maskHold > .5 && (!S.mask || S.mask.until < t + 6)) {
     if (!S.mask || S.mask.side !== near || t > S.mask.until) { S.mask = { side: near, t0: t }; burst(face, near, lm, W, H); }
-    S.mask.until = t + 10; S.used = true;
+    S.mask.until = t + 10; S.used = true; done('mask', t);
   }
   if (S.mask && t > S.mask.until + .6) S.mask = null;
   if (S.mask && lm) drawMask(ctx, lm, W, H, u, t, S.mask, glow);
 
-  // ── 2. 狐火：張開手掌，舉到下巴以上，而且不是貼著臉 ──
+  // ── 2. 神火（狐火）：張開手掌，舉到下巴以上，而且不是貼著臉 ──
   let fireHand = null;
   for (const h of hands) {
     const c = palmCenter(h, W, H);
@@ -98,7 +100,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     if (face ? c[1] < face.y1 + face.h * .2 : c[1] < H * .55) fireHand = c;
   }
   S.fire = lerp(S.fire, fireHand ? 1 : 0, fireHand ? .25 : .08);
-  if (fireHand) { S.firePalm = fireHand; S.used = true; }
+  if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .8) done('fire', t); }
   if (S.fire > .02 && S.firePalm) drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
 
   // ── 3. 結印：兩隻手的手腕、指尖都靠在一起 ──
@@ -108,19 +110,20 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     sealing = dist(P(a, 0, W, H), P(b, 0, W, H)) < ref * .9 && dist(P(a, 8, W, H), P(b, 8, W, H)) < ref * .5;
   }
   S.sealHold = sealing ? S.sealHold + dt : 0;
-  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; }
+  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; done('seal', t); }
   if (S.seal && t - S.seal.t0 < 2.6) drawSeal(ctx, W, H, u, t - S.seal.t0, glow);
 
   drawShards(ctx, dt);
 
+  if (S.guide && !capturing) drawGuide(ctx, W, H, u, t, face, lm);
   // 還沒玩過彩蛋的人，隔一陣子提示一下（只在預覽，拍下來不會有）
-  if (!capturing && !S.used && hands.length === 0) {
+  if (!capturing && !S.used && !S.guide && hands.length === 0) {
     if (!S.hintAt) S.hintAt = t + 4;
     if (t > S.hintAt) {
       const k = (t - S.hintAt) / 3.2;
       if (k > 1) { S.hintAt = t + 5; S.hintIdx = (S.hintIdx + 1) % 3; }
       else {
-        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：張開手掌舉高 →「狐火」', '彩蛋：雙手合十 →「結印」'][S.hintIdx];
+        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：張開手掌舉高 →「神火」', '彩蛋：雙手合十 →「結印」'][S.hintIdx];
         ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI);
         ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const tw = ctx.measureText(msg).width + 5 * u, ty = H * .7;
@@ -129,6 +132,68 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
       }
     }
   }
+}
+
+function done(kind, t) {
+  if (S.guide === kind && !S.guideOk) S.guideOk = { t };
+}
+
+// ── 姿勢引導（只在預覽畫面，拍下來不會有）──
+function handIcon(ctx, x, y, r, mirror) {
+  // 手的剪影：手掌＋四根手指＋大拇指（圓角），半透明白底＋虛線外框，一看就懂「手放這裡」
+  ctx.save(); ctx.translate(x, y); if (mirror) ctx.scale(-1, 1);
+  const fw = r * .2, path = new Path2D();
+  path.roundRect(-r * .5, -r * .15, r * 1.0, r * .95, r * .3);                       // 手掌
+  for (const [dx, len] of [[-.47, .62], [-.22, .78], [.03, .82], [.28, .7]]) path.roundRect(dx * r, -r * .15 - len * r, fw, len * r + r * .2, fw / 2);
+  const thumb = new Path2D(); thumb.roundRect(r * .42, r * .0, fw * 1.1, r * .6, fw / 2);   // 大拇指
+  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill(path); ctx.fill(thumb);
+  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = r * .08;
+  ctx.stroke(path); ctx.stroke(thumb);
+  ctx.restore();
+}
+function ring(ctx, x, y, r, k, col) {
+  ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, k));
+  ctx.lineWidth = r * .12; ctx.strokeStyle = col; ctx.setLineDash([]); ctx.stroke();
+}
+function label(ctx, W, u, y, msg, col) {
+  ctx.font = `800 ${3.2 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(msg).width + 5 * u;
+  ctx.fillStyle = 'rgba(10,6,20,.66)'; ctx.beginPath(); ctx.roundRect(W / 2 - tw / 2, y - 3 * u, tw, 6 * u, 3 * u); ctx.fill();
+  ctx.fillStyle = col; ctx.fillText(msg, W / 2, y);
+}
+function drawGuide(ctx, W, H, u, t, face, lm) {
+  const g = S.guide, pulse = .6 + .4 * Math.sin(t * 5);
+  ctx.save();
+  if (S.guideOk) {
+    const k = (t - S.guideOk.t) / 1.8;
+    if (k > 1) { const cb = S.onGuideDone; S.guide = null; S.guideOk = null; cb?.(); ctx.restore(); return; }
+    ctx.globalAlpha = Math.min(1, (1 - k) * 3);
+    label(ctx, W, u, H * .72, { mask: '成功！把手放下，看鏡頭按快門', fire: '成功！保持手勢，按快門', seal: '成功！就是現在，按快門' }[g], '#ffe08a');
+    ctx.restore(); return;
+  }
+  if (!face) { label(ctx, W, u, H * .72, '先讓臉完整入鏡', '#fff'); ctx.restore(); return; }
+  ctx.strokeStyle = `rgba(255,255,255,${.75 + .25 * pulse})`; ctx.lineWidth = 1 * u; ctx.setLineDash([1.6 * u, 1.1 * u]); ctx.lineCap = 'round';
+  const hr = face.w * .55;
+  if (g === 'mask') {
+    // 手掌貼住臉的一邊（畫面上比較靠中間的那一邊，比較好擺）
+    const sx = face.cx < W / 2 ? 1 : -1, x = face.cx + sx * face.w * .28, y = face.cy;
+    handIcon(ctx, x, y, hr, sx < 0);
+    ring(ctx, x, y + hr * .25, hr * 1.25, S.maskHold / .5, '#ffe08a');
+    label(ctx, W, u, H * .72, '手掌貼住半邊臉，停 1 秒 → 浮現面具', '#fff');
+  } else if (g === 'fire') {
+    // 張開手掌舉到肩膀上方（畫面比較空的那一邊）
+    const sx = face.cx < W / 2 ? 1 : -1, x = Math.max(hr * 1.4, Math.min(W - hr * 1.4, face.cx + sx * face.w * 1.25)), y = face.y0 + face.h * .1;
+    handIcon(ctx, x, y, hr, sx < 0);
+    ring(ctx, x, y + hr * .25, hr * 1.25, S.fire, '#8fd0ff');
+    label(ctx, W, u, H * .72, '張開手掌，舉到這裡 → 燃起神火', '#fff');
+  } else if (g === 'seal') {
+    // 雙手合十放在下巴下面
+    const x = face.cx, y = face.y1 + face.h * .75;
+    handIcon(ctx, x - hr * .32, y, hr * .9, true); handIcon(ctx, x + hr * .32, y, hr * .9, false);
+    ring(ctx, x, y + hr * .2, hr * 1.4, S.sealHold / .4, '#ffe08a');
+    label(ctx, W, u, H * .72, '雙手合十放在胸前，停一下 → 結印', '#fff');
+  }
+  ctx.restore();
 }
 
 // ── 骨白半面具（原創）：用臉部定位點建一個「臉的座標系」，面具跟著臉轉動、縮放 ──
