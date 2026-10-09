@@ -30,6 +30,7 @@ uniform float rad, ringR, smoothK, whiteK, glowK, lightK, eyesK, evenK, sharpK, 
 uniform vec3 autoWB;
 const vec3 LUM = vec3(.299, .587, .114);
 vec3 softLight(vec3 b, vec3 s) {
+  b = clamp(b, 0., 1.);
   return mix(2. * b * s + b * b * (1. - 2. * s), sqrt(b) * (2. * s - 1.) + 2. * b * (1. - s), step(.5, s));
 }
 // 膚色可能性（YCbCr）：讓脖子、手也一起美顏，臉和脖子之間就不會有一條分界
@@ -67,6 +68,7 @@ void main() {
     // 膚色均勻：只把泛紅、暗黃的「顏色」拉回臉頰膚色，明暗（臉的立體感）不動
     vec3 cd = tone - bil; cd -= dot(cd, LUM);
     col += cd * clamp(evenK * skin * like, 0., .85);              // 只動真的是膚色的地方（鏡框、頭髮不會被染色）
+    col = clamp(col, 0., 1.);                                      // 暗處不能變負數（否則後面會算出黑斑）
   }
   if (m.g > .01 && eyesK > 0.) {
     // 遮黑眼圈：把眼下的平均色調拉回臉頰的膚色，保留皮膚紋理
@@ -87,6 +89,7 @@ void main() {
   }
   if (whiteK > 0.) {
     float beta = 1. + whiteK * 3.5;
+    col = clamp(col, 0., 1.);
     vec3 wc = log(col * (beta - 1.) + 1.) / log(beta);
     col = mix(col, wc, (.12 + .88 * toneW) * min(1., whiteK * 1.2));
     col = mix(col, softLight(col, vec3(1., .8, .83)), whiteK * .4 * toneW);   // 粉嫩透亮，不是死白
@@ -143,7 +146,9 @@ void main() {
     col = mix(col, softLight(col, vec3(1., .45, .5)), min(.55, a * .7));
     col += vec3(1., .93, .9) * a * a * .03;
   }
-  o = vec4(clamp(col, 0., 1.), c0.a);
+  col = clamp(col, 0., 1.);
+  if (any(isnan(col))) col = c0.rgb;                               // 萬一還是算壞了，就用原圖，不要出現黑點
+  o = vec4(col, c0.a);
 }`;
 
 // 第二步：瘦臉（下巴兩側往內推）、下巴拉提（下巴往上收）、大眼（以眼珠為中心放大），輸出預乘的顏色給畫布

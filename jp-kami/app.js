@@ -751,10 +751,10 @@ function placeStand(W, H, bh, headY, ratio, u) {
 const BEAUTY_PRESETS = {
   natural: { smooth: 50, white: 20, light: 22, glow: 25, eyes: 60, apple: 30, soft: 20, slim: 8, chin: 8, big: 0 },
   standard: { smooth: 75, white: 30, light: 28, glow: 32, eyes: 85, apple: 50, soft: 30, slim: 18, chin: 18, big: 8 },
-  goddess: { smooth: 90, white: 45, light: 34, glow: 40, eyes: 100, apple: 60, soft: 50, slim: 30, chin: 30, big: 15 },
+  goddess: { smooth: 82, white: 38, light: 30, glow: 36, eyes: 95, apple: 55, soft: 36, slim: 20, chin: 20, big: 9 },
 };
 const BEAUTY_DEFAULT = BEAUTY_PRESETS.standard;
-state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty7') || {}) };
+state.beauty = { ...BEAUTY_DEFAULT, ...(store.get('beauty8') || {}) };
 if (state.beauty.chin == null) state.beauty.chin = BEAUTY_DEFAULT.chin;
 let glBeauty = null;
 try { glBeauty = createBeautyGL(); } catch (e) { console.warn('beauty gl unavailable', e); }
@@ -933,13 +933,13 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
   const syncSliders = () => { for (const [k] of BEAUTY_SLIDERS) { const r = $('b_' + k); if (r) { r.value = state.beauty[k]; r.nextSibling.textContent = state.beauty[k]; } } };
   for (const [id, name] of [['natural', '自然'], ['standard', '標準'], ['goddess', '女神／男神']]) {
     const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = '✨ ' + name;
-    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty7', state.beauty); syncSliders(); };
+    b.onclick = () => { state.beauty = { ...BEAUTY_PRESETS[id] }; store.set('beauty8', state.beauty); syncSliders(); };
     pre.append(b);
   }
   { // 自動補光：預設打開，依臉的亮度和偏色自動修正
     const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
     const sync = () => { b.textContent = state.beauty.auto === false ? '🌤 自動補光：關' : '🌤 自動補光：開'; b.setAttribute('aria-pressed', String(state.beauty.auto !== false)); };
-    b.onclick = () => { state.beauty.auto = state.beauty.auto === false; store.set('beauty7', state.beauty); sync(); };
+    b.onclick = () => { state.beauty.auto = state.beauty.auto === false; store.set('beauty8', state.beauty); sync(); };
     sync(); pre.append(b);
   }
   panel.append(pre);
@@ -948,14 +948,14 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
     const name = document.createElement('span'); name.textContent = label;
     const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.value = state.beauty[k]; r.id = 'b_' + k;
     const val = document.createElement('em'); val.textContent = r.value;
-    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty7', state.beauty); };
+    r.oninput = () => { state.beauty[k] = +r.value; val.textContent = r.value; store.set('beauty8', state.beauty); };
     row.append(name, r, val); panel.append(row);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link'; reset.textContent = '恢復預設';
-  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty7', state.beauty);
+  reset.onclick = () => { state.beauty = { ...BEAUTY_DEFAULT }; store.set('beauty8', state.beauty);
     for (const [k] of BEAUTY_SLIDERS) { $('b_' + k).value = state.beauty[k]; $('b_' + k).nextSibling.textContent = state.beauty[k]; } };
   const off = document.createElement('button'); off.type = 'button'; off.className = 'link'; off.textContent = '全部關掉';
-  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty7', state.beauty); };
+  off.onclick = () => { for (const [k] of BEAUTY_SLIDERS) { state.beauty[k] = 0; $('b_' + k).value = 0; $('b_' + k).nextSibling.textContent = 0; } store.set('beauty8', state.beauty); };
   const row = document.createElement('div'); row.className = 'slider-actions'; row.append(reset, off); panel.append(row);
 })();
 
@@ -1272,9 +1272,9 @@ function speech(W, H, s, u, t, ease) {
   // 開場 1 秒後浮現，之後一直留著；每次擺 pose 時跳一下
   const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1) * 2));
   if (show <= 0) return;
-  const px = 4.6 * u; ctx.save(); ctx.font = FONT[L](700, px);
-  const maxW = Math.min(W * .66, 62 * u), lines = wrapLines(text, maxW, L);
-  const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 6 * u, bh = lines.length * px * 1.3 + 4.4 * u;
+  const px = 3.3 * u; ctx.save(); ctx.font = FONT[L](700, px);
+  const maxW = Math.min(W * .52, 46 * u), lines = wrapLines(text, maxW, L);
+  const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 4.4 * u, bh = lines.length * px * 1.3 + 3.2 * u;
   // 放在神的臉旁邊，但不能擋到神的臉、人的臉、標題和直排大字：先試外側，再試上方、內側、臉的下方
   const gf = state.godFace || { x0: hd.x - hd.sw * .15, x1: hd.x + hd.sw * .15, y0: hd.y, y1: hd.y + hd.sh * .25 };
   const gcx = (gf.x0 + gf.x1) / 2, gcy = (gf.y0 + gf.y1) / 2;
@@ -1290,17 +1290,17 @@ function speech(W, H, s, u, t, ease) {
   const pop = 1 + Math.max(0, Math.sin(((t + 1) % 4.5) / .6 * Math.PI)) * ((t + 1) % 4.5 < .6 ? .06 : 0);
   ctx.globalAlpha = show * ease;
   ctx.translate(bx, by + bh / 2); ctx.scale(pop * (.8 + .2 * show), pop * (.8 + .2 * show));
-  const x0 = -bw / 2, y0 = -bh / 2, r = 2.2 * u;
+  const x0 = -bw / 2, y0 = -bh / 2, r = 1.8 * u;
   // 尾巴從最靠近替身臉的那一邊伸出去，指向臉
   const fxr = gcx - bx, fyr = gcy - (by + bh / 2);
   let b1, b2, tip;
   if (Math.abs(fxr) > bw / 2) {
     const ex = Math.sign(fxr) * (bw / 2 - 1), yb = Math.max(y0 + r + 2 * u, Math.min(-y0 - r - 2 * u, fyr * .3));
     const ang = Math.atan2(fyr - yb, fxr - ex);
-    b1 = [ex, yb - 1.6 * u]; b2 = [ex, yb + 1.6 * u]; tip = [ex + Math.cos(ang) * 4.5 * u, yb + Math.sin(ang) * 4.5 * u];
+    b1 = [ex, yb - 1.2 * u]; b2 = [ex, yb + 1.2 * u]; tip = [ex + Math.cos(ang) * 3.4 * u, yb + Math.sin(ang) * 3.4 * u];
   } else {
     const ey = Math.sign(fyr || 1) * (bh / 2 - 1), xb = Math.max(x0 + r + 2 * u, Math.min(-x0 - r - 2 * u, fxr * .5));
-    b1 = [xb - 1.6 * u, ey]; b2 = [xb + 1.6 * u, ey]; tip = [xb + (fxr - xb) * .3, ey + Math.sign(fyr || 1) * 4.5 * u];
+    b1 = [xb - 1.2 * u, ey]; b2 = [xb + 1.2 * u, ey]; tip = [xb + (fxr - xb) * .3, ey + Math.sign(fyr || 1) * 3.4 * u];
   }
   // 外框與尾巴畫成同一個形狀：先描粗黑邊，再填白，接縫就不會出現
   const shape = () => {
@@ -1308,10 +1308,10 @@ function speech(W, H, s, u, t, ease) {
     ctx.moveTo(...b1); ctx.lineTo(...tip); ctx.lineTo(...b2); ctx.closePath();
   };
   ctx.lineJoin = 'round';
-  shape(); ctx.strokeStyle = '#120a1c'; ctx.lineWidth = 1.2 * u; ctx.stroke();
+  shape(); ctx.strokeStyle = '#120a1c'; ctx.lineWidth = .7 * u; ctx.stroke();
   shape(); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.fillStyle = '#120a1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  lines.forEach((l, i) => ctx.fillText(l, 0, y0 + 2.2 * u + px * 1.3 * (i + .5)));
+  lines.forEach((l, i) => ctx.fillText(l, 0, y0 + 1.6 * u + px * 1.3 * (i + .5)));
   ctx.restore();
 }
 
@@ -1433,12 +1433,12 @@ function standCard(W, H, s, pos) {
 function wishBubble(W, H, s, u, box) {
   const text = state.wish; if (!text) return;
   const L = state.lang, mode = /^[\x00-\x7F]*$/.test(text) ? 'en' : 'zh';
-  const px = 4.3 * u, lh = px * 1.32;
+  const px = 3.1 * u, lh = px * 1.3;
   ctx.save(); ctx.font = FONT.zh(700, px);
-  const lines = wrapLines(text, Math.min(W * .56, 50 * u), mode).slice(0, 3);
+  const lines = wrapLines(text, Math.min(W * .46, 40 * u), mode).slice(0, 3);
   const label = { zh: '我的心願', ja: '願いごと', en: 'MY WISH' }[L];
-  const bw = Math.max(26 * u, ...lines.map((l) => ctx.measureText(l).width)) + 7 * u;
-  const bh = lines.length * lh + 8.4 * u;
+  const bw = Math.max(18 * u, ...lines.map((l) => ctx.measureText(l).width)) + 5 * u;
+  const bh = lines.length * lh + 6 * u;
   const hx = (box.hx0 + box.hx1) / 2 * W, hy = box.y0 * H, hw = (box.hx1 - box.hx0) * W;
   const minY = TITLE_H * u + 2 * u, maxY = H - bh - 4 * u;
   // 要避開的東西：臉（最重要）、標題、人格標籤大字、神的台詞框、六角圖
@@ -1476,22 +1476,22 @@ function wishBubble(W, H, s, u, box) {
   const R = state.speechRect;
   const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1.4) * 2));
   ctx.globalAlpha = show;
-  const x0 = bx - bw / 2, r = 3.4 * u;
+  const x0 = bx - bw / 2, r = 2.4 * u;
   // 想法泡泡：從對話框往頭頂排兩顆小圓
   // 指向臉最靠近對話框的那一側（不是頭頂），小圓點才不會畫在臉上
   const tx = Math.max(face.x0, Math.min(face.x1, bx)), ty = Math.max(face.y0, Math.min(face.y1, by + bh / 2));
   const ex = Math.max(x0 + r, Math.min(x0 + bw - r, tx)), ey = Math.max(by, Math.min(by + bh, ty));
   const inFace = (x, y) => x > face.x0 && x < face.x1 && y > face.y0 && y < face.y1;
   const dx = tx - ex, dy = ty - ey, dl = inFace(bx, by + bh / 2) ? 0 : Math.hypot(dx, dy);
-  ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = s.text; ctx.lineWidth = .7 * u;
+  ctx.fillStyle = 'rgba(255,250,240,.9)'; ctx.strokeStyle = s.text; ctx.lineWidth = .45 * u;
   if (dl > 5 * u) for (const [k, rr] of [[.35, 1.6], [.7, 1]]) { const qx = ex + dx * k, qy = ey + dy * k; if ((R && qx > R.x0 && qx < R.x1 && qy > R.y0 && qy < R.y1) || inFace(qx, qy)) continue; ctx.beginPath(); ctx.arc(ex + dx * k, ey + dy * k, rr * u, 0, 7); ctx.fill(); ctx.stroke(); }
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 2 * u;
   ctx.beginPath(); ctx.roundRect(x0, by, bw, bh, r); ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = s.text; ctx.font = `800 ${2.5 * u}px "Noto Sans TC", system-ui, sans-serif`;
-  ctx.fillText(`✦ ${label} ✦`, bx, by + 4 * u);
+  ctx.fillStyle = s.text; ctx.font = `800 ${1.9 * u}px "Noto Sans TC", system-ui, sans-serif`;
+  ctx.fillText(`✦ ${label} ✦`, bx, by + 2.9 * u);
   ctx.fillStyle = '#2a1a10'; ctx.font = FONT.zh(700, px);
-  lines.forEach((l, i) => ctx.fillText(l, bx, by + 5.2 * u + lh * (i + .78)));
+  lines.forEach((l, i) => ctx.fillText(l, bx, by + 3.9 * u + lh * (i + .78)));
   ctx.restore();
 }
 
