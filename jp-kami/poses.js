@@ -80,6 +80,8 @@ function palmCenter(h, W, H) {
 export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   const dt = Math.min(.1, Math.max(0, t - (S.lastT || t))); S.lastT = t;
   const glow = stand?.glow || '#bfe4ff';
+  if (lm) { S.lastLm = lm; S.lastLmT = t; }
+  else if (S.lastLm && t - S.lastLmT < 2.5 && S.hands.length) lm = S.lastLm;   // 手擋住臉：沿用剛剛的臉
   let face = null;
   if (lm) {
     const xs = lm.map((p) => p.x * W), ys = lm.map((p) => p.y * H);
@@ -92,7 +94,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   let near = null;
   if (face) for (const h of hands) {
     const c = palmCenter(h, W, H);
-    if (Math.abs(c[1] - face.cy) < face.h * .55 && Math.abs(c[0] - face.cx) < face.w * .75) {
+    if (Math.abs(c[1] - face.cy) < face.h * .7 && Math.abs(c[0] - face.cx) < face.w * .8) {
       // 看手在鼻子的哪一邊，就是哪一邊的臉
       const nose = P(lm, 1, W, H), a = P(lm, 263, W, H);
       near = (c[0] - nose[0]) * (a[0] - nose[0]) > 0 ? 'A' : 'B';
@@ -120,7 +122,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .75) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
   else if (S.fire < .1) S.fireFired = false;
   if (S.fire > .02 && S.firePalm) {
-    if (S.fireLm) drawAnimeFire(ctx, S.fireLm, W, H, u, t, S.fire, dt);
+    if (S.fireLm) drawRealFire(ctx, S.fireLm, W, H, u, t, S.fire, dt);
     else drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
   }
 
@@ -443,6 +445,54 @@ function drawAnimeFire(ctx, h, W, H, u, t, k, dt) {
     e.x += e.vx * dt + Math.sin(t * 6 + i) * hw * .01; e.y += e.vy * dt;
     ctx.globalAlpha = e.life;
     ctx.fillStyle = '#bfe8ff'; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── 寫實火焰：幾百顆會發光的小火粒，從指尖和掌心往上竄、左右搖晃，顏色由白熱→金橘→紅→紫慢慢褪去 ──
+const FIRE = [];                     // 火粒
+let sprites = null;
+function fireSprites() {
+  // 先畫好幾張柔邊的光點（不同顏色），畫火時直接貼，手機才跑得動
+  const cols = [[255, 250, 225], [255, 214, 120], [255, 150, 50], [255, 80, 30], [220, 40, 70], [150, 50, 200], [90, 40, 170]];
+  sprites = cols.map(([r, g, b]) => {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+    const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.35, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return c;
+  });
+}
+function drawRealFire(ctx, h, W, H, u, t, k, dt) {
+  if (!sprites) fireSprites();
+  const hw = dist(P(h, 5, W, H), P(h, 17, W, H)) || u * 8, pw = .7 + .6 * (S.firePower || 0);
+  // 產生新火粒：指尖多、掌心多一點，越用力越多
+  const spawn = [[4, 1], [8, 2], [12, 2], [16, 2], [20, 1], [9, 2], [5, 1], [17, 1]];
+  const nf = k * pw * 1.7, n = Math.floor(nf) + (Math.random() < nf % 1 ? 1 : 0);
+  for (const [i, w] of spawn) for (let j = 0; j < w * n; j++) {
+    const [x, y] = P(h, i, W, H);
+    FIRE.push({ x: x + (Math.random() - .5) * hw * .25, y: y + (Math.random() - .5) * hw * .2,
+      vx: (Math.random() - .5) * hw * .6, vy: -hw * (1.4 + Math.random() * 1.4) * pw,
+      life: 0, max: .35 + Math.random() * .4, size: hw * (.12 + Math.random() * .12) * pw, seed: Math.random() * 9 });
+  }
+  if (FIRE.length > 900) FIRE.splice(0, FIRE.length - 900);
+  ctx.save();
+  // 手上被火照亮的暖光
+  const pc = palmCenter(h, W, H);
+  const glow = ctx.createRadialGradient(pc[0], pc[1] - hw * .4, 0, pc[0], pc[1] - hw * .4, hw * 2.2);
+  glow.addColorStop(0, `rgba(255,140,60,${.22 * k})`); glow.addColorStop(.5, `rgba(200,60,120,${.08 * k})`); glow.addColorStop(1, 'rgba(120,40,160,0)');
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(pc[0], pc[1] - hw * .4, hw * 2.2, 0, 7); ctx.fill();
+  for (let i = FIRE.length - 1; i >= 0; i--) {
+    const f = FIRE[i]; f.life += dt;
+    const a = f.life / f.max; if (a >= 1) { FIRE.splice(i, 1); continue; }
+    // 往上竄、越往上越左右搖（亂流）、越往上越慢
+    f.vx += Math.sin(t * 9 + f.seed + f.y * .02) * hw * 6 * dt;
+    f.x += f.vx * dt; f.y += f.vy * dt; f.vy *= 1 - .8 * dt;
+    // 顏色：剛冒出來白熱，接著金橘、紅，最後是紫色的煙
+    const ci = Math.min(sprites.length - 1, Math.floor(a * sprites.length));
+    const sz = f.size * (a < .3 ? .6 + a * 1.4 : 1.02 - (a - .3) * .6);
+    ctx.globalAlpha = Math.min(1, (1 - a) * 1.5) * k * (ci >= 5 ? .4 : .7);
+    ctx.drawImage(sprites[ci], f.x - sz, f.y - sz, sz * 2, sz * 2);
   }
   ctx.restore();
 }
