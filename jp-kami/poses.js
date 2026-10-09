@@ -391,23 +391,23 @@ function tongue(ctx, x, y, w, h, t, seed, cols, k) {
 }
 function drawAnimeFire(ctx, h, W, H, u, t, k, dt) {
   const pc = palmCenter(h, W, H), hw = dist(P(h, 5, W, H), P(h, 17, W, H));      // 手掌寬
-  const cols = ['rgba(30,70,255,.85)', 'rgba(70,170,255,.92)', 'rgba(190,240,255,.95)', 'rgba(255,255,255,1)'];
+  const cols = ['rgba(40,90,255,.45)', 'rgba(90,180,255,.55)', 'rgba(220,245,255,.8)'];
   ctx.save();
   // 外圍光暈
   const g = ctx.createRadialGradient(pc[0], pc[1] - hw * .6, 0, pc[0], pc[1] - hw * .6, hw * 2.4);
-  g.addColorStop(0, `rgba(80,150,255,${.55 * k})`); g.addColorStop(1, 'rgba(40,80,255,0)');
+  g.addColorStop(0, `rgba(80,150,255,${.25 * k})`); g.addColorStop(1, 'rgba(40,80,255,0)');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pc[0], pc[1] - hw * .6, hw * 2.4, 0, 7); ctx.fill();
   ctx.shadowColor = 'rgba(90,160,255,.9)'; ctx.shadowBlur = hw * .15;
   // 掌心大火
-  tongue(ctx, pc[0], pc[1] + hw * .45, hw * .8, hw * 2.6, t, 0, cols, k);
+  tongue(ctx, pc[0], pc[1] + hw * .2, hw * .45, hw * 1.3, t, 0, cols, k);
   // 每根指尖的火舌
   [4, 8, 12, 16, 20].forEach((i, j) => {
     const [x, y] = P(h, i, W, H);
-    tongue(ctx, x, y + hw * .12, hw * .26, hw * (1 + .3 * Math.sin(t * 7 + j)), t, j * 1.9 + 1, cols, k);
+    if (j % 2 === 0) tongue(ctx, x, y + hw * .06, hw * .13, hw * (.45 + .15 * Math.sin(t * 7 + j)), t, j * 1.9 + 1, cols, k);   // 只有拇指、中指、小指冒小火苗
   });
   ctx.shadowBlur = 0;
   // 往上飄的火星
-  if (Math.random() < k * .9) embers.push({ x: pc[0] + (Math.random() - .5) * hw, y: pc[1] - hw * .5, vx: (Math.random() - .5) * hw * .8, vy: -hw * (1.5 + Math.random() * 2), life: .9, r: hw * (.03 + Math.random() * .04) });
+  if (Math.random() < k * .35) embers.push({ x: pc[0] + (Math.random() - .5) * hw, y: pc[1] - hw * .5, vx: (Math.random() - .5) * hw * .8, vy: -hw * (1.5 + Math.random() * 2), life: .9, r: hw * (.03 + Math.random() * .04) });
   ctx.globalCompositeOperation = 'lighter';
   for (let i = embers.length - 1; i >= 0; i--) {
     const e = embers[i]; e.life -= dt; if (e.life <= 0) { embers.splice(i, 1); continue; }
@@ -424,31 +424,31 @@ function drawTriLight(ctx, W, H, u, t, tri, k, glow, hold) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   // 光束：從三角形中心往外，慢慢轉
-  const n = 12, L = Math.hypot(W, H) * (.18 + .3 * charge);
+  const n = 8, L = size * (1.2 + 1.2 * charge);
   for (let i = 0; i < n; i++) {
     const an = i / n * Math.PI * 2 + t * .4, w = .05 + .03 * Math.sin(t * 5 + i * 1.7);
     const gg = ctx.createLinearGradient(c[0], c[1], c[0] + Math.cos(an) * L, c[1] + Math.sin(an) * L);
-    gg.addColorStop(0, `rgba(255,250,220,${.3 * k})`); gg.addColorStop(1, 'rgba(255,240,180,0)');
+    gg.addColorStop(0, `rgba(255,250,220,${.22 * k})`); gg.addColorStop(1, 'rgba(255,240,180,0)');
     ctx.fillStyle = gg; ctx.beginPath(); ctx.moveTo(c[0], c[1]);
     ctx.lineTo(c[0] + Math.cos(an - w) * L, c[1] + Math.sin(an - w) * L); ctx.lineTo(c[0] + Math.cos(an + w) * L, c[1] + Math.sin(an + w) * L); ctx.fill();
   }
   // 大光暈
   const bloom = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], size * (1.4 + 1.2 * charge));
-  bloom.addColorStop(0, `rgba(255,255,255,${.8 * k})`); bloom.addColorStop(.25, `rgba(255,236,170,${.35 * k})`); bloom.addColorStop(1, 'rgba(255,200,100,0)');
+  bloom.addColorStop(0, `rgba(255,255,255,${.55 * k})`); bloom.addColorStop(.25, `rgba(255,236,170,${.2 * k})`); bloom.addColorStop(1, 'rgba(255,200,100,0)');
   ctx.fillStyle = bloom; ctx.beginPath(); ctx.arc(c[0], c[1], size * (1.4 + 1.2 * charge), 0, 7); ctx.fill();
   // 三角形空洞：填滿白金色的光
   ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
-  ctx.fillStyle = `rgba(255,248,215,${.85 * k})`; ctx.fill();
+  ctx.fillStyle = `rgba(255,248,215,${.6 * k})`; ctx.fill();
   // 發光的三角形外框（比手大一圈，有點動漫魔法陣的感覺）
   ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = `rgba(255,220,120,${.9 * k})`; ctx.lineWidth = u * .8; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = u * 4;
+  ctx.strokeStyle = `rgba(255,220,120,${.55 * k})`; ctx.lineWidth = u * .4; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = u * 4;
   const R = size * (1.1 + .25 * charge), rot = -Math.PI / 2;
-  for (const [rr, dir] of [[R, 1], [R * 1.35, -1]]) {
+  for (const [rr, dir] of [[R, 1]]) {
     ctx.beginPath();
     for (let i = 0; i <= 3; i++) { const an = rot + dir * t * .3 + i * Math.PI * 2 / 3; const x = c[0] + Math.cos(an) * rr, y = c[1] + Math.sin(an) * rr; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.stroke();
   }
-  ctx.beginPath(); ctx.arc(c[0], c[1], R * 1.55, 0, 7); ctx.lineWidth = u * .4; ctx.stroke();
+  
   ctx.restore();
 }
 
@@ -475,14 +475,14 @@ function drawSeal(ctx, W, H, u, age, glow) {
   const k = age < .2 ? age / .2 : Math.max(0, 1 - (age - 1.6) / 1);
   ctx.save();
   // 閃光
-  if (age < .25) { ctx.globalAlpha = (1 - age / .25) * .5; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+  if (age < .2) { ctx.globalAlpha = (1 - age / .2) * .25; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
   // 集中線（漫畫的速度線）：從畫面邊緣往中間
-  ctx.globalAlpha = .55 * k; ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = .22 * k; ctx.fillStyle = '#ffffff';
   const cx = W / 2, cy = H * .45, R = Math.hypot(W, H) * .6;
   let seed = 7;
   const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  for (let i = 0; i < 90; i++) {
-    const an = rnd() * Math.PI * 2, w = .004 + rnd() * .012, r0 = R * (.55 + rnd() * .2);
+  for (let i = 0; i < 50; i++) {
+    const an = rnd() * Math.PI * 2, w = .003 + rnd() * .007, r0 = R * (.7 + rnd() * .15);
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(an - w) * R, cy + Math.sin(an - w) * R);
     ctx.lineTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0);
@@ -490,13 +490,13 @@ function drawSeal(ctx, W, H, u, age, glow) {
     ctx.fill();
   }
   // 神光
-  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .5 * k;
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .22 * k;
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, W * .7);
   g.addColorStop(0, glow); g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   // 大字
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = k;
-  const s = 1 + Math.max(0, .3 - age) * 2.5, px = 16 * u * s;
+  const s = 1 + Math.max(0, .3 - age) * 1.2, px = 9 * u * s;
   ctx.font = `900 ${px}px "Noto Sans TC", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .14; ctx.strokeStyle = '#120a1c';
   ctx.save(); ctx.translate(cx, H * .58); ctx.rotate(-.08);
