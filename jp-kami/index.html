@@ -209,6 +209,11 @@
   .modes .mode[aria-pressed="true"] { color: #ffd60a; background: rgba(255,255,255,.14); }
   #cam.ios .controls .round { background: rgba(40,40,44,.72); border: 0; width: 52px; height: 52px; }
   #cam.ios .shutter { border-color: #fff; }
+  .modes.types .mode { font-size: 13px; padding: 6px 12px; }
+  .shutter.video span { background: #ff3b30; }
+  .shutter.recording span { transform: scale(.55); border-radius: 8px; background: #ff3b30; }
+  .rec-time { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 12px; border-radius: 8px; background: #ff3b30; color: #fff; font: 700 14px/1 var(--body); }
+  .sheet video { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
 
   .sheet {
     position: fixed; inset: 0; z-index: 50; background: #0b0812; display: grid; grid-template-rows: minmax(0, 1fr) auto;
@@ -244,7 +249,7 @@
     </div>
     <p class="fine">這是認識自己旅行性格的小遊戲，以尊敬的心介紹日本神話與民間信仰的神獸、神明，不是宗教儀式，也不是算命。答案只存在你的手機裡。</p>
   </div>
-<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v3</span></p>
+<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v4</span></p>
 </section>
 
 <!-- 測驗 -->
@@ -341,6 +346,7 @@
     <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓神明換邊站"></canvas>
     <video id="video" playsinline muted></video>
     <div class="flash" id="flash"></div>
+    <div class="rec-time" id="recTime" hidden>● 0s</div>
     <div class="start" id="start">
       <div class="sfx-hero" aria-hidden="true">⛩ 旅神到 ⛩</div>
       <p>開啟相機後，守護神會出現在你身邊，跟著你移動。還有動漫 pose 彩蛋：在下方點「🎭 面具／🔥 神火／🙏 結印」，畫面會告訴你手要放哪裡，擺到位就會出現特效。</p>
@@ -373,6 +379,7 @@
 
 <div class="sheet" id="sheet" hidden>
   <img id="photo" alt="和神明的合照">
+  <video id="clip" playsinline loop muted controls hidden></video>
   <div class="row">
     <button class="primary" id="share">分享照片</button>
     <a class="secondary" id="save" download="photo.jpg">存到手機相簿</a>

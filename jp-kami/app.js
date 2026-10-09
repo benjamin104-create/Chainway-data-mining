@@ -1,5 +1,6 @@
 import { FilesetResolver, ImageSegmenter, FaceDetector, FaceLandmarker, HandLandmarker } from './lib/vision_bundle.mjs';
-import { initHands, detectHands, drawPoseFX, resetPoses, setGuide } from './poses.js';
+import { initHands, detectHands, drawPoseFX, resetPoses, setGuide, setOnTrigger, poseState, palmCenter, openPalm } from './poses.js';
+import { drawAR, powerUp, tapAt, godMotion, arState } from './ar.js';
 import { createBeautyGL } from './beauty-gl.js';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
@@ -1020,10 +1021,11 @@ function render(now) {
     const sh = P.sh, sw = sh * a.width / a.height;
     // 擺 pose：每 4.5 秒用力一次（放大＋光圈），其餘時間呼吸、輕晃
     const ph = (t + 1) % 4.5, pulse = ph < .6 ? Math.sin(ph / .6 * Math.PI) : 0;
-    const scale = (1 + Math.sin(t * 1.2) * .008 + pulse * .015) * (.85 + .15 * ease);
+    const gm = godMotion(t, u);                    // AR 互動：被點會跳、發功會放大發光
+    const scale = (1 + Math.sin(t * 1.2) * .008 + pulse * .015) * (.85 + .15 * ease) * gm.scale;
     const rot = P.lean * .5 + Math.sin(t * .9) * .01;
     const bob = Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .3;
-    const fx = P.x, fy = P.y + bob;                // 頭頂位置
+    const fx = P.x, fy = P.y + bob + gm.dy;        // 頭頂位置
     state.standHead = { x: fx, y: fy, sw, sh };
     holyLight(fx, fy, sw, sh, t, s, u);            // 神明身後的透明神光
     if (false) {                                   // 日本篇不用衝擊光圈
@@ -1043,7 +1045,7 @@ function render(now) {
     // 柔和：降低對比、微微柔焦、半透明；再疊一層模糊的光，讓神明像是從光裡現身
     ctx.globalAlpha = .82 * ease;
     if (FILTER_OK) ctx.filter = `saturate(.8) contrast(.86) brightness(1.08) blur(${.12 * u}px)`;
-    ctx.shadowColor = s.glow; ctx.shadowBlur = 9 * u;
+    ctx.shadowColor = s.glow; ctx.shadowBlur = 9 * u * (1 + gm.glow * 2.5);
     ctx.drawImage(a, -sw / 2, -sh, sw, sh);
     ctx.shadowBlur = 0;
     if (FILTER_OK) {
@@ -1068,6 +1070,7 @@ function render(now) {
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(beautify(W, H, u), 0, 0);
   drawPoseFX(ctx, W, H, u, t, state.lm, s, state.capturing);   // 動漫姿勢彩蛋：面具、狐火、結印
+  drawAR(ctx, W, H, u, t, poseState.hands, state.standHead, s.glow, (h) => palmCenter(h, W, H), (h) => openPalm(h, W, H));   // 靈光、神力光流
   if (L === 'opening' || godFront) drawGod();      // 片頭／人太近：神在最前面
 
   state.godFront = state.godFrontNext;
@@ -1253,7 +1256,7 @@ function wrapLines(text, maxW, L) {
   return lines;
 }
 function speech(W, H, s, u, t, ease) {
-  const L = state.lang, hd = state.standHead, text = s.line[L];
+  const L = state.lang, hd = state.standHead, tapped = performance.now() / 1000 - arState.tap < 3 && arState.tapLine, text = tapped ? arState.tapLine[L] : s.line[L];
   // 開場 1 秒後浮現，之後一直留著；每次擺 pose 時跳一下
   const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1) * 2));
   if (show <= 0) return;
@@ -1494,7 +1497,53 @@ function credit(W, H, u) {
 
 // ── 拍照與分享 ─────────────────────────────────────────
 let lastBlob = null, lastUrl = null;
+// ── 錄影：把整個 AR 畫面（神明、特效、靈光）錄成影片，最長 15 秒 ──
+let rec = null, captureType = 'photo', lastName = 'photo.jpg', lastType = 'image/jpeg';
+const typeRow = document.createElement('div'); typeRow.className = 'modes types'; typeRow.setAttribute('role', 'group'); typeRow.setAttribute('aria-label', '拍照或錄影');
+for (const [id, name] of [['video', '錄影'], ['photo', '拍照']]) {
+  const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
+  b.setAttribute('aria-pressed', String(id === captureType));
+  b.onclick = () => { if (rec) return; captureType = id; for (const x of typeRow.children) x.setAttribute('aria-pressed', String(x === b)); $('shot').classList.toggle('video', id === 'video'); };
+  typeRow.append(b);
+}
+document.querySelector('#cam footer').append(typeRow);
+function pickMime() {
+  for (const m of ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']) if (window.MediaRecorder?.isTypeSupported?.(m)) return m;
+  return '';
+}
+function startRec() {
+  if (!view.captureStream || !window.MediaRecorder) { notice('這個瀏覽器不支援錄影，可以改用拍照。'); return; }
+  const mime = pickMime(), stream = view.captureStream(30), chunks = [];
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5e6 } : undefined);
+  mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const type = (mr.mimeType || mime || 'video/webm').split(';')[0];
+    lastBlob = new Blob(chunks, { type }); lastType = type; lastName = type.includes('mp4') ? 'kami.mp4' : 'kami.webm';
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(lastBlob);
+    $('photo').hidden = true; const v = $('clip'); v.hidden = false; v.src = lastUrl; v.play().catch(() => {});
+    $('save').href = lastUrl; $('save').download = lastName; $('save').textContent = '存影片到相簿'; $('share').textContent = '分享影片';
+    $('copyShare').textContent = '複製邀請文字＋網址';
+    $('sheet').hidden = false;
+  };
+  mr.start(250);
+  rec = { mr, t0: performance.now(), timer: setInterval(() => {
+    const s = (performance.now() - rec.t0) / 1000;
+    $('recTime').textContent = `● ${Math.floor(s)}s`;
+    if (s >= 15) stopRec();
+  }, 200) };
+  $('shot').classList.add('recording'); $('recTime').hidden = false; $('recTime').textContent = '● 0s';
+}
+function stopRec() {
+  if (!rec) return;
+  clearInterval(rec.timer); rec.mr.stop(); rec = null;
+  $('shot').classList.remove('recording'); $('recTime').hidden = true;
+}
 $('shot').onclick = () => {
+  if (captureType === 'video') { rec ? stopRec() : startRec(); return; }
+  $('clip').hidden = true; $('clip').pause(); $('photo').hidden = false;
+  $('save').download = lastName = 'photo.jpg'; lastType = 'image/jpeg'; $('save').textContent = '存到手機相簿'; $('share').textContent = '分享照片';
   const f = $('flash'); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
   state.capturing = true;                        // 先畫一格沒有站位虛線的畫面再存
   requestAnimationFrame(() => requestAnimationFrame(() => view.toBlob((blob) => {
@@ -1513,7 +1562,7 @@ function shareText() {
   return s ? `守護我出門的是${s.zh}！誰是守護你出門的神？來測 → ${url}` : url;
 }
 $('share').onclick = async () => {
-  const s = state.stand, file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  const s = state.stand, file = new File([lastBlob], lastName, { type: lastType });
   const title = s ? `守護我出門的神：${s.zh}` : '';
   try {
     if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title, text: shareText() });
@@ -1529,7 +1578,7 @@ $('copyShare').onclick = async () => {
 // 儲存照片：iPhone 的網頁「下載」只會存到「檔案」App，改叫出分享選單，按「儲存影像」就會進相簿
 $('save').onclick = async (e) => {
   if (!lastBlob) return;
-  const file = new File([lastBlob], 'photo.jpg', { type: 'image/jpeg' });
+  const file = new File([lastBlob], lastName, { type: lastType });
   if (navigator.canShare?.({ files: [file] })) {
     e.preventDefault();
     try { await navigator.share({ files: [file] }); }
@@ -1541,7 +1590,29 @@ $('close').onclick = () => { $('sheet').hidden = true; };
 $('go').onclick = async () => { $('go').disabled = true; await modelReady; await startCamera(); $('go').disabled = false; };
 $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; startCamera(); };
 // 神明換邊：在上方「構圖」裡
-view.onclick = () => { if (!document.querySelector('#cam .pop:not([hidden])')) state.side *= -1; };
+const TAP_LINES = [
+  { zh: '嗯？叫我嗎？', ja: 'ん？呼んだ？', en: 'Hm? You called?' },
+  { zh: '一起拍一張吧！', ja: '一緒に撮ろう！', en: "Let's take one together!" },
+  { zh: '擺個帥一點的 pose！', ja: 'かっこいいポーズでいこう！', en: 'Strike a cool pose!' },
+  { zh: '準備好出發了嗎？', ja: '出発の準備はいい？', en: 'Ready for the journey?' },
+  { zh: '我一直都在你身後喔。', ja: 'いつだって後ろにいるよ。', en: "I'm always right behind you." },
+];
+view.onclick = (e) => {
+  if (document.querySelector('#cam .pop:not([hidden])')) return;
+  const r = view.getBoundingClientRect(), k = Math.max(view.width / r.width, view.height / r.height);
+  const x = (e.clientX - r.left - (r.width - view.width / k) / 2) * k, y = (e.clientY - r.top - (r.height - view.height / k) / 2) * k;
+  if (!tapAt(x, y, performance.now() / 1000, TAP_LINES)) state.side *= -1;   // 點到神明：神明回應；點其他地方：神明換邊
+};
+// 姿勢成功：神明發功，光流飛向你；選了動漫 pose 模式時自動拍照（錄影中就不拍）
+let autoShotAt = 0;
+setOnTrigger((kind, at) => {
+  const t = performance.now() / 1000;
+  powerUp(at, state.stand?.glow, t);
+  if (poseMode && !rec && t - autoShotAt > 5 && $('sheet').hidden) {
+    autoShotAt = t;
+    setTimeout(() => { if (!rec && $('sheet').hidden) $('shot').click(); }, kind === 'seal' ? 700 : 1100);
+  }
+});
 $('pick').onclick = () => $('file').click();
 $('pick2').onclick = () => $('file').click();
 $('file').onchange = async () => {

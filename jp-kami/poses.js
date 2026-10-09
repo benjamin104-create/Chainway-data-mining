@@ -43,6 +43,10 @@ export function detectHands(src, now) {
 export function setGuide(kind, onDone) { S.guide = kind; S.guideOk = null; S.onGuideDone = onDone; }
 export function resetPoses() { S.hands = []; S.mask = null; S.seal = null; S.fire = 0; S.shards = []; }
 export const poseState = S;
+// 姿勢成功時通知外面（神明發功、自動拍照）：fn(kind, [x, y]) 打中的位置
+export function setOnTrigger(fn) { S.onTrigger = fn; }
+export { palmCenter, openPalm };
+const fireTrig = (kind, at) => { try { S.onTrigger?.(kind, at); } catch (e) { console.warn(e); } };
 
 const P = (L, i, W, H) => [L[i].x * W, L[i].y * H];
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -85,7 +89,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   }
   S.maskHold = near ? S.maskHold + dt : 0;
   if (near && S.maskHold > .5 && (!S.mask || S.mask.until < t + 6)) {
-    if (!S.mask || S.mask.side !== near || t > S.mask.until) { S.mask = { side: near, t0: t }; burst(face, near, lm, W, H); }
+    if (!S.mask || S.mask.side !== near || t > S.mask.until) { S.mask = { side: near, t0: t }; burst(face, near, lm, W, H); fireTrig('mask', [face.cx, face.cy]); }
     S.mask.until = t + 10; S.used = true; done('mask', t);
   }
   if (S.mask && t > S.mask.until + .6) S.mask = null;
@@ -100,7 +104,8 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     if (face ? c[1] < face.y1 + face.h * .2 : c[1] < H * .55) fireHand = c;
   }
   S.fire = lerp(S.fire, fireHand ? 1 : 0, fireHand ? .25 : .08);
-  if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .8) done('fire', t); }
+  if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .8) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
+  else if (S.fire < .1) S.fireFired = false;
   if (S.fire > .02 && S.firePalm) drawFoxFire(ctx, S.firePalm, u, t, S.fire, face ? face.w : W * .25);
 
   // ── 3. 結印：兩隻手的手腕、指尖都靠在一起 ──
@@ -110,7 +115,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     sealing = dist(P(a, 0, W, H), P(b, 0, W, H)) < ref * .9 && dist(P(a, 8, W, H), P(b, 8, W, H)) < ref * .5;
   }
   S.sealHold = sealing ? S.sealHold + dt : 0;
-  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; done('seal', t); }
+  if (S.sealHold > .4 && (!S.seal || t - S.seal.t0 > 3)) { S.seal = { t0: t }; S.used = true; done('seal', t); const [a2, b2] = hands; fireTrig('seal', [(a2[0].x + b2[0].x) / 2 * W, (a2[0].y + b2[0].y) / 2 * H]); }
   if (S.seal && t - S.seal.t0 < 2.6) drawSeal(ctx, W, H, u, t - S.seal.t0, glow);
 
   drawShards(ctx, dt);
