@@ -36,7 +36,7 @@ try {
 
 const rememberedChar = store.get('char');
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'free', facing: 'user',
-  outfit: params.get('fit')==='physics'?'physics':'real', weapon: store.get('weapon-v2') || 'none', camOrigin: 'intro' };
+  outfit: params.get('fit')==='physics'?'physics':'real', fabric:['pattern','ink','indigo'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon: store.get('weapon-v2') || 'none', camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -215,15 +215,17 @@ $('roster').replaceChildren(...ORDER.map((id) => {
 }));
 // 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
 const OUTFITS = [['real', '原版照片貼合'],['physics','3D 物理布料（測試）']];
+const FABRICS = [['indigo','霧藍織布'],['ink','墨黑織布'],['pattern','角色印花']];
 const WEAPON_CHOICES = [['none', '不持武器'], ['own', '角色武器'], ['katana', '打刀'], ['wakizashi','脇差'], ['kodachi', '小太刀'], ['nito', '大小二刀']];
 function gearChips() {
   const mk = (group, id, label) => {
     const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.dataset.group = group; b.dataset.id = id;
-    b.onclick = () => { state[group] = id; if(group==='outfit')haori3d?.reset(); store.set(group === 'weapon' ? 'weapon-v2' : group, id); syncChips(); };
+    b.onclick = () => { state[group] = id; if(group==='outfit'||group==='fabric')haori3d?.reset(); store.set(group === 'weapon' ? 'weapon-v2' : group, id); syncChips(); };
     return b;
   };
   const sep = document.createElement('span'); sep.className = 'sep';
   $('gear').replaceChildren(...OUTFITS.map(([id, l]) => mk('outfit', id, l)), sep, ...WEAPON_CHOICES.map(([id, l]) => mk('weapon', id, l)));
+  $('fabrics').replaceChildren(...FABRICS.map(([id,l])=>mk('fabric',id,l)));
 }
 gearChips();
 $('customizeBtn').onclick = () => {
@@ -248,6 +250,8 @@ function gear(id = state.char) {
 }
 function syncChips() {
   $('cam').dataset.realism=String(state.outfit==='physics');
+  $('fabrics').hidden=state.outfit!=='physics';
+  for (const b of $('fabrics').children) b.setAttribute('aria-pressed',String(state.fabric===b.dataset.id));
   for (const b of $('gear').querySelectorAll('.chip')) b.setAttribute('aria-pressed', String(state[b.dataset.group] === b.dataset.id));
   for (const b of $('modes').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.mode));
   for (const b of $('roster').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.char));
@@ -428,7 +432,7 @@ function videoLight(source = video) {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   // Still photos redraw only when tracking/model/garment/control state changes.
-  const photoKey = [!!cam.pose, !!cam.parts, state.outfit, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+  const photoKey = [!!cam.pose, !!cam.parts, state.outfit,state.fabric, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
     fit.width, fit.length, stage.width, stage.height].join('|');
   if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
     const began=performance.now();renderFrame(now);cam.renderMs=performance.now()-began; cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
@@ -576,7 +580,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     if(!capture)cam.clothEase = cam.clothEase==null?measuredEase:cam.clothEase*.92+measuredEase*.08;
     const usePhysics=state.outfit==='physics';
     let rendered;
-    if(usePhysics){haori3d ||=new Haori3D();rendered=haori3d.render(W,H,kp,c,{fit,ease:cam.clothEase||measuredEase,photo:cam.photoMode,capture,now,light:sceneLight(ctx,kp,cam.light??1)});}
+    if(usePhysics){haori3d ||=new Haori3D();rendered=haori3d.render(W,H,kp,c,{fit,fabric:state.fabric,ease:cam.clothEase||measuredEase,photo:cam.photoMode,capture,now,light:sceneLight(ctx,kp,cam.light??1)});}
     else {const ready=drawRealHaori(gg,kp,c,cam.light??1,fit);rendered={ready,valid:ready,unsupported:buildHaoriRig(kp)?.unsupported};$('physicsReport').textContent='原版為 2.5D 照片貼合；未啟用布料物理。切換「3D 物理布料（測試）」才會顯示物理檢查。';}
     const outfitReady=rendered.ready,unsupported=rendered.unsupported;
     cam.fitValid=outfitReady&&rendered.valid;

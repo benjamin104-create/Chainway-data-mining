@@ -251,13 +251,14 @@
     <div class="cam-quick"><div class="chips" id="modes"></div><span class="fine" id="photoModeLabel" hidden>照片試穿</span><button class="chip" id="customizeBtn" aria-expanded="false">造型</button></div>
     <div class="customize" id="customizer" hidden>
       <div class="chips" id="gear"></div>
+      <div class="chips" id="fabrics" aria-label="布料外觀"></div>
       <div class="chips" id="roster"></div>
       <div class="fit-controls">
         <p class="fine">已自動依骨架貼合；寬鬆度與衣長可小幅微調。</p>
         <label>寬鬆度 <output id="fit-width-value">100%</output><input id="fit-width" type="range" min="85" max="120" value="100" aria-label="羽織寬鬆度"></label>
         <label>衣長 <output id="fit-length-value">100%</output><input id="fit-length" type="range" min="80" max="120" value="100" aria-label="羽織衣長"></label>
         <button class="chip" id="fitReset">還原自動貼合</button>
-        <p class="fine">3D 視角與重力垂墜。大幅轉身、背面及衣服精確尺碼尚不支援。</p>
+        <p class="fine">物理模式 v13：落肩寬袖、翻折前襟與重力垂墜。素色／角色印花可切換；背面及精確尺碼尚不支援。</p>
         <details class="fine"><summary>布料物理檢查（模擬值）</summary><pre id="physicsReport" style="white-space:pre-wrap;font:inherit">等待人體與布料模型…</pre></details>
       </div>
     </div>
