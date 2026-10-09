@@ -11,7 +11,7 @@
 | 領航 | 八咫烏 yatagarasu | 天照大神 amaterasu |
 | 規劃 | 稻荷神狐 inari | 毘沙門天 bishamonten |
 | 冒險 | 龍神 ryujin | 大天狗 tengu |
-| 照顧 | 大口真神（神狼）okami | 木花咲耶姬 sakuya |
+| 照顧 | 大口真神（神狼）okami | 孔雀明王 kujaku |
 | 氣氛 | 招財貓 manekineko | 弁財天 benzaiten |
 | 結緣 | 因幡白兔 shirousagi | 大黑天 daikokuten |
 
