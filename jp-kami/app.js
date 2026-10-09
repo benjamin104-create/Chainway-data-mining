@@ -513,19 +513,59 @@ for (const [id, name] of LAYOUTS) {
 }
 $('sfx').before(layoutRow);
 // 動漫姿勢引導：點一下，畫面上會出現手要放哪裡；擺到位就有特效（再點一次取消）
-const poseRow = document.createElement('div'); poseRow.className = 'chips'; poseRow.setAttribute('role', 'group'); poseRow.setAttribute('aria-label', '動漫姿勢');
-{ const lb = document.createElement('span'); lb.className = 'chip-label'; lb.textContent = '動漫 pose'; poseRow.append(lb); }
-for (const [id, name] of [['mask', '🎭 面具'], ['fire', '🔥 神火'], ['seal', '🙏 結印']]) {
-  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = name; b.dataset.pose = id;
-  b.setAttribute('aria-pressed', 'false');
+// ── iPhone 相機式介面：畫面滿版，上方一排小圖示（點了才展開設定），快門上方是「模式」列 ──
+// 模式列：一般／面具／神火／結印。選了動漫 pose，畫面上會出現手要放哪裡的引導，擺到位 AR 特效就合成上去
+const poseRow = document.createElement('div'); poseRow.className = 'modes'; poseRow.setAttribute('role', 'group'); poseRow.setAttribute('aria-label', '拍照模式');
+let poseMode = null;
+const armGuide = () => setGuide(poseMode, () => { const m = poseMode; setTimeout(() => { if (poseMode === m) armGuide(); }, 7000); });   // 成功後過一陣子再提示一次
+for (const [id, name] of [[null, '一般'], ['mask', '🎭 面具'], ['fire', '🔥 神火'], ['seal', '🙏 結印']]) {
+  const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
+  b.setAttribute('aria-pressed', String(id === null));
   b.onclick = () => {
-    const on = b.getAttribute('aria-pressed') !== 'true';
-    for (const x of poseRow.querySelectorAll('.chip')) x.setAttribute('aria-pressed', String(on && x === b));
-    setGuide(on ? id : null, () => b.setAttribute('aria-pressed', 'false'));
+    poseMode = id;
+    for (const x of poseRow.children) x.setAttribute('aria-pressed', String(x === b));
+    armGuide();
   };
   poseRow.append(b);
 }
-$('sfx').before(poseRow);
+{
+  const cam = $('cam'), header = cam.querySelector('header'), footer = cam.querySelector('footer'), controls = footer.querySelector('.controls');
+  cam.classList.add('ios');
+  const tools = document.createElement('div'); tools.className = 'tools'; tools.setAttribute('role', 'toolbar');
+  const pop = document.createElement('div'); pop.className = 'pop'; pop.hidden = true;
+  cam.append(pop);
+  const sideRow = document.createElement('div'); sideRow.className = 'chips';
+  const sideBtn = document.createElement('button'); sideBtn.className = 'chip'; sideBtn.type = 'button'; sideBtn.textContent = '⇄ 神明換邊站';
+  sideBtn.onclick = () => { state.side *= -1; }; sideRow.append(sideBtn);
+  const panels = [
+    ['構圖', '▣', [layoutRow, sideRow]],
+    ['美顏', '✨', [$('sfx'), $('beautyPanel')]],
+    ['心願', '✍️', [document.querySelector('#cam .wish')]],
+    ['六角圖', '⬡', [cardRow]],
+    ['語言', '文', [langRow]],
+  ];
+  let open = null;
+  const close = () => { pop.hidden = true; open = null; for (const x of tools.children) x.setAttribute('aria-expanded', 'false'); };
+  for (const [name, icon, nodes] of panels) {
+    const box = document.createElement('div'); box.className = 'pop-panel'; box.hidden = true;
+    const h = document.createElement('b'); h.textContent = name; box.append(h, ...nodes.filter(Boolean));
+    pop.append(box);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = icon; b.title = name; b.setAttribute('aria-label', name); b.setAttribute('aria-expanded', 'false');
+    b.onclick = () => {
+      if (open === box) return close();
+      close(); open = box; pop.hidden = false; box.hidden = false; b.setAttribute('aria-expanded', 'true');
+      for (const x of pop.children) x.hidden = x !== box;
+    };
+    tools.append(b);
+  }
+  header.append(tools);
+  view.addEventListener('pointerdown', () => { if (open) close(); });
+  // 下方：模式列＋（相簿、快門、翻轉鏡頭）
+  const pick = $('pick'); pick.classList.add('round');
+  $('side').replaceWith(pick);
+  footer.prepend(poseRow);
+  new ResizeObserver(() => cam.style.setProperty('--foot', footer.offsetHeight + 'px')).observe(footer);
+}
 function notice(msg) { const n = $('notice'); n.textContent = msg; n.hidden = !msg; }
 
 // ── 人像分割模型（全部放在自己的網站上，不連外部服務） ──────
@@ -1500,8 +1540,8 @@ $('close').onclick = () => { $('sheet').hidden = true; };
 
 $('go').onclick = async () => { $('go').disabled = true; await modelReady; await startCamera(); $('go').disabled = false; };
 $('flip').onclick = () => { state.facing = state.facing === 'user' ? 'environment' : 'user'; startCamera(); };
-$('side').onclick = () => { state.side *= -1; };
-view.onclick = () => { state.side *= -1; };
+// 神明換邊：在上方「構圖」裡
+view.onclick = () => { if (!document.querySelector('#cam .pop:not([hidden])')) state.side *= -1; };
 $('pick').onclick = () => $('file').click();
 $('pick2').onclick = () => $('file').click();
 $('file').onchange = async () => {
