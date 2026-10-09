@@ -590,7 +590,7 @@ async function loadModel() {
     // 臉部 478 個定位點（美顏用）：載入失敗就退回只找眼睛位置的臉部偵測，不影響其他功能
     const lopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/face_landmarker.task', location.href).href, delegate }, runningMode: 'VIDEO', numFaces: 1 });
     const fopts = (delegate) => ({ baseOptions: { modelAssetPath: new URL('models/blaze_face_short_range.tflite', location.href).href, delegate }, runningMode: 'VIDEO', minDetectionConfidence: .5 });
-    initHands(fs, HandLandmarker);                 // 動漫姿勢彩蛋用的手部定位
+    state.fs = fs;                                 // 手部定位等開了相機才載入（iPhone 一次載三個模型會記憶體不足、整頁重開）
     FaceLandmarker.createFromOptions(fs, lopts('GPU')).catch(() => FaceLandmarker.createFromOptions(fs, lopts('CPU')))
       .then((d) => { state.landmarker = d; })
       .catch((e) => { console.warn('face landmarker failed', e);
@@ -643,6 +643,7 @@ function useSource(src, mirror) {
   const W = Math.round(w * k), H = Math.round(h * k);
   for (const c of [view, srcC, personC, auraC, beautyC, eyeC]) { c.width = W; c.height = H; }
   state.face = null; state.lm = null; glBeauty?.reset(); resetPoses();
+  if (!state.handsLoading && state.fs) { state.handsLoading = true; setTimeout(() => initHands(state.fs, HandLandmarker), 1500); }
   $('start').hidden = true; notice('');
   $('shot').disabled = false;
 }

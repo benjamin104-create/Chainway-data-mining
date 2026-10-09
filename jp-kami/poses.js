@@ -60,6 +60,16 @@ function openPalm(h, W, H) {
   for (const [tip, pip] of [[8, 6], [12, 10], [16, 14], [20, 18]]) if (dist(P(h, tip, W, H), w) > dist(P(h, pip, W, H), w) * 1.15) n++;
   return n >= 4;
 }
+function spread(h, W, H) {
+  const pw = dist(P(h, 5, W, H), P(h, 17, W, H)) || 1;
+  return (dist(P(h, 8, W, H), P(h, 20, W, H)) + dist(P(h, 4, W, H), P(h, 8, W, H)) * .6) / pw;
+}
+// 劍指：食指、中指伸直併攏，無名指、小指彎起來（一隻手就能比，另一手拿手機）
+function swordSign(h, W, H) {
+  const w = P(h, 0, W, H), ext = (tip, pip) => dist(P(h, tip, W, H), w) > dist(P(h, pip, W, H), w) * 1.12;
+  const pw = dist(P(h, 5, W, H), P(h, 17, W, H)) || 1;
+  return ext(8, 6) && ext(12, 10) && !ext(16, 14) && !ext(20, 18) && dist(P(h, 8, W, H), P(h, 12, W, H)) < pw * .55;
+}
 function palmCenter(h, W, H) {
   let x = 0, y = 0;
   for (const i of [0, 5, 9, 13, 17]) { x += h[i].x; y += h[i].y; }
@@ -97,15 +107,17 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   if (S.mask && lm) drawMask(ctx, lm, W, H, u, t, S.mask, glow);
 
   // ── 2. 神火（狐火）：張開手掌，舉到下巴以上，而且不是貼著臉 ──
-  let fireHand = null;
+  let fireHand = null, power = 0;
   for (const h of hands) {
     const c = palmCenter(h, W, H);
     if (!openPalm(h, W, H)) continue;
-    if (face && Math.abs(c[0] - face.cx) < face.w * .7 && Math.abs(c[1] - face.cy) < face.h * .6) continue;   // 貼著臉是面具，不是狐火
-    if (face ? c[1] < face.y1 + face.h * .2 : c[1] < H * .55) { fireHand = c; S.fireLm = h; }
+    if (face && Math.abs(c[0] - face.cx) < face.w * .55 && Math.abs(c[1] - face.cy) < face.h * .5) continue;   // 貼著臉是面具，不是火
+    const sp = spread(h, W, H);
+    if (sp > 1.35) { const pw = Math.min(1, (sp - 1.35) / .45); if (pw >= power) { power = pw; fireHand = c; S.fireLm = h; } }
   }
-  S.fire = lerp(S.fire, fireHand ? 1 : 0, fireHand ? .25 : .08);
-  if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .8) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
+  S.firePower = lerp(S.firePower || 0, power, .2);
+  S.fire = lerp(S.fire, fireHand ? .45 + .55 * S.firePower : 0, fireHand ? .25 : .08);
+  if (fireHand) { S.firePalm = fireHand; S.used = true; if (S.fire > .75) { done('fire', t); if (!S.fireFired) { S.fireFired = true; fireTrig('fire', fireHand); } } }
   else if (S.fire < .1) S.fireFired = false;
   if (S.fire > .02 && S.firePalm) {
     if (S.fireLm) drawAnimeFire(ctx, S.fireLm, W, H, u, t, S.fire, dt);
@@ -125,6 +137,12 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
       sealing = true;
     } else sealing = dist(P(a, 0, W, H), P(b, 0, W, H)) < ref * .9 && it < ref * .5;   // 雙手合十也算
   }
+  if (!sealing) for (const h of hands) if (swordSign(h, W, H)) {
+    // 劍指：光從併攏的指尖發出，指尖周圍一個小三角
+    const tip = mid(P(h, 8, W, H), P(h, 12, W, H)), sz = dist(P(h, 5, W, H), P(h, 17, W, H)) * .9;
+    const poly = [0, 1, 2].map((i) => { const an = -Math.PI / 2 + i * Math.PI * 2 / 3; return [tip[0] + Math.cos(an) * sz * .45, tip[1] + Math.sin(an) * sz * .45]; });
+    S.tri = { poly, c: tip, size: sz }; sealing = true; break;
+  }
   S.triK = lerp(S.triK || 0, S.tri ? 1 : 0, S.tri ? .2 : .1);
   if (S.tri) S.lastTri = S.tri;
   if (S.triK > .02 && S.lastTri) drawTriLight(ctx, W, H, u, t, S.lastTri, S.triK, glow, S.sealHold);
@@ -142,7 +160,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
       const k = (t - S.hintAt) / 3.2;
       if (k > 1) { S.hintAt = t + 5; S.hintIdx = (S.hintIdx + 1) % 3; }
       else {
-        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：張開手掌舉高 →「神火」', '彩蛋：雙手比三角形 →「結印之光」'][S.hintIdx];
+        const msg = ['彩蛋：一隻手遮住半邊臉，停一下 →「面具」', '彩蛋：手掌用力張開 →「火焰」', '彩蛋：食指中指併攏（劍指）→「結印之光」'][S.hintIdx];
         ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI);
         ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const tw = ctx.measureText(msg).width + 5 * u, ty = H * .7;
@@ -168,6 +186,16 @@ function handIcon(ctx, x, y, r, mirror) {
   ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill(path); ctx.fill(thumb);
   ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = r * .08;
   ctx.stroke(path); ctx.stroke(thumb);
+  ctx.restore();
+}
+function swordIcon(ctx, x, y, r, mirror) {
+  // 劍指的剪影：拳頭＋兩根併攏伸直的手指
+  ctx.save(); ctx.translate(x, y); if (mirror) ctx.scale(-1, 1);
+  const fw = r * .2, path = new Path2D();
+  path.roundRect(-r * .45, -r * .05, r * .9, r * .75, r * .3);                       // 握起來的拳
+  path.roundRect(-r * .22, -r * 1.0, fw, r * 1.05, fw / 2);                           // 食指
+  path.roundRect(-r * .22 + fw * 1.05, -r * 1.08, fw, r * 1.13, fw / 2);              // 中指
+  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill(path); ctx.stroke(path);
   ctx.restore();
 }
 function ring(ctx, x, y, r, k, col) {
@@ -204,13 +232,13 @@ function drawGuide(ctx, W, H, u, t, face, lm) {
     const sx = face.cx < W / 2 ? 1 : -1, x = Math.max(hr * 1.4, Math.min(W - hr * 1.4, face.cx + sx * face.w * 1.25)), y = face.y0 + face.h * .1;
     handIcon(ctx, x, y, hr, sx < 0);
     ring(ctx, x, y + hr * .25, hr * 1.25, S.fire, '#8fd0ff');
-    label(ctx, W, u, H * .72, '張開手掌，舉到這裡 → 燃起神火', '#fff');
+    label(ctx, W, u, H * .72, '手掌用力張開、五指撐開 → 冒出火焰', '#fff');
   } else if (g === 'seal') {
-    // 雙手合十放在下巴下面
-    const x = face.cx, y = face.y1 + face.h * .75;
-    handIcon(ctx, x - hr * .32, y, hr * .9, true); handIcon(ctx, x + hr * .32, y, hr * .9, false);
-    ring(ctx, x, y + hr * .2, hr * 1.4, S.sealHold / .4, '#ffe08a');
-    label(ctx, W, u, H * .72, '拇指碰拇指、食指碰食指，比出三角形 → 結印之光', '#fff');
+    // 劍指：一隻手就能比（另一隻手拿手機），舉在臉旁邊
+    const sx = face.cx < W / 2 ? 1 : -1, x = Math.max(hr, Math.min(W - hr, face.cx + sx * face.w * .9)), y = face.cy;
+    swordIcon(ctx, x, y, hr, sx < 0);
+    ring(ctx, x, y + hr * .1, hr * 1.25, S.sealHold / .4, '#ffe08a');
+    label(ctx, W, u, H * .72, '食指、中指併攏伸直（劍指），舉到臉旁 → 結印之光', '#fff');
   }
   ctx.restore();
 }
@@ -399,7 +427,8 @@ function drawAnimeFire(ctx, h, W, H, u, t, k, dt) {
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pc[0], pc[1] - hw * .6, hw * 2.4, 0, 7); ctx.fill();
   ctx.shadowColor = 'rgba(90,160,255,.9)'; ctx.shadowBlur = hw * .15;
   // 掌心大火
-  tongue(ctx, pc[0], pc[1] + hw * .2, hw * .45, hw * 1.3, t, 0, cols, k);
+  const pw = .6 + .7 * (S.firePower || 0);
+  tongue(ctx, pc[0], pc[1] + hw * .2, hw * .45 * pw, hw * 1.3 * pw, t, 0, cols, k);
   // 每根指尖的火舌
   [4, 8, 12, 16, 20].forEach((i, j) => {
     const [x, y] = P(h, i, W, H);
@@ -499,7 +528,7 @@ function drawSeal(ctx, W, H, u, age, glow) {
   const s = 1 + Math.max(0, .3 - age) * 1.2, px = 9 * u * s;
   ctx.font = `900 ${px}px "Noto Sans TC", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .14; ctx.strokeStyle = '#120a1c';
-  ctx.save(); ctx.translate(cx, H * .58); ctx.rotate(-.08);
+  ctx.save(); ctx.translate(cx, H * .8); ctx.rotate(-.08);
   ctx.strokeText('顕現', 0, 0); ctx.fillStyle = '#fff'; ctx.fillText('顕現', 0, 0);
   ctx.font = `800 ${3.4 * u}px "Noto Sans TC", sans-serif`; ctx.lineWidth = .8 * u;
   ctx.strokeText('結 印 ・ 守 護 神 顕 現', 0, px * .75); ctx.fillStyle = glow; ctx.fillText('結 印 ・ 守 護 神 顕 現', 0, px * .75);
