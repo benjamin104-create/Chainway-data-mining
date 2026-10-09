@@ -106,6 +106,7 @@
   /* 相機 */
   #cam { padding: 0; position: relative; overflow: hidden; background: #000; }
   #cam::after { content: ""; pointer-events: none; position: absolute; inset: 0; border: 1px solid rgba(255,220,140,.22); box-shadow: inset 0 0 90px rgba(0,0,0,.45); }
+  #cam[data-realism="true"]::after {border:0;box-shadow:none;}
   #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .hud-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px; display: flex; gap: 10px; align-items: flex-start; background: linear-gradient(#000d, #0000); }
   .hud-top .name { flex: 1; font: 900 20px/1.25 var(--serif); text-shadow: 0 1px 4px #000; }
@@ -256,7 +257,8 @@
         <label>寬鬆度 <output id="fit-width-value">100%</output><input id="fit-width" type="range" min="85" max="120" value="100" aria-label="羽織寬鬆度"></label>
         <label>衣長 <output id="fit-length-value">100%</output><input id="fit-length" type="range" min="80" max="120" value="100" aria-label="羽織衣長"></label>
         <button class="chip" id="fitReset">還原自動貼合</button>
-        <p class="fine">適用正面與中度側身。大幅轉身或背面尚不支援。</p>
+        <p class="fine">3D 視角與重力垂墜。大幅轉身、背面及衣服精確尺碼尚不支援。</p>
+        <details class="fine"><summary>布料物理檢查（模擬值）</summary><pre id="physicsReport" style="white-space:pre-wrap;font:inherit">等待人體與布料模型…</pre></details>
       </div>
     </div>
     <div class="controls">

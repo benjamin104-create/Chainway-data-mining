@@ -137,7 +137,7 @@ function bladeGeo(len, width, curve, broad = false) {
 // w：{ kind, len, tsuba, grip, model? }。有 model（.glb）時載入外部模型，載入前先用程式畫的刀頂著
 function buildWeapon(ch, w = ch.weapon) {
   const grp = new THREE.Group();
-  const steel = new THREE.MeshStandardMaterial({ color: '#e6ebf0', metalness: 1, roughness: .16, envMapIntensity: 1.4, emissive: new THREE.Color(ch.tint), emissiveIntensity: .12 });
+  const steel = new THREE.MeshStandardMaterial({ color: '#d5dbe0', metalness: 1, roughness: .27, envMapIntensity: 1 });
   const gold = new THREE.MeshStandardMaterial({ color: w.tsuba, metalness: .9, roughness: .3 });
   const grip = new THREE.MeshStandardMaterial({ map: wrapTex(w.grip), roughness: .8, normalMap: weave(), normalScale: new THREE.Vector2(.4, .4) });
   const wood = new THREE.MeshStandardMaterial({ color: w.grip, roughness: .45, metalness: .1 });
@@ -149,19 +149,46 @@ function buildWeapon(ch, w = ch.weapon) {
     const blade = new THREE.Mesh(bladeGeo(L * .38, .12, -.12, true), steel); blade.position.y = L * .47; grp.add(blade);
     grp.userData.reach = L * .9;
   } else {
-    const gl = w.kind === 'twin' || w.kind === 'kodachi' ? .24 : w.kind === 'odachi' ? .55 : .38;
-    const bw = w.kind === 'odachi' ? .11 : w.kind === 'long' ? .06 : .075;
+    const gl = ['twin','kodachi','wakizashi'].includes(w.kind) ? .28 : w.kind === 'odachi' ? .55 : .44;
+    const bw = w.kind === 'odachi' ? .095 : ['long','wakizashi','kodachi'].includes(w.kind) ? .055 : .065;
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(bw * .58, bw * .62, gl, 16), grip);
-    handle.position.y = 0; grp.add(handle);
+    handle.position.y = 0; handle.scale.z=.72; grp.add(handle);
     const kashira = new THREE.Mesh(new THREE.CylinderGeometry(bw * .64, bw * .64, .03, 16), gold); kashira.position.y = -gl * .5; grp.add(kashira);
-    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(bw * 1.55, bw * 1.55, .028, 32), gold); tsuba.position.y = gl * .5 + .014; grp.add(tsuba);
+    const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(bw * 1.25, bw * 1.25, .020, 32), gold); tsuba.position.y = gl * .5 + .014; tsuba.scale.z=.88; grp.add(tsuba);
     const habaki = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.05, .05, .03), gold); habaki.position.y = gl * .5 + .05; grp.add(habaki);
-    const blade = new THREE.Mesh(bladeGeo(w.len, bw, -.05), steel); blade.position.y = gl * .5 + .03; grp.add(blade);
+    const blade = new THREE.Mesh(bladeGeo(w.len, bw, -.025), steel); blade.position.y = gl * .5 + .03; blade.userData.blade=true;grp.add(blade);
+    grp.userData.handleLen=gl;
     grp.userData.reach = gl * .5 + w.len;
   }
   const model = w.model || (w === ch.weapon ? ch.art?.weapon : null);
   if (model) loadModel(model, grp);
   return grp;
+}
+
+// The saya is a separate, curved lacquered wooden housing. The long/short pair
+// stays at the wearer's anatomical left waist instead of following a wrist.
+function buildScabbard(ch,w=ch.weapon) {
+  if(w.kind==='naginata'){const g=new THREE.Group();g.userData.hilt=new THREE.Group();return g;}
+  const g=new THREE.Group(),lacquer=new THREE.MeshStandardMaterial({color:w.saya||'#181715',roughness:.33,metalness:.03});
+  const length=w.len+.09,width=['wakizashi','kodachi','twin'].includes(w.kind)?.088:.103;
+  const shape=new THREE.Shape(),bend=t=>.025*length*t*t;
+  shape.moveTo(width/2,0);for(let i=1;i<=24;i++)shape.lineTo(width/2+bend(i/24),length*i/24);
+  shape.quadraticCurveTo(width/2+bend(1),length+width*.65,bend(1),length+width*.65);
+  shape.quadraticCurveTo(-width/2+bend(1),length+width*.65,-width/2+bend(1),length);
+  for(let i=23;i>=0;i--)shape.lineTo(-width/2+bend(i/24),length*i/24);shape.closePath();
+  const shellGeo=new THREE.ExtrudeGeometry(shape,{depth:.04,bevelEnabled:true,bevelSize:.006,bevelThickness:.006,bevelSegments:2});shellGeo.translate(0,0,-.02);
+  const shell=new THREE.Mesh(shellGeo,lacquer);g.add(shell);
+  const mouth=new THREE.Mesh(new THREE.TorusGeometry(width*.49,.009,8,24),lacquer);mouth.rotation.x=Math.PI/2;mouth.scale.z=.6;g.add(mouth);
+  const kurigata=new THREE.Mesh(new THREE.BoxGeometry(.045,.038,.045),lacquer);kurigata.position.set(width*.62,.20,0);g.add(kurigata);
+  const cord=new THREE.MeshStandardMaterial({color:'#3b2920',roughness:.95});
+  const curve=new THREE.CatmullRomCurve3([V3(width*.7,.19,0),V3(width*.8,.10,.03),V3(width*.9,-.10,.02),V3(width*.5,-.13,.02)]);
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve,16,.008,6,false),cord));
+  if(w.kind==='kodachi')for(const y of [.28,w.len*.72]){
+    const mount=new THREE.Mesh(new THREE.TorusGeometry(width*.62,.009,6,16),lacquer);mount.rotation.x=Math.PI/2;mount.position.y=y;g.add(mount);
+  }
+  const hilt=buildWeapon(ch,w);hilt.traverse(o=>{if(o.userData?.blade)o.visible=false;});
+  hilt.position.y=-(hilt.userData.handleLen*.5+.05);g.add(hilt);g.userData.hilt=hilt;g.userData.reach=length;
+  return g;
 }
 // 外部武器模型：握柄中心在原點、刀尖朝 +Y、長度單位 = 軀幹長（約 50 公分）。說明見 ART_GUIDE.md
 const gltfCache = new Map();
@@ -497,14 +524,17 @@ export class Stage3D {
     if (this.doll) this.scene.remove(this.doll.group);
     for (const w of this.weapons || []) this.scene.remove(w);
     for (const w of this.ghostWeapons || []) this.scene.remove(w);
+    for (const w of this.sheaths || []) this.scene.remove(w);
     this.outfit = new Outfit(this.scene, ch, false);
     this.ghost = new Outfit(this.scene, ch, true);
     this.doll = new Doll(this.scene, ch);
     const second = ch.offhand || ch.weapon;
     this.weapons = [buildWeapon(ch), buildWeapon(ch, second)];
     this.ghostWeapons = [buildWeapon(ch), buildWeapon(ch, second)];
+    this.sheaths = [buildScabbard(ch),buildScabbard(ch,second)];
     for (const g of this.ghostWeapons) setGhost(g, .25);
     for (const w of [...this.weapons, ...this.ghostWeapons]) this.scene.add(w);
+    for (const w of this.sheaths)this.scene.add(w);
     this.rim.color.set(ch.tint);
   }
   // 刀尖在畫面上的位置（給刀光殘影用）
@@ -517,6 +547,7 @@ export class Stage3D {
       Object.assign(this.camera, { left: 0, right: W, top: 0, bottom: -H }); this.camera.updateProjectionMatrix();
     }
     const light = opts.light ?? 1;
+    this.rim.color.set(opts.realism?'#ffffff':this.ch.tint);
     this.hemi.intensity = .3 + .2 * light; this.key.intensity = 2.2 + 1.2 * light;
     const place = (grp, b, kp) => {
       if (!b) { grp.visible = false; return; }
@@ -524,7 +555,8 @@ export class Stage3D {
       grp.visible = true;
       grp.position.set(b.grip.x, -b.grip.y, (b.z ?? 0) + T * .4);
       grp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(b.dir.x, -b.dir.y, 0).normalize());
-      grp.scale.setScalar(T);
+      if(b.roll)grp.rotateY(b.roll);
+      grp.scale.setScalar(b.scale||T);
     };
     const showOutfit = opts.showOutfit !== false;
     this.outfit.setMode(opts.outfit || 'full'); this.ghost.setMode(opts.outfit || 'full');
@@ -536,6 +568,7 @@ export class Stage3D {
     if (opts.doll && opts.kp) this.doll.update(opts.kp);
     this.weapons.forEach((g, i) => place(g, opts.kp && opts.blades?.[i], opts.kp));
     this.ghostWeapons.forEach((g, i) => place(g, opts.ghostKp && opts.ghostBlades?.[i], opts.ghostKp));
+    this.sheaths.forEach((g,i)=>{place(g,opts.kp&&opts.sheaths?.[i],opts.kp);g.userData.hilt.visible=!opts.blades?.[i];});
     r.render(this.scene, this.camera);
     return this.canvas;
   }

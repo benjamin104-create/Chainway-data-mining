@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {scabbardPoses} from '../weapon-layout.js';
+const p=(x,y)=>({x,y,z:0,v:1});
+const kp={ls:p(130,140),rs:p(250,140),lh:p(150,310),rh:p(230,310),le:p(120,220),re:p(260,220),lw:p(120,300),rw:p(260,300),n:p(190,65)};
+const normal=scabbardPoses(kp,390,844,false,2),mirrored=scabbardPoses(kp,390,844,true,2),hung=scabbardPoses(kp,390,844,false,1,true);
+assert.ok(normal[0].grip.x>190&&mirrored[0].grip.x<190,'Anatomical left must switch display side under mirroring');
+assert.ok(normal[1].grip.y>normal[0].grip.y,'The short companion sheath must be offset, not overlap the long sheath');
+assert.ok(Math.abs(normal[0].dir.y)<.6,'A resting saya must trail from the waist, not point straight down from a wrist');
+assert.ok(hung[0].grip.y>normal[0].grip.y&&hung[0].roll===Math.PI,'Hung kodachi placement differs from inserted katana/wakizashi');
+for(const b of [...normal,...mirrored,...hung])assert.ok(b.scale>0&&Number.isFinite(b.grip.x)&&Number.isFinite(b.dir.y));
+console.log('PASS: anatomical-left mirroring, waist mounting, long/short separation, hung kodachi, finite prop scale');

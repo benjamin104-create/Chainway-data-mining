@@ -1,7 +1,7 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'kata-v11';
+const CACHE = 'kata-v12';
 const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'render3d.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
-  'composite.js', 'garment-rig.js', 'assets/haori-rig-body-v2.png', 'assets/haori-rig-sleeve-v2.png',
+  'composite.js', 'garment-rig.js', 'haori3d.js', 'body-camera.js', 'cloth-physics.js', 'weapon-layout.js', 'assets/fabric-cotton-weave-v3.png',
   'lib/vision_bundle.mjs', 'lib/three.module.min.js', 'lib/RoomEnvironment.js', 'lib/GLTFLoader.js', 'lib/BufferGeometryUtils.js', 'models/pose_landmarker_lite.task'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -13,6 +13,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+  // Local QA fixtures are private and must never be retained as offline assets.
+  if(url.pathname.startsWith('/_private-fixture'))return;
   // 頁面導覽先向網路拿最新版，避免部署後手機仍被舊版首頁卡住；離線時再回退快取。
   if (url.origin === location.origin && (e.request.mode === 'navigate' || /\.(?:js|mjs)$/.test(url.pathname))) {
     e.respondWith(fetch(e.request).then((res) => {

@@ -2,10 +2,13 @@ import { FilesetResolver, PoseLandmarker, ImageSegmenter } from './lib/vision_bu
 import { TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
 import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawRealHaori, haoriAssetsReady, placePose } from './ar.js';
 import { copyPersonMask, copyPartMasks, drawMappedMask, cutForeground } from './composite.js';
-import { buildHaoriRig } from './garment-rig.js';
 import { Stage3D } from './render3d.js';
+import { Haori3D, fabricReady, silhouetteEase } from './haori3d.js';
+import { scabbardPoses } from './weapon-layout.js';
+import { buildHaoriRig } from './garment-rig.js';
 
 const stage3d = new Stage3D();
+let haori3d = null;
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -33,7 +36,7 @@ try {
 
 const rememberedChar = store.get('char');
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'free', facing: 'user',
-  outfit: 'real', weapon: store.get('weapon-v2') || 'none', camOrigin: 'intro' };
+  outfit: params.get('fit')==='physics'?'physics':'real', weapon: store.get('weapon-v2') || 'none', camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -183,6 +186,7 @@ const video = document.createElement('video');
 video.playsInline = true; video.muted = true; video.setAttribute('playsinline', '');
 const cam = { frame: 0, stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
 const garmentLayer = document.createElement('canvas'), foregroundLayer = document.createElement('canvas');
+const weaponLayer = document.createElement('canvas');
 const maskVideo = document.createElement('canvas'), maskScreen = document.createElement('canvas');
 const headVideo = document.createElement('canvas'), skinVideo = document.createElement('canvas');
 const headScreen = document.createElement('canvas'), skinScreen = document.createElement('canvas');
@@ -210,12 +214,12 @@ $('roster').replaceChildren(...ORDER.map((id) => {
   return b;
 }));
 // 穿法與武器：「只披羽織」保留使用者自己的衣服；武器可換成武士刀、小太刀、二刀
-const OUTFITS = [['real', '寫實布料']];
-const WEAPON_CHOICES = [['none', '不持武器'], ['own', '角色武器'], ['katana', '武士刀'], ['kodachi', '小太刀'], ['nito', '二刀']];
+const OUTFITS = [['real', '原版照片貼合'],['physics','3D 物理布料（測試）']];
+const WEAPON_CHOICES = [['none', '不持武器'], ['own', '角色武器'], ['katana', '打刀'], ['wakizashi','脇差'], ['kodachi', '小太刀'], ['nito', '大小二刀']];
 function gearChips() {
   const mk = (group, id, label) => {
     const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.dataset.group = group; b.dataset.id = id;
-    b.onclick = () => { state[group] = id; store.set(group === 'weapon' ? 'weapon-v2' : group, id); syncChips(); };
+    b.onclick = () => { state[group] = id; if(group==='outfit')haori3d?.reset(); store.set(group === 'weapon' ? 'weapon-v2' : group, id); syncChips(); };
     return b;
   };
   const sep = document.createElement('span'); sep.className = 'sep';
@@ -236,13 +240,14 @@ function gear(id = state.char) {
     const ch = CHARACTERS[id], own = { tsuba: ch.weapon.tsuba, grip: ch.weapon.grip };
     const spec = (k) => ({ ...own, ...WEAPONS[k] });
     const g = state.weapon === 'own' || state.weapon === 'none' ? ch
-      : state.weapon === 'nito' ? { ...ch, weapon: spec('katana'), offhand: spec('kodachi') }
+      : state.weapon === 'nito' ? { ...ch, weapon: spec('katana'), offhand: spec('wakizashi') }
       : { ...ch, weapon: spec(state.weapon) };
     gearCache.set(key, g);
   }
   return gearCache.get(key);
 }
 function syncChips() {
+  $('cam').dataset.realism=String(state.outfit==='physics');
   for (const b of $('gear').querySelectorAll('.chip')) b.setAttribute('aria-pressed', String(state[b.dataset.group] === b.dataset.id));
   for (const b of $('modes').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.mode));
   for (const b of $('roster').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.char));
@@ -341,6 +346,7 @@ async function openCam(origin = 'result', photo = null) {
   $('fitReset').click();
   cam.hold = 0; cam.firedAt = 0; cam.shotAt = 0; cam.wantShot = false; cam.match = 0; cam.light = null;
   cam.photoRenderKey = null;
+  haori3d?.reset(); cam.clothEase = null;
   if (photo) state.mode = 'free';
   state.camOrigin = origin;
   show('cam');
@@ -362,6 +368,8 @@ addEventListener('resize', () => { if (!$('cam').hidden) fitStage(); });
 
 async function startCamera() {
   stopStream();
+  haori3d?.reset();cam.clothEase=null;
+  cam.propsFocalRatio=null;
   cam.kp = null; cam.maskAt = 0; cam.partsAt = 0; cam.partsSourceTime = undefined; cam.lastVideoTime = undefined; cam.trail = [];
   cam.photoDemo = !cam.uploadedPhoto && params.get('demo') === 'photo';
   cam.photoMode = !!cam.uploadedPhoto || cam.photoDemo;
@@ -420,14 +428,29 @@ function videoLight(source = video) {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   // Still photos redraw only when tracking/model/garment/control state changes.
-  const photoKey = [!!cam.pose, !!cam.parts, haoriAssetsReady(), cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+  const photoKey = [!!cam.pose, !!cam.parts, state.outfit, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
     fit.width, fit.length, stage.width, stage.height].join('|');
   if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
-    renderFrame(now); cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
+    const began=performance.now();renderFrame(now);cam.renderMs=performance.now()-began; cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
   }
   if (cam.shotAt && now >= cam.shotAt) { cam.shotAt = 0; cam.wantShot = true; }
   if (cam.wantShot) { cam.wantShot = false; takeShot(now); }
 }
+
+// Local background samples estimate dominant light side/color. This is not a
+// recovered HDR environment or camera depth-of-field model.
+function sceneLight(ctx,kp,brightness) {
+  const S=Math.hypot(kp.rs.x-kp.ls.x,kp.rs.y-kp.ls.y),x=(kp.ls.x+kp.rs.x)/2,y=(kp.ls.y+kp.rs.y)/2;
+  const sample=(sx,sy)=>{
+    const x0=Math.max(0,Math.min(ctx.canvas.width-1,Math.round(sx-8))),y0=Math.max(0,Math.min(ctx.canvas.height-1,Math.round(sy-8)));
+    const w=Math.min(16,ctx.canvas.width-x0),h=Math.min(16,ctx.canvas.height-y0),d=ctx.getImageData(x0,y0,w,h).data,sum=[0,0,0];
+    for(let i=0;i<d.length;i+=4)for(let k=0;k<3;k++)sum[k]+=d[i+k];return sum.map(v=>v/(w*h));
+  };
+  const a=sample(x-S*.8,y-S*.3),b=sample(x+S*.8,y-S*.3),lum=c=>c[0]*.3+c[1]*.59+c[2]*.11;
+  const avg=a.map((v,i)=>(v+b[i])/2),max=Math.max(...avg,1);
+  return {brightness:Math.max(.45,Math.min(1.3,lum(avg)/255*1.5+.12)),x:Math.abs(lum(a)-lum(b))<12?-.55:clampLight((lum(b)-lum(a))/100),color:avg.map(c=>.82+.18*c/max)};
+}
+const clampLight=x=>Math.max(-1.2,Math.min(1.2,x));
 
 function mapTrackedPose(crop, W, H, mirror) {
   if (!cam.kp) return null;
@@ -458,7 +481,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     const crop = { dx, dy, dw, dh };
     ctx.save();
     if (mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); }
-    ctx.filter = 'contrast(1.025) saturate(1.025)';
+    ctx.filter = state.outfit==='physics'?'none':'contrast(1.025) saturate(1.025)';
     ctx.drawImage(source, dx, dy, dw, dh);
     ctx.filter = 'none';
     ctx.restore();
@@ -541,7 +564,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
 
   sizeLayer(atmosphereLayer, W, H);
   const ag = atmosphereLayer.getContext('2d'); ag.clearRect(0, 0, W, H);
-  drawAtmosphere(ag, W, H, c, kp, now);
+  if(state.outfit!=='physics'||state.mode==='move')drawAtmosphere(ag, W, H, c, kp, now);
   if (personMask) {
     ag.save(); ag.globalCompositeOperation = 'destination-out'; ag.drawImage(personMask, 0, 0); ag.restore();
   }
@@ -549,17 +572,28 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
   if (kp) {
     sizeLayer(garmentLayer, W, H); sizeLayer(foregroundLayer, W, H);
     const gg = garmentLayer.getContext('2d'); gg.clearRect(0, 0, W, H);
-    const outfitReady = drawRealHaori(gg, kp, c, cam.light ?? 1, fit);
-    const unsupported = buildHaoriRig(kp)?.unsupported;
+    const measuredEase = silhouetteEase(personMask,kp);
+    if(!capture)cam.clothEase = cam.clothEase==null?measuredEase:cam.clothEase*.92+measuredEase*.08;
+    const usePhysics=state.outfit==='physics';
+    let rendered;
+    if(usePhysics){haori3d ||=new Haori3D();rendered=haori3d.render(W,H,kp,c,{fit,ease:cam.clothEase||measuredEase,photo:cam.photoMode,capture,now,light:sceneLight(ctx,kp,cam.light??1)});}
+    else {const ready=drawRealHaori(gg,kp,c,cam.light??1,fit);rendered={ready,valid:ready,unsupported:buildHaoriRig(kp)?.unsupported};$('physicsReport').textContent='原版為 2.5D 照片貼合；未啟用布料物理。切換「3D 物理布料（測試）」才會顯示物理檢查。';}
+    const outfitReady=rendered.ready,unsupported=rendered.unsupported;
+    cam.fitValid=outfitReady&&rendered.valid;
+    if(outfitReady&&rendered.canvas)gg.drawImage(rendered.canvas,0,0);
+    if(rendered.metrics){
+      const m=rendered.metrics;
+      $('physicsReport').textContent=`重力 ${m.gravity.toFixed(2)} m/s² · 面積重量 ${(m.density*1000).toFixed(0)} g/m²\n估計衣重 ${(m.massKg*1000).toFixed(0)} g · 最大網格拉伸 ${(m.maxStretch*100).toFixed(1)}%\n各部位 ${m.parts.map(p=>p.name+':'+(p.maxStretch*100).toFixed(1)+'%').join(' / ')}\n估計俯仰 ${m.pitch.toFixed(1)}° · 重投影誤差 ${m.reprojectionPx.toFixed(1)} px\n上次合成耗時 ${(cam.renderMs||0).toFixed(1)} ms（含辨識／布料，不等於實機 FPS）\n${m.finite&&m.maxStretch<.05?'通過 5% 拉伸門檻':'未通過 5% 拉伸門檻'}。示範參數；人體尺度與光線是影像估計，不是實測尺寸。`;
+    }
     if (!cam.demo || cam.photoMode) cutForeground(garmentLayer, foregroundLayer, kp, personMask, ctx.canvas, parts);
     ctx.drawImage(garmentLayer, 0, 0);
     if (cam.photoMode) {
-      $('shutter').disabled = !outfitReady;
-      if (cam.uploadedPhoto) $('loadState').textContent = unsupported ? '側身角度太大，請換較正面的照片'
-        : outfitReady ? (parts ? '骨架貼合 · 照片在本機處理' : cam.partsFailed ? '骨架貼合 · 基本遮擋' : '骨架貼合 · 精細遮罩載入中') : '載入羽織素材…';
+      $('shutter').disabled = !cam.fitValid;
+      $('loadState').textContent = unsupported ? (rendered.reason==='projection'?'視角估計不穩，請換較清楚的照片':'側身角度太大，請換較正面的照片')
+        : outfitReady ? (rendered.settling?`布料垂墜計算 ${Math.round(rendered.progress*100)}%`:!rendered.valid?'布料拉伸過大，請微調姿勢':cam.photoDemo?'AI 模特示範':!usePhysics?'原版貼合 · 本機處理':parts ? '3D 布料 · 本機處理' : cam.partsFailed ? '3D 布料 · 基本遮擋' : '3D 布料 · 遮罩載入中') : '載入布料／視角估計中…';
     } else if (!cam.demo) {
       $('loadState').textContent = unsupported ? '請稍微轉回正面' : '';
-      $('shutter').disabled = !outfitReady;
+      $('shutter').disabled = !cam.fitValid;
     }
   } else if (cam.photoMode) {
     $('shutter').disabled = true;
@@ -595,7 +629,12 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     // 招式發動時吹一陣風：衣服往刀的反方向翻飛
     const ft0 = (now - cam.firedAt) / 1000, gust = cam.firedAt && ft0 < 1.4 ? (1 - ft0 / 1.4) * (wp?.T || 0) * (1.2 + .4 * Math.sin(now / 45)) : 0;
     const bd = c.move.blade, wind = gust ? { x: -bd[0] * gust, y: -bd[1] * gust - gust * .2 } : null;
-    ctx.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, ghostKp: capture ? null : guide?.tg, ghostBlades: capture || state.weapon === 'none' ? null : guide?.blades, doll: cam.demo && !cam.photoMode, light: cam.light ?? 1, now, wind, outfit: state.outfit, showOutfit: false }), 0, 0);
+    const sheaths=state.weapon!=='none'&&kp&&c.weapon.kind!=='naginata'?scabbardPoses(kp,W,H,mirror,c.offhand||c.weapon.kind==='twin'?2:1,c.weapon.kind==='kodachi',state.outfit==='physics'?haori3d?.focalRatio:cam.propsFocalRatio):[];
+    if(sheaths[0])cam.propsFocalRatio ||=sheaths[0].focalRatio;
+    sizeLayer(weaponLayer,W,H);const wg=weaponLayer.getContext('2d');wg.clearRect(0,0,W,H);
+    wg.drawImage(stage3d.render(W, H, { kp, blades: wp?.blades, sheaths, ghostKp: capture ? null : guide?.tg, ghostBlades: capture || state.weapon === 'none' ? null : guide?.blades, doll: cam.demo && !cam.photoMode, light: cam.light ?? 1, now, wind, outfit: state.outfit, realism:state.outfit==='physics',showOutfit: false }), 0, 0);
+    if(kp&&(!cam.demo||cam.photoMode))cutForeground(weaponLayer,foregroundLayer,kp,personMask,ctx.canvas,parts);
+    ctx.drawImage(weaponLayer,0,0);
     if (guide && !capture) drawGuide(ctx, guide.tg, c, res, (Math.sin(now / 250) + 1) / 2);
     if (wp && !capture) {
       const b0 = wp.blades[0], R = stage3d.reach(wp.T);
@@ -613,7 +652,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     drawFinisher(ctx, W, H, c, kp, ft);
     drawMoveName(ctx, W, H, c, ft);
   }
-  drawCinematicFrame(ctx, W, H, c, cam.firedAt && ft < 1.6 ? ft : -1);
+  if(state.outfit!=='physics'||state.mode==='move')drawCinematicFrame(ctx, W, H, c, cam.firedAt && ft < 1.6 ? ft : -1);
 }
 
 function drawMoveName(ctx, W, H, c, t) {
@@ -639,6 +678,7 @@ function drawMoveName(ctx, W, H, c, t) {
 let shotBlob = null;
 let shotUrl = null;
 function takeShot(now) {
+  if((!cam.demo||cam.photoMode)&&!cam.fitValid){updateHint('布料貼合尚未通過檢查，請換較清楚的姿勢，或微調寬鬆度。');return;}
   // Re-render from the camera + original garment asset at photo resolution.
   // Preview guides and controls are excluded; no user photo is uploaded.
   const photo = cam.uploadedPhoto || (cam.photoDemo ? cam.previewPhoto : null);

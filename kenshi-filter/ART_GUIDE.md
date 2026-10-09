@@ -1,5 +1,7 @@
 # 美術修改指南（給設計師／GPT）
 
+> 新增 3D 物理測試模式 `?fit=physics`，先讀 `assets/PHYSICS_ART.md`。原版 2.5D 保留；測試版的服裝在 `haori3d.js`、`body-camera.js`、`cloth-physics.js`，不是舊 `Outfit` 動畫 renderer。布料與物理數字都要經過驗證，不能只換照片假装貼合。
+
 > 2026-10-09 更新：真人相機使用長衣身＋獨立袖子、骨架驅動三角網格、worldLandmarks 側身估計與髮／臉／皮膚語義遮擋。請先讀 `assets/REALISTIC_ART.md`。目前貼合程式在 `garment-rig.js`、`ar.js`、`composite.js`；下列 3D 服裝與動畫風貼圖說明只適用結果人偶及舊 renderer，不代表真人 AR。舊文的「不用改追蹤／相機流程」不適用骨架貼合與遮擋修正。
 
 AR 的「骨架追蹤、招式比對、拍照分享」已經完成，**不需要動**。要讓角色變好看，只需要改下面這些地方。

@@ -17,7 +17,7 @@ export function fromLandmarks(lms, map, mirror, world = null) {
     const [x, y, z] = map(p.x, p.y, p.z);
     const w = world?.[idx];
     const inFrame = p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
-    kp[k] = { x, y, z, v: inFrame ? Math.min(p.visibility ?? 1, p.presence ?? 1) : 0, wx: w?.x, wy: w?.y, wz: w?.z };
+    kp[k] = { x, y, z, v: inFrame ? Math.min(p.visibility ?? 1, p.presence ?? 1) : 0, wx: w ? (mirror ? -w.x : w.x) : undefined, wy: w?.y, wz: w?.z };
   }
   return kp;
 }
@@ -159,14 +159,11 @@ export function tile(kind, c1, c2, S = 64) {
 // ── 寫實布料羽織 ─────────────────────────────────────
 // 使用透明產品攝影素材作為布料明暗與縫線基底，再依角色套色與紋樣。
 // 衣身由肩／髖控制網格；兩袖依肩／肘／腕分別彎曲，不再方形縮放整張圖。
-const rigPhotos = Object.fromEntries(['body', 'sleeve'].map((part) => {
-  const img = new Image(); img.decoding = 'async';
-  img.src = new URL(`assets/haori-rig-${part}-v2.png`, import.meta.url).href;
-  return [part, img];
-}));
+const rigPhotos = {};
 const rigTextureCache = new Map();
-export const haoriAssetsReady = () => Object.values(rigPhotos).every((image) => image.complete && image.naturalWidth > 0);
+export const haoriAssetsReady = () => ['body','sleeve'].every(part=>rigPhotos[part]?.complete && rigPhotos[part].naturalWidth > 0);
 function rigTexture(ch, part) {
+  if(!rigPhotos[part]){const image=new Image();image.decoding='async';image.src=new URL(`assets/haori-rig-${part}-v2.png`,import.meta.url).href;rigPhotos[part]=image;}
   const image = rigPhotos[part];
   if (!image.complete || !image.naturalWidth) return null;
   const key = [part, ch.pattern, ch.haori, ch.haori2].join('|');

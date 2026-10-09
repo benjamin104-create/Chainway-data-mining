@@ -154,6 +154,7 @@ export const CHARACTERS = {
 export const WEAPONS = {
   katana: { kind: 'katana', len: 1.75, model: null },     // 武士刀（打刀）
   kodachi: { kind: 'kodachi', len: 1.05, model: null },   // 小太刀
+  wakizashi: { kind: 'wakizashi', len: .90, model: null }, // 脇差：與打刀配成大小刀，不等同小太刀
 };
 
 export const ORDER = ['devote', 'detach', 'recognize', 'compete', 'duty', 'harmony'];
