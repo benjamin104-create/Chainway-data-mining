@@ -411,7 +411,7 @@ async function showResult(s) {
   $('rTag').textContent = `俠客性格｜${s.tag}`;
   $('rTagBig').textContent = s.tag;
   $('rTagSub').textContent = s.tagNames.en;
-  $('rName').textContent = `《${s.name}》`;
+  $('rName').textContent = s.name;
   $('rName').style.fontSize = s.name.length > 9 ? `calc(clamp(34px, 11vw, 54px) * ${Math.max(.6, 9 / s.name.length).toFixed(2)})` : '';   // 名字太長就縮小，不要斷行
   $('rZh').textContent = `${s.titles.zh}・${s.names.en}`;
   $('rLine').textContent = `「${s.line.zh}」`; $('rLineJa').textContent = `「${s.line.ja}」`; $('rLineEn').textContent = `“${s.line.en}”`;
@@ -734,17 +734,17 @@ function halftonePattern() {
 
 // 替身找位置：把人像每一欄的最上緣當成「被擋住的高度」，
 // 在畫面上試不同位置與大小，挑臉最不會被擋、身體也露最多的地方（越大越好，也偏好待在原地）
-const TITLE_H = 15;   // 上方標題列的高度（u），替身的頭不進這一區
+const TITLE_H = 24;   // 上方標題列的高度（u：名字＋招式名稱），替身的頭不進這一區
 function placeStand(W, H, bh, headY, ratio, u) {
   const top = state.colTop, n = top ? top.length : 0;
-  const base = Math.min(H * 1.18, Math.max(bh * 1.32, H * .82));   // 日本篇：神明比其他篇再大 20%，比本人高很多
+  const base = Math.min(H * 1.6, Math.max(bh * 1.75, H * 1.2));   // 武俠篇：英雄要有氣勢，比本人大很多，身體可以超出畫面
   const prev = state.pose, cx = state.personCx ?? W / 2;
   let best = null;
-  for (const k of [1, .9, .81, .72, .64, .56]) {
+  for (const k of [1, .92, .85, .78, .7]) {
     const sh = base * k, sw = sh * ratio;
-    const sy = Math.max(TITLE_H * u, Math.min(headY - sh * .06, H - sh * .75));
+    const sy = Math.max(TITLE_H * u * .85, Math.min(headY - sh * .1, H - sh * .6));
     for (let i = 0; i <= 24; i++) {
-      const x = sw * .38 + (W - sw * .76) * i / 24;              // 左右最多超出畫面 12%（比例相對神明寬度）
+      const x = sw * .3 + (W - sw * .6) * i / 24;                // 左右最多超出畫面 20%（比例相對英雄寬度）
       let face = 0, body = 0, cols = 0;
       if (n) {
         const c0 = Math.max(0, Math.floor((x - sw / 2) / W * n)), c1 = Math.min(n, Math.ceil((x + sw / 2) / W * n));
@@ -1075,8 +1075,8 @@ function render(now) {
     ctx.save();
     ctx.translate(fx, fy + sh); ctx.rotate(rot); ctx.scale(scale * flip, scale);   // 以腳底為支點
     // 柔和：降低對比、微微柔焦、半透明；再疊一層模糊的光，讓神明像是從光裡現身
-    ctx.globalAlpha = .82 * ease;
-    if (FILTER_OK) ctx.filter = `saturate(.8) contrast(.86) brightness(1.08) blur(${.12 * u}px)`;
+    ctx.globalAlpha = .94 * ease;
+    if (FILTER_OK) ctx.filter = `saturate(.95) contrast(.98) brightness(1.04) blur(${.06 * u}px)`;
     ctx.shadowColor = s.glow; ctx.shadowBlur = 9 * u * (1 + gm.glow * 2.5);
     ctx.drawImage(a, -sw / 2, -sh, sw, sh);
     ctx.shadowBlur = 0;
@@ -1130,7 +1130,7 @@ function render(now) {
 const GUIDE = { center: [.5, .52], left: [.68, .44], right: [.32, .44], opening: [.26, .46] };
 function fixedLayout(L, W, H, u, ratio) {
   // 日本篇：神明比其他篇大 20%；可以有 5～12% 落在畫面外，比較有魄力
-  const top = TITLE_H * u, G = 1.2, clampX = (x, sw) => Math.max(sw * .38, Math.min(W - sw * .38, x));
+  const top = TITLE_H * u * .85, G = 1.5, clampX = (x, sw) => Math.max(sw * .3, Math.min(W - sw * .3, x));
   if (L === 'center') { const sh = Math.min(H * .95, W * 1.15 / ratio) * G, sw = sh * ratio; return { x: W / 2, sy: top - u, sh, sw, side: 1 }; }
   if (L === 'opening') { const sh = Math.min(H * .9, W * .78 / ratio) * G, sw = sh * ratio; return { x: clampX(W * .66, sw), sy: H * .04, sh, sw, side: 1 }; }
   const sh = Math.min(H * .86, W * .85 / ratio) * G, sw = sh * ratio, side = L === 'left' ? -1 : 1;
@@ -1218,7 +1218,7 @@ function tagStamp(W, H, s, u, now) {
   } else {
     // 直排：一個字一格
     const chars = [...word], px = Math.min(15 * u, (H * .42) / chars.length);
-    ctx.font = FONT.zh(900, px);                                  // 漢字一律用思源黑體，日文字型缺字
+    ctx.font = FONT.zh(900, px);                                  // 漢字用毛筆字
     const x = side > 0 ? W - 4 * u - px / 2 : 4 * u + px / 2;
     const h = chars.length * px * 1.05;
     state.stampRect = { x0: x - px * 1.6, x1: x + px * 1.6, y0: top - px * .3, y1: top + h + px * .5 };
@@ -1245,34 +1245,53 @@ function stampText(c, x, y, px, s, u) {
   ctx.lineWidth = px * .2; ctx.strokeStyle = '#120a1c'; ctx.strokeText(c, x, y);
   ctx.lineWidth = px * .07; ctx.strokeStyle = s.glow; ctx.strokeText(c, x, y);
   ctx.fillStyle = '#fff'; ctx.fillText(c, x, y);
+  ctx.lineWidth = px * .035; ctx.strokeStyle = '#fff'; ctx.strokeText(c, x, y);   // 毛筆字加粗
 }
 
 // ── 前景文字：守護靈名稱（最上方）與台詞對話框，永遠畫在人和替身的前面 ──
 const FONT = {
-  zh: (w, px) => `${w} ${px}px "Noto Serif TC", "Noto Sans TC", "PingFang TC", serif`,
+  zh: (w, px) => `${px}px ${BRUSH}`,
+  sans: (w, px) => `${w} ${px}px "Noto Sans TC", "PingFang TC", sans-serif`,
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
+const BRUSH = '"Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆字（缺字時退到楷書、宋體）
 const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
   ctx.globalAlpha = ease;
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, 'rgba(10,6,18,.88)'); g.addColorStop(1, 'rgba(10,6,18,.0)');
+  g.addColorStop(0, 'rgba(10,8,6,.88)'); g.addColorStop(1, 'rgba(10,8,6,.0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, h * 1.15);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = s.glow; ctx.font = `700 ${3.2 * u}px system-ui, sans-serif`;
+  ctx.fillStyle = s.glow; ctx.font = `700 ${3 * u}px system-ui, sans-serif`;
   const label = `${LABEL[L]} ・ ${s.titles[L]}`;
-  ctx.fillText(L === 'en' ? label.toUpperCase() : label, W / 2, 4.6 * u);
-  const big = L === 'en' ? s.names.en : `${s.names[L]}  ${s.names.en}`;
-  let px = 8 * u; ctx.font = FONT[L](900, px);
+  ctx.fillText(L === 'en' ? label.toUpperCase() : label, W / 2, 4.4 * u);
+  // 英雄的名字：毛筆大字、加粗
+  const big = L === 'en' ? s.names.en : s.names[L];
+  let px = (L === 'en' ? 8 : 13) * u; ctx.font = FONT[L](900, px);
   while (ctx.measureText(big).width > W - 8 * u && px > 3 * u) { px *= .92; ctx.font = FONT[L](900, px); }
-  ctx.lineJoin = 'round'; ctx.lineWidth = px * .22; ctx.strokeStyle = '#120a1c'; ctx.strokeText(big, W / 2, 5.2 * u + px);
-  ctx.fillStyle = '#fff'; ctx.fillText(big, W / 2, 5.2 * u + px);
-  ctx.globalCompositeOperation = 'source-atop';
-  const gg = ctx.createLinearGradient(0, 5 * u, 0, 5.2 * u + px); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
-  ctx.fillStyle = gg; ctx.fillText(big, W / 2, 5.2 * u + px);
+  const y = 4.6 * u + px * .95;
+  ctx.lineJoin = 'round'; ctx.lineWidth = px * .2; ctx.strokeStyle = '#0d0a08'; ctx.strokeText(big, W / 2, y);
+  const gg = ctx.createLinearGradient(0, y - px, 0, y); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
+  ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .05;
+  ctx.shadowColor = s.glow; ctx.shadowBlur = px * .25;
+  ctx.fillText(big, W / 2, y); ctx.shadowBlur = 0; ctx.strokeText(big, W / 2, y);
+  // 招式名稱：名字下面一行（換招式時跟著換）
+  const mv = curMove || s.move;
+  if (mv) {
+    const mp = 5.6 * u, my = y + mp * 1.35;
+    ctx.font = FONT.zh(900, mp);
+    const txt = `${mv.name}`, tw = ctx.measureText(txt).width;
+    ctx.fillStyle = 'rgba(160,20,20,.9)';                                      // 紅色小印章「招」
+    ctx.beginPath(); ctx.roundRect(W / 2 - tw / 2 - mp * 1.35, my - mp * .9, mp * 1.05, mp * 1.05, mp * .15); ctx.fill();
+    ctx.font = FONT.zh(900, mp * .8); ctx.fillStyle = '#fff4dc'; ctx.fillText('招', W / 2 - tw / 2 - mp * .82, my - mp * .1);
+    ctx.font = FONT.zh(900, mp);
+    ctx.lineWidth = mp * .2; ctx.strokeStyle = '#0d0a08'; ctx.strokeText(txt, W / 2 + mp * .1, my);
+    ctx.fillStyle = s.glow; ctx.fillText(txt, W / 2 + mp * .1, my);
+    ctx.lineWidth = mp * .04; ctx.strokeStyle = s.glow; ctx.strokeText(txt, W / 2 + mp * .1, my);
+  }
   ctx.restore();
 }
 function wrapLines(text, maxW, L) {
@@ -1292,7 +1311,7 @@ function speech(W, H, s, u, t, ease) {
   // 開場 1 秒後浮現，之後一直留著；每次擺 pose 時跳一下
   const show = Math.min(1, Math.max(0, ((performance.now() - state.summonAt) / 1000 - 1) * 2));
   if (show <= 0) return;
-  const px = 3.3 * u; ctx.save(); ctx.font = FONT[L](700, px);
+  const px = 3.3 * u; ctx.save(); ctx.font = L === 'zh' ? FONT.sans(700, px) : FONT[L](700, px);
   const maxW = Math.min(W * .52, 46 * u), lines = wrapLines(text, maxW, L);
   const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 4.4 * u, bh = lines.length * px * 1.3 + 3.2 * u;
   // 放在神的臉旁邊，但不能擋到神的臉、人的臉、標題和直排大字：先試外側，再試上方、內側、臉的下方
@@ -1454,7 +1473,7 @@ function wishBubble(W, H, s, u, box) {
   const text = state.wish; if (!text) return;
   const L = state.lang, mode = /^[\x00-\x7F]*$/.test(text) ? 'en' : 'zh';
   const px = 3.1 * u, lh = px * 1.3;
-  ctx.save(); ctx.font = FONT.zh(700, px);
+  ctx.save(); ctx.font = FONT.sans(700, px);
   const lines = wrapLines(text, Math.min(W * .46, 40 * u), mode).slice(0, 3);
   const label = { zh: '我的心願', ja: '願いごと', en: 'MY WISH' }[L];
   const bw = Math.max(18 * u, ...lines.map((l) => ctx.measureText(l).width)) + 5 * u;
@@ -1510,7 +1529,7 @@ function wishBubble(W, H, s, u, box) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.text; ctx.font = `800 ${1.9 * u}px "Noto Sans TC", system-ui, sans-serif`;
   ctx.fillText(`✦ ${label} ✦`, bx, by + 2.9 * u);
-  ctx.fillStyle = '#2a1a10'; ctx.font = FONT.zh(700, px);
+  ctx.fillStyle = '#2a1a10'; ctx.font = FONT.sans(700, px);
   lines.forEach((l, i) => ctx.fillText(l, bx, by + 3.9 * u + lh * (i + .78)));
   ctx.restore();
 }
@@ -1655,5 +1674,6 @@ $('file').onchange = async () => {
 
 document.fonts?.load('80px "Dela Gothic One"', 'ゼウス').catch(() => {});
 // 招式大字、英雄名字用思源宋體：先把會用到的字載好，畫到相機畫面上才不會是預設字型
+document.fonts?.load('80px "Yuji Boku"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('900 80px "Noto Serif TC"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格・').catch(() => {});
 requestAnimationFrame(render);
