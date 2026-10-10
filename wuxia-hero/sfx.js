@@ -65,73 +65,93 @@ export function gong() {
 // 給錄影用：音樂和音效的聲音軌
 export function audioTrack() { return recDest?.stream.getAudioTracks()[0] || null; }
 
-// ── 江湖對戰配樂：太鼓＋小鼓＋沙鈴＋低音＋五聲音階的胡琴旋律（D 小調五聲：D F G A C），120 BPM ──
-// 用「提前排程」的方式播放，節拍很穩；beat() 回傳目前是第幾拍（遊戲用來對拍）
-const BPM = 120, SPB = 60 / BPM / 4;          // 一個十六分音符的秒數
+// ── 武俠決鬥配樂（150 BPM，D 小調五聲）──
+//   太鼓重拍＋快速古箏撥弦琶音＋低音弦樂持續音＋笛子／胡琴主旋律＋每段開頭的鑼與鈸
+//   用「提前排程」播放，拍子很穩；遊戲用 BEAT（一拍幾秒）把手勢排在拍點上
+export const BEAT = 60 / 150;
+const SPB = BEAT / 4;                                   // 十六分音符
 const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
-const PENTA = [62, 65, 67, 69, 72, 74, 77, 79, 81];      // D4 F4 G4 A4 C5 D5 F5 G5 A5
-// 旋律（每格一個十六分音符，-1＝休止，數字＝PENTA 的位置），四小節一循環
-const MEL = [
-  4, -1, 3, 4, 5, -1, 4, -1, 3, -1, 2, 3, 4, -1, -1, -1,
-  5, -1, 6, 5, 4, -1, 3, -1, 4, -1, 3, 2, 1, -1, -1, -1,
-  0, -1, 1, 2, 3, -1, 4, -1, 5, -1, 4, 3, 4, -1, 6, -1,
-  7, -1, 6, 5, 4, -1, 5, 4, 3, -1, 2, -1, 3, -1, -1, -1,
+const SCALE = [50, 53, 55, 57, 60, 62, 65, 67, 69, 72, 74, 77, 79, 81];   // D 小調五聲，D3 起
+// 和聲進行（每小節）：Dm Dm C A | Bb C Dm Dm（用五聲音裡的音代替）
+const ROOT = [50, 50, 48, 45, 46, 48, 50, 50];
+// 主旋律（八小節，每格十六分音符；數字是 SCALE 位置，-1 休止，-2 延長）
+const LEAD = [
+  9, -2, -2, 8, 9, -2, 10, -2, 11, -2, -2, -2, 10, -2, 9, -2,
+  8, -2, 7, -2, 8, -2, 9, -2, 7, -2, -2, -2, -1, -1, -1, -1,
+  7, -2, 8, -2, 9, -2, 10, 9, 8, -2, -2, -2, 7, -2, 5, -2,
+  6, -2, -2, -2, 7, -2, 6, 5, 4, -2, -2, -2, -1, -1, -1, -1,
+  9, -2, 10, -2, 11, -2, 12, -2, 13, -2, -2, -2, 12, 11, 10, -2,
+  11, -2, 10, -2, 9, -2, 8, -2, 9, -2, -2, -2, -1, -1, 8, 9,
+  10, -2, 9, -2, 8, -2, 7, -2, 8, -2, 7, -2, 6, -2, 5, -2,
+  4, -2, -2, -2, -2, -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1,
 ];
-const BASS = [50, 50, 57, 48];                // 每小節的根音：D2 D2 A2 C2
 let music = null;
 export function startMusic() {
   if (!ac || muted) return;
-  stopMusic();
-  const bus = ac.createGain(); bus.gain.value = .55; bus.connect(master);
-  music = { bus, step: 0, next: ac.currentTime + .08, t0: ac.currentTime + .08, timer: null };
-  const tick = () => {
-    while (music && music.next < ac.currentTime + .15) { playStep(music.step, music.next, bus); music.step++; music.next += SPB; }
-  };
+  stopMusic(.05);
+  const bus = ac.createGain(); bus.gain.value = .6; bus.connect(master);
+  // 一點點殘響（讓古箏和笛子有空間感）：用回授延遲模擬
+  const dl = ac.createDelay(1), fb = ac.createGain(), wet = ac.createGain();
+  dl.delayTime.value = BEAT * .75; fb.gain.value = .28; wet.gain.value = .22;
+  const verb = ac.createGain(); verb.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(bus);
+  music = { bus, verb, step: 0, next: ac.currentTime + .06, timer: null };
+  const tick = () => { while (music && music.next < ac.currentTime + .15) { playStep(music.step, music.next, bus, verb); music.step++; music.next += SPB; } };
   tick(); music.timer = setInterval(tick, 25);
 }
 export function stopMusic(fade = .6) {
   if (!music) return;
   const m = music; music = null; clearInterval(m.timer);
-  try { m.bus.gain.setTargetAtTime(0, ac.currentTime, fade / 3); setTimeout(() => m.bus.disconnect(), fade * 1000 + 300); } catch {}
+  try { m.bus.gain.setTargetAtTime(0, ac.currentTime, Math.max(.01, fade / 3)); setTimeout(() => m.bus.disconnect(), fade * 1000 + 400); } catch {}
 }
-function playStep(i, t, bus) {
-  const st = i % 16, bar = Math.floor(i / 16) % 4;
-  const hit = (dur, f0, f1, g, type = 'sine') => {
-    const o = ac.createOscillator(), gg = ac.createGain(); o.type = type;
-    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    gg.gain.setValueAtTime(g, t); gg.gain.exponentialRampToValueAtTime(.001, t + dur);
-    o.connect(gg); gg.connect(bus); o.start(t); o.stop(t + dur + .02);
+function env(g, t, a, peak, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.001, t + a + d); }
+function playStep(i, t, bus, verb) {
+  const st = i % 16, bar = Math.floor(i / 16) % 8, intro = i < 32;   // 前兩小節是倒數前奏（只有鼓）
+  const osc = (type, f, dur, peak, a = .005, out = bus, f1) => {
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    env(g, t, a, peak, dur); o.connect(g); g.connect(out); o.start(t); o.stop(t + a + dur + .05); return o;
   };
-  const nz = (dur, type, f, q, g) => {
+  const nz = (dur, type, f, q, peak) => {
     const s = ac.createBufferSource(); s.buffer = noiseBuf; const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
-    const gg = ac.createGain(); gg.gain.setValueAtTime(g, t); gg.gain.exponentialRampToValueAtTime(.001, t + dur);
-    s.connect(fl); fl.connect(gg); gg.connect(bus); s.start(t, Math.random()); s.stop(t + dur + .02);
+    const g = ac.createGain(); env(g, t, .002, peak, dur); s.connect(fl); fl.connect(g); g.connect(bus); s.start(t, Math.random()); s.stop(t + dur + .05);
   };
-  // 太鼓（大鼓）：咚、咚咚
-  if ([0, 6, 8, 11].includes(st) || (bar === 3 && st >= 12 && st % 1 === 0 && st !== 13)) hit(.35, 120, 45, .9);
-  // 小鼓（啪）
-  if (st === 4 || st === 12) { nz(.12, 'bandpass', 1800, .8, .5); hit(.08, 300, 180, .25, 'triangle'); }
-  // 沙鈴
-  if (st % 2 === 0) nz(.04, 'highpass', 7000, 1, st % 4 === 2 ? .16 : .08);
-  // 鑼：每四小節開頭
-  if (i % 64 === 0) for (const [f, g] of [[98, .18], [197, .1], [262, .07]]) hit(2.2, f, f * .985, g);
-  // 低音：每拍一下，八度跳
-  if (st % 4 === 0 || st === 14) {
-    const n = BASS[bar] + (st === 8 ? 12 : 0), o = ac.createOscillator(), fl = ac.createBiquadFilter(), gg = ac.createGain();
-    o.type = 'sawtooth'; o.frequency.value = NOTE(n); fl.type = 'lowpass'; fl.frequency.value = 500;
-    gg.gain.setValueAtTime(.32, t); gg.gain.exponentialRampToValueAtTime(.001, t + SPB * 3.5);
-    o.connect(fl); fl.connect(gg); gg.connect(bus); o.start(t); o.stop(t + SPB * 4);
+  // 太鼓：咚—咚咚—咚，每兩小節最後來一串滾奏
+  const roll = bar % 2 === 1 && st >= 12;
+  if ([0, 3, 6, 8, 10].includes(st) || roll) osc('sine', 115, .32, roll ? .65 : .95, .002, bus, 42);
+  if (st === 0) nz(.06, 'bandpass', 900, 1, .4);                          // 鼓皮的「啪」
+  // 鼓邊（喀）
+  if (st === 4 || st === 12) { nz(.07, 'bandpass', 2600, 2, .38); osc('triangle', 420, .05, .2); }
+  // 鈸＋鑼：每四小節開頭（前奏不敲鑼）
+  if (i % 64 === 0 && !intro) { for (const [f, g] of [[98, .2], [196, .12], [263, .08], [349, .05]]) osc('sine', f, 2.4, g, .01, bus, f * .985); nz(1.2, 'highpass', 5000, .7, .22); }
+  if (intro) return;
+  // 低音弦樂：每小節根音，鋸齒波低通、慢慢起音
+  if (st === 0) {
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = o2.type = 'sawtooth'; o.frequency.value = NOTE(ROOT[bar]); o2.frequency.value = NOTE(ROOT[bar]) * 1.004; fl.type = 'lowpass'; fl.frequency.value = 420;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.22, t + .15); g.gain.setValueAtTime(.2, t + SPB * 14); g.gain.linearRampToValueAtTime(0, t + SPB * 16);
+    o.connect(fl); o2.connect(fl); fl.connect(g); g.connect(bus); o.start(t); o2.start(t); o.stop(t + SPB * 16 + .05); o2.stop(t + SPB * 16 + .05);
   }
-  // 胡琴般的旋律：鋸齒波＋顫音＋濾波，滑音進入
-  const m = MEL[i % 64];
+  // 古箏：快速十六分音符琶音（撥弦：短促起音、明亮、迅速衰減）
+  {
+    const pat = [0, 2, 4, 2, 5, 4, 2, 4, 0, 2, 4, 5, 7, 5, 4, 2];
+    const n = SCALE[3 + pat[st]] + (ROOT[bar] - 50);       // 跟著和聲移調
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'triangle'; o2.type = 'sawtooth'; o.frequency.value = NOTE(n); o2.frequency.value = NOTE(n) * 2;
+    fl.type = 'lowpass'; fl.frequency.setValueAtTime(5000, t); fl.frequency.exponentialRampToValueAtTime(900, t + .25);
+    const g2 = ac.createGain(); g2.gain.value = .25; o2.connect(g2); g2.connect(fl); o.connect(fl);
+    env(g, t, .002, st % 4 === 0 ? .2 : .13, .4); fl.connect(g); g.connect(bus); g.connect(verb);
+    o.start(t); o2.start(t); o.stop(t + .5); o2.stop(t + .5);
+  }
+  // 笛子／胡琴主旋律：滑音進入、顫音、帶氣聲
+  const m = LEAD[i % 128];
   if (m >= 0) {
-    let len = 1; while (len < 4 && MEL[(i + len) % 64] === -1) len++;
-    const f = NOTE(PENTA[m]), o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), fl = ac.createBiquadFilter(), gg = ac.createGain();
-    o.type = 'sawtooth'; o.frequency.setValueAtTime(f * .97, t); o.frequency.linearRampToValueAtTime(f, t + .05);
-    lfo.frequency.value = 6; lg.gain.value = f * .012; lfo.connect(lg); lg.connect(o.frequency);
-    fl.type = 'bandpass'; fl.frequency.value = f * 2.2; fl.Q.value = 1.2;
-    const d = SPB * len;
-    gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(.22, t + .03); gg.gain.setValueAtTime(.2, t + d * .7); gg.gain.exponentialRampToValueAtTime(.001, t + d + .08);
-    o.connect(fl); fl.connect(gg); gg.connect(bus); o.start(t); lfo.start(t); o.stop(t + d + .1); lfo.stop(t + d + .1);
+    let len = 1; while (len < 16 && LEAD[(i + len) % 128] === -2) len++;
+    const f = NOTE(SCALE[m] + 12), d = SPB * len;
+    const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(f * .96, t); o.frequency.linearRampToValueAtTime(f, t + .06);
+    lfo.frequency.value = 5.5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .014, t + Math.min(.3, d * .6)); lfo.connect(lg); lg.connect(o.frequency);
+    fl.type = 'bandpass'; fl.frequency.value = f * 1.6; fl.Q.value = 1.6;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.2, t + .04); g.gain.setValueAtTime(.18, t + d * .8); g.gain.exponentialRampToValueAtTime(.001, t + d + .12);
+    o.connect(fl); fl.connect(g); g.connect(bus); g.connect(verb); o.start(t); lfo.start(t); o.stop(t + d + .15); lfo.stop(t + d + .15);
+    nz(Math.min(.15, d), 'bandpass', f * 3, 2, .04);                       // 吹氣聲
   }
 }

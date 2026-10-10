@@ -54,6 +54,7 @@ export const HOWTO = {
   thumb: '握拳、大拇指朝上，比一個讚',
   fist: '五指用力握拳，舉到臉旁',
   flat: '四指併攏伸直，像一把手刀',
+  vee: '食指中指張開成 V',
 };
 
 const P = (L, i, W, H) => [L[i].x * W, L[i].y * H];
@@ -88,7 +89,7 @@ function gestureOf(h, W, H) {
     return 'fist';
   }
   if (i && !m && !r && !p) return 'point';
-  if (i && m && !r && !p && dist(P(h, 8, W, H), P(h, 12, W, H)) < pw * .6) return 'sword';
+  if (i && m && !r && !p) return dist(P(h, 8, W, H), P(h, 12, W, H)) < pw * .6 ? 'sword' : 'vee';   // 併攏＝劍指、張開＝V（插眼）
   if (i && m && r && p) {
     // 指尖之間張得比指根寬很多＝五指撐開的手掌；指尖跟指根差不多寬＝四指併攏的手刀
     const sp = dist(P(h, 8, W, H), P(h, 20, W, H)) / pw;
@@ -186,7 +187,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
       const k = (t - S.hintAt) / 3.6;
       if (k > 1) { S.hintAt = t + 4.5; S.hintIdx = (S.hintIdx || 0) + 1; }
       else {
-        const list = [move.gesture, ...['palm', 'sword', 'point', 'pinch', 'thumb', 'fist'].filter((g) => g !== move.gesture)];
+        const list = [move.gesture, ...['palm', 'sword', 'point', 'pinch', 'thumb', 'fist', 'flat', 'vee'].filter((g) => g !== move.gesture)];
         const g = (S.hintIdx || 0) % 2 === 0 ? move.gesture : list[1 + Math.floor((S.hintIdx || 0) / 2) % (list.length - 1)];
         const side = (S.hintIdx || 0) % 2 ? 1 : -1, r = W * .13;
         const slide = k < .2 ? 1 - Math.pow(1 - k / .2, 3) : k > .85 ? 1 - (k - .85) / .15 : 1;
@@ -272,6 +273,10 @@ const ICON = {
     p.roundRect(-r * .45, -r * .1, r * .9, r * .85, r * .3);
     p.moveTo(-r * .2 + r * .32, -r * .5); p.arc(-r * .2, -r * .5, r * .32, 0, Math.PI * 2);   // 拇指和食指圈起來
     for (const [dx, len] of [[.0, .9], [.24, .82], [.46, .68]]) p.roundRect(dx * r, -r * .1 - len * r, fw, len * r + r * .15, fw / 2);
+  }),
+  vee: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
+    p.roundRect(-r * .45, -r * .05, r * .9, r * .75, r * .3);
+    for (const [dx, a] of [[-.25, -.3], [.05, .3]]) { p.moveTo(dx * r, 0); p.lineTo(dx * r + Math.sin(a) * r, -Math.cos(a) * r); p.lineTo(dx * r + Math.sin(a) * r + fw, -Math.cos(a) * r + fw * .2); p.lineTo(dx * r + fw, 0); p.closePath(); }
   }),
   flat: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
     p.roundRect(-r * .42, -r * .15, r * .84, r * .95, r * .28);

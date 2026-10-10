@@ -540,7 +540,8 @@ for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['gam
       // 挑戰模式：自動開始錄影，倒數後手勢從右邊跑過來；結束時停止錄影，影片直接可以分享
       sfx.unlock();
       if (!rec && state.src === video) startRec();
-      startGame(performance.now() / 1000, () => { if (rec) stopRec(); modeBtns[null].click(); });
+      const st = state.stand;
+      startGame(performance.now() / 1000, () => { if (rec) stopRec(); modeBtns[null].click(); }, { hero: st?.id, img: art[st?.id], glow: st?.glow });
     }
   };
   modeBtns[id] = b; poseRow.append(b);
