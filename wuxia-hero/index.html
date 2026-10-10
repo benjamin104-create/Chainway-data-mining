@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>江湖英雄榜・你是哪一位武俠英雄？</title>
+<meta name="description" content="十個江湖情境，測出你的俠客性格，看看十二位武俠英雄裡，誰是你心中的英雄，再用 AR 相機跟英雄學一招、手上發出氣芒。">
+<meta name="theme-color" content="#0e0c0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="江湖英雄榜">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Noto+Sans+TC:wght@500;900&family=Noto+Serif+TC:wght@900&display=swap">
+<style>
+  /* 單一深色介面：測驗是一張張卡片，相機是滿版畫面＋底部操作列 */
+  :root {
+    --ink: #0e0c0a;
+    --raise: #1c1814;
+    --panel: rgba(14, 12, 10, .72);
+    --line: rgba(255, 255, 255, .16);
+    --fg: #f6f1e6;
+    --muted: #b3a891;
+    --accent: #e0a526;
+    --display: "Noto Serif TC", "Dela Gothic One", "Hiragino Sans", serif;
+    --heading: "Noto Serif TC", "Noto Sans TC", "PingFang TC", serif;
+    --body: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  :root { --badge: 72px; }   /* Netlify 會在右下角放一個標籤，下方留位置，按鈕和說明才不會被蓋住 */
+  html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); }
+  body { overflow: hidden; }
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button:disabled { opacity: .4; }
+
+  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 28px + var(--badge)); }
+  .col { max-width: 34rem; margin: 0 auto; display: grid; gap: 18px; }
+  .eyebrow { font: 600 12px/1 var(--body); letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
+  .display { font: 900 clamp(38px, 12vw, 60px)/1.1 var(--heading); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+  .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
+  .fine { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+  .credit { color: var(--muted); font-size: 12px; text-align: center; letter-spacing: .04em; margin: 18px 0 0; }
+  .wish { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+  .wish .field { padding: 11px 14px; font-size: 16px; }
+  .chip-label { flex: none; align-self: center; font-size: 13px; color: var(--muted); padding-right: 2px; }
+  .primary {
+    border: 0; background: var(--accent); color: #fff; padding: 15px 26px; border-radius: 999px;
+    font: 600 16px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center;
+  }
+  .secondary { border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 14px 22px; border-radius: 999px; font: 500 15px/1 var(--body); cursor: pointer; text-decoration: none; text-align: center; }
+  .stack { display: grid; gap: 10px; }
+
+  /* 開場 */
+  #intro .col { min-height: 100%; align-content: center; }
+  .sfx-hero { font: 900 clamp(40px, 12vw, 60px)/1 var(--heading); color: var(--accent); letter-spacing: .04em; text-shadow: 0 0 28px rgba(224, 165, 38, .45); }
+  .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .steps b { color: var(--fg); font-weight: 600; margin-right: 6px; }
+
+  /* 測驗 */
+  .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+  .qtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .link { background: none; border: 0; color: var(--muted); font-size: 14px; padding: 6px 0; cursor: pointer; }
+  .q { font: 900 24px/1.35 var(--heading); margin: 0; text-wrap: balance; }
+  .opt {
+    display: grid; gap: 4px; text-align: left; width: 100%; padding: 15px 16px; border-radius: 14px;
+    border: 1px solid var(--line); background: var(--raise); color: var(--fg); cursor: pointer; font-size: 16px;
+  }
+  .opt small { color: var(--muted); font-size: 13px; }
+  .opt:active, .opt[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--raise)); }
+  .field { width: 100%; padding: 15px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--raise); color: var(--fg); font: 16px/1.5 var(--body); resize: none; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 10rem; }
+
+  /* 結果 */
+  .hero-stand { display: grid; place-items: center; border-radius: 20px; padding: 12px; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%); }
+  .hero-stand { position: relative; }
+  .tag-big { position: absolute; left: 4px; top: 8px; display: grid; justify-items: center; gap: 6px; z-index: 1; }
+  .tag-big b { writing-mode: vertical-rl; font: 900 clamp(48px, 16vw, 76px)/1 var(--heading); color: #fff; letter-spacing: .04em;
+    padding: 10px 6px; background: linear-gradient(160deg, var(--accent), transparent); -webkit-text-stroke: 5px #120a1c; paint-order: stroke fill;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 70%, transparent); clip-path: polygon(0 4%, 100% 0, 100% 96%, 0 100%); }
+  .tag-big small { font: 700 10px/1.3 var(--body); letter-spacing: .1em; color: var(--fg); text-align: center; background: rgba(13, 10, 20, .7); padding: 3px 6px; border-radius: 4px; }
+  .hero-stand img { width: min(70vw, 300px); height: auto; filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 70%, transparent)); }
+  .reveal { display: grid; gap: 6px; }
+  .stand-name { font: 400 clamp(34px, 11vw, 54px)/1 var(--display); color: var(--accent); margin: 0; letter-spacing: .02em; overflow-wrap: anywhere; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .stand-sub { font-size: 15px; color: var(--muted); }
+  .tag { display: inline-block; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--accent); color: var(--fg); font-size: 13px; }
+  .statbox { display: grid; gap: 14px; }
+  .statbox svg { width: 100%; max-width: 340px; height: auto; justify-self: center; }
+  .stats { display: grid; gap: 7px; margin: 0; font-size: 14px; }
+  .stats div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .stats dt { display: grid; gap: 2px; min-width: 0; }
+  .stats dt b { color: var(--fg); font-weight: 600; }
+  .stats dt small { color: var(--muted); font-size: 12px; }
+  .stats dd { margin: 0; font: 400 18px/1 var(--display); color: var(--fg); }
+  .card { background: var(--raise); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 8px; }
+  .card h3 { margin: 0; font-size: 13px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+  .card p { margin: 0; line-height: 1.7; font-size: 15px; }
+  .card .try { color: var(--fg); border-left: 3px solid var(--accent); padding-left: 10px; }
+  blockquote { margin: 0; font-size: 17px; line-height: 1.6; }
+
+  .sticky-cta { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--badge)); z-index: 5; display: grid; }
+  .sticky-cta .primary { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+  /* 美顏面板 */
+  .beauty { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--raise); border: 1px solid var(--line); }
+  .slider { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 2.2em; gap: 10px; align-items: center; font-size: 13px; }
+  .slider input { width: 100%; accent-color: var(--accent); }
+  .slider em { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .slider-actions { display: flex; gap: 18px; justify-content: flex-end; }
+  /* App 內建瀏覽器提示 */
+  .inapp { display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--raise)); border: 1px solid var(--accent); font-size: 14px; line-height: 1.6; }
+  .inapp b { font-size: 15px; }
+  .inapp-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .inapp .small { padding: 10px 16px; font-size: 14px; }
+  .inapp.switch { position: absolute; inset: auto 16px 16px; z-index: 4; }
+  /* 擲筊 */
+  .bwa-col { min-height: 100%; align-content: center; text-align: center; justify-items: center; }
+  .bwa-pair { display: flex; gap: 18px; justify-content: center; padding: 24px 0; }
+  .bwa { width: 120px; height: 70px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.4)); }
+  .bwa .flat { fill: #f2b48a; } .bwa .round { fill: #b3261e; }
+  .bwa[data-face="down"] .flat { fill: #b3261e; } .bwa[data-face="down"] .round { fill: #7d1712; }
+  .bwa.mirror { transform: scaleX(-1); }
+  .bwa.kuji { width: 110px; height: 150px; }
+  .bwa.toss { animation: toss .9s cubic-bezier(.3,.6,.4,1); }
+  .bwa.mirror.toss { animation-name: toss-m; }
+  @keyframes toss { 0% { transform: translateY(0) rotate(0); } 45% { transform: translateY(-120px) rotate(400deg); } 100% { transform: translateY(0) rotate(720deg); } }
+  @keyframes toss-m { 0% { transform: scaleX(-1) translateY(0) rotate(0); } 45% { transform: scaleX(-1) translateY(-110px) rotate(-380deg); } 100% { transform: scaleX(-1) translateY(0) rotate(-720deg); } }
+  @media (prefers-reduced-motion: reduce) { .bwa.toss, .bwa.mirror.toss { animation: none; } }
+  /* 自媒體建議 */
+  .media { display: grid; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .media-title { margin: 0; font: 900 28px/1.25 var(--heading); text-wrap: balance; }
+  .media-title em { font-style: normal; color: var(--accent); }
+  .media-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; line-height: 1.55; }
+  .plain b { color: var(--accent); margin-right: 4px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pills span { padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); font-size: 13px; }
+  .first-step { border-color: var(--accent); }
+  .bars { display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) 2.6em; gap: 8px; align-items: center; font-size: 13px; }
+  .bar-row i { display: block; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .bar-row i span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+  .bar-row.top { font-weight: 700; }
+  .bar-row em { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .answer-list { margin: 0; display: grid; gap: 10px; }
+  .answer-list div { display: grid; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .answer-list div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .answer-list dt { font-size: 12px; color: var(--muted); letter-spacing: .06em; }
+  .answer-list dd { margin: 0; font-size: 15px; line-height: 1.6; }
+  .first-step p:first-of-type { font-size: 17px; font-weight: 600; }
+
+  /* 相機 */
+  #cam { height: 100%; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
+  #cam header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  }
+  #cam h1 { margin: 0; font: 400 18px/1.1 var(--display); letter-spacing: .04em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stage { position: relative; min-height: 0; overflow: hidden; }
+  canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; touch-action: manipulation; }
+  video { display: none; }
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .35s ease-out; }
+  .flash.on { opacity: .85; transition: none; }
+  .notice {
+    position: absolute; inset: auto 16px 16px; padding: 12px 14px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 14px; line-height: 1.55;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .start { position: absolute; inset: 0; display: grid; place-content: center; gap: 18px; text-align: center; padding: 24px; }
+  .start p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 30ch; }
+  footer { display: grid; gap: 12px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px + var(--badge)); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 7px 12px; border-radius: 999px; font: 500 13px/1 var(--body); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+  .chip .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+  .round { justify-self: start; border: 1px solid var(--line); background: transparent; color: var(--fg); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .controls .round:last-child { justify-self: end; }
+  .shutter { width: 74px; height: 74px; border-radius: 50%; border: 4px solid var(--fg); background: transparent; padding: 5px; cursor: pointer; }
+  .shutter span { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--accent); transition: transform .12s; }
+  .shutter:active span { transform: scale(.9); }
+
+  /* ── iPhone 相機式介面（日本篇）── */
+  #cam.ios { position: relative; display: block; background: #000; }
+  #cam.ios .stage { position: absolute; inset: calc(env(safe-area-inset-top, 0px) + 60px) 0 var(--foot, 190px) 0; }   /* 畫面停在快門列上面，拍到的東西都看得見 */
+  #cam.ios canvas#view { object-position: 50% 38%; }
+  #cam.ios header { position: absolute; z-index: 3; top: 0; left: 0; right: 0; background: #000; }
+  #cam.ios header h1 { display: none; }
+  #cam.ios header .round { width: 40px; height: 40px; background: rgba(40,40,44,.72); border: 0; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .tools { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(40,40,44,.72); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .tools button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: #fff; font: 600 17px/1 var(--body); display: grid; place-items: center; cursor: pointer; }
+  .tools button[aria-expanded="true"] { background: rgba(255,255,255,.18); color: #ffd60a; }
+  .pop { position: absolute; z-index: 4; top: calc(env(safe-area-inset-top, 0px) + 66px); left: 12px; right: 12px; max-height: 55vh; overflow-y: auto;
+    padding: 14px; border-radius: 18px; background: rgba(24,24,28,.9); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .pop-panel { display: grid; gap: 10px; }
+  .pop-panel > b { font-size: 13px; color: var(--muted); letter-spacing: .08em; }
+  .pop .wish { color: var(--fg); }
+  #cam.ios footer { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; gap: 14px; padding-top: 36px; background: #000; padding-top: 12px; }
+  .modes { display: flex; justify-content: center; gap: 4px; }
+  .modes .mode { flex: none; border: 0; background: transparent; color: rgba(255,255,255,.88); padding: 8px 12px; border-radius: 999px; font: 700 14px/1 var(--body); cursor: pointer; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+  .modes .mode[aria-pressed="true"] { color: #ffd60a; background: rgba(255,255,255,.14); }
+  #cam.ios .controls .round { background: rgba(40,40,44,.72); border: 0; width: 52px; height: 52px; }
+  #cam.ios .shutter { border-color: #fff; }
+  .modes.types .mode { font-size: 13px; padding: 6px 12px; }
+  .shutter.video span { background: #ff3b30; }
+  .shutter.recording span { transform: scale(.55); border-radius: 8px; background: #ff3b30; }
+  .rec-time { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 5px 12px; border-radius: 8px; background: #ff3b30; color: #fff; font: 700 14px/1 var(--body); }
+  .sheet video { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
+
+  .sheet {
+    position: fixed; inset: 0; z-index: 50; background: #0b0812; display: grid; grid-template-rows: minmax(0, 1fr) auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px + var(--badge)); gap: 14px;
+  }
+  .sheet img { max-width: 100%; max-height: 100%; margin: auto; display: block; border-radius: 8px; min-height: 0; }
+  .sheet .row { justify-content: center; }
+  .sheet .fine { text-align: center; width: 100%; flex-basis: 100%; }
+  @media (prefers-reduced-motion: reduce) { .flash, .bar span { transition: none; } }
+</style>
+</head>
+<body>
+
+<!-- 開場 -->
+<section class="screen" id="intro">
+  <div class="col">
+    <div class="sfx-hero" aria-hidden="true">江湖英雄榜</div>
+    <span class="eyebrow">Wuxia Hero Test ・ 武俠篇</span>
+    <h1 class="display">你是哪一位武俠英雄？</h1>
+    <p class="lead">郭靖、黃蓉、蕭峰、令狐沖、楊過、小龍女、張無忌、段譽、東方不敗、韋小寶……向金庸武俠致敬的十二位英雄裡，有一位就住在你心裡。走一趟江湖：遇到不公平、被誤會、有人突然對你好、紅粉知己遇險，你會怎麼做？測完再用 AR 相機跟英雄學一招，手上真的會發出氣芒。</p>
+    <ul class="steps">
+      <li><b>闖江湖</b>十個江湖情境，每一關選一個你的做法</li>
+      <li><b>抽籤</b>搖一搖英雄籤，抽到上上籤，你心中的英雄就會現身</li>
+      <li><b>學一招</b>開相機，英雄站在你身邊；照著畫面比手勢，降龍十八掌、六脈神劍……從你手上發出來</li>
+    </ul>
+    <div class="inapp" id="inapp" hidden>
+      <span>你正在 App 內建的瀏覽器裡。多數情況可以直接玩；如果等一下相機打不開，按下面切換。</span>
+      <div class="inapp-row"><a class="primary small" data-open-browser href="#">用瀏覽器開啟</a><button class="secondary small" type="button" data-copy-link>複製網址</button></div>
+    </div>
+    <div class="stack">
+      <button class="primary" id="begin">踏入江湖（約 2 分鐘）</button>
+      <button class="secondary" id="skip">先直接拍照</button>
+    </div>
+    <p class="fine">這是向金庸武俠小說致敬、認識自己的小遊戲，不是算命。人物圖為原創水墨插圖，招式特效為原創設計。答案只存在你的手機裡。</p>
+  </div>
+<p class="credit">Presented by 小潔米株式会社 <span style="opacity:.5">· v1</span></p>
+</section>
+
+<!-- 測驗 -->
+<section class="screen" id="quiz" hidden>
+  <div class="col">
+    <span class="eyebrow" id="qscene"></span>
+    <div class="qtop">
+      <button class="link" id="back">← 上一題</button>
+      <span class="fine" id="count">1 / 8</span>
+    </div>
+    <div class="bar"><span id="progress" style="width:12%"></span></div>
+    <h2 class="q" id="qtext"></h2>
+    <p class="lead" id="qhint"></p>
+    <div class="stack" id="qbody"></div>
+  </div>
+</section>
+
+<!-- 擲筊 -->
+<section class="screen" id="bwa" hidden>
+  <div class="col bwa-col">
+    <span class="eyebrow">客棧 ・ 英雄籤</span>
+    <h2 class="q">抽一支英雄籤</h2>
+    <div class="bwa-pair" aria-hidden="true">
+      <svg class="bwa kuji" id="bwaL" viewBox="0 0 120 160" data-face="down"><rect x="30" y="40" width="60" height="110" rx="6" fill="#b3261e"/><rect x="30" y="40" width="60" height="14" fill="#7d1712"/><text x="60" y="92" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4dc">英</text><text x="60" y="124" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4dc">雄</text><rect x="56" y="8" width="8" height="36" rx="2" fill="#f2d39a"/></svg>
+      <svg class="bwa" id="bwaR" viewBox="0 0 120 160" data-face="up" hidden></svg>
+    </div>
+    <p class="lead" id="bwaMsg" aria-live="polite"></p>
+    <div class="stack">
+      <button class="primary" id="bwaThrow" type="button">搖籤筒</button>
+      <button class="primary" id="bwaGo" type="button" hidden>看看你心中的英雄</button>
+    </div>
+    <p class="fine">籤只是好玩。抽到下籤也沒關係，江湖路長，再抽一次吧。</p>
+  </div>
+</section>
+
+<!-- 結果 -->
+<section class="screen" id="result" hidden>
+  <div class="col">
+    <div class="reveal">
+      <span class="eyebrow" id="rOwner"></span>
+      <span class="tag" id="rTag"></span>
+    </div>
+    <div class="hero-stand">
+      <div class="tag-big" aria-hidden="true"><b id="rTagBig"></b><small id="rTagSub"></small></div>
+      <img id="rImg" alt="">
+    </div>
+    <div class="reveal">
+      <p class="stand-name" id="rName"></p>
+      <span class="stand-sub" id="rZh"></span>
+    </div>
+    <div class="card"><h3>英雄給你的一句話</h3><blockquote id="rLine"></blockquote><p class="fine" id="rLineJa"></p><p class="fine" id="rLineEn"></p></div>
+    <div class="statbox">
+      <svg id="rHex" viewBox="0 0 320 290" role="img" aria-label="武學六角圖"></svg>
+      <dl class="stats" id="rStats"></dl>
+    </div>
+    <div class="card"><h3>為什麼是這位英雄</h3><p id="rAbility"></p><p class="try" id="rMove"></p></div>
+    <section class="media" id="rMedia" aria-labelledby="mediaTitle">
+      <span class="eyebrow">你的江湖分析・依你的 10 個答案</span>
+      <h2 class="media-title" id="mediaTitle"></h2>
+      <p class="lead" id="mPitch"></p>
+      <div class="media-grid">
+        <div class="card"><h3>你的俠客性格組成（10 題）</h3><div class="bars" id="mBars"></div></div>
+        <div class="card"><h3>你最能發揮的舞台</h3><div class="pills" id="mTopics"></div></div>
+        <div class="card"><h3>你的行走江湖心法</h3><p id="mFormats"></p><h3>最合拍的江湖夥伴</h3><p id="mPlatforms"></p></div>
+        <div class="card" id="mMixCard"><h3>你的第二俠客性格</h3><p id="mMix"></p></div>
+      </div>
+      <div class="card"><h3>從你的答案看到的你</h3><dl class="answer-list" id="mAnswers"></dl></div>
+      <div class="card first-step"><h3>這週的修練小行動</h3><p id="mFirst"></p><p class="fine" id="mWatch"></p></div>
+    </section>
+    <div class="card"><h3>你的俠客性格</h3><p id="rNote"></p><p class="try" id="rTry"></p></div>
+    <div class="stack">
+      <button class="secondary" id="copy">複製我的英雄結果</button>
+      <button class="link" id="redo">重新測驗</button>
+    </div>
+    <p class="fine">向金庸武俠小說致敬的性格小遊戲，人物圖為原創水墨插圖，招式特效為原創設計。本測驗是自我覺察，不是算命。</p>
+    <div class="sticky-cta"><button class="primary" id="summon">開相機，跟英雄學一招</button></div>
+  </div>
+<p class="credit">Presented by 小潔米株式会社</p>
+</section>
+
+<!-- 相機 -->
+<section id="cam" hidden>
+  <header>
+    <button class="round" id="toResult" aria-label="回到我的英雄" title="回到我的英雄">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h1 id="camTitle">英雄相機</h1>
+    <button class="round" id="pick" aria-label="從相簿選照片" title="從相簿選照片">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+    </button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </header>
+  <main class="stage">
+    <canvas id="view" width="720" height="960" aria-label="濾鏡預覽，點畫面可以讓英雄換邊站"></canvas>
+    <video id="video" playsinline muted></video>
+    <div class="flash" id="flash"></div>
+    <div class="rec-time" id="recTime" hidden>● 0s</div>
+    <div class="start" id="start">
+      <div class="sfx-hero" aria-hidden="true">⚔ 英雄到 ⚔</div>
+      <p>開啟相機後，英雄會站在你身邊。點下方「⚔️ 練一招」，畫面會教你比出本命招式的手勢，比對了，氣芒就從你手上發出來；「🀄 換招式」可以學其他英雄的招式。</p>
+      <div class="stack"><button class="primary" id="go">開啟相機</button><button class="secondary" id="pick2" type="button">用相簿裡的照片</button></div>
+      <p id="loadState">正在載入人像辨識…</p>
+    </div>
+    <div class="notice" id="notice" hidden></div>
+    <div class="inapp switch" id="switchPanel" hidden>
+      <b>這個 App 不讓網頁開相機</b>
+      <span id="switchHow">按「用瀏覽器開啟」換到手機瀏覽器，答案會留著，不用重做。</span>
+      <div class="inapp-row"><a class="primary small" data-open-browser href="#">用瀏覽器開啟</a><button class="secondary small" type="button" data-copy-link>複製網址</button></div>
+      <button class="link" type="button" id="switchPhoto">或改用相簿裡的照片</button>
+    </div>
+  </main>
+  <footer>
+    <div class="beauty" id="beautyPanel" hidden></div>
+    <label class="wish"><span>✍️ 寫下你的心願或想說的話（會出現在照片上）</span><input id="wish" class="field" maxlength="36" placeholder="例如：俠之大者，為國為民！" enterkeyhint="done" autocomplete="off"></label>
+    <div class="chips" id="sfx" role="group" aria-label="美顏與資訊卡"></div>
+    <div class="controls">
+      <button class="round" id="side" aria-label="英雄換邊" title="英雄換邊">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
+      </button>
+      <button class="shutter" id="shot" aria-label="拍照" disabled><span></span></button>
+      <button class="round" id="flip" aria-label="切換前後鏡頭" title="切換前後鏡頭">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13a3 3 0 0 1 5-2l1 1M15 13a3 3 0 0 1-5 2l-1-1"/></svg>
+      </button>
+    </div>
+  </footer>
+</section>
+
+<div class="sheet" id="sheet" hidden>
+  <img id="photo" alt="和英雄的合照">
+  <video id="clip" playsinline loop muted controls hidden></video>
+  <div class="row">
+    <button class="primary" id="share">分享照片</button>
+    <a class="secondary" id="save" download="photo.jpg">存到手機相簿</a>
+    <button class="secondary" id="shareLine" type="button">傳給 LINE 好友</button>
+    <button class="secondary" id="copyShare" type="button">複製邀請文字＋網址</button>
+    <button class="secondary" id="close">再拍一張</button>
+    <p class="fine">按「存到手機相簿」→ 選「儲存影像」就會存進相簿。也可以直接長按照片 →「加入照片」。</p>
+  </div>
+</div>
+
+<script>
+  // 出錯時直接顯示在畫面上，方便截圖回報（平常不會出現）
+  (function () {
+    function show(msg) {
+      var d = document.getElementById('errbox');
+      if (!d) { d = document.createElement('div'); d.id = 'errbox'; d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;padding:10px 12px;border-radius:10px;background:#b3261e;color:#fff;font:12px/1.5 system-ui;white-space:pre-wrap;word-break:break-all'; d.onclick = function () { d.remove(); }; document.body.appendChild(d); }
+      d.textContent = '⚠️ 出了點問題（截圖給我們）\n' + msg + '\n' + navigator.userAgent;
+    }
+    window.addEventListener('error', function (e) { if (/ResizeObserver|Script error/.test(e.message || '')) return; show((e.message || '') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); });
+    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; show('Promise: ' + (r && (r.stack || r.message) || r)); });
+  })();
+</script>
+<script>
+  // LINE 內建瀏覽器常常不能開相機：自動加上 openExternalBrowser=1，讓 LINE 改用手機瀏覽器打開
+  (function () {
+    var ua = navigator.userAgent || '';
+    if (/\bLine\//i.test(ua) && !/openExternalBrowser=1/.test(location.search)) {
+      location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'openExternalBrowser=1' + location.hash);
+      return;
+    }
+    // Instagram、Facebook、Messenger、Threads 等內建瀏覽器：先讓他直接玩，另外準備一鍵切換
+    var inApp = /Instagram|FBAN|FBAV|FB_IAB|Messenger|Barcelona|Threads|TikTok|musical_ly|Bytedance|Twitter|KAKAOTALK|WeChat|MicroMessenger/i.test(ua);
+    window.IN_APP = inApp;
+    var android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+    // 換瀏覽器後儲存空間不同，所以把目前的答案一起放進網址帶過去
+    function carryUrl() {
+      var data = null;
+      try { data = { a: JSON.parse(localStorage.getItem('stand-answers')), p: JSON.parse(localStorage.getItem('stand-progress')) }; } catch (e) {}
+      var q = 'openExternalBrowser=1';
+      if (data && (data.a || data.p)) q += '&carry=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data)))));
+      return location.host + location.pathname + '?' + q;
+    }
+    // Android：intent 連結直接叫出 Chrome；iPhone：x-safari-https 叫出 Safari（iOS 17 以後）
+    function browserHref() {
+      var rest = carryUrl();
+      return android ? 'intent://' + rest + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent('https://' + rest) + ';end'
+        : ios ? 'x-safari-https://' + rest : 'https://' + rest;
+    }
+    window.carryHref = function () { return location.protocol + '//' + carryUrl(); };
+    document.querySelectorAll('[data-open-browser]').forEach(function (a) {
+      a.href = '#';
+      a.addEventListener('click', function () {
+        a.href = browserHref();
+        // 叫不出瀏覽器時（App 擋掉），一秒後改提示手動方式
+        setTimeout(function () {
+          if (document.visibilityState === 'visible') {
+            var how = document.getElementById('switchHow');
+            if (how) how.textContent = ios ? '如果沒跳出 Safari：點右上角「⋯」→「在外部瀏覽器開啟」，或按「複製網址」貼到 Safari。'
+              : '如果沒跳出 Chrome：點右上角「⋮」→「在瀏覽器中開啟」，或按「複製網址」貼到 Chrome。';
+          }
+        }, 1200);
+      });
+    });
+    document.querySelectorAll('[data-copy-link]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var url = window.carryHref(), done = function () { b.textContent = '已複製，貼到瀏覽器就能開'; };
+        if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { prompt('長按複製這個網址', url); });
+        else prompt('長按複製這個網址', url);
+      });
+    });
+    if (inApp) document.getElementById('inapp').hidden = false;
+  })();
+</script>
+<script type="module" src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    // 有新版時自動重新整理一次，使用者不用手動清快取
+    var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController || reloaded) return; reloaded = true; location.reload();
+    });
+    addEventListener('load', function () { navigator.serviceWorker.register('sw.js').then(function (r) { r.update(); }).catch(function () {}); });
+  }
+</script>
+</body>
+</html>
