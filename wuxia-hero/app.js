@@ -480,7 +480,7 @@ if (saved?.q5) {
   $('sfx').append(on, b);
 }
 // 六角圖（能力值卡）：不放／左下／右下，拍照時由使用者決定
-state.card = store.get('cardPos') ?? 'left';
+state.card = store.get('cardPos') ?? 'off';   // 武俠篇：成品照以招式大字為主，六角圖預設不放
 const cardRow = document.createElement('div'); cardRow.className = 'chips'; cardRow.setAttribute('role', 'group'); cardRow.setAttribute('aria-label', '六角圖');
 { const lb = document.createElement('span'); lb.className = 'chip-label'; lb.textContent = '六角圖'; cardRow.append(lb); }
 for (const [id, name] of [['off', '不放'], ['left', '左下'], ['right', '右下']]) {
@@ -981,6 +981,7 @@ const BEAUTY_SLIDERS = [['smooth', '磨皮'], ['white', '美白'], ['eyes', '淡
 
 function render(now) {
   requestAnimationFrame(render);
+  if (state.revealing) return;                   // 按下快門後的招式動畫期間，畫面交給動畫
   const src = state.src, s = state.stand; if (!src || !s) return;
   if (src === video && video.readyState < 2) return;
   const W = view.width, H = view.height, t = now / 1000, u = Math.min(W, H) / 100;
@@ -1107,15 +1108,19 @@ function render(now) {
 
   state.godFront = state.godFrontNext;
   vignette(W, H);
-  if (L === 'opening') { openingCaption(W, H, s, u, ease, t); }
-  else {
-    if (state.card !== 'off' && s.owner) standCard(W, H, s, state.card);
-    tagStamp(W, H, s, u, now);
-    titleBanner(W, H, s, u, ease);
-    if (state.standHead) speech(W, H, s, u, t, ease);
+  // 拍攝時畫面只有英雄＋自己；按下快門才把名字、招式等字放上成品照
+  if (state.grab) { state.grab = false; const b = mk(W, H); b.getContext('2d').drawImage(view, 0, 0); state.baseC = b; }
+  const fin = state.capturing && state.final;
+  if (fin) {
+    if (L === 'opening') openingCaption(W, H, s, u, 1, t);
+    else {
+      if (state.card !== 'off' && s.owner) standCard(W, H, s, state.card);
+      titleBanner(W, H, s, u, 1, true);
+    }
+    wishBubble(W, H, s, u, box);
+    drawMoveChars(ctx, W, H, u, fin, 99);          // 招式大字的最後位置（跟動畫結束時一模一樣）
+    credit(W, H, u);
   }
-  wishBubble(W, H, s, u, box);
-  credit(W, H, u);
   if (state.godFront && !state.capturing) {               // 只在預覽時提示，拍下來的照片不會有
     const msg = { zh: '往後退一點，讓英雄站到你身後', ja: '少し下がると、英雄が後ろに立てます', en: 'Step back a little so your hero can stand behind you' }[state.lang];
     ctx.save(); ctx.font = `700 ${3 * u}px "Noto Sans TC", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1245,7 +1250,7 @@ function stampText(c, x, y, px, s, u) {
   ctx.lineWidth = px * .2; ctx.strokeStyle = '#120a1c'; ctx.strokeText(c, x, y);
   ctx.lineWidth = px * .07; ctx.strokeStyle = s.glow; ctx.strokeText(c, x, y);
   ctx.fillStyle = '#fff'; ctx.fillText(c, x, y);
-  ctx.lineWidth = px * .035; ctx.strokeStyle = '#fff'; ctx.strokeText(c, x, y);   // 毛筆字加粗
+  ctx.lineWidth = px * .07; ctx.strokeStyle = '#fff'; ctx.strokeText(c, x, y);   // 毛筆字加粗
 }
 
 // ── 前景文字：守護靈名稱（最上方）與台詞對話框，永遠畫在人和替身的前面 ──
@@ -1257,7 +1262,7 @@ const FONT = {
 };
 const BRUSH = '"Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆行書（缺字時退到毛筆楷書、楷書）
 const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' };
-function titleBanner(W, H, s, u, ease) {
+function titleBanner(W, H, s, u, ease, noMove) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
   ctx.globalAlpha = ease;
@@ -1275,12 +1280,12 @@ function titleBanner(W, H, s, u, ease) {
   const y = 4.6 * u + px * .95;
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .2; ctx.strokeStyle = '#0d0a08'; ctx.strokeText(big, W / 2, y);
   const gg = ctx.createLinearGradient(0, y - px, 0, y); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
-  ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .05;
+  ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .085;
   ctx.shadowColor = s.glow; ctx.shadowBlur = px * .25;
   ctx.fillText(big, W / 2, y); ctx.shadowBlur = 0; ctx.strokeText(big, W / 2, y);
   // 招式名稱：名字下面一行（換招式時跟著換）
   const mv = curMove || s.move;
-  if (mv) {
+  if (mv && !noMove) {
     const mp = 5.6 * u, my = y + mp * 1.35;
     ctx.font = FONT.zh(900, mp);
     const txt = `${mv.name}`, tw = ctx.measureText(txt).width;
@@ -1290,7 +1295,7 @@ function titleBanner(W, H, s, u, ease) {
     ctx.font = FONT.zh(900, mp);
     ctx.lineWidth = mp * .2; ctx.strokeStyle = '#0d0a08'; ctx.strokeText(txt, W / 2 + mp * .1, my);
     ctx.fillStyle = s.glow; ctx.fillText(txt, W / 2 + mp * .1, my);
-    ctx.lineWidth = mp * .04; ctx.strokeStyle = s.glow; ctx.strokeText(txt, W / 2 + mp * .1, my);
+    ctx.lineWidth = mp * .08; ctx.strokeStyle = s.glow; ctx.strokeText(txt, W / 2 + mp * .1, my);
   }
   ctx.restore();
 }
@@ -1593,21 +1598,129 @@ function stopRec() {
 }
 $('shot').onclick = () => {
   if (captureType === 'video') { rec ? stopRec() : startRec(); return; }
+  if (state.revealing || !state.stand) return;
   $('clip').hidden = true; $('clip').pause(); $('photo').hidden = false;
   $('save').download = lastName = 'photo.jpg'; lastType = 'image/jpeg'; $('save').textContent = '存到手機相簿'; $('share').textContent = '分享照片';
   const f = $('flash'); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on')));
-  state.capturing = true;                        // 先畫一格沒有站位虛線的畫面再存
-  requestAnimationFrame(() => requestAnimationFrame(() => view.toBlob((blob) => {
-    state.capturing = false;
-    if (!blob) return;
-    lastBlob = blob;
-    if (lastUrl) URL.revokeObjectURL(lastUrl);
-    lastUrl = URL.createObjectURL(blob);
-    $('photo').src = lastUrl; $('save').href = lastUrl;
-    $('copyShare').textContent = '複製邀請文字＋網址';
-    $('sheet').hidden = false;
-  }, 'image/jpeg', .92)));
+  // 先畫一格「乾淨畫面」和一格「成品」（同一格：先存乾淨的，再疊字）
+  const s = state.stand, mv = curMove || s.move, hero = STANDS[mv.hero || s.id] || s;
+  const styles = ['inplace', 'ltr', 'rtl', 'diag'];
+  state.final = { mv, style: styles[Math.floor(Math.random() * styles.length)], red: !!hero.female, glow: (hero.glow || s.glow) };
+  state.capturing = true; state.grab = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const W = view.width, H = view.height, fin = mk(W, H); fin.getContext('2d').drawImage(view, 0, 0);
+    const base = state.baseC || fin, F = state.final;
+    state.capturing = false; state.final = null;
+    playReveal(base, fin, F, () => fin.toBlob((blob) => {
+      if (!blob) return;
+      lastBlob = blob;
+      if (lastUrl) URL.revokeObjectURL(lastUrl);
+      lastUrl = URL.createObjectURL(blob);
+      $('photo').src = lastUrl; $('save').href = lastUrl;
+      $('copyShare').textContent = '複製邀請文字＋網址';
+      $('sheet').hidden = false;
+    }, 'image/jpeg', .92));
+  }));
 };
+
+// ── 招式毛筆字：按下快門後，一個字一個字寫出來，最後跟成品照一起淡入推出 ──
+//   inplace 原地浮現／ltr 從左邊飛入／rtl 從右邊飛入／diag 從左上斜斜落到右下
+//   女俠的招式用紅底白字（副標紅底黑字）
+function moveLayout(W, H, u, F) {
+  const name = [...F.mv.name], sub = [...(F.mv.sub || '')], out = [];
+  const pf = state.personFace;                     // 字不要蓋到本人的臉
+  if (F.style === 'diag') {
+    // 斜斜落下的一排字：放在臉比較少的那一側
+    const n = name.length, left = !pf || (pf.x0 + pf.x1) / 2 > W / 2;
+    // 也不要蓋到英雄的臉：英雄的臉在這一側，就從英雄的下巴下面開始寫
+    const gf = state.godFace, bandX0 = left ? 0 : W * .55, bandX1 = left ? W * .45 : W;
+    const yTop = gf && gf.x1 > bandX0 && gf.x0 < bandX1 ? Math.max(H * .26, gf.y1 + 2 * u) : H * .26;
+    const size = Math.max(9 * u, Math.min(17 * u, (H * .84 - yTop) / (n + .6), W * .3));
+    const x0 = left ? size * .7 : W * .62, x1 = left ? W * .38 : W - size * .7, y0 = yTop + size * .5, y1 = y0 + size * 1.02 * (n - 1);
+    name.forEach((c, i) => { const k = n > 1 ? i / (n - 1) : .5; out.push({ c, x: x0 + (x1 - x0) * k, y: y0 + (y1 - y0) * k, size, sub: false, rot: -.08 + .04 * (i % 2) }); });
+    const ss = Math.min(8 * u, (W * .45) / Math.max(1, sub.length)), sy = Math.min(H * .9, y1 + size * .95);
+    const sx0 = left ? x1 - (sub.length - 1) * ss * 1.05 : x0;
+    sub.forEach((c, i) => out.push({ c, x: sx0 + i * ss * 1.05, y: sy, size: ss, sub: true, rot: 0 }));
+    return out;
+  }
+  const n = name.length, size = Math.min(19 * u, (W - 6 * u) / n / 1.02);
+  const y = Math.min(H * .84 - size * .6, Math.max(H * .7, pf ? pf.y1 + size * .55 : 0));   // 一排字放在下巴下面
+  name.forEach((c, i) => out.push({ c, x: W / 2 + (i - (n - 1) / 2) * size * 1.02, y, size, sub: false, rot: (i % 2 ? .04 : -.04) }));
+  const ss = Math.min(9 * u, (W * .7) / Math.max(1, sub.length));
+  sub.forEach((c, i) => out.push({ c, x: W / 2 + (i - (sub.length - 1) / 2) * ss * 1.08, y: y + size * .62 + ss * .7, size: ss, sub: true, rot: 0 }));
+  return out;
+}
+function brushChar(g, it, F, a, u) {
+  const { c, size } = it;
+  g.save(); g.globalAlpha = Math.max(0, Math.min(1, a)); g.translate(it.x, it.y); g.rotate(it.rot || 0);
+  g.font = `${size}px ${BRUSH}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  if (F.red) {
+    // 紅底：每個字一塊略帶筆觸的紅色方塊
+    const r = size * .58; g.fillStyle = it.sub ? '#9e1b16' : '#c0261d';
+    g.beginPath(); g.moveTo(-r, -r * .92); g.lineTo(r * .96, -r); g.lineTo(r, r * .94); g.lineTo(-r * .97, r); g.closePath(); g.fill();
+    const col = it.sub ? '#140c0a' : '#ffffff';
+    g.fillStyle = col; g.strokeStyle = col; g.lineWidth = size * .08;
+    g.fillText(c, 0, size * .04); g.strokeText(c, 0, size * .04);
+  } else {
+    g.lineWidth = size * .2; g.strokeStyle = '#0b0806'; g.strokeText(c, 0, size * .04);       // 濃墨外框
+    const gr = g.createLinearGradient(0, -size / 2, 0, size / 2); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, F.glow);
+    g.shadowColor = F.glow; g.shadowBlur = size * .3;
+    g.fillStyle = gr; g.fillText(c, 0, size * .04);
+    g.shadowBlur = 0; g.strokeStyle = gr; g.lineWidth = size * .085; g.strokeText(c, 0, size * .04);   // 加粗：渾厚有勁
+  }
+  g.restore();
+}
+// at：動畫時間（秒），99＝最後定格
+function drawMoveChars(g, W, H, u, F, at) {
+  const items = moveLayout(W, H, u, F), step = .13, dur = .32;
+  items.forEach((it, i) => {
+    const t0 = i * step + (it.sub ? .15 : 0), k = Math.max(0, Math.min(1, (at - t0) / dur));
+    if (k <= 0) return;
+    const e = 1 - Math.pow(1 - k, 3);
+    if (F.style === 'inplace' || at >= 99) {
+      const sc = 1 + (1 - e) * .9;
+      if (!F.red && k < 1 && at < 99) inkSplash(g, it, k, u);
+      brushChar(g, { ...it, size: it.size * sc }, F, e, u);
+    } else {
+      const dir = F.style === 'ltr' ? [-1, 0] : F.style === 'rtl' ? [1, 0] : [-.7, -.7];
+      const L = Math.max(W, H) * .9, x = it.x + dir[0] * L * (1 - e), y = it.y + dir[1] * L * (1 - e);
+      if (k < 1) for (let j = 3; j >= 1; j--) brushChar(g, { ...it, x: x + dir[0] * it.size * .5 * j, y: y + dir[1] * it.size * .5 * j }, F, .18 * (1 - k) * (4 - j), u);   // 速度殘影
+      brushChar(g, { ...it, x, y }, F, Math.min(1, e * 1.4), u);
+    }
+  });
+  return items.length * step + .15 + dur;           // 全部寫完需要的時間
+}
+function inkSplash(g, it, k, u) {
+  g.save(); g.globalAlpha = (1 - k) * .55; g.fillStyle = '#0b0806';
+  for (let j = 0; j < 7; j++) {
+    const an = j * 2.4 + it.c.charCodeAt(0), r = it.size * (.25 + k * .9) * (.6 + (j % 3) * .25);
+    g.beginPath(); g.arc(it.x + Math.cos(an) * r, it.y + Math.sin(an) * r, it.size * .06 * (1 + (j % 2)), 0, 7); g.fill();
+  }
+  g.restore();
+}
+function playReveal(base, fin, F, done) {
+  const W = view.width, H = view.height, u = Math.min(W, H) / 100;
+  state.revealing = true;
+  const total = drawMoveChars(mk(1, 1).getContext('2d'), W, H, u, F, 0) + .35, fade = .7, t0 = performance.now();
+  const frame = (now) => {
+    const at = (now - t0) / 1000;
+    ctx.globalAlpha = 1; ctx.drawImage(base, 0, 0);
+    if (at < total) {
+      // 字寫出來時畫面稍微暗一點，字更跳
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(.25, at * .8)})`; ctx.fillRect(0, 0, W, H);
+      drawMoveChars(ctx, W, H, u, F, at);
+      requestAnimationFrame(frame); return;
+    }
+    // 成品照淡入、從 1.06 倍推回原尺寸
+    const k = Math.min(1, (at - total) / fade), e = 1 - Math.pow(1 - k, 3), sc = 1.06 - .06 * e;
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, W, H);
+    drawMoveChars(ctx, W, H, u, F, 99);
+    ctx.save(); ctx.globalAlpha = e; ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.drawImage(fin, -W / 2, -H / 2); ctx.restore();
+    if (k < 1) { requestAnimationFrame(frame); return; }
+    state.revealing = false; done();
+  };
+  requestAnimationFrame(frame);
+}
 function shareText() {
   const s = state.stand, url = location.origin + location.pathname;
   return s ? `我心中的英雄是${s.name}，本命招式「${s.move.name}」！你是哪一位武俠英雄？來測 → ${url}` : url;

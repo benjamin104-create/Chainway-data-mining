@@ -163,7 +163,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
     const h = S.hand; fireTrig(move.fx, h ? palmCenter(h, W, H) : [W / 2, H / 2]);
   }
   if (S.k < .2) S.fired = false;
-  if (S.banner && t - S.banner.t0 < 2.8) drawBanner(ctx, W, H, u, t - S.banner.t0, S.banner.move, S.banner.pal);
+  // 招式大字改成按下快門時才寫出來（拍攝畫面只有英雄＋自己）
 
   if (S.guide && !capturing) drawGuide(ctx, W, H, u, t, face);
   // 還沒試過招式的人，隔一陣子提示一下（只在預覽，拍下來不會有）
