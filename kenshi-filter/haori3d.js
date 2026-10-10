@@ -88,7 +88,7 @@ export class Haori3D {
       const sc=quality.sleeveCols,sr=quality.sleeveRows,sp=Array.from({length:sc+1},(_,i)=>i);
       // Support at the arm-facing edge of the elbow and forearm opening. The
       // large pocket remains free; never pull the whole cuff onto the wrist.
-      if(sleeve.visible)sp.push(Math.round(sr*.55)*(sc+1),sr*(sc+1));
+      sp.push(Math.round(sr*.55)*(sc+1),sr*(sc+1));
       const patch=new ClothPatch(sc,sr,sleeveAt,sp,{...quality,seamClosed:true,bendCompliance:.3});
       this.patches.push({patch,at:sleeveAt,type:s});
     }
@@ -116,7 +116,7 @@ export class Haori3D {
     this.cord=new THREE.Mesh(new THREE.BufferGeometry(),cordMat);this.cord.castShadow=true;this.group.add(this.cord);
     this.knot=new THREE.Mesh(new THREE.SphereGeometry(S*.025,12,8),cordMat);this.group.add(this.knot);
     this.cord.visible=this.knot.visible=style!=='nezuko';
-    this.signature=[photo,clothKey(ch,style),fit.width,fit.length,...['l','r'].map(s=>f.kp[s+'w'].v>.55&&f.kp[s+'e'].v>.5)].join('|');this.baseT=T;this.buildEase=ease;this.lastPattern=null;this.lastFrame=null;this.settled=false;this.settledSteps=0;
+    this.signature=[photo,clothKey(ch,style),fit.width,fit.length].join('|');this.baseT=T;this.buildEase=ease;this.lastPattern=null;this.lastFrame=null;this.settled=false;this.settledSteps=0;
     if(this.key.shadow.mapSize.x!==quality.shadowSize){this.key.shadow.map?.dispose();this.key.shadow.map=null;this.key.shadow.mapSize.set(quality.shadowSize,quality.shadowSize);}
     return true;
   }
@@ -126,7 +126,7 @@ export class Haori3D {
     if(camera.estimated&&!this.focalRatio)this.focalRatio=camera.f/W;
     const unsupported=Math.abs(f.yaw)>Math.PI*.41||camera.error>Math.hypot(kp.rs.x-kp.ls.x,kp.rs.y-kp.ls.y)*.25;
     if(unsupported)return {ready:false,unsupported:true,reason:Math.abs(f.yaw)>Math.PI*.41?'angle':'projection'};
-    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',photo=!!opts.photo,sig=[photo,clothKey(ch,style),fit.width,fit.length,...['l','r'].map(s=>kp[s+'w'].v>.55&&kp[s+'e'].v>.5)].join('|');
+    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',photo=!!opts.photo,sig=[photo,clothKey(ch,style),fit.width,fit.length].join('|');
     if(!this.signature||sig!==this.signature||Math.abs(f.T/this.baseT-1)>.18||Math.abs(ease-this.buildEase)>.12){if(!this.rebuild(f,ch,fit,ease,style,photo))return {ready:false};}
     if(this.canvas.width!==W||this.canvas.height!==H)this.renderer.setSize(W,H,false);this.camera.aspect=W/H;this.camera.fov=2*Math.atan(H/(2*camera.f))*180/Math.PI;this.camera.updateProjectionMatrix();
     // Geometry stays in inferred metric camera space; the root translation is

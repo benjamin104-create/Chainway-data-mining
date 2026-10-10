@@ -121,6 +121,11 @@
   #weaponChoices .chip {min-height:42px;font-size:13px;}
   #weaponPanel {max-height:35vh;}
   #weaponStatus {font-size:12px;min-height:1.4em;color:#f3ead8;}
+  #beautyLiveStatus {font-size:12px;color:#e8d2ae;}
+  .action-col {display:grid;gap:6px;justify-items:center;}
+  #ultimateBtn {border-color:#e0bc78;background:linear-gradient(140deg,#584125,#261c16);color:#fff0c9;font-weight:800;padding:11px 12px;}
+  #ultimateBtn:disabled {opacity:.5;}
+  #cam[data-ultimate="true"] .cam-quick,#cam[data-ultimate="true"] .customize,#cam[data-ultimate="true"] #weaponStatus,#cam[data-ultimate="true"] #beautyLiveStatus {display:none;}
   .fit-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding-top: 6px; border-top: 1px solid var(--line); }
   .fit-controls label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   .fit-controls input { width: 100%; accent-color: var(--accent); }
@@ -254,7 +259,8 @@
   <div class="hint" id="hint"></div>
   <div class="hud-bot">
     <div class="cam-quick"><div class="chips" id="modes"></div><span class="fine" id="photoModeLabel" hidden>照片試穿</span><button class="chip" id="customizeBtn" aria-expanded="false">造型</button><button class="chip" id="weaponBtn" aria-expanded="false" aria-controls="weaponPanel">武器：打刀</button><button class="chip" id="beautyBtn" aria-expanded="false" aria-controls="beautyPanel">美顏：標準</button></div>
-    <div class="customize" id="beautyPanel" hidden><strong>自動美顏</strong><div class="chips" id="beautyChoices" role="group" aria-label="美顏模式"></div><p class="fine">標準：自然美肌與補光。男神：保留膚質與立體感。女神：較柔和美肌、補光與暖氣色。預覽、照片試穿與輸出都套用；不瘦臉、不放大眼睛、不判斷性別。</p><p class="fine" id="beautyStatus" role="status">臉部清楚入鏡後自動套用。</p></div>
+    <div class="customize" id="beautyPanel" hidden><strong>自動美顏</strong><div class="chips" id="beautyChoices" role="group" aria-label="美顏模式"></div><label class="fine">美肌強度 <output id="beautyStrengthValue">100%</output><input id="beautyStrength" type="range" min="60" max="160" step="10" value="100" aria-label="美肌強度" style="width:100%;accent-color:#dfb880"></label><p class="fine">標準：美肌與補光。男神：保留較多膚質。女神：較柔和美肌與暖氣色。可拉高強度並選「關閉」比較原圖；預覽及輸出都套用，不瘦臉、不放大眼睛。</p><p class="fine" id="beautyStatus" role="status">臉部清楚入鏡後自動套用。</p></div>
+    <div id="beautyLiveStatus" role="status">美顏等待臉部辨識</div>
     <div class="customize" id="weaponPanel" hidden><strong>武器與搞笑道具</strong><div id="weaponChoices" aria-label="選擇武器或道具"></div><div class="chips" id="propDirections" aria-label="手持方向"></div><p class="fine">手和手肘入鏡才會拿起道具；自拍預設朝上，可切換跟隨手勢。方向是近似，非逐指握姿追蹤。</p></div>
     <div id="weaponStatus" role="status"></div>
     <div class="customize" id="customizer" hidden>
@@ -271,7 +277,7 @@
       </div>
     </div>
     <div class="controls">
-      <div class="meter" id="meter"><span id="meterText"></span><div class="bar"><i id="meterBar" style="width:0"></i></div></div>
+      <div class="action-col"><button class="chip" id="ultimateBtn" disabled>奧義拍照</button><div class="meter" id="meter"><span id="meterText"></span><div class="bar"><i id="meterBar" style="width:0"></i></div></div></div>
       <button class="shutter" id="shutter" aria-label="拍照"></button>
       <div class="meter"><span id="loadState">載入姿勢辨識中…</span></div>
     </div>

@@ -16,6 +16,13 @@ export function solve3(A,b) {
     for(let i=0;i<3;i++)if(i!==k){const t=m[i][k];for(let j=k;j<4;j++)m[i][j]-=t*m[k][j];}
   }return m.map(r=>r[3]);
 }
+// Register each visible point to its observed camera ray while retaining the
+// model's relative depth. Raw fit error is still audited; this is not new depth.
+export function rayAlignedPoint(camera,p){
+  if(!Number.isFinite(p.wz)||!Number.isFinite(p.x)||!Number.isFinite(p.y))return [p.wx,p.wy,p.wz];
+  const depth=Math.max(.08,camera.D+p.wz);
+  return [(p.x-camera.cx)*depth/camera.f-camera.tx,(p.y-camera.cy)*depth/camera.f-camera.ty,p.wz];
+}
 export function fitBodyCamera(kp,W,H,focalRatio=null) {
   const S=Math.hypot(kp.rs.x-kp.ls.x,kp.rs.y-kp.ls.y),cx=W/2,cy=H/2;
   const keys=['ls','rs','lh','rh','le','re','lw','rw','n'];
@@ -42,7 +49,7 @@ export function fitBodyCamera(kp,W,H,focalRatio=null) {
     let err=0,n=0;
     for(const k of samples){const p=kp[k],q=project([p.wx,p.wy,p.wz]);const w=['ls','rs','lh','rh'].includes(k)?1:.22;err+=w*((q[0]-p.x)**2+(q[1]-p.y)**2);n+=w;}
     err=Math.sqrt(err/n);
-    if(!best||err<best.error)best={f,D,tx,ty,cx,cy,error:err,project,estimated:true,world:p=>[p.wx,p.wy,p.wz],scale:f/D};
+    if(!best||err<best.error){best={f,D,tx,ty,cx,cy,error:err,project,estimated:true,scale:f/D};const calibrated=best;best.world=p=>rayAlignedPoint(calibrated,p);}
   }
   if(!best)return fitBodyCamera(Object.fromEntries(Object.entries(kp).map(([k,p])=>[k,{...p,wx:undefined}])),W,H);
   return best;

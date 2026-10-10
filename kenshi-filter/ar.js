@@ -52,9 +52,9 @@ export function smooth(prev, next, base = .38) {
     const residual = Math.hypot(b.x - predicted.x, b.y - predicted.y);
     const dynamic = Math.min(.3, residual / Math.max(80, pf.T * 3));
     const torso = k === 'ls' || k === 'rs' || k === 'lh' || k === 'rh';
-    const t = confidence < .42 ? 0 : Math.min(.72, base + dynamic + (torso ? -.08 : .08));
+    const t = confidence < .42 ? 0 : Math.min(.90, base + dynamic + (torso ? -.08 : .08));
     const worldDelta=Number.isFinite(b.wx)&&Number.isFinite(a.wx)?Math.hypot(b.wx-a.wx,b.wy-a.wy,b.wz-a.wz):0;
-    const worldT=confidence<.42?0:Math.min(.85,.50+worldDelta*3);
+    const worldT=confidence<.42?0:Math.min(.92,.65+worldDelta*3);
     out[k] = {
       ...b,
       x: predicted.x + (b.x - predicted.x) * t,

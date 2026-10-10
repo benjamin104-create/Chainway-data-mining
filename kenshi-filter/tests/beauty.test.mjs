@@ -15,4 +15,7 @@ const cheek=idx(36,52);assert.ok(std[cheek+3]>0);assert.ok(std[cheek]>src[cheek]
 for(const mode of Object.keys(BEAUTY))assert.ok(retouchPixels(src,W,H,f,mode).every(Number.isFinite));
 const dark=src.map((v,i)=>i%4===3?v:Math.round(v*.42));assert.ok(retouchPixels(dark,W,H,f,'standard')[cheek+3]>0,'No fixed light-skin RGB requirement');
 const noise=src.slice();noise[cheek]=177;assert.ok(retouchPixels(noise,W,H,f,'standard')[cheek]<177+12,'Local detail remains bounded');
+const stronger=retouchPixels(src,W,H,f,'standard',1.6);assert.ok(stronger[cheek]>std[cheek],'Strength control must produce visible tone difference');
+const weaker=retouchPixels(noise,W,H,f,'standard',.6),smoothStrong=retouchPixels(noise,W,H,f,'standard',1.6);
+assert.ok(smoothStrong[cheek]-retouchPixels(src,W,H,f,'standard',1.6)[cheek]<weaker[cheek]-retouchPixels(src,W,H,f,'standard',.6)[cheek],'Stronger beauty must reduce local texture variation');
 console.log('PASS: default/disabled modes, confidence/yaw gate, unchanged source/background/eyes/lips, skin-relative tone, distinct finite presets');

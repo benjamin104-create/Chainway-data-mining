@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {fitBodyCamera,bodyFrame} from '../body-camera.js';
+import {fitBodyCamera,bodyFrame,rayAlignedPoint} from '../body-camera.js';
+import {cameraFrameDue} from '../camera-frame.js';
 const points={ls:[-.18,-.5,0],rs:[.18,-.5,0],lh:[-.13,0,0],rh:[.13,0,0],
  le:[-.25,-.2,-.05],re:[.25,-.2,-.02],lw:[-.25,.08,-.06],rw:[.25,.08,-.03],n:[0,-.68,-.05]};
 for(const angle of [-30,0,30]){
@@ -14,3 +15,10 @@ for(const angle of [-30,0,30]){
  console.log(`${angle}°: error=${camera.error.toFixed(6)} px, T=${body.T.toFixed(3)} m, pitch=${(body.pitch*180/Math.PI).toFixed(1)}°`);
 }
 console.log('PASS: front, high-angle, low-angle reprojection and invariant metric torso length');
+const cal={f:832,D:1.8,tx:.07,ty:.1,cx:320,cy:480},p={x:211,y:344,wz:.12,wx:-.17,wy:-.47};
+const q=rayAlignedPoint(cal,p);
+assert.ok(Math.abs(320+832*(q[0]+cal.tx)/(cal.D+q[2])-p.x)<1e-8);
+assert.ok(Math.abs(480+832*(q[1]+cal.ty)/(cal.D+q[2])-p.y)<1e-8);
+assert.equal(q[2],p.wz);console.log('PASS: observed shoulder-ray registration with unchanged inferred depth');
+assert.equal(cameraFrameDue(120,100),false);assert.equal(cameraFrameDue(133,100),true);assert.equal(cameraFrameDue(120,100,false),true);assert.equal(cameraFrameDue(0,undefined),true);
+console.log('PASS: background waits for pose cadence, initial preview remains available');

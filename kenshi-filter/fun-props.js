@@ -17,6 +17,7 @@ export function buildFunProp(kind){
     group.userData.reach=y+h/2;
   }else if(kind==='duster'){
     rod(.30,.90,.038,wood);
+    rod(.77,.16,.034,wood); // Continuous ferrule: no floating feather-head gap.
     const colors=['#b58a68','#d9bb8f','#efe0c2','#895f49'];
     for(let i=0;i<40;i++){
       const t=i/40*Math.PI*2,r=.04+(i%4)*.026,L=.35+(i%5)*.05;

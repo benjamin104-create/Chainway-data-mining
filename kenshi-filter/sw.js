@@ -1,7 +1,7 @@
 // 第一次開啟後把程式與模型存在手機裡，之後打開更快、沒網路也能用
-const CACHE = 'kata-v15';
+const CACHE = 'kata-v16';
 const SHELL = ['./', 'index.html', 'app.js', 'ar.js', 'render3d.js', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png',
-  'beauty.js','composite.js', 'garment-rig.js', 'haori3d.js', 'haori-pattern.js', 'body-camera.js', 'cloth-physics.js', 'cloth-follow.js','fun-props.js','kimono-layer.js','weapon-layout.js', 'assets/fabric-cotton-weave-v3.png',
+  'camera-frame.js','ultimate.js','beauty.js','composite.js', 'garment-rig.js', 'haori3d.js', 'haori-pattern.js', 'body-camera.js', 'cloth-physics.js', 'cloth-follow.js','fun-props.js','kimono-layer.js','weapon-layout.js', 'assets/fabric-cotton-weave-v3.png',
   'lib/vision_bundle.mjs', 'lib/three.module.min.js', 'lib/RoomEnvironment.js', 'lib/GLTFLoader.js', 'lib/BufferGeometryUtils.js', 'models/pose_landmarker_lite.task'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

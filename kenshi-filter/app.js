@@ -1,6 +1,6 @@
 import { FilesetResolver, PoseLandmarker, ImageSegmenter } from './lib/vision_bundle.mjs';
 import { APP_TITLE,TYPES, CHARACTERS, ORDER, QUESTIONS, WEAPONS, score, topType, encodeScores, decodeScores, similarity, pairNote } from './data.js';
-import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawFinisher, drawAtmosphere, drawCinematicFrame, drawRealHaori, haoriAssetsReady, placePose } from './ar.js';
+import { fromLandmarks, smooth, frame, weaponPose, drawTrail, matchPose, guidePose, drawGuide, drawAtmosphere, drawCinematicFrame, drawRealHaori, haoriAssetsReady, placePose } from './ar.js';
 import { copyPersonMask, copyPartMasks, drawMappedMask, cutForeground } from './composite.js';
 import { Stage3D } from './render3d.js';
 import { Haori3D, fabricReady, silhouetteEase } from './haori3d.js';
@@ -8,6 +8,8 @@ import { scabbardPoses } from './weapon-layout.js';
 import { buildHaoriRig } from './garment-rig.js';
 import { FUN_KINDS } from './fun-props.js';
 import { BEAUTY, beautyMode, BeautyPass } from './beauty.js';
+import { drawUltimate,ULTIMATE_SECONDS,fitPropScale } from './ultimate.js';
+import { cameraFrameDue } from './camera-frame.js';
 
 const stage3d = new Stage3D();
 let haori3d = null;
@@ -39,8 +41,10 @@ try {
 const rememberedChar = store.get('char');
 const rememberedWeapon=params.get('weapon')||store.get('weapon-v2');
 const portraitBeauty=new BeautyPass();
+const savedBeautyStrength=Number(params.get('beautyStrength')??store.get('beauty-strength-v1')??100);
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'free', facing: 'user',
-  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', beauty:beautyMode(params.get('beauty')??store.get('beauty-v1')),camOrigin: 'intro' };
+  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', beauty:beautyMode(params.get('beauty')??store.get('beauty-v1')),beautyStrength:Number.isFinite(savedBeautyStrength)?Math.max(.6,Math.min(1.6,savedBeautyStrength/100)):1,camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -196,6 +200,9 @@ function freezeScene(source){
 }
 video.playsInline = true; video.muted = true; video.setAttribute('playsinline', '');
 const cam = { frame: 0, stream: null, raf: 0, kp: null, lastSeen: 0, trail: [], hold: 0, firedAt: 0, cool: 0, match: 0, wantShot: false, demoT: 0 };
+function beginUltimate(now){cam.firedAt=now;cam.cool=now+3200;cam.hold=0;cam.shotAt=now+850;cam.shotUntil=now+2600;cam.photoRenderKey=null;}
+$('ultimateBtn').onclick=()=>{if(!cam.hasBody)return;if(performance.now()<cam.cool)return;beginUltimate(performance.now());updateHint('奧義發動！保持姿勢，衣服通過檢查後會自動定格拍照。');};
+$('beautyStrength').oninput=()=>{state.beautyStrength=Number($('beautyStrength').value)/100;store.set('beauty-strength-v1',Math.round(state.beautyStrength*100));$('beautyStrengthValue').textContent=Math.round(state.beautyStrength*100)+'%';};
 const garmentLayer = document.createElement('canvas'), foregroundLayer = document.createElement('canvas');
 const weaponLayer = document.createElement('canvas');
 const maskVideo = document.createElement('canvas'), maskScreen = document.createElement('canvas');
@@ -271,6 +278,7 @@ function gear(id = state.char) {
   return gearCache.get(key);
 }
 function syncChips() {
+  $('beautyStrength').value=Math.round(state.beautyStrength*100);$('beautyStrengthValue').textContent=Math.round(state.beautyStrength*100)+'%';$('beautyStrength').disabled=state.beauty==='off';
   $('beautyBtn').textContent='美顏：'+BEAUTY[state.beauty].label;
   for(const b of $('beautyChoices').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.beauty));
   store.set('beauty-v1',state.beauty);
@@ -296,7 +304,7 @@ function updateHint(msg) {
   $('hint').hidden = false;
   $('hint').textContent = msg || (state.mode === 'move'
     ? '手持自拍就可以：把臉、雙肩和雙手放進畫面，跟著白色手臂框擺姿勢。到位會自動發動並拍照。'
-    : '臉和雙肩入鏡即可穿上羽織。空出的手入鏡時可以持刀，按紅色按鈕拍照。');
+    : '臉和雙肩入鏡即可穿上羽織。按「奧義拍照」可直接發動絕技＋大文字；紅色按鈕拍一般照片。');
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => { $('hint').hidden = true; }, 6000);
 }
@@ -377,7 +385,7 @@ async function openCam(origin = 'result', photo = null) {
   cam.uploadedPhoto = photo?.image || null; cam.uploadUrl = photo?.url || null;
   $('fitReset').click();
   cam.hold = 0; cam.firedAt = 0; cam.shotAt = 0; cam.wantShot = false; cam.match = 0; cam.light = null;
-  cam.photoRenderKey = null;cam.fitValid=false;
+  cam.photoRenderKey = null;cam.fitValid=false;cam.hasBody=false;cam.shotUntil=0;cam.cool=0;
   haori3d?.reset(); cam.clothEase = null;
   if (photo) state.mode = 'free';
   state.camOrigin = origin;
@@ -405,7 +413,7 @@ async function startCamera() {
   stopStream();
   haori3d?.reset();cam.clothEase=null;
   cam.propsFocalRatio=null;
-  cam.kp = null; cam.maskAt = 0; cam.partsAt = 0;cam.partPose=null; cam.partsSourceTime = undefined; cam.lastVideoTime = undefined; cam.trail = [];
+  cam.kp = null;cam.fitValid=false;cam.hasBody=false;cam.detectAt=undefined;cam.snapshotTime=undefined; cam.maskAt = 0; cam.partsAt = 0;cam.partPose=null; cam.partsSourceTime = undefined; cam.lastVideoTime = undefined; cam.trail = [];
   cam.photoDemo = !cam.uploadedPhoto && params.get('demo') === 'photo';
   cam.photoMode = !!cam.uploadedPhoto || cam.photoDemo;
   $('flip').textContent = cam.photoMode ? '↥' : '⟲';
@@ -444,7 +452,7 @@ function releaseUploadedPhoto() {
 function stopCamera() { stopStream(); cancelAnimationFrame(cam.raf); releaseUploadedPhoto(); }
 $('flip').onclick = () => {
   if (cam.photoMode) { choosePhoto(); return; }
-  state.facing = state.facing === 'user' ? 'environment' : 'user'; cam.kp = null; startCamera();
+  state.facing = state.facing === 'user' ? 'environment' : 'user'; cam.kp = null;cam.fitValid=false;cam.hasBody=false;cam.firedAt=0;cam.shotAt=0;cam.wantShot=false;cam.cool=0;startCamera();
 };
 $('camBack').onclick = () => show(state.camOrigin === 'result' ? 'result' : 'intro');
 
@@ -463,12 +471,16 @@ function videoLight(source = video) {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   // Still photos redraw only when tracking/model/garment/control state changes.
-  const photoKey = [!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.propDirection,state.beauty, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+  const photoKey = [cam.firedAt&&now-cam.firedAt<ULTIMATE_SECONDS*1000?Math.floor(now/50):'',!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.propDirection,state.beauty,state.beautyStrength, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
     fit.width, fit.length, stage.width, stage.height].join('|');
   if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
     const began=performance.now();renderFrame(now);cam.renderMs=performance.now()-began; cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
   }
-  if (cam.shotAt && now >= cam.shotAt) { cam.shotAt = 0; cam.wantShot = true; }
+  if (cam.shotAt && now >= cam.shotAt) {
+    if(cam.fitValid){cam.shotAt=0;cam.wantShot=true;}
+    else if(now<cam.shotUntil)cam.shotAt=now+80;
+    else{cam.shotAt=0;updateHint('這次衣服尚未穩定，沒有匯出不合格照片。請保持姿勢後再按奧義。');}
+  }
   if (cam.wantShot) { cam.wantShot = false; takeShot(now); }
 }
 
@@ -510,7 +522,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
   let kp = null, personMask = null, parts = null;
   let source = cam.uploadedPhoto || (cam.photoDemo ? cam.previewPhoto : video);
   if(!cam.photoMode&&!cam.demo&&video.readyState>=2&&video.videoWidth){
-    if(!capture){cam.snapshotTime=video.currentTime;freezeScene(video);}source=sceneSnapshot;
+    if(!capture&&cameraFrameDue(now,cam.detectAt,!!cam.pose)){cam.snapshotTime=video.currentTime;freezeScene(video);}source=sceneSnapshot;
   }
   if ((!cam.demo || cam.photoMode) && (cam.photoMode ? source?.naturalWidth : video.readyState >= 2 && video.videoWidth)) {
     const vw = source.videoWidth || source.naturalWidth || source.width, vh = source.videoHeight || source.naturalHeight || source.height;
@@ -527,7 +539,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
       const measured = videoLight(source); cam.light = cam.light == null ? measured : cam.light * .8 + measured * .2;
     }
     const sourceTime = cam.photoMode ? 0 : cam.snapshotTime;
-    if (!capture && cam.pose && sourceTime !== cam.lastVideoTime && now - (cam.detectAt || 0) >= 40) {
+    if (!capture && cam.pose && sourceTime !== cam.lastVideoTime && cameraFrameDue(now,cam.detectAt)) {
       cam.detectAt = now;
       cam.lastVideoTime = sourceTime;
       if(cam.photoMode)freezeScene(source);
@@ -549,7 +561,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
           && bodyRatio > .16 && bodyRatio < 2.2;
         if (torsoReady) {
           const previous = mapTrackedPose(crop, W, H, mirror);
-          cam.kp = smooth(previous, raw,cam.photoMode ? .38 : .52); cam.trackW = W; cam.trackH = H; cam.trackCrop = crop; cam.trackMirror = mirror; cam.lastSeen = now;
+          cam.kp = smooth(previous, raw,cam.photoMode ? .38 : .66); cam.trackW = W; cam.trackH = H; cam.trackCrop = crop; cam.trackMirror = mirror; cam.lastSeen = now;
         }
       }
       } finally { res.close(); }
@@ -603,9 +615,11 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     if (partialPreview) for (const k of ['le', 're', 'lw', 'rw']) kp[k].v = .1;
   }
 
+  if(!kp)cam.fitValid=false;
   sizeLayer(atmosphereLayer, W, H);
   const ag = atmosphereLayer.getContext('2d'); ag.clearRect(0, 0, W, H);
-  const beautyApplied=(!cam.demo||cam.photoMode)&&portraitBeauty.draw(ctx,kp,state.beauty,capture);
+  const beautyApplied=(!cam.demo||cam.photoMode)&&portraitBeauty.draw(ctx,kp,state.beauty,capture,state.beautyStrength);
+  $('beautyLiveStatus').textContent=state.beauty==='off'?'美顏已關閉':`美顏${BEAUTY[state.beauty].label} ${Math.round(state.beautyStrength*100)}% · ${beautyApplied?'已啟用':'等待清楚的臉部'}`;
   $('beautyStatus').textContent=state.beauty==='off'?'保留原始膚質與光線。':beautyApplied?'已套用：局部美肌、補光、氣色；眼睛、眉毛與嘴唇保留細節。':'臉部需清楚入鏡才會自動美顏；側臉或追蹤不足時保留原圖。';
   if(state.outfit!=='physics'||state.mode==='move')drawAtmosphere(ag, W, H, c, kp, now);
   if (personMask) {
@@ -626,7 +640,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     if(outfitReady&&rendered.canvas)gg.drawImage(rendered.canvas,0,0);
     if(rendered.metrics){
       const m=rendered.metrics;
-      $('physicsReport').textContent=`重力 ${m.gravity.toFixed(2)} m/s² · 面積重量 ${(m.density*1000).toFixed(0)} g/m²\n估計衣重 ${(m.massKg*1000).toFixed(0)} g · 最大網格拉伸 ${(m.maxStretch*100).toFixed(1)}%\n各部位 ${m.parts.map(p=>p.name+':'+(p.maxStretch*100).toFixed(1)+'%').join(' / ')}\n估計俯仰 ${m.pitch.toFixed(1)}° · 重投影誤差 ${m.reprojectionPx.toFixed(1)} px\n上次合成耗時 ${(cam.renderMs||0).toFixed(1)} ms（含辨識／布料，不等於實機 FPS）\n${m.finite&&m.maxStretch<.05?'通過 5% 拉伸門檻':'未通過 5% 拉伸門檻'}。示範參數；人體尺度與光線是影像估計，不是實測尺寸。`;
+      $('physicsReport').textContent=`重力 ${m.gravity.toFixed(2)} m/s² · 面積重量 ${(m.density*1000).toFixed(0)} g/m²\n估計衣重 ${(m.massKg*1000).toFixed(0)} g · 最大網格拉伸 ${(m.maxStretch*100).toFixed(1)}%\n各部位 ${m.parts.map(p=>p.name+':'+(p.maxStretch*100).toFixed(1)+'%').join(' / ')}\n估計俯仰 ${m.pitch.toFixed(1)}° · 校正前重投影誤差 ${m.reprojectionPx.toFixed(1)} px\n上次合成耗時 ${(cam.renderMs||0).toFixed(1)} ms（含辨識／布料，不等於實機 FPS）\n${m.finite&&m.maxStretch<.05?'通過 5% 拉伸門檻':'未通過 5% 拉伸門檻'}。示範參數；人體尺度與光線是影像估計，不是實測尺寸。`;
     }
     if(rendered.metrics){$('physicsReport').textContent=`${rendered.metrics.quality} · ${rendered.metrics.vertices} 布料頂點 · ${rendered.metrics.recoveries||0} 次姿勢重定位\n`+$('physicsReport').textContent.replace('估計衣重','估計外羽織衣重');if(state.fabric==='nezuko')$('physicsReport').textContent+='\n粉色內層與腰帶為骨架驅動造型，未納入布料質量估計。';}
     if (!cam.demo || cam.photoMode) cutForeground(garmentLayer, foregroundLayer, kp, personMask, ctx.canvas, parts);
@@ -652,13 +666,13 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
   const handReady = (s) => kp?.[s + 'e']?.v > .5 && kp?.[s + 'w']?.v > .48;
   const freeHand = handReady('r') ? 'r' : handReady('l') ? 'l' : null;
   const armsReady = state.mode === 'free' ? !!freeHand : c.move.hand === 'both' ? handReady('l') && handReady('r') : handReady(c.move.hand);
-  if (kp && armsReady && state.mode === 'move' && now - cam.firedAt > 1600) {
+  if (kp && armsReady && state.mode === 'move' && now - cam.firedAt > ULTIMATE_SECONDS*1000) {
     res = matchPose(kp, c.move.pose);
     if (!capture) cam.match += (res.score - cam.match) * .3;
     guide = guidePose(kp, c, res);
     if (!capture && cam.match > .8 && now > cam.cool) {
       cam.hold ||= now;
-      if (now - cam.hold > 650) { cam.firedAt = now; cam.cool = now + 3200; cam.hold = 0; cam.shotAt = now + 450; }
+      if (now - cam.hold > 650)beginUltimate(now);
     } else if (!capture) cam.hold = 0;
   } else if ((!kp || !armsReady) && !capture) { cam.match = 0; cam.hold = 0; }
   const pct = Math.round(Math.min(1, Math.max(0, (cam.match - .35) / .45)) * 100);
@@ -671,6 +685,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     const assist = state.mode === 'move' ? Math.max(0, (cam.match - .5) * 2) : 0;
     const wp = state.weapon !== 'none' && kp && armsReady && weaponPose(kp, c, c.move.blade, cam.demo && !cam.photoMode ? 1 : assist, state.mode === 'free' ? freeHand : null);
     if(wp&&state.mode==='free'&&state.propDirection==='up')for(const b of wp.blades)b.dir=frame(kp).up;
+    if(wp&&FUN_KINDS.has(c.weapon.kind)&&state.mode==='free')for(const b of wp.blades)b.scale=fitPropScale(b,wp.T,W,H,c.weapon.len);
     // 招式發動時吹一陣風：衣服往刀的反方向翻飛
     const ft0 = (now - cam.firedAt) / 1000, gust = cam.firedAt && ft0 < 1.4 ? (1 - ft0 / 1.4) * (wp?.T || 0) * (1.2 + .4 * Math.sin(now / 45)) : 0;
     const bd = c.move.blade, wind = gust ? { x: -bd[0] * gust, y: -bd[1] * gust - gust * .2 } : null;
@@ -693,33 +708,14 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
 
   // 4. 招式發動
   const ft = (now - cam.firedAt) / 1000;
-  if (kp && cam.firedAt && ft < 1.6) {
-    drawFinisher(ctx, W, H, c, kp, ft);
-    drawMoveName(ctx, W, H, c, ft);
+  if (kp && cam.firedAt && ft < ULTIMATE_SECONDS) {
+    drawUltimate(ctx,W,H,c,kp,capture?.72:ft,state.weapon,reducedMotion);
   }
-  if(state.outfit!=='physics'||state.mode==='move')drawCinematicFrame(ctx, W, H, c, cam.firedAt && ft < 1.6 ? ft : -1);
+  if(state.outfit!=='physics'||state.mode==='move')drawCinematicFrame(ctx, W, H, c, cam.firedAt && ft < ULTIMATE_SECONDS ? ft : -1);
+  cam.hasBody=!!kp;$('ultimateBtn').disabled=!kp||now<cam.cool;$('ultimateBtn').textContent=cam.firedAt&&ft<ULTIMATE_SECONDS?'奧義發動中':'奧義拍照';$('cam').dataset.ultimate=String(!!kp&&!!cam.firedAt&&ft<ULTIMATE_SECONDS);
   const weaponLabel=WEAPON_CHOICES.find(([id])=>id===state.weapon)?.[1];
   $('weaponStatus').textContent=state.weapon==='none'?'武器已關閉，點「武器」可選道具':!kp?`${weaponLabel}：請讓雙肩與手入鏡`:!freeHand?`${weaponLabel}：再讓手與手肘入鏡`:`${weaponLabel} · 已手持`;
   if(cam.demo&&!cam.photoMode){$('loadState').textContent='示範人偶（非相機）';$('shutter').disabled=!cam.fitValid;}
-}
-
-function drawMoveName(ctx, W, H, c, t) {
-  const a = Math.min(1, t * 4) * Math.min(1, (1.6 - t) * 3);
-  const [head, tail] = c.move.name.split('・');
-  const size = Math.min(W * .16, H * .085);
-  ctx.save();
-  ctx.globalAlpha = a;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `900 ${size}px "Noto Serif TC", serif`;
-  ctx.lineWidth = size * .14; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff';
-  ctx.shadowColor = c.tint; ctx.shadowBlur = size * .5;
-  // 直排：每個字一行
-  const x = W - size * .9, chars = [...tail];
-  const y0 = H * .18 + (1 - Math.min(1, t * 4)) * -size;
-  chars.forEach((ch, i) => { ctx.strokeText(ch, x, y0 + i * size * 1.05); ctx.fillText(ch, x, y0 + i * size * 1.05); });
-  ctx.font = `700 ${size * .42}px "Noto Serif TC", serif`; ctx.lineWidth = size * .08;
-  [...head].forEach((ch, i) => { ctx.strokeText(ch, x - size * .95, H * .18 + i * size * .48); ctx.fillText(ch, x - size * .95, H * .18 + i * size * .48); });
-  ctx.restore();
 }
 
 // ── 拍照 ───────────────────────────────────

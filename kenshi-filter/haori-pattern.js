@@ -15,7 +15,13 @@ export function haoriPattern(f,fit={},ease=1.28) {
     const [radius,depth]=interp(v,[[0,.49,.245],[.13,.52,.29],[.55,.53,.31],[1,.55,.30]]);
     // The shoulder line slopes away from the neck instead of pinning a round
     // cone all around the upper chest. Lower panels fall with gravity.
-    const shoulderDrop=T*(-.21+.20*Math.pow(Math.abs(sn),1.25));
+    // Pose shoulder points sit inside the garment, not on its upper silhouette.
+    // Lift the yoke above the joint so the original shirt is covered, while
+    // retaining a neck-to-dropped-shoulder slope (not a flat rectangular sticker).
+    // Back neck is higher, side yoke covers the shoulder; the front opening
+    // drops to the base of the neck instead of growing two fins by the cheeks.
+    const neckWeight=Math.pow(1-Math.abs(sn),3);
+    const shoulderDrop=T*(-.12*Math.abs(sn)+(cs<0?-.22:.04)*neckWeight);
     const drop=height*v+shoulderDrop*(1-v);
     const center=drop<T?V.mix(sh,hip,drop/T):V.add(hip,V.mul(gravity,drop-T));
     const crease=(Math.sin(theta*7+.25)*.016+Math.sin(theta*13-v*.6)*.006)*S*(.25+.75*v);
@@ -33,7 +39,7 @@ export function haoriPattern(f,fit={},ease=1.28) {
     // A haori sleeve ends on the forearm, not around the wrist. A large cuff
     // can expose the person's original long sleeve and free hand.
     const cuff=V.mix(elbow,wrist,.58),axis=V.norm(V.sub(cuff,shoulder));
-    const root=V.add(shoulder,V.add(V.mul(side,sign*S*.075*width),V.mul(down,-T*.065)));
+    const root=V.add(shoulder,V.add(V.mul(side,sign*S*.075*width),V.mul(down,-T*.11)));
     let outward=V.norm(V.cross(axis,front));
     if(V.dot(outward,V.mul(side,sign))<0)outward=V.mul(outward,-1);
     const lifted=1-Math.abs(V.dot(axis,gravity));
