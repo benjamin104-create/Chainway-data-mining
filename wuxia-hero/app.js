@@ -1123,6 +1123,9 @@ function render(now) {
     wishBubble(W, H, s, u, box);
     drawMoveChars(ctx, W, H, u, fin, 99);          // 招式大字的最後位置（跟動畫結束時一模一樣）
     credit(W, H, u);
+    // 成品先存起來，畫面上馬上換回乾淨的那一格：動畫開始前不能先露出成品
+    const fc = mk(W, H); fc.getContext('2d').drawImage(view, 0, 0); state.finC = fc;
+    if (state.baseC) ctx.drawImage(state.baseC, 0, 0);
   }
   if (state.godFront && !state.capturing) {               // 只在預覽時提示，拍下來的照片不會有
     const msg = { zh: '往後退一點，讓英雄站到你身後', ja: '少し下がると、英雄が後ろに立てます', en: 'Step back a little so your hero can stand behind you' }[state.lang];
@@ -1611,7 +1614,7 @@ $('shot').onclick = () => {
   state.final = { mv, style: styles[Math.floor(Math.random() * styles.length)], red: !!hero.female, glow: (hero.glow || s.glow) };
   state.capturing = true; state.grab = true;
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const W = view.width, H = view.height, fin = mk(W, H); fin.getContext('2d').drawImage(view, 0, 0);
+    const W = view.width, H = view.height, fin = state.finC || (() => { const c = mk(W, H); c.getContext('2d').drawImage(view, 0, 0); return c; })(); state.finC = null;
     const base = state.baseC || fin, F = state.final;
     state.capturing = false; state.final = null;
     playReveal(base, fin, F, () => fin.toBlob((blob) => {
@@ -1706,7 +1709,7 @@ function playReveal(base, fin, F, done) {
   // 第二段：成品照從字後面淡入、從稍大推回原尺寸
   const W = view.width, H = view.height, u = Math.min(W, H) / 100;
   const chars = [...F.mv.name].map((c) => ({ c, sub: false })).concat([...(F.mv.sub || '')].map((c) => ({ c, sub: true })));
-  const per = (it) => it.sub ? .24 : .3, starts = []; let T = 0;
+  const per = (it) => it.sub ? .3 : .38, starts = []; let T = 0;
   for (const it of chars) { starts.push(T); T += per(it); }
   const fade = .75, t0 = performance.now();
   state.revealing = true;
@@ -1718,17 +1721,40 @@ function playReveal(base, fin, F, done) {
       r.addColorStop(0, 'rgba(255,255,255,.07)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, W, H);
     }
   };
+  // 每個字「蹦」出來：先衝出來超過一點再彈回（回彈曲線），落定那一下畫面震一下、四周濺墨
+  const back = (p, c = 2.4) => 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
   const giant = (g, it, k) => {
-    const size = Math.min(W * .9, H * .62) * (it.sub ? .85 : 1), e = 1 - Math.pow(1 - Math.min(1, k * 1.6), 3);
-    let x = W / 2, y = H * .47, sc = 1, a = 1;
-    if (F.style === 'inplace') { sc = 1 + (1 - e) * .8; a = e; }
-    else {
+    const size = Math.min(W * .9, H * .62) * (it.sub ? .85 : 1);
+    let x = W / 2, y = H * .47, sc = 1, a = 1, hit;          // hit：落定後經過的比例（0～1），用來震動與濺墨
+    if (F.style === 'inplace') {
+      const p = Math.min(1, k / .55);
+      sc = .15 + .85 * back(p); a = Math.min(1, p * 3); hit = Math.max(0, (k - .3) / .5);
+    } else {
+      // 先飛進來（前 40%），落地那一刻再蹦一下
       const dir = F.style === 'ltr' ? [-1, 0] : F.style === 'rtl' ? [1, 0] : [-.7, -.7], L = Math.max(W, H);
+      const fly = Math.min(1, k / .4), e = 1 - Math.pow(1 - fly, 3);
       x += dir[0] * L * (1 - e); y += dir[1] * L * (1 - e);
-      if (e < 1) for (let j = 3; j >= 1; j--) brushChar(g, { c: it.c, x: x + dir[0] * size * .22 * j, y: y + dir[1] * size * .22 * j, size, sub: it.sub, rot: 0, bare: true }, F, .15 * (4 - j), u);
+      if (fly < 1) for (let j = 3; j >= 1; j--) brushChar(g, { c: it.c, x: x + dir[0] * size * .22 * j, y: y + dir[1] * size * .22 * j, size, sub: it.sub, rot: 0, bare: true }, F, .15 * (4 - j), u);
+      const p = Math.max(0, Math.min(1, (k - .4) / .35));
+      sc = fly < 1 ? 1 : 1 + .28 * Math.sin(p * Math.PI) * (1 - p * .4);
+      hit = Math.max(0, (k - .4) / .5);
     }
-    if (F.style === 'inplace' && !F.red && e < 1) inkSplash(g, { c: it.c, x, y, size }, e, u);
+    if (hit > 0 && hit < 1) {
+      const amp = size * .035 * (1 - hit);                   // 震動
+      x += (Math.random() - .5) * amp * 2; y += (Math.random() - .5) * amp * 2;
+      burst(g, it, x, y, size, hit);
+    }
     brushChar(g, { c: it.c, x, y, size: size * sc, sub: it.sub, rot: 0, bare: true }, F, a, u);
+  };
+  const burst = (g, it, x, y, size, h) => {
+    g.save(); g.globalAlpha = (1 - h) * .8; g.fillStyle = F.red ? '#6e0f0b' : F.glow;
+    const seed = it.c.charCodeAt(0);
+    for (let j = 0; j < 14; j++) {
+      const an = j / 14 * Math.PI * 2 + seed, d = size * (.45 + h * .55) * (.8 + ((seed * (j + 3)) % 7) / 14);
+      const r = size * (.012 + ((seed + j) % 4) * .008) * (1 - h * .5);
+      g.beginPath(); g.arc(x + Math.cos(an) * d, y + Math.sin(an) * d, r, 0, 7); g.fill();
+    }
+    g.restore();
   };
   const frame = (now) => {
     const at = (now - t0) / 1000;
