@@ -3,6 +3,7 @@ import { initHands, detectHands, drawPoseFX, resetPoses, setGuide, setMove, setO
 import { drawAR, powerUp, tapAt, godMotion, arState } from './ar.js';
 import { createBeautyGL } from './beauty-gl.js';
 import * as sfx from './sfx.js';
+import { startGame, drawGame, stopGame, gameState } from './game.js';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
@@ -524,16 +525,23 @@ $('sfx').before(layoutRow);
 const poseRow = document.createElement('div'); poseRow.className = 'modes'; poseRow.setAttribute('role', 'group'); poseRow.setAttribute('aria-label', '拍照模式');
 // 模式列：一般（比對手勢就發功）／練一招（畫面教你怎麼比）／換英雄（請別位英雄出場，用他的絕招）
 let poseMode = null;
-const armGuide = () => setGuide(poseMode && curMove, () => { const m = poseMode; setTimeout(() => { if (poseMode === m) armGuide(); }, 7000); });   // 成功後過一陣子再提示一次
+const armGuide = () => setGuide(poseMode === 'learn' && curMove, () => { const m = poseMode; setTimeout(() => { if (poseMode === m) armGuide(); }, 7000); });   // 成功後過一陣子再提示一次
 const modeBtns = {};
-for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['pick', '🀄 換英雄']]) {
+for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['game', '🥁 挑戰'], ['pick', '🀄 換英雄']]) {
   const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
   b.setAttribute('aria-pressed', String(id === null));
   b.onclick = () => {
     if (id === 'pick') { $('movesTool')?.click(); return; }
+    if (gameState.on) { stopGame(); if (rec) stopRec(); }       // 離開挑戰：停止遊戲和錄影
     poseMode = id;
     for (const x of poseRow.children) x.setAttribute('aria-pressed', String(x === b));
     armGuide();
+    if (id === 'game') {
+      // 挑戰模式：自動開始錄影，倒數後手勢從右邊跑過來；結束時停止錄影，影片直接可以分享
+      sfx.unlock();
+      if (!rec && state.src === video) startRec();
+      startGame(performance.now() / 1000, () => { if (rec) stopRec(); modeBtns[null].click(); });
+    }
   };
   modeBtns[id] = b; poseRow.append(b);
 }
@@ -1112,8 +1120,10 @@ function render(now) {
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(beautify(W, H, u), 0, 0);
+  poseState.quiet = gameState.on;                  // 挑戰時不跳手勢提示
   drawPoseFX(ctx, W, H, u, t, state.lm, s, state.capturing);   // 武功招式：比對手勢，手上發出氣芒
   drawAR(ctx, W, H, u, t, poseState.hands, state.standHead, s.glow, (h) => palmCenter(h, W, H), (h) => openPalm(h, W, H));   // 靈光、神力光流
+  if (gameState.on) drawGame(ctx, W, H, u, t, poseState.hands, s.glow, (res, at) => powerUp(at, s.glow, t));   // 挑戰模式
   if (L === 'opening' || godFront) drawGod();      // 片頭／人太近：神在最前面
 
   state.godFront = state.godFrontNext;
@@ -1600,7 +1610,7 @@ function startRec() {
   rec = { mr, t0: performance.now(), timer: setInterval(() => {
     const s = (performance.now() - rec.t0) / 1000;
     $('recTime').textContent = `● ${Math.floor(s)}s`;
-    if (s >= 15) stopRec();
+    if (s >= (gameState.on ? 45 : 15)) stopRec();     // 挑戰模式錄完整段
   }, 200) };
   $('shot').classList.add('recording'); $('recTime').hidden = false; $('recTime').textContent = '● 0s';
 }

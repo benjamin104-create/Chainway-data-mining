@@ -43,7 +43,7 @@ export function resetPoses() { S.hands = []; S.k = 0; S.qi = 0; S.banner = null;
 export const poseState = S;
 // 招式成功時通知外面（英雄發功、自動拍照）：fn(kind, [x, y]) 打中的位置
 export function setOnTrigger(fn) { S.onTrigger = fn; }
-export { palmCenter, openPalm };
+export { palmCenter, openPalm, gestureOf, ICON };
 const fireTrig = (kind, at) => { try { S.onTrigger?.(kind, at); } catch (e) { console.warn(e); } };
 
 export const HOWTO = {
@@ -53,6 +53,7 @@ export const HOWTO = {
   pinch: '拇指和食指捏住，其他三指張開（蘭花指）',
   thumb: '握拳、大拇指朝上，比一個讚',
   fist: '五指用力握拳，舉到臉旁',
+  flat: '四指併攏伸直，像一把手刀',
 };
 
 const P = (L, i, W, H) => [L[i].x * W, L[i].y * H];
@@ -89,8 +90,10 @@ function gestureOf(h, W, H) {
   if (i && !m && !r && !p) return 'point';
   if (i && m && !r && !p && dist(P(h, 8, W, H), P(h, 12, W, H)) < pw * .6) return 'sword';
   if (i && m && r && p) {
-    const sp = (dist(P(h, 8, W, H), P(h, 20, W, H)) + dist(P(h, 4, W, H), P(h, 8, W, H)) * .6) / pw;
-    if (sp > 1.25) return 'palm';
+    // 指尖之間張得比指根寬很多＝五指撐開的手掌；指尖跟指根差不多寬＝四指併攏的手刀
+    const sp = dist(P(h, 8, W, H), P(h, 20, W, H)) / pw;
+    if (sp > 1.3) return 'palm';
+    return 'flat';                                         // 四指併攏伸直：手刀
   }
   return null;
 }
@@ -177,7 +180,7 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
 
   if (S.guide && !capturing) drawGuide(ctx, W, H, u, t, face);
   // 手勢提示：每隔一陣子，手勢剪影從畫面左邊或右邊滑進來，教你下一個手勢（只在預覽，拍下來不會有）
-  if (!capturing && !S.guide && S.k < .1) {
+  if (!capturing && !S.guide && !S.quiet && S.k < .1) {
     if (!S.hintAt) S.hintAt = t + 3;
     if (t > S.hintAt) {
       const k = (t - S.hintAt) / 3.6;
@@ -269,6 +272,11 @@ const ICON = {
     p.roundRect(-r * .45, -r * .1, r * .9, r * .85, r * .3);
     p.moveTo(-r * .2 + r * .32, -r * .5); p.arc(-r * .2, -r * .5, r * .32, 0, Math.PI * 2);   // 拇指和食指圈起來
     for (const [dx, len] of [[.0, .9], [.24, .82], [.46, .68]]) p.roundRect(dx * r, -r * .1 - len * r, fw, len * r + r * .15, fw / 2);
+  }),
+  flat: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
+    p.roundRect(-r * .42, -r * .15, r * .84, r * .95, r * .28);
+    for (const [dx, len] of [[-.42, .66], [-.2, .8], [.02, .84], [.24, .72]]) p.roundRect(dx * r, -r * .1 - len * r, fw, len * r + r * .15, fw / 2);   // 四指併攏
+    p.roundRect(r * .4, -r * .02, fw * 1.05, r * .55, fw / 2);
   }),
   fist: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
     p.roundRect(-r * .5, -r * .45, r, r * 1.05, r * .32);
