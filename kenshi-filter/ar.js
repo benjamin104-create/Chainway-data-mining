@@ -6,7 +6,7 @@
 import { buildHaoriRig, drawTextureMesh } from './garment-rig.js';
 
 // MediaPipe Pose 33 點的索引 → 我們用的名字（mirror=true 時左右對調，讓 l 永遠在畫面左邊）
-const MP = { n: 0, ls: 11, rs: 12, le: 13, re: 14, lw: 15, rw: 16, lp: 17, rp: 18, li: 19, ri: 20, lt: 21, rt: 22, lh: 23, rh: 24, lk: 25, rk: 26, la: 27, ra: 28 };
+const MP = { n: 0, ley:2, rey:5, lear:7, rear:8, lmouth:9, rmouth:10, ls: 11, rs: 12, le: 13, re: 14, lw: 15, rw: 16, lp: 17, rp: 18, li: 19, ri: 20, lt: 21, rt: 22, lh: 23, rh: 24, lk: 25, rk: 26, la: 27, ra: 28 };
 export function fromLandmarks(lms, map, mirror, world = null) {
   const kp = {};
   for (const k in MP) {

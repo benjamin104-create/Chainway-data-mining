@@ -7,6 +7,7 @@ import { Haori3D, fabricReady, silhouetteEase } from './haori3d.js';
 import { scabbardPoses } from './weapon-layout.js';
 import { buildHaoriRig } from './garment-rig.js';
 import { FUN_KINDS } from './fun-props.js';
+import { BEAUTY, beautyMode, BeautyPass } from './beauty.js';
 
 const stage3d = new Stage3D();
 let haori3d = null;
@@ -37,8 +38,9 @@ try {
 
 const rememberedChar = store.get('char');
 const rememberedWeapon=params.get('weapon')||store.get('weapon-v2');
+const portraitBeauty=new BeautyPass();
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'free', facing: 'user',
-  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', camOrigin: 'intro' };
+  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', beauty:beautyMode(params.get('beauty')??store.get('beauty-v1')),camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -236,6 +238,7 @@ function gearChips() {
   $('weaponChoices').replaceChildren(...WEAPON_CHOICES.map(([id,l])=>mk('weapon',id,l)));
   $('propDirections').replaceChildren(...[['up','朝上（自拍）'],['hand','跟隨手勢']].map(([id,l])=>mk('propDirection',id,l)));
   $('fabrics').replaceChildren(...FABRICS.map(([id,l])=>mk('fabric',id,l)));
+  $('beautyChoices').replaceChildren(...Object.entries(BEAUTY).map(([id,b])=>mk('beauty',id,b.label)));
 }
 gearChips();
 $('customizeBtn').onclick = () => {
@@ -243,11 +246,15 @@ $('customizeBtn').onclick = () => {
   $('customizer').hidden = !open;
   $('customizeBtn').setAttribute('aria-expanded', String(open));
   $('customizeBtn').textContent = open ? '收起' : '造型';
-  if(open){$('weaponPanel').hidden=true;$('weaponBtn').setAttribute('aria-expanded','false');}
+  if(open){$('weaponPanel').hidden=true;$('weaponBtn').setAttribute('aria-expanded','false');$('beautyPanel').hidden=true;$('beautyBtn').setAttribute('aria-expanded','false');}
 };
 $('weaponBtn').onclick=()=>{
   const open=$('weaponPanel').hidden;$('weaponPanel').hidden=!open;$('weaponBtn').setAttribute('aria-expanded',String(open));
-  if(open){$('customizer').hidden=true;$('customizeBtn').textContent='造型';$('customizeBtn').setAttribute('aria-expanded','false');}
+  if(open){$('customizer').hidden=true;$('customizeBtn').textContent='造型';$('customizeBtn').setAttribute('aria-expanded','false');$('beautyPanel').hidden=true;$('beautyBtn').setAttribute('aria-expanded','false');}
+};
+$('beautyBtn').onclick=()=>{
+  const open=$('beautyPanel').hidden;$('beautyPanel').hidden=!open;$('beautyBtn').setAttribute('aria-expanded',String(open));
+  if(open){$('weaponPanel').hidden=true;$('weaponBtn').setAttribute('aria-expanded','false');$('customizer').hidden=true;$('customizeBtn').textContent='造型';$('customizeBtn').setAttribute('aria-expanded','false');}
 };
 // 目前畫面上的角色：角色資料＋換過的武器（同一組合回傳同一個物件，3D 舞台才不會每幀重建）
 const gearCache = new Map();
@@ -264,6 +271,9 @@ function gear(id = state.char) {
   return gearCache.get(key);
 }
 function syncChips() {
+  $('beautyBtn').textContent='美顏：'+BEAUTY[state.beauty].label;
+  for(const b of $('beautyChoices').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.beauty));
+  store.set('beauty-v1',state.beauty);
   $('cam').dataset.realism=String(state.outfit==='physics');
   $('weaponBtn').textContent='武器：'+(WEAPON_CHOICES.find(([id])=>id===state.weapon)?.[1]||'打刀');
   for(const b of $('weaponChoices').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.weapon));
@@ -374,6 +384,7 @@ async function openCam(origin = 'result', photo = null) {
   show('cam');
   $('customizer').hidden = true;
   $('weaponPanel').hidden=true;$('weaponBtn').setAttribute('aria-expanded','false');
+  $('beautyPanel').hidden=true;$('beautyBtn').setAttribute('aria-expanded','false');
   $('customizeBtn').setAttribute('aria-expanded', 'false');
   $('customizeBtn').textContent = '造型';
   modelReady ||= loadModel();
@@ -452,7 +463,7 @@ function videoLight(source = video) {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   // Still photos redraw only when tracking/model/garment/control state changes.
-  const photoKey = [!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.propDirection, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+  const photoKey = [!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.propDirection,state.beauty, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
     fit.width, fit.length, stage.width, stage.height].join('|');
   if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
     const began=performance.now();renderFrame(now);cam.renderMs=performance.now()-began; cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
@@ -594,6 +605,8 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
 
   sizeLayer(atmosphereLayer, W, H);
   const ag = atmosphereLayer.getContext('2d'); ag.clearRect(0, 0, W, H);
+  const beautyApplied=(!cam.demo||cam.photoMode)&&portraitBeauty.draw(ctx,kp,state.beauty,capture);
+  $('beautyStatus').textContent=state.beauty==='off'?'保留原始膚質與光線。':beautyApplied?'已套用：局部美肌、補光、氣色；眼睛、眉毛與嘴唇保留細節。':'臉部需清楚入鏡才會自動美顏；側臉或追蹤不足時保留原圖。';
   if(state.outfit!=='physics'||state.mode==='move')drawAtmosphere(ag, W, H, c, kp, now);
   if (personMask) {
     ag.save(); ag.globalCompositeOperation = 'destination-out'; ag.drawImage(personMask, 0, 0); ag.restore();

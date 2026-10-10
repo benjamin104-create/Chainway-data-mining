@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {BEAUTY,beautyMode,faceGeometry,retouchPixels} from '../beauty.js';
+const p=(x,y,v=1)=>({x,y,v});
+const kp={ley:p(40,38),rey:p(60,38),n:p(50,50),lear:p(24,43),rear:p(76,43),lmouth:p(44,62),rmouth:p(56,62)};
+const f=faceGeometry(kp);assert.ok(f&&f.width===52);
+assert.equal(beautyMode(undefined),'standard');assert.equal(beautyMode('bogus'),'standard');assert.equal(beautyMode('off'),'off');
+assert.equal(faceGeometry({...kp,ley:p(40,38,.1)}),null);assert.equal(faceGeometry({...kp,n:p(80,50)}),null);
+const W=100,H=100,src=new Uint8ClampedArray(W*H*4);
+for(let i=0;i<src.length;i+=4)src.set([165,118,90,255],i);
+const original=src.slice(),std=retouchPixels(src,W,H,f,'standard'),hero=retouchPixels(src,W,H,f,'hero'),goddess=retouchPixels(src,W,H,f,'goddess'),off=retouchPixels(src,W,H,f,'off');
+assert.deepEqual(src,original,'Source frame must remain untouched');assert.ok(off.every(v=>v===0));
+const idx=(x,y)=>(y*W+x)*4;
+for(const [x,y] of [[0,0],[99,99],[40,38],[60,38],[50,62]])assert.equal(std[idx(x,y)+3],0,'Background, eyes and lips stay untouched');
+const cheek=idx(36,52);assert.ok(std[cheek+3]>0);assert.ok(std[cheek]>src[cheek]);assert.ok(goddess[cheek]>std[cheek]);assert.notDeepEqual(hero,std);
+for(const mode of Object.keys(BEAUTY))assert.ok(retouchPixels(src,W,H,f,mode).every(Number.isFinite));
+const dark=src.map((v,i)=>i%4===3?v:Math.round(v*.42));assert.ok(retouchPixels(dark,W,H,f,'standard')[cheek+3]>0,'No fixed light-skin RGB requirement');
+const noise=src.slice();noise[cheek]=177;assert.ok(retouchPixels(noise,W,H,f,'standard')[cheek]<177+12,'Local detail remains bounded');
+console.log('PASS: default/disabled modes, confidence/yaw gate, unchanged source/background/eyes/lips, skin-relative tone, distinct finite presets');
