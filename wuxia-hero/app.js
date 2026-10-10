@@ -444,7 +444,7 @@ $('copy').onclick = async () => {
   const text = [
     `名號：${s.owner}`, `俠客性格：${s.tag}`, `我心中的英雄：${s.zh}`, `本命招式：${s.move.name}`,
     STAT_KEYS.map(([k, l]) => `${l} ${s.grade[k]}`).join('／'),
-    `英雄的話：「${s.line.zh}」`, `江湖角色：${MEDIA[s.tagId].role}`, `你是哪一位武俠英雄？來測 → ${location.origin + location.pathname}`,
+    `英雄的話：「${s.line.zh}」`, `江湖角色：${MEDIA[s.tagId].role}`, `你是哪一位武學奇才？來測 → ${location.origin + location.pathname}`,
   ].join('\n');
   try { await navigator.clipboard.writeText(text); $('copy').textContent = '已複製，可以貼到 LINE'; }
   catch { $('copy').textContent = '這個瀏覽器不能自動複製'; }
@@ -1794,7 +1794,7 @@ function playReveal(base, fin, F, done) {
 }
 function shareText() {
   const s = state.stand, url = location.origin + location.pathname;
-  return s ? `我心中的英雄是${s.name}，本命招式「${s.move.name}」！你是哪一位武俠英雄？來測 → ${url}` : url;
+  return s ? `我心中的英雄是${s.name}，本命招式「${s.move.name}」！你是哪一位武學奇才？來測 → ${url}` : url;
 }
 $('share').onclick = async () => {
   const s = state.stand, file = new File([lastBlob], lastName, { type: lastType });

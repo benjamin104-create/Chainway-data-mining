@@ -1,7 +1,7 @@
 {
   "name": "江湖英雄榜・武俠篇",
   "short_name": "江湖英雄榜",
-  "description": "你是哪一位武俠英雄？十個江湖情境，再用 AR 相機跟英雄學一招。",
+  "description": "你是哪一位武學奇才？十個江湖情境，再用 AR 相機跟英雄學一招。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
