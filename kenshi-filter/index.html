@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>心之型・劍士測驗</title>
-<meta name="description" content="十個情境題，看看你在人群裡是哪一種劍士：犧牲奉獻、疏離獨行、渴求認同……再用 AR 相機穿上他的羽織、拿起他的刀，擺出招式。">
+<title>你心中住著哪一種劍士</title>
+<meta name="description" content="你心中住著哪一種劍士：直接用 AR 試穿羽織、選武器或搞笑道具拍照，也能做測驗取得 SR／SSR 與能力值。">
 <meta name="theme-color" content="#0f0c0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="心之型">
+<meta name="apple-mobile-web-app-title" content="心中的劍士">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -116,6 +116,11 @@
   .cam-quick { display: flex; align-items: center; gap: 8px; }
   .cam-quick #modes { flex: 1; }
   .customize { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: rgba(8,7,6,.76); backdrop-filter: blur(14px); }
+  .customize {max-height:44vh;overflow-y:auto;}
+  #weaponChoices {display:flex;flex-wrap:wrap;gap:6px;}
+  #weaponChoices .chip {min-height:42px;font-size:13px;}
+  #weaponPanel {max-height:35vh;}
+  #weaponStatus {font-size:12px;min-height:1.4em;color:#f3ead8;}
   .fit-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding-top: 6px; border-top: 1px solid var(--line); }
   .fit-controls label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   .fit-controls input { width: 100%; accent-color: var(--accent); }
@@ -145,7 +150,7 @@
   <div class="col">
     <div class="hanko" aria-hidden="true">型</div>
     <p class="eyebrow">KOKORO NO KATA・大正劍士篇</p>
-    <h1 class="display">在人群裡，<br>你是哪一型劍士？</h1>
+    <h1 class="display">你心中住著哪一種劍士</h1>
     <p class="invite" id="inviteMsg" hidden></p>
     <p class="lead">直接打開 AR，穿上羽織、拔刀拍照；或先完成十個任務情境，抽出你的 SR／SSR 劍士與能力值。</p>
     <ol class="steps">
@@ -161,7 +166,7 @@
     <p class="fine" id="photoError" role="status" hidden></p>
     <button class="secondary" id="resume" hidden>看上次的測驗結果</button>
     <p class="fine">建議使用正面、臉與雙肩清楚的上半身照片。相機與照片都只在你的瀏覽器內處理，不會上傳伺服器。</p>
-    <p class="fine">這是娛樂性的自我探索，不是心理診斷。角色為原創的大正風劍士。</p>
+    <p class="fine">這是娛樂性的自我探索，不是心理診斷。原創劍士之外，也提供非官方角色風格試穿。</p>
     <div class="card" id="inapp" hidden>
       <h3>在 App 裡打開的嗎？</h3>
       <p>Instagram、Facebook 等 App 內建的瀏覽器常常不能開相機。測驗可以先玩，要拍照時建議改用手機瀏覽器開。</p>
@@ -248,7 +253,9 @@
   </div>
   <div class="hint" id="hint"></div>
   <div class="hud-bot">
-    <div class="cam-quick"><div class="chips" id="modes"></div><span class="fine" id="photoModeLabel" hidden>照片試穿</span><button class="chip" id="customizeBtn" aria-expanded="false">造型</button></div>
+    <div class="cam-quick"><div class="chips" id="modes"></div><span class="fine" id="photoModeLabel" hidden>照片試穿</span><button class="chip" id="customizeBtn" aria-expanded="false">造型</button><button class="chip" id="weaponBtn" aria-expanded="false" aria-controls="weaponPanel">武器：打刀</button></div>
+    <div class="customize" id="weaponPanel" hidden><strong>武器與搞笑道具</strong><div id="weaponChoices" aria-label="選擇武器或道具"></div><div class="chips" id="propDirections" aria-label="手持方向"></div><p class="fine">手和手肘入鏡才會拿起道具；自拍預設朝上，可切換跟隨手勢。方向是近似，非逐指握姿追蹤。</p></div>
+    <div id="weaponStatus" role="status"></div>
     <div class="customize" id="customizer" hidden>
       <div class="chips" id="gear"></div>
       <div class="chips" id="fabrics" aria-label="布料外觀"></div>
@@ -258,7 +265,7 @@
         <label>寬鬆度 <output id="fit-width-value">100%</output><input id="fit-width" type="range" min="85" max="120" value="100" aria-label="羽織寬鬆度"></label>
         <label>衣長 <output id="fit-length-value">100%</output><input id="fit-length" type="range" min="80" max="120" value="100" aria-label="羽織衣長"></label>
         <button class="chip" id="fitReset">還原自動貼合</button>
-        <p class="fine">物理模式 v13：落肩寬袖、翻折前襟與重力垂墜。素色／角色印花可切換；背面及精確尺碼尚不支援。</p>
+        <p class="fine">物理模式 v14：快速骨架跟隨、局部垂墜。素色／角色印花／禰豆子風套裝可切換；背面及精確尺碼尚不支援。</p>
         <details class="fine"><summary>布料物理檢查（模擬值）</summary><pre id="physicsReport" style="white-space:pre-wrap;font:inherit">等待人體與布料模型…</pre></details>
       </div>
     </div>

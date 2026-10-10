@@ -7,6 +7,7 @@ import * as THREE from './lib/three.module.min.js';
 import { RoomEnvironment } from './lib/RoomEnvironment.js';
 import { GLTFLoader } from './lib/GLTFLoader.js';
 import { tile, frame } from './ar.js';
+import { FUN_KINDS,buildFunProp } from './fun-props.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const P = (k) => V3(k.x, -k.y, k.z || 0);              // 關鍵點 → 3D
@@ -136,6 +137,7 @@ function bladeGeo(len, width, curve, broad = false) {
 }
 // w：{ kind, len, tsuba, grip, model? }。有 model（.glb）時載入外部模型，載入前先用程式畫的刀頂著
 function buildWeapon(ch, w = ch.weapon) {
+  if(FUN_KINDS.has(w.kind))return buildFunProp(w.kind);
   const grp = new THREE.Group();
   const steel = new THREE.MeshStandardMaterial({ color: '#d5dbe0', metalness: 1, roughness: .27, envMapIntensity: 1 });
   const gold = new THREE.MeshStandardMaterial({ color: w.tsuba, metalness: .9, roughness: .3 });
@@ -168,7 +170,7 @@ function buildWeapon(ch, w = ch.weapon) {
 // The saya is a separate, curved lacquered wooden housing. The long/short pair
 // stays at the wearer's anatomical left waist instead of following a wrist.
 function buildScabbard(ch,w=ch.weapon) {
-  if(w.kind==='naginata'){const g=new THREE.Group();g.userData.hilt=new THREE.Group();return g;}
+  if(w.kind==='naginata'||FUN_KINDS.has(w.kind)){const g=new THREE.Group();g.userData.hilt=new THREE.Group();return g;}
   const g=new THREE.Group(),lacquer=new THREE.MeshStandardMaterial({color:w.saya||'#181715',roughness:.33,metalness:.03});
   const length=w.len+.09,width=['wakizashi','kodachi','twin'].includes(w.kind)?.088:.103;
   const shape=new THREE.Shape(),bend=t=>.025*length*t*t;
@@ -197,7 +199,7 @@ function loadModel(url, grp) {
   gltfCache.get(url).then((g) => {
     if (!g) return;
     const opacity = grp.userData.ghostOpacity;
-    grp.clear(); grp.add(g.scene.clone(true));
+    grp.clear(); grp.userData.external=true;grp.add(g.scene.clone(true));
     if (opacity) setGhost(grp, opacity);
   });
 }
@@ -250,6 +252,11 @@ function gradTex(ch) {
   shine.addColorStop(0, 'rgba(255,255,255,.08)'); shine.addColorStop(.5, 'rgba(255,255,255,0)'); shine.addColorStop(1, 'rgba(70,20,0,.1)');
   g.fillStyle = shine; g.fillRect(0, 0, 1024, 512);
   return canvasTex(cv, 1, 1);
+}
+function releaseProp(group){
+  let external=false;group?.traverse(o=>{external||=!!o.userData.external;});if(external)return;
+  const gs=new Set(),ms=new Set(),ts=new Set();group?.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of o.material?Array.isArray(o.material)?o.material:[o.material]:[]){ms.add(m);if(m.map)ts.add(m.map);}});
+  for(const g of gs)g.dispose();for(const m of ms)m.dispose();for(const t of ts)t.dispose();
 }
 
 // ── 一套衣服（真人用一套、招式框的淡影用一套） ──────────────
@@ -517,17 +524,16 @@ export class Stage3D {
     this.ch = null;
   }
   // ch：角色（data.js）；ch.weapon 可以是 { kind, ... }，ch.offhand 有值時左手再拿一把（二刀）
-  setCharacter(ch) {
-    if (this.ch === ch) return;
+  setCharacter(ch,propsOnly=false) {
+    if (this.ch === ch&&this.propsOnly===propsOnly) return;
     this.ch = ch;
+    this.propsOnly=propsOnly;
     for (const o of [this.outfit, this.ghost, this.doll]) o?.dispose?.();
     if (this.doll) this.scene.remove(this.doll.group);
-    for (const w of this.weapons || []) this.scene.remove(w);
-    for (const w of this.ghostWeapons || []) this.scene.remove(w);
-    for (const w of this.sheaths || []) this.scene.remove(w);
-    this.outfit = new Outfit(this.scene, ch, false);
-    this.ghost = new Outfit(this.scene, ch, true);
-    this.doll = new Doll(this.scene, ch);
+    for(const w of [...(this.weapons||[]),...(this.ghostWeapons||[]),...(this.sheaths||[])]){this.scene.remove(w);releaseProp(w);}
+    this.outfit = propsOnly?null:new Outfit(this.scene, ch, false);
+    this.ghost = propsOnly?null:new Outfit(this.scene, ch, true);
+    this.doll = propsOnly?null:new Doll(this.scene, ch);
     const second = ch.offhand || ch.weapon;
     this.weapons = [buildWeapon(ch), buildWeapon(ch, second)];
     this.ghostWeapons = [buildWeapon(ch), buildWeapon(ch, second)];
@@ -547,8 +553,10 @@ export class Stage3D {
       Object.assign(this.camera, { left: 0, right: W, top: 0, bottom: -H }); this.camera.updateProjectionMatrix();
     }
     const light = opts.light ?? 1;
+    r.toneMapping=opts.realism?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
     this.rim.color.set(opts.realism?'#ffffff':this.ch.tint);
-    this.hemi.intensity = .3 + .2 * light; this.key.intensity = 2.2 + 1.2 * light;
+    this.hemi.intensity = opts.realism ? .6+.3*light : .3+.2*light;
+    this.key.intensity = opts.realism ? 1+.8*light : 2.2+1.2*light;this.rim.intensity=opts.realism ? .65 : 2.2;
     const place = (grp, b, kp) => {
       if (!b) { grp.visible = false; return; }
       const { T } = frame(kp);
@@ -557,15 +565,16 @@ export class Stage3D {
       grp.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(b.dir.x, -b.dir.y, 0).normalize());
       if(b.roll)grp.rotateY(b.roll);
       grp.scale.setScalar(b.scale||T);
+      if(grp.userData.kind==='catwand'&&b.grip.x>W*.55)grp.scale.x*=-1;
     };
-    const showOutfit = opts.showOutfit !== false;
-    this.outfit.setMode(opts.outfit || 'full'); this.ghost.setMode(opts.outfit || 'full');
-    this.outfit.group.visible = showOutfit && !!opts.kp;
+    const showOutfit = opts.showOutfit !== false&&!!this.outfit;
+    this.outfit?.setMode(opts.outfit || 'full'); this.ghost?.setMode(opts.outfit || 'full');
+    if(this.outfit)this.outfit.group.visible = showOutfit && !!opts.kp;
     if (showOutfit && opts.kp) this.outfit.update(opts.kp, { now: opts.now, wind: opts.wind });
-    this.ghost.group.visible = showOutfit && !!opts.ghostKp;
+    if(this.ghost)this.ghost.group.visible = showOutfit && !!opts.ghostKp;
     if (showOutfit && opts.ghostKp) { this.ghost.update(opts.ghostKp); this.ghost.group.position.z = -2000; }
-    this.doll.group.visible = !!(opts.doll && opts.kp);
-    if (opts.doll && opts.kp) this.doll.update(opts.kp);
+    if(this.doll)this.doll.group.visible = !!(opts.doll && opts.kp);
+    if (this.doll&&opts.doll && opts.kp) this.doll.update(opts.kp);
     this.weapons.forEach((g, i) => place(g, opts.kp && opts.blades?.[i], opts.kp));
     this.ghostWeapons.forEach((g, i) => place(g, opts.ghostKp && opts.ghostBlades?.[i], opts.ghostKp));
     this.sheaths.forEach((g,i)=>{place(g,opts.kp&&opts.sheaths?.[i],opts.kp);g.userData.hilt.visible=!opts.blades?.[i];});

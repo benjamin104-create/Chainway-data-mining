@@ -1,5 +1,7 @@
 # 美術修改指南（給設計師／GPT）
 
+> 2026-10-10：依使用者明確要求新增「禰豆子風」試穿造型（本次角色名稱需求優先於下方舊版原創角色限制）。只用自行編寫的粉色幾何紋樣、和服／羽織網格，不複製官方圖像、人物臉或作品標誌，不宣稱官方授權。新增搞笑道具與即時跟隨近似，見 `assets/V14_NOTES.md`。
+
 > 新增 3D 物理測試模式 `?fit=physics`，先讀 `assets/PHYSICS_ART.md`。原版 2.5D 保留；測試版的服裝在 `haori3d.js`、`body-camera.js`、`cloth-physics.js`，不是舊 `Outfit` 動畫 renderer。布料與物理數字都要經過驗證，不能只換照片假装貼合。
 
 > 2026-10-09 更新：真人相機使用長衣身＋獨立袖子、骨架驅動三角網格、worldLandmarks 側身估計與髮／臉／皮膚語義遮擋。請先讀 `assets/REALISTIC_ART.md`。目前貼合程式在 `garment-rig.js`、`ar.js`、`composite.js`；下列 3D 服裝與動畫風貼圖說明只適用結果人偶及舊 renderer，不代表真人 AR。舊文的「不用改追蹤／相機流程」不適用骨架貼合與遮擋修正。

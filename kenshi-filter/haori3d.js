@@ -4,16 +4,19 @@ import { V, fitBodyCamera, bodyFrame } from './body-camera.js';
 import { ClothPatch, COTTON_PRESET } from './cloth-physics.js';
 import { tile } from './ar.js';
 import { haoriPattern, collarRibbon } from './haori-pattern.js';
+import { followCloth,reconditionCloth,liveClock,LIVE_CLOTH,PHOTO_CLOTH } from './cloth-follow.js';
+import { KimonoLayer } from './kimono-layer.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const fabric=new Image();fabric.src=new URL('assets/fabric-cotton-weave-v3.png',import.meta.url).href;
 const textures=new Map();
+const clothKey=(ch,style)=>style==='pattern'?[style,ch.pattern,ch.haori,ch.haori2].join('|'):style;
 export const fabricReady=()=>fabric.complete&&fabric.naturalWidth>0;
 function clothTextures(ch,style='indigo') {
-  const key=[style,ch.pattern,ch.haori,ch.haori2].join('|');if(textures.has(key))return textures.get(key);
+  const key=clothKey(ch,style);if(textures.has(key))return textures.get(key);
   if(!fabricReady())return null;
   const cv=document.createElement('canvas');cv.width=cv.height=1024;const g=cv.getContext('2d',{willReadFrequently:true});
-  g.fillStyle=style==='pattern'?g.createPattern(tile(ch.pattern,ch.haori,ch.haori2,140),'repeat'):style==='ink'?'#282c33':'#57677e';g.fillRect(0,0,1024,1024);
+  g.fillStyle=style==='pattern'?g.createPattern(tile(ch.pattern,ch.haori,ch.haori2,140),'repeat'):style==='ink'?'#282c33':style==='nezuko'?'#382b2e':'#57677e';g.fillRect(0,0,1024,1024);
   const data=g.getImageData(0,0,1024,1024),scan=document.createElement('canvas');scan.width=scan.height=1024;
   const sg=scan.getContext('2d',{willReadFrequently:true});sg.drawImage(fabric,0,0,1024,1024);const grain=sg.getImageData(0,0,1024,1024).data;
   for(let i=0;i<data.data.length;i+=4){const shade=.76+(grain[i]+grain[i+1]+grain[i+2])/765*.28;
@@ -64,26 +67,29 @@ export class Haori3D {
     this.scene.add(this.key,this.key.target);this.fill=new THREE.DirectionalLight('#dbe6ff',.45);this.fill.position.set(2,1,2);this.scene.add(this.fill);
     this.lastTime=0;this.reset();
   }
-  reset(){this.signature=null;this.patches=[];this.metrics=null;this.settled=false;this.settledSteps=0;this.focalRatio=null;}
+  reset(){this.signature=null;this.patches=[];this.metrics=null;this.settled=false;this.settledSteps=0;this.focalRatio=null;this.lastPattern=null;this.lastFrame=null;this.lastTime=null;this.overstretchFrames=0;this.recoveries=0;}
   clearGeometry(){
+    this.kimono?.dispose();this.kimono=null;
     for(const o of [...this.group.children]){this.group.remove(o);o.geometry?.dispose();if(o.material&&!this.materials?.includes(o.material))o.material.dispose();}
     for(const m of this.materials||[])m.dispose();this.materials=[];
   }
-  rebuild(f,ch,fit,ease,style) {
+  rebuild(f,ch,fit,ease,style,photo) {
     this.clearGeometry();const tex=clothTextures(ch,style);if(!tex)return false;
     const mat=new THREE.MeshPhysicalMaterial({map:tex.map,normalMap:tex.normal,normalScale:new THREE.Vector2(.22,.22),
       roughness:.96,metalness:0,envMapIntensity:.18,sheen:.12,sheenRoughness:.95,sheenColor:new THREE.Color('#aaa8a4'),side:THREE.DoubleSide});
     this.materials.push(mat);const {S,T}=f,pattern=haoriPattern(f,fit,ease),bodyAt=pattern.bodyAt;
-    const C=36,R=20,pins=Array.from({length:C+1},(_,i)=>i),body=new ClothPatch(C,R,bodyAt,pins,{bendCompliance:.08});
-    const tieRow=Math.round(R*.36);body.addTie(tieRow*(C+1),tieRow*(C+1)+C);
+    if(style==='nezuko')this.kimono=new KimonoLayer(this.group);
+    const quality=photo?PHOTO_CLOTH:LIVE_CLOTH;
+    const C=quality.bodyCols,R=quality.bodyRows,pins=Array.from({length:C+1},(_,i)=>i),body=new ClothPatch(C,R,bodyAt,pins,{...quality,bendCompliance:.08});
+    const tieRow=Math.round(R*.36);if(style!=='nezuko')body.addTie(tieRow*(C+1),tieRow*(C+1)+C);
     this.patches=[{patch:body,at:bodyAt,type:'body'}];
     for(const s of ['l','r']) {
       const sleeve=pattern.sleeves[s],sleeveAt=sleeve.at;
-      const sc=20,sr=12,sp=Array.from({length:sc+1},(_,i)=>i);
+      const sc=quality.sleeveCols,sr=quality.sleeveRows,sp=Array.from({length:sc+1},(_,i)=>i);
       // Support at the arm-facing edge of the elbow and forearm opening. The
       // large pocket remains free; never pull the whole cuff onto the wrist.
       if(sleeve.visible)sp.push(Math.round(sr*.55)*(sc+1),sr*(sc+1));
-      const patch=new ClothPatch(sc,sr,sleeveAt,sp,{seamClosed:true,bendCompliance:.3});
+      const patch=new ClothPatch(sc,sr,sleeveAt,sp,{...quality,seamClosed:true,bendCompliance:.3});
       this.patches.push({patch,at:sleeveAt,type:s});
     }
     for(const item of this.patches){item.geo=geometry(item.patch);
@@ -109,7 +115,10 @@ export class Haori3D {
     const cordMat=new THREE.MeshStandardMaterial({color:style==='pattern'?ch.haori2:style==='ink'?'#20242b':'#485a73',roughness:.98});this.materials.push(cordMat);
     this.cord=new THREE.Mesh(new THREE.BufferGeometry(),cordMat);this.cord.castShadow=true;this.group.add(this.cord);
     this.knot=new THREE.Mesh(new THREE.SphereGeometry(S*.025,12,8),cordMat);this.group.add(this.knot);
-    this.signature=[style,ch.pattern,ch.haori,ch.haori2,fit.width,fit.length,(Math.round(ease*10)/10).toFixed(1),...['l','r'].map(s=>f.kp[s+'w'].v>.55&&f.kp[s+'e'].v>.5)].join('|');this.baseT=T;this.settled=false;this.settledSteps=0;return true;
+    this.cord.visible=this.knot.visible=style!=='nezuko';
+    this.signature=[photo,clothKey(ch,style),fit.width,fit.length,...['l','r'].map(s=>f.kp[s+'w'].v>.55&&f.kp[s+'e'].v>.5)].join('|');this.baseT=T;this.buildEase=ease;this.lastPattern=null;this.lastFrame=null;this.settled=false;this.settledSteps=0;
+    if(this.key.shadow.mapSize.x!==quality.shadowSize){this.key.shadow.map?.dispose();this.key.shadow.map=null;this.key.shadow.mapSize.set(quality.shadowSize,quality.shadowSize);}
+    return true;
   }
   render(W,H,kp,ch,opts={}) {
     if(!fabricReady())return {ready:false};
@@ -117,15 +126,17 @@ export class Haori3D {
     if(camera.estimated&&!this.focalRatio)this.focalRatio=camera.f/W;
     const unsupported=Math.abs(f.yaw)>Math.PI*.41||camera.error>Math.hypot(kp.rs.x-kp.ls.x,kp.rs.y-kp.ls.y)*.25;
     if(unsupported)return {ready:false,unsupported:true,reason:Math.abs(f.yaw)>Math.PI*.41?'angle':'projection'};
-    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',sig=[style,ch.pattern,ch.haori,ch.haori2,fit.width,fit.length,(Math.round(ease*10)/10).toFixed(1),...['l','r'].map(s=>kp[s+'w'].v>.55&&kp[s+'e'].v>.5)].join('|');
-    if(!this.signature||sig!==this.signature||Math.abs(f.T/this.baseT-1)>.18){if(!this.rebuild(f,ch,fit,ease,style))return {ready:false};}
+    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',photo=!!opts.photo,sig=[photo,clothKey(ch,style),fit.width,fit.length,...['l','r'].map(s=>kp[s+'w'].v>.55&&kp[s+'e'].v>.5)].join('|');
+    if(!this.signature||sig!==this.signature||Math.abs(f.T/this.baseT-1)>.18||Math.abs(ease-this.buildEase)>.12){if(!this.rebuild(f,ch,fit,ease,style,photo))return {ready:false};}
     if(this.canvas.width!==W||this.canvas.height!==H)this.renderer.setSize(W,H,false);this.camera.aspect=W/H;this.camera.fov=2*Math.atan(H/(2*camera.f))*180/Math.PI;this.camera.updateProjectionMatrix();
     // Geometry stays in inferred metric camera space; the root translation is
     // calibrated against 2D landmarks, not a square shoulder-width overlay.
     this.group.position.set(camera.tx,-camera.ty,-camera.D);
     const toThree=p=>new THREE.Vector3(p[0],-p[1],-p[2]);
     const current=haoriPattern(f,fit,ease);
+    this.kimono?.update(f,current);
     for(const item of this.patches){const {patch}=item;
+      if(!photo&&!opts.capture)followCloth(patch,item.type==='body'?this.lastPattern?.bodyAt:this.lastPattern?.sleeves[item.type].at,item.type==='body'?current.bodyAt:current.sleeves[item.type].at,this.lastFrame,f);
       for(const i of patch.pins){const u=(i%(patch.cols+1))/patch.cols,v=Math.floor(i/(patch.cols+1))/patch.rows;
         const target=(item.type==='body'?current.bodyAt:current.sleeves[item.type].at)(u,v);
         patch.setTarget(i,target);
@@ -145,10 +156,12 @@ export class Haori3D {
     };
     // Spread photo relaxation across frames: controls remain responsive while
     // loading/dragging sliders instead of freezing for a 180-step burst.
-    let steps=opts.capture?0:opts.photo?Math.min(6,180-this.settledSteps):clamp(Math.round((opts.now-(this.lastTime||opts.now-33))/1000/COTTON_PRESET.dt),1,3);
+    const clock=liveClock(opts.now,this.lastTime),dt=photo?COTTON_PRESET.dt:clock.dt;
+    let steps=opts.capture?0:photo?Math.min(6,180-this.settledSteps):clock.steps;
     const force=V.mul(f.gravity,COTTON_PRESET.gravity);
-    for(let n=0;n<steps;n++)for(const item of this.patches)item.patch.step(force,(p,i)=>collide(p,i,item.type));
+    for(let n=0;n<steps;n++)for(const item of this.patches)item.patch.step(force,(p,i)=>collide(p,i,item.type),dt);
     this.settledSteps+=steps;this.settled=this.settledSteps>=180;this.lastTime=opts.now;
+    if(!opts.capture){this.lastPattern=current;this.lastFrame=f;}
     for(const item of this.patches){const a=item.geo.attributes.position.array;
       for(let i=0;i<item.patch.p.length;i+=3){a[i]=item.patch.p[i];a[i+1]=-item.patch.p[i+1];a[i+2]=-item.patch.p[i+2];}
       item.geo.attributes.position.needsUpdate=true;item.geo.computeVertexNormals();}
@@ -177,9 +190,14 @@ export class Haori3D {
     this.renderer.toneMappingExposure=clamp(light.brightness,.72,1.15);
     const audits=this.patches.map(p=>p.patch.audit());
     this.metrics={density:COTTON_PRESET.density,gravity:COTTON_PRESET.gravity,massKg:audits.reduce((s,a)=>s+a.massKg,0),
-      maxStretch:Math.max(...audits.map(a=>a.maxStretch)),finite:audits.every(a=>a.finite),pitch:f.pitch*180/Math.PI,yaw:f.yaw*180/Math.PI,
+      quality:photo?'照片精細':'即時快速',vertices:this.patches.reduce((s,p)=>s+p.patch.p.length/3,0),maxStretch:Math.max(...audits.map(a=>a.maxStretch)),finite:audits.every(a=>a.finite),pitch:f.pitch*180/Math.PI,yaw:f.yaw*180/Math.PI,
       reprojectionPx:camera.error,cameraEstimated:camera.estimated,parts:audits.map((a,i)=>({name:this.patches[i].type,maxStretch:a.maxStretch}))};
     if(!this.metrics.finite){this.reset();return {ready:false,invalid:true};}
+    if(!photo&&!opts.capture){
+      this.overstretchFrames=this.metrics.maxStretch>=.05?this.overstretchFrames+1:0;
+      if(this.overstretchFrames>=6){for(const item of this.patches)if(item.patch.audit().maxStretch>=.05)item.patch=reconditionCloth(item.patch,item.type==='body'?current.bodyAt:current.sleeves[item.type].at);this.overstretchFrames=0;this.recoveries++;}
+    }
+    this.metrics.recoveries=this.recoveries;
     this.renderer.render(this.scene,this.camera);return {ready:true,valid:this.metrics.maxStretch<.05&&(!opts.photo||this.settled),settling:opts.photo&&!this.settled,progress:Math.min(1,this.settledSteps/180),canvas:this.canvas,metrics:this.metrics};
   }
 }

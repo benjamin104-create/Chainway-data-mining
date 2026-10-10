@@ -53,14 +53,16 @@ export function smooth(prev, next, base = .38) {
     const dynamic = Math.min(.3, residual / Math.max(80, pf.T * 3));
     const torso = k === 'ls' || k === 'rs' || k === 'lh' || k === 'rh';
     const t = confidence < .42 ? 0 : Math.min(.72, base + dynamic + (torso ? -.08 : .08));
+    const worldDelta=Number.isFinite(b.wx)&&Number.isFinite(a.wx)?Math.hypot(b.wx-a.wx,b.wy-a.wy,b.wz-a.wz):0;
+    const worldT=confidence<.42?0:Math.min(.85,.50+worldDelta*3);
     out[k] = {
       ...b,
       x: predicted.x + (b.x - predicted.x) * t,
       y: predicted.y + (b.y - predicted.y) * t,
       z: b.z == null ? b.z : (a.z ?? b.z) + (b.z - (a.z ?? b.z)) * Math.min(.7, Math.max(.18, t * .65)),
-      wx: Number.isFinite(b.wx) ? (a.wx ?? b.wx) + (b.wx - (a.wx ?? b.wx)) * .3 : b.wx,
-      wy: Number.isFinite(b.wy) ? (a.wy ?? b.wy) + (b.wy - (a.wy ?? b.wy)) * .3 : b.wy,
-      wz: Number.isFinite(b.wz) ? (a.wz ?? b.wz) + (b.wz - (a.wz ?? b.wz)) * .3 : b.wz,
+      wx: Number.isFinite(b.wx) ? (a.wx ?? b.wx) + (b.wx - (a.wx ?? b.wx)) * worldT : b.wx,
+      wy: Number.isFinite(b.wy) ? (a.wy ?? b.wy) + (b.wy - (a.wy ?? b.wy)) * worldT : b.wy,
+      wz: Number.isFinite(b.wz) ? (a.wz ?? b.wz) + (b.wz - (a.wz ?? b.wz)) * worldT : b.wz,
       v: confidence,
     };
   }

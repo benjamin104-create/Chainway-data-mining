@@ -1,7 +1,7 @@
 {
-  "name": "心之型・劍士測驗",
-  "short_name": "心之型",
-  "description": "十個情境題找出你的社會姿態，再用 AR 相機穿上劍士羽織、擺出招式。",
+  "name": "你心中住著哪一種劍士",
+  "short_name": "心中的劍士",
+  "description": "你心中住著哪一種劍士：AR 試衣、武器與搞笑道具拍照，心理測驗取得 SR／SSR 與能力值。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

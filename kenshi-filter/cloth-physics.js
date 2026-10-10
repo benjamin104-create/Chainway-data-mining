@@ -60,7 +60,7 @@ export class ClothPatch {
     // moves the cloth particles, so normals, folds and velocities stay coupled.
     // 2.5% is a prototype guard, not a measured textile yield strain.
     const structural=this.structural,limit=this.params.stretchLimit;
-    for(let pass=0;pass<24;pass++){
+    for(let pass=0;pass<(this.params.strainPasses??24);pass++){
       let worst=0;
       for(let j=0;j<structural.length;j++){
         const e=structural[pass%2?structural.length-1-j:j],a=e.a*3,b=e.b*3;
