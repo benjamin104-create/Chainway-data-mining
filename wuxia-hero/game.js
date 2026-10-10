@@ -12,31 +12,42 @@ const G = { on: false };
 export const gameState = G;
 
 export function startGame(t, onEnd) {
-  const notes = []; let at = 4.2, gap = 1.5, prev = null;
+  // 配樂 120 BPM（一拍 0.5 秒）：倒數剛好 8 拍，之後每個手勢都落在拍點上
+  const notes = []; let at = 4, prev = null;
+  const GAPS = [1.5, 1.5, 1.5, 1.5, 1.25, 1.25, 1.25, 1.25, 1, 1, 1, 1, 1, 1];
   for (let i = 0; i < N; i++) {
     let g; do g = KINDS[Math.floor(Math.random() * KINDS.length)]; while (g === prev && Math.random() < .7);
-    prev = g; notes.push({ g, at, res: null }); at += gap; gap = Math.max(.95, gap - .05);
+    prev = g; notes.push({ g, at, res: null }); at += GAPS[i];
   }
-  notes.push({ g: 'palm', at: at + .6, res: null, special: true });   // 壓軸大絕：如來神掌（張開手掌一推）
+  notes.push({ g: 'palm', at: at + .5, res: null, special: true });   // 壓軸大絕：如來神掌（張開手掌一推）
   at += 2.6;
+  sfx.startMusic();
   Object.assign(G, { on: true, t0: t, notes, score: 0, combo: 0, best: 0, perfect: 0, good: 0, miss: 0, pops: [], end: at + 1, onEnd, done: false, beat: -1 });
 }
-export function stopGame() { G.on = false; }
+export function stopGame() { G.on = false; sfx.stopMusic(); }
 
 const BRUSH = '"Kouzan Mouhitsu", "Kouzan Gyosho", "Yuji Boku", "Noto Serif TC", serif';
 // 格鬥遊戲風的字：粗黑斜體、金屬漸層（白→金→橘紅）、厚黑框＋紅色內框
-const KOF = '"Dela Gothic One", "Noto Sans TC", "PingFang TC", sans-serif';
+const KOF_LATIN = '"Anton", "Impact", "Arial Black", sans-serif';
+const KOF_CJK = '"Noto Sans TC", "PingFang TC", sans-serif';
 function kofText(ctx, txt, x, y, px, a = 1, hot = false) {
   ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, a));
   ctx.translate(x, y); ctx.transform(1, 0, -.18, 1, 0, 0);            // 往右斜
-  ctx.font = `900 ${px}px ${KOF}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  ctx.lineWidth = px * .26; ctx.strokeStyle = '#0a0503'; ctx.strokeText(txt, 0, 0);
-  ctx.lineWidth = px * .12; ctx.strokeStyle = hot ? '#d81b0c' : '#7a1208'; ctx.strokeText(txt, 0, 0);
+  const cjk = /[\u3400-\u9fff]/.test(txt);
+  ctx.font = cjk ? `900 ${px}px ${KOF_CJK}` : `400 ${px * 1.15}px ${KOF_LATIN}`;   // 一個詞只用一種字型，不混搭
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  ctx.lineWidth = px * .22; ctx.strokeStyle = '#0a0503'; ctx.strokeText(txt, 0, 0);
+  ctx.lineWidth = px * .1; ctx.strokeStyle = hot ? '#d81b0c' : '#5a6270'; ctx.strokeText(txt, 0, 0);
   const g = ctx.createLinearGradient(0, -px * .5, 0, px * .5);
   if (hot) { g.addColorStop(0, '#ffffff'); g.addColorStop(.35, '#fff27a'); g.addColorStop(.55, '#ffb000'); g.addColorStop(.75, '#ff4a00'); g.addColorStop(1, '#ffd23a'); }
   else { g.addColorStop(0, '#ffffff'); g.addColorStop(.45, '#e9eef5'); g.addColorStop(.52, '#8a96a8'); g.addColorStop(.8, '#dfe6ef'); g.addColorStop(1, '#ffffff'); }
   ctx.fillStyle = g; ctx.fillText(txt, 0, 0);
-  ctx.globalAlpha *= .55; ctx.fillStyle = '#fff'; ctx.fillRect(-ctx.measureText(txt).width / 2, -px * .36, ctx.measureText(txt).width, px * .06);   // 金屬反光線
+  ctx.restore();
+}
+function labelText(ctx, txt, x, y, px, fill, a = 1) {
+  ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, a));
+  ctx.font = `900 ${px}px "Noto Sans TC", "PingFang TC", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  ctx.lineWidth = px * .28; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.strokeText(txt, x, y); ctx.fillStyle = fill; ctx.fillText(txt, x, y);
   ctx.restore();
 }
 function brushText(ctx, txt, x, y, px, fill, a = 1) {
@@ -61,7 +72,7 @@ export function drawGame(ctx, W, H, u, now, hands, glow, onHit) {
     const word = ['3', '2', '1', 'GO!'][Math.min(3, n)];
     if (n < 4) kofText(ctx, word, W / 2, H * .45, (n === 3 ? 24 : 32) * u * (1.4 - .4 * Math.min(1, k * 4)), 1 - Math.max(0, k - .75) / .25, n === 3);
     if (t < 1) kofText(ctx, 'READY', W / 2, H * .32, 12 * u, 1 - Math.max(0, t - .8) / .2, true);
-    if (t < 3) brushText(ctx, '手勢跑到左邊的圈圈時，比出一樣的手勢！', W / 2, H * .62, 3.6 * u, '#fff');
+    if (t < 3) labelText(ctx, '手勢跑到左邊的圈圈時，比出一樣的手勢！', W / 2, H * .62, 3.4 * u, '#fff');
   }
 
   // 跑道
@@ -95,7 +106,7 @@ export function drawGame(ctx, W, H, u, now, hands, glow, onHit) {
     const x = hitX - dt * speed;
     if (x > W + R * 1.2 || x < -R * 1.5) continue;
     if (n.res && n.res !== 'miss') {                        // 打中：在圈上爆開
-      const k = (t - n.rt) / .4; if (k > 1) continue;
+      const k = (t - n.rt) / .4; if (k > 1 || k < 0) continue;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       const gr = ctx.createRadialGradient(hitX, laneY, 0, hitX, laneY, R * (1 + k * 1.6));
       gr.addColorStop(0, `rgba(255,255,255,${.8 * (1 - k)})`); gr.addColorStop(.4, glow + 'aa'); gr.addColorStop(1, 'rgba(0,0,0,0)');
@@ -109,12 +120,12 @@ export function drawGame(ctx, W, H, u, now, hands, glow, onHit) {
     ctx.strokeStyle = '#fff'; ctx.lineWidth = .45 * u; ctx.setLineDash([]);
     ICON[n.g](ctx, x, laneY + R * .15, R * .7, false);
     ctx.restore();
-    brushText(ctx, n.special ? '如來神掌' : NAME[n.g], x, laneY + R * 1.5, (n.special ? 5 : 4.4) * u, n.special ? '#ffd36b' : '#fff', n.res === 'miss' ? .35 : 1);
+    labelText(ctx, n.special ? '如來神掌' : NAME[n.g], x, laneY + R * 1.5, (n.special ? 4.2 : 3.6) * u, n.special ? '#ffd36b' : '#fff', n.res === 'miss' ? .35 : 1);
   }
 
   // 分數、連擊
   kofText(ctx, `${G.score}`, W - 10 * u, laneY + R * 2.1, 6.5 * u, 1, true);
-  if (G.combo >= 2) kofText(ctx, `${G.combo} HITS`, W / 2, laneY + R * 2.1, 7.5 * u * (1 + .15 * Math.max(0, 1 - (t - (G.lastComboT || 0)) * 5)), 1, G.combo >= 5);
+  if (G.combo >= 2) kofText(ctx, `${G.combo} HITS`, W * .62, laneY + R * 3.4, 7.5 * u * (1 + .15 * Math.max(0, 1 - (t - (G.lastComboT || 0)) * 5)), 1, G.combo >= 5);
   G.pops = G.pops.filter((p) => t - p.t < .7);
   for (const p of G.pops) { const k = (t - p.t) / .7; kofText(ctx, p.txt, hitX + R * 1.2, laneY + R * 1.9 - k * 4 * u, 6.5 * u * (1.35 - .35 * Math.min(1, k * 4)), 1 - k * k, p.hot); }
   if (G.ult) drawUlt(ctx, W, H, u, t - G.ult.t, G.ult.at);
@@ -127,7 +138,8 @@ export function drawGame(ctx, W, H, u, now, hands, glow, onHit) {
     ctx.save(); ctx.globalAlpha = .55 * k; ctx.fillStyle = '#000'; ctx.fillRect(0, H * .3, W, H * .32); ctx.restore();
     kofText(ctx, 'FINISH!', W / 2, H * .34, 9 * u, k, false);
     kofText(ctx, title, W / 2, H * .44, 14 * u * (1.3 - .3 * k), k, true);
-    kofText(ctx, `${G.score} 分　MAX ${G.best} HITS`, W / 2, H * .54, 4.8 * u, k, false);
+    kofText(ctx, `SCORE ${G.score}   MAX ${G.best} HITS`, W / 2, H * .54, 4.6 * u, k, false);
+    if (!G.done && t > G.end - .8 && !G.musicOff) { G.musicOff = true; sfx.stopMusic(1.2); }
     if (!G.done && t > G.end + 2.2) { G.done = true; G.on = false; sfx.gong(); G.onEnd?.({ score: G.score, title, best: G.best }); }
   }
   return G.on;

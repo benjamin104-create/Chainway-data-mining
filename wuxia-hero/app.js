@@ -1593,10 +1593,11 @@ function pickMime() {
 function startRec() {
   if (!view.captureStream || !window.MediaRecorder) { notice('這個瀏覽器不支援錄影，可以改用拍照。'); return; }
   const mime = pickMime(), stream = view.captureStream(30), chunks = [];
+  try { const at = sfx.audioTrack(); if (at) stream.addTrack(at); } catch {}   // 音樂、音效一起錄進影片
   const mr = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 5e6 } : undefined);
   mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   mr.onstop = () => {
-    stream.getTracks().forEach((t) => t.stop());
+    stream.getVideoTracks().forEach((t) => t.stop());   // 聲音軌是共用的，不能停
     const type = (mr.mimeType || mime || 'video/webm').split(';')[0];
     lastBlob = new Blob(chunks, { type }); lastType = type; lastName = type.includes('mp4') ? 'wuxia.mp4' : 'wuxia.webm';
     if (lastUrl) URL.revokeObjectURL(lastUrl);
@@ -1860,6 +1861,7 @@ $('file').onchange = async () => {
 document.fonts?.load('80px "Dela Gothic One"', 'ゼウス').catch(() => {});
 // 招式大字、英雄名字用思源宋體：先把會用到的字載好，畫到相機畫面上才不會是預設字型
 document.fonts?.load('80px "Kouzan Gyosho"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
+document.fonts?.load('80px "Anton"', 'READYGO!PERFECTGREATMISSHITSFINISHSCOREMAX0123456789').catch(() => {});
 document.fonts?.load('80px "Kouzan Mouhitsu"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('80px "Yuji Boku"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('900 80px "Noto Serif TC"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格・').catch(() => {});
