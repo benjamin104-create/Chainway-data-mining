@@ -737,10 +737,10 @@ function halftonePattern() {
 const TITLE_H = 24;   // 上方標題列的高度（u：名字＋招式名稱），替身的頭不進這一區
 function placeStand(W, H, bh, headY, ratio, u) {
   const top = state.colTop, n = top ? top.length : 0;
-  const base = Math.min(H * 1.6, Math.max(bh * 1.75, H * 1.2));   // 武俠篇：英雄要有氣勢，比本人大很多，身體可以超出畫面
+  const base = Math.min(H * 1.9, Math.max(bh * 2.1, H * 1.45));   // 武俠篇：英雄要有氣勢，比本人大很多，身體可以超出畫面
   const prev = state.pose, cx = state.personCx ?? W / 2;
   let best = null;
-  for (const k of [1, .92, .85, .78, .7]) {
+  for (const k of [1, .92, .84]) {
     const sh = base * k, sw = sh * ratio;
     const sy = Math.max(TITLE_H * u * .85, Math.min(headY - sh * .1, H - sh * .6));
     for (let i = 0; i <= 24; i++) {
@@ -1130,7 +1130,7 @@ function render(now) {
 const GUIDE = { center: [.5, .52], left: [.68, .44], right: [.32, .44], opening: [.26, .46] };
 function fixedLayout(L, W, H, u, ratio) {
   // 日本篇：神明比其他篇大 20%；可以有 5～12% 落在畫面外，比較有魄力
-  const top = TITLE_H * u * .85, G = 1.5, clampX = (x, sw) => Math.max(sw * .3, Math.min(W - sw * .3, x));
+  const top = TITLE_H * u * .85, G = 1.75, clampX = (x, sw) => Math.max(sw * .3, Math.min(W - sw * .3, x));
   if (L === 'center') { const sh = Math.min(H * .95, W * 1.15 / ratio) * G, sw = sh * ratio; return { x: W / 2, sy: top - u, sh, sw, side: 1 }; }
   if (L === 'opening') { const sh = Math.min(H * .9, W * .78 / ratio) * G, sw = sh * ratio; return { x: clampX(W * .66, sw), sy: H * .04, sh, sw, side: 1 }; }
   const sh = Math.min(H * .86, W * .85 / ratio) * G, sw = sh * ratio, side = L === 'left' ? -1 : 1;
@@ -1255,7 +1255,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const BRUSH = '"Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆字（缺字時退到楷書、宋體）
+const BRUSH = '"Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆行書（缺字時退到毛筆楷書、楷書）
 const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' };
 function titleBanner(W, H, s, u, ease) {
   const L = state.lang, h = TITLE_H * u;
@@ -1674,6 +1674,8 @@ $('file').onchange = async () => {
 
 document.fonts?.load('80px "Dela Gothic One"', 'ゼウス').catch(() => {});
 // 招式大字、英雄名字用思源宋體：先把會用到的字載好，畫到相機畫面上才不會是預設字型
+document.fonts?.load('80px "Kouzan Gyosho"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
+document.fonts?.load('80px "Kouzan Mouhitsu"', '你俠哪挪橫繡').catch(() => {});
 document.fonts?.load('80px "Yuji Boku"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('900 80px "Noto Serif TC"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格・').catch(() => {});
 requestAnimationFrame(render);

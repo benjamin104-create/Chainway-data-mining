@@ -281,7 +281,7 @@ function drawBanner(ctx, W, H, u, age, move, pal) {
   // 大字
   ctx.globalAlpha = k;
   const s = 1 + Math.max(0, .25 - age) * 1.4, px = Math.min(12 * u, W * .84 / Math.max(4, move.name.length)) * s;
-  ctx.font = `${px}px "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${px}px "Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .1; ctx.strokeStyle = '#0d0b0a';
   ctx.save(); ctx.translate(cx, by - px * .05); ctx.rotate(-.03);
   ctx.shadowColor = rgba(pal[1], .9); ctx.shadowBlur = px * .35;
@@ -290,7 +290,7 @@ function drawBanner(ctx, W, H, u, age, move, pal) {
   ctx.fillStyle = g; ctx.fillText(move.name, 0, 0);
   ctx.shadowBlur = 0; ctx.lineWidth = px * .05; ctx.strokeStyle = g; ctx.strokeText(move.name, 0, 0);   // 毛筆字加粗
   if (move.sub) {
-    ctx.font = `${4.8 * u}px "Yuji Boku", "LXGW WenKai TC", serif`; ctx.lineWidth = 1.1 * u;
+    ctx.font = `${4.8 * u}px "Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", serif`; ctx.lineWidth = 1.1 * u;
     const sub = `・ ${move.sub} ・`;
     ctx.strokeText(sub, 0, px * .82); ctx.fillStyle = '#fff'; ctx.fillText(sub, 0, px * .82);
   }
