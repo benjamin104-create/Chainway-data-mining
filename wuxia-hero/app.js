@@ -1658,9 +1658,9 @@ function brushChar(g, it, F, a, u) {
   g.save(); g.globalAlpha = Math.max(0, Math.min(1, a)); g.translate(it.x, it.y); g.rotate(it.rot || 0);
   g.font = `${size}px ${BRUSH}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
   if (F.red) {
-    // 紅底：每個字一塊略帶筆觸的紅色方塊
+    // 紅底：每個字一塊略帶筆觸的紅色方塊（整個畫面已經是紅底時就不用）
     const r = size * .58; g.fillStyle = it.sub ? '#9e1b16' : '#c0261d';
-    g.beginPath(); g.moveTo(-r, -r * .92); g.lineTo(r * .96, -r); g.lineTo(r, r * .94); g.lineTo(-r * .97, r); g.closePath(); g.fill();
+    if (!it.bare) { g.beginPath(); g.moveTo(-r, -r * .92); g.lineTo(r * .96, -r); g.lineTo(r, r * .94); g.lineTo(-r * .97, r); g.closePath(); g.fill(); }
     const col = it.sub ? '#140c0a' : '#ffffff';
     g.fillStyle = col; g.strokeStyle = col; g.lineWidth = size * .08;
     g.fillText(c, 0, size * .04); g.strokeText(c, 0, size * .04);
@@ -1702,22 +1702,45 @@ function inkSplash(g, it, k, u) {
   g.restore();
 }
 function playReveal(base, fin, F, done) {
+  // 第一段：整個畫面只有一個超大的字，一個接一個（降、龍、十、八、掌、亢、龍、有、悔）
+  // 第二段：成品照從字後面淡入、從稍大推回原尺寸
   const W = view.width, H = view.height, u = Math.min(W, H) / 100;
+  const chars = [...F.mv.name].map((c) => ({ c, sub: false })).concat([...(F.mv.sub || '')].map((c) => ({ c, sub: true })));
+  const per = (it) => it.sub ? .24 : .3, starts = []; let T = 0;
+  for (const it of chars) { starts.push(T); T += per(it); }
+  const fade = .75, t0 = performance.now();
   state.revealing = true;
-  const total = drawMoveChars(mk(1, 1).getContext('2d'), W, H, u, F, 0) + .35, fade = .7, t0 = performance.now();
+  const bg = (g) => {
+    if (F.red) { g.fillStyle = '#b8231b'; g.fillRect(0, 0, W, H); }
+    else {
+      g.fillStyle = '#0a0806'; g.fillRect(0, 0, W, H);
+      const r = g.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, H * .7);
+      r.addColorStop(0, 'rgba(255,255,255,.07)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, W, H);
+    }
+  };
+  const giant = (g, it, k) => {
+    const size = Math.min(W * .9, H * .62) * (it.sub ? .85 : 1), e = 1 - Math.pow(1 - Math.min(1, k * 1.6), 3);
+    let x = W / 2, y = H * .47, sc = 1, a = 1;
+    if (F.style === 'inplace') { sc = 1 + (1 - e) * .8; a = e; }
+    else {
+      const dir = F.style === 'ltr' ? [-1, 0] : F.style === 'rtl' ? [1, 0] : [-.7, -.7], L = Math.max(W, H);
+      x += dir[0] * L * (1 - e); y += dir[1] * L * (1 - e);
+      if (e < 1) for (let j = 3; j >= 1; j--) brushChar(g, { c: it.c, x: x + dir[0] * size * .22 * j, y: y + dir[1] * size * .22 * j, size, sub: it.sub, rot: 0, bare: true }, F, .15 * (4 - j), u);
+    }
+    if (F.style === 'inplace' && !F.red && e < 1) inkSplash(g, { c: it.c, x, y, size }, e, u);
+    brushChar(g, { c: it.c, x, y, size: size * sc, sub: it.sub, rot: 0, bare: true }, F, a, u);
+  };
   const frame = (now) => {
     const at = (now - t0) / 1000;
-    ctx.globalAlpha = 1; ctx.drawImage(base, 0, 0);
-    if (at < total) {
-      // 字寫出來時畫面稍微暗一點，字更跳
-      ctx.fillStyle = `rgba(0,0,0,${Math.min(.25, at * .8)})`; ctx.fillRect(0, 0, W, H);
-      drawMoveChars(ctx, W, H, u, F, at);
+    ctx.globalAlpha = 1;
+    if (at < T) {
+      bg(ctx);
+      let i = starts.length - 1; while (i > 0 && starts[i] > at) i--;
+      giant(ctx, chars[i], (at - starts[i]) / per(chars[i]));
       requestAnimationFrame(frame); return;
     }
-    // 成品照淡入、從 1.06 倍推回原尺寸
-    const k = Math.min(1, (at - total) / fade), e = 1 - Math.pow(1 - k, 3), sc = 1.06 - .06 * e;
-    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, W, H);
-    drawMoveChars(ctx, W, H, u, F, 99);
+    const k = Math.min(1, (at - T) / fade), e = 1 - Math.pow(1 - k, 3), sc = 1.08 - .08 * e;
+    bg(ctx); giant(ctx, chars[chars.length - 1], 1);
     ctx.save(); ctx.globalAlpha = e; ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.drawImage(fin, -W / 2, -H / 2); ctx.restore();
     if (k < 1) { requestAnimationFrame(frame); return; }
     state.revealing = false; done();
