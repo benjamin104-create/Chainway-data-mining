@@ -334,7 +334,7 @@ $('back').onclick = () => { if (qi === 0) show('intro'); else { qi--; renderQues
 $('redo').onclick = () => { qi = 0; answers = {}; store.set('stand-progress', null); renderQuestion(); show('quiz'); };
 $('skip').onclick = () => {
   const ids = Object.keys(STANDS), id = ids[Math.floor(Math.random() * ids.length)];
-  useStand(standById(id)); show('cam'); $('go').click();
+  state.myHero = id; useStand(standById(id)); show('cam'); $('go').click();
 };
 
 // ── 結果 ─────────────────────────────────────────────
@@ -406,6 +406,7 @@ function renderMedia(s) {
 }
 
 async function showResult(s) {
+  state.myHero = s.id; state.myStand = s;
   useStand(s);
   $('rOwner').textContent = `${s.owner} 心中的英雄是`;
   $('rTag').textContent = `俠客性格｜${s.tag}`;
@@ -435,7 +436,7 @@ async function showResult(s) {
 }
 const summon = () => { show('cam'); $('go').click(); };
 $('summon').onclick = summon;
-$('toResult').onclick = () => show(state.stand?.owner ? 'result' : 'intro');
+$('toResult').onclick = () => { if (state.myStand && state.stand !== state.myStand) useStand(state.myStand); show(state.stand?.owner ? 'result' : 'intro'); };
 $('copy').onclick = async () => {
   const s = state.stand; if (!s) return;
   const text = [
@@ -520,11 +521,11 @@ $('sfx').before(layoutRow);
 // ── iPhone 相機式介面：畫面滿版，上方一排小圖示（點了才展開設定），快門上方是「模式」列 ──
 // 模式列：一般／面具／神火／結印。選了動漫 pose，畫面上會出現手要放哪裡的引導，擺到位 AR 特效就合成上去
 const poseRow = document.createElement('div'); poseRow.className = 'modes'; poseRow.setAttribute('role', 'group'); poseRow.setAttribute('aria-label', '拍照模式');
-// 模式列：一般（比對手勢就發功）／練一招（畫面教你怎麼比）／換招式（學別位英雄的招式）
+// 模式列：一般（比對手勢就發功）／練一招（畫面教你怎麼比）／換英雄（請別位英雄出場，用他的絕招）
 let poseMode = null;
 const armGuide = () => setGuide(poseMode && curMove, () => { const m = poseMode; setTimeout(() => { if (poseMode === m) armGuide(); }, 7000); });   // 成功後過一陣子再提示一次
 const modeBtns = {};
-for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['pick', '🀄 換招式']]) {
+for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['pick', '🀄 換英雄']]) {
   const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
   b.setAttribute('aria-pressed', String(id === null));
   b.onclick = () => {
@@ -539,9 +540,11 @@ for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['pic
 const moveRow = document.createElement('div'); moveRow.className = 'chips moves'; moveRow.setAttribute('role', 'group'); moveRow.setAttribute('aria-label', '招式');
 for (const [hid, h] of Object.entries(STANDS)) {
   const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.dataset.hero = hid;
-  b.textContent = `${h.move.name}・${h.name}`;
+  b.textContent = `${h.name}・${h.move.name}`;
   b.onclick = () => {
-    curMove = { ...h.move, hero: hid }; setMove(curMove);
+    // 絕招只有本人能用：換招式＝請那位英雄出場，英雄和招式永遠是同一位
+    const owner = state.stand?.owner || '';
+    useStand(standById(hid, owner)); state.pose = null; state.summonAt = performance.now();
     for (const x of moveRow.children) x.setAttribute('aria-pressed', String(x === b));
     modeBtns.learn.click(); document.querySelector('#cam .pop').hidden = true;
     for (const x of document.querySelectorAll('#cam .tools button')) x.setAttribute('aria-expanded', 'false');
@@ -563,7 +566,7 @@ for (const [hid, h] of Object.entries(STANDS)) {
     ['心願', '✍️', [document.querySelector('#cam .wish')]],
     ['六角圖', '⬡', [cardRow]],
     ['語言', '文', [langRow]],
-    ['招式譜', '⚔', [moveRow]],
+    ['英雄譜', '⚔', [moveRow]],
   ];
   let open = null;
   const close = () => { pop.hidden = true; open = null; for (const x of tools.children) x.setAttribute('aria-expanded', 'false'); };
@@ -571,7 +574,7 @@ for (const [hid, h] of Object.entries(STANDS)) {
     const box = document.createElement('div'); box.className = 'pop-panel'; box.hidden = true;
     const h = document.createElement('b'); h.textContent = name; box.append(h, ...nodes.filter(Boolean));
     pop.append(box);
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = icon; b.title = name; if (name === '招式譜') b.id = 'movesTool'; b.setAttribute('aria-label', name); b.setAttribute('aria-expanded', 'false');
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = icon; b.title = name; if (name === '英雄譜') b.id = 'movesTool'; b.setAttribute('aria-label', name); b.setAttribute('aria-expanded', 'false');
     b.onclick = () => {
       if (open === box) return close();
       close(); open = box; pop.hidden = false; box.hidden = false; b.setAttribute('aria-expanded', 'true');
@@ -1261,7 +1264,7 @@ const FONT = {
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
 const BRUSH = '"Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆行書（缺字時退到毛筆楷書、楷書）
-const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' };
+const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' }, LABEL_OTHER = { zh: '江湖英雄', ja: '江湖の英雄', en: 'WUXIA HERO' };
 function titleBanner(W, H, s, u, ease, noMove) {
   const L = state.lang, h = TITLE_H * u;
   ctx.save();
@@ -1271,7 +1274,7 @@ function titleBanner(W, H, s, u, ease, noMove) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, h * 1.15);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.glow; ctx.font = `700 ${3 * u}px system-ui, sans-serif`;
-  const label = `${LABEL[L]} ・ ${s.titles[L]}`;
+  const label = `${(s.id === state.myHero ? LABEL : LABEL_OTHER)[L]} ・ ${s.titles[L]}`;
   ctx.fillText(L === 'en' ? label.toUpperCase() : label, W / 2, 4.4 * u);
   // 英雄的名字：毛筆大字、加粗
   const big = L === 'en' ? s.names.en : s.names[L];
@@ -1283,7 +1286,7 @@ function titleBanner(W, H, s, u, ease, noMove) {
   ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .085;
   ctx.shadowColor = s.glow; ctx.shadowBlur = px * .25;
   ctx.fillText(big, W / 2, y); ctx.shadowBlur = 0; ctx.strokeText(big, W / 2, y);
-  // 招式名稱：名字下面一行（換招式時跟著換）
+  // 招式名稱：名字下面一行（換英雄時跟著換）
   const mv = curMove || s.move;
   if (mv && !noMove) {
     const mp = 5.6 * u, my = y + mp * 1.35;
