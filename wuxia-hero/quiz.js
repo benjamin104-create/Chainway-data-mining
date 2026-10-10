@@ -30,7 +30,8 @@ export const TAG_NAMES = {
 };
 
 // 十二位英雄。style：a＝剛猛、b＝靈動
-// move：招式（gesture＝要比的手勢：palm 張開手掌、sword 劍指、point 食指、pinch 蘭花指、thumb 比讚；fx＝特效）
+// move：招式（gesture＝要比的手勢：palm 張開手掌、sword 劍指、point 食指、pinch 蘭花指、thumb 比讚、fist 握拳；fx＝特效）
+// 每一招只屬於一位英雄，不重複
 // 圖放在 stands/<id>.webp
 export const STANDS = {
   guojing: { tagId: 'shou', style: 'a', name: '郭靖', zh: '郭靖・北俠',
@@ -46,8 +47,8 @@ export const STANDS = {
   xiaofeng: { tagId: 'hao', style: 'a', name: '蕭峰', zh: '蕭峰・南院大王',
     tint: '#5a2a2a', glow: '#ffb38a', text: '#ff7a4d',
     grade: { pow: 'A', spd: 'B', rng: 'A', dur: 'A', pre: 'B', gro: 'A' },
-    move: { name: '降龍十八掌', sub: '亢龍有悔', gesture: 'palm', fx: 'dragon' },
-    ability: '一碗酒交一個朋友，一掌打退千軍萬馬。被全天下誤會時，他不辯解，只用行動證明自己。你和他一樣：義氣比面子重要，朋友比輸贏重要。' },
+    move: { name: '擒龍功', sub: '隔空取物', gesture: 'fist', fx: 'vortex' },
+    ability: '一碗酒交一個朋友，一抓就能隔空把千斤重物拉到手中。被全天下誤會時，他不辯解，只用行動證明自己。你和他一樣：義氣比面子重要，朋友比輸贏重要。' },
   linghu: { tagId: 'hao', style: 'b', name: '令狐沖', zh: '令狐沖・獨孤傳人',
     tint: '#2f4f6f', glow: '#cfe8ff', text: '#7fc0ff',
     grade: { pow: 'B', spd: 'A', rng: 'A', dur: 'B', pre: 'B', gro: 'A' },

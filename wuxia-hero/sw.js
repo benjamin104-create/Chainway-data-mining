@@ -1,7 +1,7 @@
 // 程式（網頁、JS）每次都先上網拿最新版，沒網路才用手機裡存的；
 // 模型、神明圖這種大檔案才優先用手機裡存的（打開快、省流量）
-const CACHE = 'wuxia-hero-v7';
-const SHELL = ['./', 'index.html', 'app.js', 'beauty-gl.js', 'quiz.js', 'poses.js', 'ar.js', 'manifest.webmanifest'];
+const CACHE = 'wuxia-hero-v8';
+const SHELL = ['./', 'index.html', 'app.js', 'beauty-gl.js', 'quiz.js', 'poses.js', 'ar.js', 'sfx.js', 'manifest.webmanifest'];
 self.addEventListener('install', (e) => {
   // 只先存小檔案，而且一個失敗不影響安裝（以前一次下載十幾 MB 的模型，手機網路一斷，新版就永遠裝不上）
   self.skipWaiting();

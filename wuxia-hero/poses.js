@@ -6,6 +6,8 @@
 //   比讚     → 神行百變的金幣
 // 不是本命招式的手勢，也會冒出英雄代表色的「氣芒」。全部在手機上算，畫面不會上傳。
 
+import * as sfx from './sfx.js';
+
 const S = {
   hands: [], frame: 0, ts: 0, lastT: 0,
   k: 0,                 // 本命招式的集氣 0~1
@@ -34,7 +36,7 @@ export function detectHands(src, now) {
   } catch (e) { console.warn(e); }
 }
 // 練一招：畫面上出現手勢的虛線剪影和集氣圈，教使用者怎麼比
-export function setGuide(move, onDone) { S.guide = move; S.guideOk = null; S.onGuideDone = onDone; }
+export function setGuide(move, onDone) { S.guide = move; S.guideOk = null; S.onGuideDone = onDone; S.guideT0 = null; S.guideSide = (S.guideSide || 1) * -1; }
 // 目前要練的招式（預設是本命英雄的招式；也可以換別位英雄的招式）
 export function setMove(move) { S.move = move; S.k = 0; S.fired = false; }
 export function resetPoses() { S.hands = []; S.k = 0; S.qi = 0; S.banner = null; S.parts = []; }
@@ -50,6 +52,7 @@ export const HOWTO = {
   point: '只伸出食指，指向前方',
   pinch: '拇指和食指捏住，其他三指張開（蘭花指）',
   thumb: '握拳、大拇指朝上，比一個讚',
+  fist: '五指用力握拳，舉到臉旁',
 };
 
 const P = (L, i, W, H) => [L[i].x * W, L[i].y * H];
@@ -81,7 +84,7 @@ function gestureOf(h, W, H) {
   if (!i && !m && !r && !p) {
     const t4 = P(h, 4, W, H), t2 = P(h, 2, W, H);
     if (t2[1] - t4[1] > pw * .55) return 'thumb';
-    return null;
+    return 'fist';
   }
   if (i && !m && !r && !p) return 'point';
   if (i && m && !r && !p && dist(P(h, 8, W, H), P(h, 12, W, H)) < pw * .6) return 'sword';
@@ -142,7 +145,12 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   S.gesture = hit ? move.gesture : other ? gestureOf(other, W, H) : null;
   if (hit) S.hand = hit;
   if (other) S.qiHand = other;
+  const prevK = S.k;
   S.k = lerp(S.k, hit ? 1 : 0, hit ? .12 : .07);
+  if (!capturing) {
+    if (prevK < .15 && S.k >= .15) sfx.whoosh();                 // 開始集氣
+    if (S.k > .5 && t - (S.zapT || 0) > .45) { S.zapT = t; sfx.zap(); }   // 帶電的劈啪聲
+  }
   S.qi = lerp(S.qi, other && !hit ? 1 : 0, other && !hit ? .15 : .08);
   S.hold = hit ? S.hold + dt : 0;
   if (hit || other) S.used = true;
@@ -152,7 +160,9 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   if (S.k > .02 && S.hand) {
     const fn = FX[move.fx] || drawQi;
     fn(ctx, S.hand, W, H, u, t, S.k, pal, dt);
+    if (S.k > .25) { const m = handM(S.hand, W, H, u); drawElectric(ctx, m.pc, m.hw, t, S.k, pal); }   // 手的四周帶電
   }
+  if (S.qi > .3 && S.qiHand) { const m = handM(S.qiHand, W, H, u); drawElectric(ctx, m.pc, m.hw * .7, t, S.qi * .6, pal); }
   ctx.restore();
   drawParts(ctx, dt);
 
@@ -160,22 +170,30 @@ export function drawPoseFX(ctx, W, H, u, t, lm, stand, capturing) {
   if (S.k > .8 && S.hold > .45 && !S.fired) {
     S.fired = true; S.banner = { t0: t, move, pal };
     if (S.guide && !S.guideOk) S.guideOk = { t };
-    const h = S.hand; fireTrig(move.fx, h ? palmCenter(h, W, H) : [W / 2, H / 2]);
+    const h = S.hand; if (!capturing) sfx.boom(); fireTrig(move.fx, h ? palmCenter(h, W, H) : [W / 2, H / 2]);
   }
   if (S.k < .2) S.fired = false;
   // 招式大字改成按下快門時才寫出來（拍攝畫面只有英雄＋自己）
 
   if (S.guide && !capturing) drawGuide(ctx, W, H, u, t, face);
-  // 還沒試過招式的人，隔一陣子提示一下（只在預覽，拍下來不會有）
-  if (!capturing && !S.used && !S.guide && S.hands.length === 0) {
-    if (!S.hintAt) S.hintAt = t + 4;
+  // 手勢提示：每隔一陣子，手勢剪影從畫面左邊或右邊滑進來，教你下一個手勢（只在預覽，拍下來不會有）
+  if (!capturing && !S.guide && S.k < .1) {
+    if (!S.hintAt) S.hintAt = t + 3;
     if (t > S.hintAt) {
-      const k = (t - S.hintAt) / 3.4;
-      if (k > 1) S.hintAt = t + 6;
+      const k = (t - S.hintAt) / 3.6;
+      if (k > 1) { S.hintAt = t + 4.5; S.hintIdx = (S.hintIdx || 0) + 1; }
       else {
-        const msg = `試試看：${HOWTO[move.gesture]} →「${move.name}」`;
-        ctx.save(); ctx.globalAlpha = Math.sin(k * Math.PI);
-        pill(ctx, W, u, H * .7, msg, '#fff', 2.8);
+        const list = [move.gesture, ...['palm', 'sword', 'point', 'pinch', 'thumb', 'fist'].filter((g) => g !== move.gesture)];
+        const g = (S.hintIdx || 0) % 2 === 0 ? move.gesture : list[1 + Math.floor((S.hintIdx || 0) / 2) % (list.length - 1)];
+        const side = (S.hintIdx || 0) % 2 ? 1 : -1, r = W * .13;
+        const slide = k < .2 ? 1 - Math.pow(1 - k / .2, 3) : k > .85 ? 1 - (k - .85) / .15 : 1;
+        const x = side < 0 ? -r * 1.5 + (r * 2.7) * slide : W + r * 1.5 - (r * 2.7) * slide, y = H * .5;
+        ctx.save(); ctx.globalAlpha = Math.min(1, slide * 1.2);
+        ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = .8 * u; ctx.setLineDash([1.4 * u, 1 * u]); ctx.lineCap = 'round';
+        ICON[g](ctx, x, y, r, side > 0);
+        ctx.setLineDash([]);
+        const msg = g === move.gesture ? `${HOWTO[g]} →「${move.name}」` : `${HOWTO[g]} → 氣芒`;
+        pill(ctx, W, u, H * .5 + r * 1.35, msg, g === move.gesture ? '#ffe08a' : '#fff', 2.8);
         ctx.restore();
       }
     }
@@ -205,7 +223,11 @@ function drawGuide(ctx, W, H, u, t, face) {
   if (!face) { pill(ctx, W, u, H * .72, '先讓臉完整入鏡', '#fff'); ctx.restore(); return; }
   ctx.strokeStyle = `rgba(255,255,255,${.75 + .25 * pulse})`; ctx.lineWidth = 1 * u; ctx.setLineDash([1.6 * u, 1.1 * u]); ctx.lineCap = 'round';
   const hr = face.w * .55, sx = face.cx < W / 2 ? 1 : -1;
-  const x = Math.max(hr * 1.3, Math.min(W - hr * 1.3, face.cx + sx * face.w * 1.1)), y = face.cy;
+  const tx = Math.max(hr * 1.3, Math.min(W - hr * 1.3, face.cx + sx * face.w * 1.1)), y = face.cy;
+  // 手勢剪影從畫面邊緣滑進來，停在手該放的位置
+  if (S.guideT0 == null) S.guideT0 = t;
+  const sl = Math.min(1, (t - S.guideT0) / .6), e = 1 - Math.pow(1 - sl, 3), from = sx > 0 ? W + hr * 1.5 : -hr * 1.5;
+  const x = from + (tx - from) * e;
   ICON[mv.gesture](ctx, x, y, hr, sx < 0);
   ctx.setLineDash([]);
   ring(ctx, x, y + hr * .1, hr * 1.3, S.k, '#ffe08a');
@@ -248,6 +270,10 @@ const ICON = {
     p.moveTo(-r * .2 + r * .32, -r * .5); p.arc(-r * .2, -r * .5, r * .32, 0, Math.PI * 2);   // 拇指和食指圈起來
     for (const [dx, len] of [[.0, .9], [.24, .82], [.46, .68]]) p.roundRect(dx * r, -r * .1 - len * r, fw, len * r + r * .15, fw / 2);
   }),
+  fist: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
+    p.roundRect(-r * .5, -r * .45, r, r * 1.05, r * .32);
+    for (const dx of [-.42, -.17, .08, .33]) p.roundRect(dx * r, -r * .62, fw * 1.05, r * .38, fw / 2);   // 握起來的指節
+  }),
   thumb: (ctx, x, y, r, m) => silhouette(ctx, x, y, r, m, (p, fw) => {
     p.roundRect(-r * .45, -r * .2, r * .9, r * .85, r * .3);
     p.roundRect(-r * .38, -r * 1.0, fw * 1.25, r * .9, fw * .6);
@@ -281,7 +307,7 @@ function drawBanner(ctx, W, H, u, age, move, pal) {
   // 大字
   ctx.globalAlpha = k;
   const s = 1 + Math.max(0, .25 - age) * 1.4, px = Math.min(12 * u, W * .84 / Math.max(4, move.name.length)) * s;
-  ctx.font = `${px}px "Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${px}px "Kouzan Mouhitsu", "Kouzan Gyosho", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .1; ctx.strokeStyle = '#0d0b0a';
   ctx.save(); ctx.translate(cx, by - px * .05); ctx.rotate(-.03);
   ctx.shadowColor = rgba(pal[1], .9); ctx.shadowBlur = px * .35;
@@ -290,7 +316,7 @@ function drawBanner(ctx, W, H, u, age, move, pal) {
   ctx.fillStyle = g; ctx.fillText(move.name, 0, 0);
   ctx.shadowBlur = 0; ctx.lineWidth = px * .05; ctx.strokeStyle = g; ctx.strokeText(move.name, 0, 0);   // 毛筆字加粗
   if (move.sub) {
-    ctx.font = `${4.8 * u}px "Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", serif`; ctx.lineWidth = 1.1 * u;
+    ctx.font = `${4.8 * u}px "Kouzan Mouhitsu", "Kouzan Gyosho", "Yuji Boku", "LXGW WenKai TC", serif`; ctx.lineWidth = 1.1 * u;
     const sub = `・ ${move.sub} ・`;
     ctx.strokeText(sub, 0, px * .82); ctx.fillStyle = '#fff'; ctx.fillText(sub, 0, px * .82);
   }
@@ -342,10 +368,10 @@ const handM = (h, W, H, u) => ({ pc: palmCenter(h, W, H), hw: dist(P(h, 5, W, H)
 function drawQi(ctx, h, W, H, u, t, k, pal, dt) {
   const { pc, hw } = handM(h, W, H, u);
   ctx.globalCompositeOperation = 'lighter';
-  dot(ctx, pc[0], pc[1] - hw * .3, hw * 2.6, pal[2], .35 * k);
-  dot(ctx, pc[0], pc[1] - hw * .3, hw * 1.3, pal[1], .45 * k);
+  dot(ctx, pc[0], pc[1] - hw * .3, hw * 2.2, pal[2], .16 * k);
+  dot(ctx, pc[0], pc[1] - hw * .3, hw * 1.1, pal[1], .22 * k);
   for (const i of [4, 8, 12, 16, 20]) { const [x, y] = P(h, i, W, H); dot(ctx, x, y, hw * .35, pal[0], .6 * k); }
-  if (Math.random() < k * .8) S.parts.push({ x: pc[0] + (Math.random() - .5) * hw * 1.4, y: pc[1] - hw * .4, vx: (Math.random() - .5) * hw * .4, vy: -hw * (1.2 + Math.random()), life: 0, max: .9 + Math.random() * .5, r: hw * (.25 + Math.random() * .3), c: pal[1], a: .45, grow: .8 });
+  if (Math.random() < k * .8) S.parts.push({ x: pc[0] + (Math.random() - .5) * hw * 1.4, y: pc[1] - hw * .4, vx: (Math.random() - .5) * hw * .4, vy: -hw * (1.2 + Math.random()), life: 0, max: .9 + Math.random() * .5, r: hw * (.25 + Math.random() * .3), c: pal[1], a: .25, grow: .8 });
 }
 
 // 降龍十八掌：一條金龍從掌心盤繞一圈，再扭著身體往上竄出
@@ -376,7 +402,7 @@ function drawDragon(ctx, h, W, H, u, t, k, pal) {
     }
   };
   ctx.globalCompositeOperation = 'lighter';
-  dot(ctx, pc[0], pc[1], hw * 3, pal[2], .35 * k);
+  dot(ctx, pc[0], pc[1], hw * 2.4, pal[2], .15 * k);
   ctx.globalAlpha = 1;
   ctx.shadowColor = rgba(pal[1], 1); ctx.shadowBlur = hw * .5;
   path(2.2, pal[2], .2 * k);                              // 外圍光
@@ -404,7 +430,7 @@ function drawDragon(ctx, h, W, H, u, t, k, pal) {
   const [hx, hy] = pts[pts.length - 1], [px2, py2] = pts[pts.length - 4];
   const d = norm([hx - px2, hy - py2]), n = [-d[1], d[0]], hr = hw * .75 * Math.max(.4, grow);
   const F = (a, b) => [hx + d[0] * hr * a + n[0] * hr * b, hy + d[1] * hr * a + n[1] * hr * b];
-  dot(ctx, hx, hy, hr * 2.6, pal[1], .55 * k);
+  dot(ctx, hx, hy, hr * 2.2, pal[1], .3 * k);
   ctx.fillStyle = rgba(pal[1], .85 * k);
   ctx.beginPath(); ctx.moveTo(...F(-.6, -.55)); ctx.quadraticCurveTo(...F(.3, -.75), ...F(1.15, -.25)); ctx.lineTo(...F(.55, -.02));
   ctx.lineTo(...F(1.05, .3)); ctx.quadraticCurveTo(...F(.2, .7), ...F(-.6, .5)); ctx.closePath(); ctx.fill();   // 上下顎（嘴張開）
@@ -628,5 +654,53 @@ function drawCoins(ctx, h, W, H, u, t, k, pal) {
   if (Math.random() < k * .55) S.parts.push({ kind: Math.random() < .15 ? 'die' : 'coin', x: tip[0], y: tip[1] - hw * .3, vx: (Math.random() - .5) * hw * 4, vy: -hw * (3 + Math.random() * 2.5), g: hw * 7, life: 0, max: 1.5, r: hw * (.22 + Math.random() * .1), rot: Math.random() * 6, spin: 8 + Math.random() * 6 });
 }
 
-const FX = { dragon: drawDragon, wave: drawWave, swordlight: drawSwordLight, ninesword: drawNineSword, beams: drawBeams,
+// 帶電：手的四周劈出幾道鋸齒狀的電光，每秒換十幾次形狀
+function bolt(ctx, x0, y0, x1, y1, disp, seed) {
+  let pts = [[x0, y0], [x1, y1]], r = seed;
+  const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280) - .5;
+  for (let lv = 0; lv < 5; lv++) {
+    const np = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [a, b] = [pts[i - 1], pts[i]], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, nx = -(b[1] - a[1]), ny = b[0] - a[0], l = Math.hypot(nx, ny) || 1, d = rnd() * disp;
+      np.push([mx + nx / l * d, my + ny / l * d], b);
+    }
+    pts = np; disp *= .55;
+  }
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+}
+function drawElectric(ctx, c, hw, t, k, pal) {
+  const fr = Math.floor(t * 14), n = 4;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 0; i < n; i++) {
+    const sd = fr * 7 + i * 131, an = ((sd * 37) % 360) / 180 * Math.PI, r0 = hw * .5, r1 = hw * (1.6 + ((sd * 13) % 10) / 8);
+    const x0 = c[0] + Math.cos(an) * r0, y0 = c[1] + Math.sin(an) * r0, x1 = c[0] + Math.cos(an + .5) * r1, y1 = c[1] + Math.sin(an + .5) * r1;
+    ctx.globalAlpha = .45 * k; ctx.strokeStyle = rgba(pal[1], 1); ctx.lineWidth = hw * .11; bolt(ctx, x0, y0, x1, y1, hw * .7, sd);
+    ctx.globalAlpha = .9 * k; ctx.strokeStyle = 'rgba(255,255,255,1)'; ctx.lineWidth = hw * .03; bolt(ctx, x0, y0, x1, y1, hw * .7, sd);
+  }
+  ctx.restore();
+}
+// 擒龍功（蕭峰）：握拳一抓，四周的氣被一股股拉進拳頭裡
+function drawVortex(ctx, h, W, H, u, t, k, pal) {
+  const { pc, hw } = handM(h, W, H, u);
+  ctx.globalCompositeOperation = 'lighter';
+  dot(ctx, pc[0], pc[1], hw * 2.2, pal[2], .35 * k);
+  dot(ctx, pc[0], pc[1], hw * 1, pal[0], .75 * k);
+  ctx.shadowColor = rgba(pal[1], 1); ctx.shadowBlur = hw * .3;
+  for (let i = 0; i < 14; i++) {
+    const ph = (t * .9 + i / 10) % 1, an0 = i / 10 * Math.PI * 2 + t * .6, R = hw * (4.2 * (1 - ph) + .4);
+    ctx.globalAlpha = Math.min(1, Math.sin(ph * Math.PI) * 1.1 * k); ctx.strokeStyle = rgba(i % 2 ? pal[0] : pal[1], 1); ctx.lineWidth = hw * (.08 + .16 * ph); ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let j = 0; j <= 8; j++) { const q = j / 8, rr = R + hw * .9 * q, an = an0 - q * .9; const x = pc[0] + Math.cos(an) * rr, y = pc[1] + Math.sin(an) * rr * .85; j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < 2; i++) {                            // 拳頭前的衝擊圈
+    const ph = (t * 1.4 + i / 2) % 1;
+    ctx.globalAlpha = (1 - ph) * .6 * k; ctx.strokeStyle = rgba(pal[0], 1); ctx.lineWidth = hw * .08 * (1 - ph) + 1;
+    ctx.beginPath(); ctx.arc(pc[0], pc[1], hw * (.6 + ph * 1.6), 0, 7); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+const FX = { vortex: drawVortex, dragon: drawDragon, wave: drawWave, swordlight: drawSwordLight, ninesword: drawNineSword, beams: drawBeams,
   taiji: drawTaiji, ice: drawIce, circlesquare: drawCircleSquare, petals: drawPetals, needles: drawNeedles, coins: drawCoins };

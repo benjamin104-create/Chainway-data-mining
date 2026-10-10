@@ -104,7 +104,7 @@ export function drawAR(ctx, W, H, u, t, hands, god, glow, palmOf, isOpen) {
         const fade = (1 - i / 40) * Math.max(0, 1 - Math.max(0, age - .9) / .5);
         const r = u * (2.6 - i * .05) * (1 + .3 * Math.sin(t * 20 + i));
         const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
-        g.addColorStop(0, `rgba(255,255,255,${.9 * fade})`); g.addColorStop(.4, hexA(pw.col || glow, .7 * fade)); g.addColorStop(1, hexA(pw.col || glow, 0));
+        g.addColorStop(0, `rgba(255,255,255,${.35 * fade})`); g.addColorStop(.4, hexA(pw.col || glow, .25 * fade)); g.addColorStop(1, hexA(pw.col || glow, 0));
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.5, 0, 7); ctx.fill();
       }
       if (age > .5 && age < 1.1) {                       // 打中的瞬間：衝擊光環

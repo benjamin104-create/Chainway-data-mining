@@ -2,6 +2,7 @@ import { FilesetResolver, ImageSegmenter, FaceDetector, FaceLandmarker, HandLand
 import { initHands, detectHands, drawPoseFX, resetPoses, setGuide, setMove, setOnTrigger, poseState, palmCenter, openPalm } from './poses.js';
 import { drawAR, powerUp, tapAt, godMotion, arState } from './ar.js';
 import { createBeautyGL } from './beauty-gl.js';
+import * as sfx from './sfx.js';
 import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
@@ -568,6 +569,11 @@ for (const [hid, h] of Object.entries(STANDS)) {
     ['語言', '文', [langRow]],
     ['英雄譜', '⚔', [moveRow]],
   ];
+  // 音效開關：上方工具列最右邊
+  const snd = document.createElement('button'); snd.type = 'button';
+  const syncSnd = () => { snd.textContent = sfx.isMuted() ? '🔇' : '🔊'; snd.title = snd.ariaLabel = sfx.isMuted() ? '音效：關' : '音效：開'; };
+  snd.onclick = () => { sfx.setMuted(!sfx.isMuted()); syncSnd(); sfx.unlock(); if (!sfx.isMuted()) sfx.drum(); };
+  syncSnd();
   let open = null;
   const close = () => { pop.hidden = true; open = null; for (const x of tools.children) x.setAttribute('aria-expanded', 'false'); };
   for (const [name, icon, nodes] of panels) {
@@ -582,6 +588,7 @@ for (const [hid, h] of Object.entries(STANDS)) {
     };
     tools.append(b);
   }
+  tools.append(snd);
   header.append(tools);
   view.addEventListener('pointerdown', () => { if (open) close(); });
   // 下方：模式列＋（相簿、快門、翻轉鏡頭）
@@ -1056,11 +1063,11 @@ function render(now) {
     state.useSide = P.side;
     const sh = P.sh, sw = sh * a.width / a.height;
     // 擺 pose：每 4.5 秒用力一次（放大＋光圈），其餘時間呼吸、輕晃
-    const ph = (t + 1) % 4.5, pulse = ph < .6 ? Math.sin(ph / .6 * Math.PI) : 0;
-    const gm = godMotion(t, u);                    // AR 互動：被點會跳、發功會放大發光
-    const scale = (1 + Math.sin(t * 1.2) * .008 + pulse * .015) * (.85 + .15 * ease) * gm.scale;
-    const rot = P.lean * .5 + Math.sin(t * .9) * .01;
-    const bob = Math.sin(t * 1.6) * u * .8 + (1 - ease) * sh * .3;
+    // 英雄只在出場時升起、放大一次，之後就穩穩站著（不一直呼吸放大縮小）
+    const gm = godMotion(t, u);                    // AR 互動：被點會跳、發功會發光
+    const scale = (.85 + .15 * ease) * gm.scale;
+    const rot = P.lean * .5;
+    const bob = (1 - ease) * sh * .3;
     const fx = P.x, fy = P.y + bob + gm.dy;        // 頭頂位置
     state.standHead = { x: fx, y: fy, sw, sh };
     holyLight(fx, fy, sw, sh, t, s, u);            // 神明身後的透明神光
@@ -1266,7 +1273,7 @@ const FONT = {
   ja: (w, px) => `${px}px "Dela Gothic One", "Hiragino Sans", sans-serif`,
   en: (w, px) => `${px}px "Dela Gothic One", sans-serif`,
 };
-const BRUSH = '"Kouzan Gyosho", "Kouzan Mouhitsu", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆行書（缺字時退到毛筆楷書、楷書）
+const BRUSH = '"Kouzan Mouhitsu", "Kouzan Gyosho", "Yuji Boku", "LXGW WenKai TC", "Noto Serif TC", serif';   // 毛筆行書（缺字時退到毛筆楷書、楷書）
 const LABEL = { zh: '你心中的英雄', ja: '心の英雄', en: 'YOUR INNER HERO' }, LABEL_OTHER = { zh: '江湖英雄', ja: '江湖の英雄', en: 'WUXIA HERO' };
 function titleBanner(W, H, s, u, ease, noMove) {
   const L = state.lang, h = TITLE_H * u;
@@ -1286,8 +1293,8 @@ function titleBanner(W, H, s, u, ease, noMove) {
   const y = 4.6 * u + px * .95;
   ctx.lineJoin = 'round'; ctx.lineWidth = px * .2; ctx.strokeStyle = '#0d0a08'; ctx.strokeText(big, W / 2, y);
   const gg = ctx.createLinearGradient(0, y - px, 0, y); gg.addColorStop(0, '#fff'); gg.addColorStop(1, s.text);
-  ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .085;
-  ctx.shadowColor = s.glow; ctx.shadowBlur = px * .25;
+  ctx.fillStyle = gg; ctx.strokeStyle = gg; ctx.lineWidth = px * .05;
+  ctx.shadowBlur = 0;
   ctx.fillText(big, W / 2, y); ctx.shadowBlur = 0; ctx.strokeText(big, W / 2, y);
   // 招式名稱：名字下面一行（換英雄時跟著換）
   const mv = curMove || s.move;
@@ -1668,11 +1675,11 @@ function brushChar(g, it, F, a, u) {
     g.fillStyle = col; g.strokeStyle = col; g.lineWidth = size * .08;
     g.fillText(c, 0, size * .04); g.strokeText(c, 0, size * .04);
   } else {
-    g.lineWidth = size * .2; g.strokeStyle = '#0b0806'; g.strokeText(c, 0, size * .04);       // 濃墨外框
-    const gr = g.createLinearGradient(0, -size / 2, 0, size / 2); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, F.glow);
-    g.shadowColor = F.glow; g.shadowBlur = size * .3;
+    // 乾淨俐落的毛筆字：濃墨外框＋實心字，不加會糊掉的光暈
+    g.lineWidth = size * .14; g.strokeStyle = '#0b0806'; g.strokeText(c, 0, size * .04);       // 濃墨外框
+    const gr = g.createLinearGradient(0, -size / 2, 0, size / 2); gr.addColorStop(0, '#fffaf0'); gr.addColorStop(.6, '#fff1d0'); gr.addColorStop(1, F.glow);
     g.fillStyle = gr; g.fillText(c, 0, size * .04);
-    g.shadowBlur = 0; g.strokeStyle = gr; g.lineWidth = size * .085; g.strokeText(c, 0, size * .04);   // 加粗：渾厚有勁
+    g.strokeStyle = gr; g.lineWidth = size * .045; g.strokeText(c, 0, size * .04);   // 加粗：渾厚有勁
   }
   g.restore();
 }
@@ -1711,7 +1718,7 @@ function playReveal(base, fin, F, done) {
   const chars = [...F.mv.name].map((c) => ({ c, sub: false })).concat([...(F.mv.sub || '')].map((c) => ({ c, sub: true })));
   const per = (it) => it.sub ? .3 : .38, starts = []; let T = 0;
   for (const it of chars) { starts.push(T); T += per(it); }
-  const fade = .75, t0 = performance.now();
+  const fade = .75, t0 = performance.now(); let lastI = -1, gonged = false;
   state.revealing = true;
   const bg = (g) => {
     if (F.red) { g.fillStyle = '#b8231b'; g.fillRect(0, 0, W, H); }
@@ -1762,9 +1769,11 @@ function playReveal(base, fin, F, done) {
     if (at < T) {
       bg(ctx);
       let i = starts.length - 1; while (i > 0 && starts[i] > at) i--;
+      if (i !== lastI) { lastI = i; sfx.drum(!chars[i].sub); }     // 每個字蹦出來「咚」一聲
       giant(ctx, chars[i], (at - starts[i]) / per(chars[i]));
       requestAnimationFrame(frame); return;
     }
+    if (!gonged) { gonged = true; sfx.gong(); }      // 成品照出現：鑼聲
     const k = Math.min(1, (at - T) / fade), e = 1 - Math.pow(1 - k, 3), sc = 1.08 - .08 * e;
     bg(ctx); giant(ctx, chars[chars.length - 1], 1);
     ctx.save(); ctx.globalAlpha = e; ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.drawImage(fin, -W / 2, -H / 2); ctx.restore();
@@ -1829,6 +1838,7 @@ setOnTrigger((kind, at) => {
     setTimeout(() => { if (!rec && $('sheet').hidden) $('shot').click(); }, kind === 'seal' ? 700 : 1100);
   }
 });
+document.addEventListener('pointerdown', () => sfx.unlock(), { capture: true });
 $('pick').onclick = () => $('file').click();
 $('pick2').onclick = () => $('file').click();
 $('file').onchange = async () => {
@@ -1840,7 +1850,7 @@ $('file').onchange = async () => {
 document.fonts?.load('80px "Dela Gothic One"', 'ゼウス').catch(() => {});
 // 招式大字、英雄名字用思源宋體：先把會用到的字載好，畫到相機畫面上才不會是預設字型
 document.fonts?.load('80px "Kouzan Gyosho"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
-document.fonts?.load('80px "Kouzan Mouhitsu"', '你俠哪挪橫繡').catch(() => {});
+document.fonts?.load('80px "Kouzan Mouhitsu"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('80px "Yuji Boku"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格招').catch(() => {});
 document.fonts?.load('900 80px "Noto Serif TC"', Object.values(STANDS).map((h) => h.name + h.move.name + h.move.sub).join('') + '你心中的英雄守護豪情深情仁厚率真機變俠客性格・').catch(() => {});
 requestAnimationFrame(render);
