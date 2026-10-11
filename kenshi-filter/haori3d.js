@@ -3,9 +3,11 @@ import { RoomEnvironment } from './lib/RoomEnvironment.js';
 import { V, fitBodyCamera, bodyFrame } from './body-camera.js';
 import { ClothPatch, COTTON_PRESET } from './cloth-physics.js';
 import { tile } from './ar.js';
-import { haoriPattern, collarRibbon } from './haori-pattern.js';
+import { haoriPattern } from './haori-pattern.js';
 import { followCloth,reconditionCloth,liveClock,LIVE_CLOTH,PHOTO_CLOTH } from './cloth-follow.js';
 import { KimonoLayer } from './kimono-layer.js';
+import { yokePoints,CLOSURE_ROW,foldedCollarPoints,neckCollarPoints } from './haori-yoke.js';
+import { HaoriClosure } from './haori-closure.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const fabric=new Image();fabric.src=new URL('assets/fabric-cotton-weave-v3.png',import.meta.url).href;
@@ -34,7 +36,7 @@ function geometry(patch) {
   g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(patch.p.length),3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(patch.indices);return g;
 }
 function torsoDepthGeometry(){
-  const rows=[[-.35,.19,.10],[-.10,.42,.15],[.15,.46,.225],[.35,.46,.235],[1.15,.45,.24],[1.65,.42,.23]],cols=32,p=[],indices=[];
+  const rows=[[-.35,.17,.095],[-.16,.19,.105],[-.03,.42,.18],[.15,.46,.225],[.35,.46,.235],[1.15,.45,.24],[1.65,.42,.23]],cols=32,p=[],indices=[];
   for(const [h,x,z] of rows)for(let i=0;i<=cols;i++){const t=i/cols*Math.PI*2;p.push(Math.sin(t)*x,-h,Math.cos(t)*z);}
   for(let y=0;y<rows.length-1;y++)for(let x=0;x<cols;x++){const a=y*(cols+1)+x;indices.push(a,a+cols+1,a+1,a+1,a+cols+1,a+cols+2);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(indices);return g;
@@ -69,11 +71,12 @@ export class Haori3D {
   }
   reset(){this.signature=null;this.patches=[];this.metrics=null;this.settled=false;this.settledSteps=0;this.focalRatio=null;this.lastPattern=null;this.lastFrame=null;this.lastTime=null;this.overstretchFrames=0;this.recoveries=0;}
   clearGeometry(){
+    this.closure?.dispose();this.closure=null;
     this.kimono?.dispose();this.kimono=null;
     for(const o of [...this.group.children]){this.group.remove(o);o.geometry?.dispose();if(o.material&&!this.materials?.includes(o.material))o.material.dispose();}
     for(const m of this.materials||[])m.dispose();this.materials=[];
   }
-  rebuild(f,ch,fit,ease,style,photo) {
+  rebuild(f,ch,fit,ease,style,photo,closure='pompon',collarStyle='dark') {
     this.clearGeometry();const tex=clothTextures(ch,style);if(!tex)return false;
     const mat=new THREE.MeshPhysicalMaterial({map:tex.map,normalMap:tex.normal,normalScale:new THREE.Vector2(.22,.22),
       roughness:.96,metalness:0,envMapIntensity:.18,sheen:.12,sheenRoughness:.95,sheenColor:new THREE.Color('#aaa8a4'),side:THREE.DoubleSide});
@@ -81,7 +84,7 @@ export class Haori3D {
     if(style==='nezuko')this.kimono=new KimonoLayer(this.group);
     const quality=photo?PHOTO_CLOTH:LIVE_CLOTH;
     const C=quality.bodyCols,R=quality.bodyRows,pins=Array.from({length:C+1},(_,i)=>i),body=new ClothPatch(C,R,bodyAt,pins,{...quality,bendCompliance:.08});
-    const tieRow=Math.round(R*.36);if(style!=='nezuko')body.addTie(tieRow*(C+1),tieRow*(C+1)+C);
+    const tieRow=Math.round(R*CLOSURE_ROW);if(closure!=='none')body.addTie(tieRow*(C+1),tieRow*(C+1)+C);
     this.patches=[{patch:body,at:bodyAt,type:'body'}];
     for(const s of ['l','r']) {
       const sleeve=pattern.sleeves[s],sleeveAt=sleeve.at;
@@ -95,13 +98,22 @@ export class Haori3D {
     for(const item of this.patches){item.geo=geometry(item.patch);
       const uv=item.geo.attributes.uv.array;for(let i=0;i<uv.length;i+=2){uv[i]*=item.type==='body'?2.2:1.1;uv[i+1]*=item.type==='body'?1.5:1.1;}
       item.mesh=new THREE.Mesh(item.geo,mat);item.mesh.frustumCulled=false;item.mesh.castShadow=true;item.mesh.receiveShadow=true;this.group.add(item.mesh);}
-    this.collars=[];
+    const yokeIndices=[];for(let y=0;y<4;y++)for(let x=0;x<C;x++){const i=y*(C+1)+x;yokeIndices.push(i,i+C+1,i+1,i+1,i+C+1,i+C+2);}
+    this.yoke=geometry({cols:C,rows:4,p:new Float64Array((C+1)*5*3),indices:yokeIndices});
+    for(let y=0;y<=4;y++)for(let x=0;x<=C;x++){const i=(y*(C+1)+x)*2;this.yoke.attributes.uv.array[i]=x/C*2.2;this.yoke.attributes.uv.array[i+1]=1.5+(1-y/4)*.15;}
+    const shoulderMesh=new THREE.Mesh(this.yoke,mat);shoulderMesh.frustumCulled=false;shoulderMesh.castShadow=true;shoulderMesh.receiveShadow=true;this.group.add(shoulderMesh);
+    const collarMat=collarStyle==='same'?mat:new THREE.MeshPhysicalMaterial({color:style==='pattern'?'#1b2428':style==='ink'?'#171b21':style==='nezuko'?'#241c21':'#263545',normalMap:tex.normal,normalScale:new THREE.Vector2(.14,.14),roughness:.97,metalness:0,sheen:.15,envMapIntensity:.18,side:THREE.DoubleSide});
+    if(collarMat!==mat)this.materials.push(collarMat);
+    this.collars=[];const collarRows=R+3;
     for(const edge of [0,1]){
-      const geo=geometry({cols:4,rows:R,p:new Float64Array((R+1)*5*3),indices:[]}),indices=[];
-      for(let y=0;y<R;y++)for(let x=0;x<4;x++){const a=y*5+x;indices.push(a,a+5,a+1,a+1,a+5,a+6);}
-      for(let y=0;y<=R;y++)for(let x=0;x<=4;x++){const i=(y*5+x)*2;geo.attributes.uv.array[i]=edge?2.2-.05*x/4:.05*x/4;geo.attributes.uv.array[i+1]=(1-y/R)*1.5;}
-      geo.setIndex(indices);const mesh=new THREE.Mesh(geo,mat);mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;this.group.add(mesh);this.collars.push({edge,geo});
+      const geo=geometry({cols:4,rows:collarRows,p:new Float64Array((collarRows+1)*5*3),indices:[]}),indices=[];
+      for(let y=0;y<collarRows;y++)for(let x=0;x<4;x++){const a=y*5+x;indices.push(a,a+5,a+1,a+1,a+5,a+6);}
+      for(let y=0;y<=collarRows;y++)for(let x=0;x<=4;x++){const i=(y*5+x)*2;geo.attributes.uv.array[i]=edge?2.2-.10*x/4:.10*x/4;geo.attributes.uv.array[i+1]=1.5*(1-(y-3)/R);}
+      geo.setIndex(indices);const mesh=new THREE.Mesh(geo,collarMat);mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;this.group.add(mesh);this.collars.push({edge,geo});
     }
+    const neckIndices=[];for(let y=0;y<C;y++)for(let x=0;x<4;x++){const i=y*5+x;neckIndices.push(i,i+5,i+1,i+1,i+5,i+6);}
+    this.neckCollar=geometry({cols:4,rows:C,p:new Float64Array((C+1)*5*3),indices:neckIndices});
+    const neckMesh=new THREE.Mesh(this.neckCollar,collarMat);neckMesh.frustumCulled=false;neckMesh.castShadow=true;neckMesh.receiveShadow=true;this.group.add(neckMesh);
     this.hems=this.patches.map(item=>{
       const cols=item.patch.cols,rows=3,indices=[];
       for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const a=y*(cols+1)+x;indices.push(a,a+cols+1,a+1,a+1,a+cols+1,a+cols+2);}
@@ -112,11 +124,8 @@ export class Haori3D {
     // through the front opening. It never replaces the camera person's pixels.
     const occMat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true});this.materials.push(occMat);
     this.occluder=new THREE.Mesh(torsoDepthGeometry(),occMat);this.occluder.renderOrder=-10;this.occluder.castShadow=true;this.group.add(this.occluder);
-    const cordMat=new THREE.MeshStandardMaterial({color:style==='pattern'?ch.haori2:style==='ink'?'#20242b':'#485a73',roughness:.98});this.materials.push(cordMat);
-    this.cord=new THREE.Mesh(new THREE.BufferGeometry(),cordMat);this.cord.castShadow=true;this.group.add(this.cord);
-    this.knot=new THREE.Mesh(new THREE.SphereGeometry(S*.025,12,8),cordMat);this.group.add(this.knot);
-    this.cord.visible=this.knot.visible=style!=='nezuko';
-    this.signature=[photo,clothKey(ch,style),fit.width,fit.length].join('|');this.baseT=T;this.buildEase=ease;this.lastPattern=null;this.lastFrame=null;this.settled=false;this.settledSteps=0;
+    this.closure=new HaoriClosure(this.group);
+    this.signature=[photo,clothKey(ch,style),fit.width,fit.length,closure!=='none',collarStyle].join('|');this.baseT=T;this.buildEase=ease;this.lastPattern=null;this.lastFrame=null;this.settled=false;this.settledSteps=0;
     if(this.key.shadow.mapSize.x!==quality.shadowSize){this.key.shadow.map?.dispose();this.key.shadow.map=null;this.key.shadow.mapSize.set(quality.shadowSize,quality.shadowSize);}
     return true;
   }
@@ -126,8 +135,8 @@ export class Haori3D {
     if(camera.estimated&&!this.focalRatio)this.focalRatio=camera.f/W;
     const unsupported=Math.abs(f.yaw)>Math.PI*.41||camera.error>Math.hypot(kp.rs.x-kp.ls.x,kp.rs.y-kp.ls.y)*.25;
     if(unsupported)return {ready:false,unsupported:true,reason:Math.abs(f.yaw)>Math.PI*.41?'angle':'projection'};
-    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',photo=!!opts.photo,sig=[photo,clothKey(ch,style),fit.width,fit.length].join('|');
-    if(!this.signature||sig!==this.signature||Math.abs(f.T/this.baseT-1)>.18||Math.abs(ease-this.buildEase)>.12){if(!this.rebuild(f,ch,fit,ease,style,photo))return {ready:false};}
+    const ease=opts.ease||1.28,fit=opts.fit||{},style=opts.fabric||'indigo',photo=!!opts.photo,closure=opts.closure||'pompon',collarStyle=opts.collar||'dark',sig=[photo,clothKey(ch,style),fit.width,fit.length,closure!=='none',collarStyle].join('|');
+    if(!this.signature||sig!==this.signature||Math.abs(f.T/this.baseT-1)>.18||Math.abs(ease-this.buildEase)>.12){if(!this.rebuild(f,ch,fit,ease,style,photo,closure,collarStyle))return {ready:false};}
     if(this.canvas.width!==W||this.canvas.height!==H)this.renderer.setSize(W,H,false);this.camera.aspect=W/H;this.camera.fov=2*Math.atan(H/(2*camera.f))*180/Math.PI;this.camera.updateProjectionMatrix();
     // Geometry stays in inferred metric camera space; the root translation is
     // calibrated against 2D landmarks, not a square shoulder-width overlay.
@@ -165,9 +174,11 @@ export class Haori3D {
     for(const item of this.patches){const a=item.geo.attributes.position.array;
       for(let i=0;i<item.patch.p.length;i+=3){a[i]=item.patch.p[i];a[i+1]=-item.patch.p[i+1];a[i+2]=-item.patch.p[i+2];}
       item.geo.attributes.position.needsUpdate=true;item.geo.computeVertexNormals();}
-    for(const collar of this.collars){const p=collarRibbon(this.patches[0].patch,f.S,f.front,collar.edge),a=collar.geo.attributes.position.array;
+    const yoke=yokePoints(f,this.patches[0].patch),ya=this.yoke.attributes.position.array;for(let i=0;i<yoke.length;i+=3){ya[i]=yoke[i];ya[i+1]=-yoke[i+1];ya[i+2]=-yoke[i+2];}this.yoke.attributes.position.needsUpdate=true;this.yoke.computeVertexNormals();
+    for(const collar of this.collars){const p=foldedCollarPoints(f,this.patches[0].patch,collar.edge),a=collar.geo.attributes.position.array;
       for(let i=0;i<p.length;i+=3){a[i]=p[i];a[i+1]=-p[i+1];a[i+2]=-p[i+2];}
       collar.geo.attributes.position.needsUpdate=true;collar.geo.computeVertexNormals();}
+    const nc=neckCollarPoints(f,this.patches[0].patch),na=this.neckCollar.attributes.position.array;for(let i=0;i<nc.length;i+=3){na[i]=nc[i];na[i+1]=-nc[i+1];na[i+2]=-nc[i+2];}this.neckCollar.attributes.position.needsUpdate=true;this.neckCollar.computeVertexNormals();
     for(const {item,geo} of this.hems){
       const {cols,rows}=item.patch,p=item.geo.attributes.position.array,n=item.geo.attributes.normal.array,uv=item.geo.attributes.uv.array,a=geo.attributes.position.array,t=geo.attributes.uv.array;
       for(let y=0;y<=3;y++)for(let x=0;x<=cols;x++){
@@ -180,17 +191,13 @@ export class Haori3D {
     }
     this.occluder.position.copy(toThree(f.sh));this.occluder.scale.set(f.S,f.T,f.S);
     const basis=new THREE.Matrix4().makeBasis(toThree(f.side),toThree(V.mul(f.down,-1)),toThree(f.front));this.occluder.quaternion.setFromRotationMatrix(basis);
-    // Haori-himo joins two front edges; never use gray decorative lapel strips.
-    const b=this.patches[0].patch,row=Math.round(b.rows*.36),left=Array.from(b.p.subarray(row*(b.cols+1)*3,row*(b.cols+1)*3+3));
-    const ri=(row*(b.cols+1)+b.cols)*3,right=Array.from(b.p.subarray(ri,ri+3));
-    const mid=V.add(V.mix(left,right,.5),V.add(V.mul(f.gravity,f.S*.05),V.mul(f.front,f.S*.035)));
-    this.cord.geometry.dispose();this.cord.geometry=new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(toThree(left),toThree(mid),toThree(right)),16,f.S*.008,6,false);this.knot.position.copy(toThree(mid));
+    this.closure.update(f,this.patches[0].patch,closure);
     const light=opts.light||{brightness:1,x:-.7,color:[1,.97,.92]};this.hemi.intensity=.6+light.brightness*.35;this.key.intensity=.9+light.brightness*.65;
     this.key.color.setRGB(...light.color);const target=toThree(f.sh).add(this.group.position);this.key.target.position.copy(target);this.key.position.copy(target).add(new THREE.Vector3(light.x*2,2.4,2));
     this.renderer.toneMappingExposure=clamp(light.brightness,.72,1.15);
     const audits=this.patches.map(p=>p.patch.audit());
     this.metrics={density:COTTON_PRESET.density,gravity:COTTON_PRESET.gravity,massKg:audits.reduce((s,a)=>s+a.massKg,0),
-      quality:photo?'照片精細':'即時快速',vertices:this.patches.reduce((s,p)=>s+p.patch.p.length/3,0),maxStretch:Math.max(...audits.map(a=>a.maxStretch)),finite:audits.every(a=>a.finite),pitch:f.pitch*180/Math.PI,yaw:f.yaw*180/Math.PI,
+      quality:photo?'照片精細':'即時快速',vertices:this.patches.reduce((s,p)=>s+p.patch.p.length/3,0),yokeVertices:this.yoke.attributes.position.count,maxStretch:Math.max(...audits.map(a=>a.maxStretch)),finite:audits.every(a=>a.finite),pitch:f.pitch*180/Math.PI,yaw:f.yaw*180/Math.PI,
       reprojectionPx:camera.error,cameraEstimated:camera.estimated,parts:audits.map((a,i)=>({name:this.patches[i].type,maxStretch:a.maxStretch}))};
     if(!this.metrics.finite){this.reset();return {ready:false,invalid:true};}
     if(!photo&&!opts.capture){

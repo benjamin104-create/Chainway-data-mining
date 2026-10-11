@@ -14,7 +14,7 @@ for(const angle of [-.4,0,.4]){
   const root=g.bodyAt(.25,0),neck=g.bodyAt(.5,0);
   assert.ok(V.dot(V.sub(root,neck),f.down)>.03,'Dropped shoulder must be below neckline');
   assert.ok(V.dot(V.sub(root,f.sh),f.side)>.5*f.S,'Outer shoulder extends beyond skeleton');
-  assert.ok(V.dot(V.sub(root,f.sh),f.down)<-f.T*.10,'Yoke must cover the upper shoulder, not sit below the shirt outline');
+  assert.ok(V.dot(V.sub(root,f.sh),f.down)<-f.T*.04,'Outer seam must stay above the joint; continuous yoke covers the neck-to-shoulder surface');
   assert.ok(V.dot(V.sub(g.bodyAt(0,0),f.sh),f.down)>-f.T*.06,'Front collar must stay near neck base, not rise to the cheeks');
   const waist=Math.abs(V.dot(V.sub(g.bodyAt(.25,.6),f.sh),f.side));
   const hem=Math.abs(V.dot(V.sub(g.bodyAt(.25,1),f.sh),f.side));

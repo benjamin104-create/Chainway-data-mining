@@ -10,6 +10,7 @@ import { FUN_KINDS } from './fun-props.js';
 import { BEAUTY, beautyMode, BeautyPass } from './beauty.js';
 import { drawUltimate,ULTIMATE_SECONDS,fitPropScale } from './ultimate.js';
 import { cameraFrameDue } from './camera-frame.js';
+import { CLOSURES } from './haori-closure.js';
 
 const stage3d = new Stage3D();
 let haori3d = null;
@@ -40,11 +41,13 @@ try {
 
 const rememberedChar = store.get('char');
 const rememberedWeapon=params.get('weapon')||store.get('weapon-v2');
+const rememberedClosure=params.get('closure')||store.get('closure');
+const rememberedCollar=params.get('collar')||store.get('collar');
 const portraitBeauty=new BeautyPass();
 const savedBeautyStrength=Number(params.get('beautyStrength')??store.get('beauty-strength-v1')??100);
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state = { answers: [], qi: 0, type: null, scores: null, char: ORDER.includes(rememberedChar) ? rememberedChar : 'compete', mode: 'free', facing: 'user',
-  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', beauty:beautyMode(params.get('beauty')??store.get('beauty-v1')),beautyStrength:Number.isFinite(savedBeautyStrength)?Math.max(.6,Math.min(1.6,savedBeautyStrength/100)):1,camOrigin: 'intro' };
+  outfit: params.get('fit')==='real'?'real':'physics', fabric:['pattern','ink','indigo','nezuko'].includes(params.get('fabric'))?params.get('fabric'):'indigo',closure:CLOSURES.some(([id])=>id===rememberedClosure)?rememberedClosure:'pompon',collar:['dark','same'].includes(rememberedCollar)?rememberedCollar:'dark', weapon:['none','own','nito'].includes(rememberedWeapon)||Object.hasOwn(WEAPONS,rememberedWeapon||'')?rememberedWeapon:'katana',propDirection:params.get('dir')==='hand'?'hand':'up', beauty:beautyMode(params.get('beauty')??store.get('beauty-v1')),beautyStrength:Number.isFinite(savedBeautyStrength)?Math.max(.6,Math.min(1.6,savedBeautyStrength/100)):1,camOrigin: 'intro' };
 
 // ── 開場 ───────────────────────────────────
 if (friend) {
@@ -246,6 +249,8 @@ function gearChips() {
   $('propDirections').replaceChildren(...[['up','朝上（自拍）'],['hand','跟隨手勢']].map(([id,l])=>mk('propDirection',id,l)));
   $('fabrics').replaceChildren(...FABRICS.map(([id,l])=>mk('fabric',id,l)));
   $('beautyChoices').replaceChildren(...Object.entries(BEAUTY).map(([id,b])=>mk('beauty',id,b.label)));
+  $('haoriClosures').replaceChildren(...CLOSURES.map(([id,l])=>mk('closure',id,l)));
+  $('haoriCollars').replaceChildren(...[['dark','深色摺領'],['same','同布摺領']].map(([id,l])=>mk('collar',id,l)));
 }
 gearChips();
 $('customizeBtn').onclick = () => {
@@ -287,6 +292,9 @@ function syncChips() {
   for(const b of $('weaponChoices').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.weapon));
   for(const b of $('propDirections').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.propDirection));
   $('fabrics').hidden=state.outfit!=='physics';
+  $('haoriDetails').hidden=state.outfit!=='physics';
+  for(const b of $('haoriClosures').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.closure));
+  for(const b of $('haoriCollars').children)b.setAttribute('aria-pressed',String(b.dataset.id===state.collar));
   for (const b of $('fabrics').children) b.setAttribute('aria-pressed',String(state.fabric===b.dataset.id));
   for (const b of $('gear').querySelectorAll('.chip')) b.setAttribute('aria-pressed', String(state[b.dataset.group] === b.dataset.id));
   for (const b of $('modes').children) b.setAttribute('aria-pressed', String(b.dataset.id === state.mode));
@@ -471,7 +479,7 @@ function videoLight(source = video) {
 function loop(now) {
   cam.raf = requestAnimationFrame(loop);
   // Still photos redraw only when tracking/model/garment/control state changes.
-  const photoKey = [cam.firedAt&&now-cam.firedAt<ULTIMATE_SECONDS*1000?Math.floor(now/50):'',!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.propDirection,state.beauty,state.beautyStrength, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
+  const photoKey = [cam.firedAt&&now-cam.firedAt<ULTIMATE_SECONDS*1000?Math.floor(now/50):'',!!cam.pose, !!cam.parts, state.outfit,state.fabric,state.closure,state.collar,state.propDirection,state.beauty,state.beautyStrength, state.outfit==='physics'?fabricReady():haoriAssetsReady(),state.outfit==='physics'?haori3d?.settledSteps:0, cam.partsFailed, cam.partsAt, cam.lastSeen, state.char, state.weapon,
     fit.width, fit.length, stage.width, stage.height].join('|');
   if (cam.photoMode ? photoKey !== cam.photoRenderKey : now - (cam.lastPhotoRender || 0) >= 33) {
     const began=performance.now();renderFrame(now);cam.renderMs=performance.now()-began; cam.lastPhotoRender = now; cam.photoRenderKey = photoKey;
@@ -633,7 +641,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
     if(!capture)cam.clothEase = cam.clothEase==null?measuredEase:cam.clothEase*.92+measuredEase*.08;
     const usePhysics=state.outfit==='physics';
     let rendered;
-    if(usePhysics){haori3d ||=new Haori3D();rendered=haori3d.render(W,H,kp,c,{fit,fabric:state.fabric,ease:cam.clothEase||measuredEase,photo:cam.photoMode,capture,now,light:sceneLight(ctx,kp,cam.light??1)});}
+    if(usePhysics){haori3d ||=new Haori3D();rendered=haori3d.render(W,H,kp,c,{fit,fabric:state.fabric,closure:state.closure,collar:state.collar,ease:cam.clothEase||measuredEase,photo:cam.photoMode,capture,now,light:sceneLight(ctx,kp,cam.light??1)});}
     else {const ready=drawRealHaori(gg,kp,c,cam.light??1,fit);rendered={ready,valid:ready,unsupported:buildHaoriRig(kp)?.unsupported};$('physicsReport').textContent='原版為 2.5D 照片貼合；未啟用布料物理。切換「3D 物理布料（測試）」才會顯示物理檢查。';}
     const outfitReady=rendered.ready,unsupported=rendered.unsupported;
     cam.fitValid=outfitReady&&rendered.valid;
@@ -643,6 +651,7 @@ function renderFrame(now, ctx = sctx, W = stage.width, H = stage.height, capture
       $('physicsReport').textContent=`重力 ${m.gravity.toFixed(2)} m/s² · 面積重量 ${(m.density*1000).toFixed(0)} g/m²\n估計衣重 ${(m.massKg*1000).toFixed(0)} g · 最大網格拉伸 ${(m.maxStretch*100).toFixed(1)}%\n各部位 ${m.parts.map(p=>p.name+':'+(p.maxStretch*100).toFixed(1)+'%').join(' / ')}\n估計俯仰 ${m.pitch.toFixed(1)}° · 校正前重投影誤差 ${m.reprojectionPx.toFixed(1)} px\n上次合成耗時 ${(cam.renderMs||0).toFixed(1)} ms（含辨識／布料，不等於實機 FPS）\n${m.finite&&m.maxStretch<.05?'通過 5% 拉伸門檻':'未通過 5% 拉伸門檻'}。示範參數；人體尺度與光線是影像估計，不是實測尺寸。`;
     }
     if(rendered.metrics){$('physicsReport').textContent=`${rendered.metrics.quality} · ${rendered.metrics.vertices} 布料頂點 · ${rendered.metrics.recoveries||0} 次姿勢重定位\n`+$('physicsReport').textContent.replace('估計衣重','估計外羽織衣重');if(state.fabric==='nezuko')$('physicsReport').textContent+='\n粉色內層與腰帶為骨架驅動造型，未納入布料質量估計。';}
+    if(rendered.metrics?.yokeVertices)$('physicsReport').textContent+=`\n肩部連續裁片 ${rendered.metrics.yokeVertices} 頂點、摺領及扣飾為骨架／衣身支撐面，未納入獨立布料質量。`;
     if (!cam.demo || cam.photoMode) cutForeground(garmentLayer, foregroundLayer, kp, personMask, ctx.canvas, parts);
     ctx.drawImage(garmentLayer, 0, 0);
     if (cam.photoMode) {
