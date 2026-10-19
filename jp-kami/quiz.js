@@ -201,11 +201,12 @@ export function standById(id, owner = '') {
 
 export function computeStand(a) {
   const count = {};
-  for (const q of QUESTIONS) if (/^q\d+$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
+  for (const k of Object.keys(a)) if (/^q\d+$/.test(k) && TAGS[a[k]]) count[a[k]] = (count[a[k]] || 0) + 1;   // 抽到哪幾題就算哪幾題
   const best = Math.max(0, ...Object.values(count));
   // 同分時，以第五題（神社抽籤）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
-  const tagId = tied.includes(a.q5) ? a.q5 : tied[0] || 'dao';
+  const first = a[a._qs?.[0]];   // 同分時，以這次抽到的第一題為準
+  const tagId = tied.includes(first) ? first : tied[0] || 'dao';
   const second = Object.keys(count).filter((k) => k !== tagId).sort((x, y) => count[y] - count[x])[0] || null;
   const pair = Object.keys(STANDS).filter((id) => STANDS[id].tagId === tagId);
   let style = a.sex;
@@ -216,4 +217,30 @@ export function computeStand(a) {
   }
   const id = pair.find((k) => STANDS[k].style === style) || pair[0];
   return { ...standById(id, (a.name || '').trim() || '旅人'), second, counts: count, answers: a };
+}
+
+// ── 題庫：原本 10 題＋新增 30 題，每次隨機抽 8～10 題（六種性格都有機會出現；有劇情的篇依劇情順序排）──
+const MORE = [{"id": "q11", "stage": 1, "label": "訂機票", "q": "要訂機票了，你會？", "options": [["ji", "比好幾個網站，挑最划算的"], ["dao", "直接訂，順便幫大家一起訂"], ["tan", "選最便宜的紅眼班機，冒險一下"], ["le", "在群組發起投票，大家一起決定"]], "scene": "訂機票"}, {"id": "q12", "stage": 1, "label": "主動認領的工作", "q": "大家在分工準備，你會主動說？", "options": [["ji", "「行程表交給我！」"], ["hu", "「藥品和保險我來準備」"], ["le", "「拍照跟音樂交給我！」"], ["en", "「我來問問有沒有當地朋友可以帶路」"]], "scene": "分工"}, {"id": "q13", "stage": 1, "label": "換日幣", "q": "換日幣的時候，你會？", "options": [["ji", "算好每天的預算，剛好夠用"], ["hu", "多換一點，怕大家不夠"], ["tan", "換一點點就好，其他到了再刷卡"], ["dao", "幫大家一起換，回來再分"]], "scene": "換日幣"}, {"id": "q14", "stage": 2, "label": "等登機", "q": "在機場等登機時，你在做什麼？", "options": [["le", "拍出國第一張合照"], ["ji", "再確認一次訂房和交通"], ["en", "跟旁邊的旅客聊起來"], ["hu", "幫大家買水和零食"]], "scene": "機場"}, {"id": "q15", "stage": 2, "label": "飛機上", "q": "在飛機上，你會？", "options": [["tan", "研究目的地有什麼秘境"], ["le", "跟旁邊的朋友玩遊戲"], ["hu", "確認大家的護照都收好了"], ["ji", "好好睡一覺，養足精神"]], "scene": "飛機上"}, {"id": "q16", "stage": 2, "label": "入境排隊", "q": "入境要排好久，你會？", "options": [["le", "講笑話讓大家不無聊"], ["dao", "先查好出關後怎麼搭車"], ["en", "跟後面的日本阿嬤比手畫腳聊天"], ["ji", "早就知道要排，行程留了時間"]], "scene": "入境"}, {"id": "q17", "stage": 3, "label": "逛便利商店", "q": "第一次走進日本的便利商店，你會？", "options": [["tan", "挑最奇怪的限定口味"], ["hu", "幫大家買早餐"], ["le", "一邊逛一邊開箱拍影片"], ["ji", "照著網路推薦清單買"]], "scene": "便利商店"}, {"id": "q18", "stage": 3, "label": "電車上", "q": "電車上大家都好安靜，你會？", "options": [["hu", "提醒朋友小聲一點"], ["dao", "研究下一站要怎麼轉車"], ["tan", "看著窗外，記下想去的地方"], ["en", "跟對面的小朋友揮手"]], "scene": "電車"}, {"id": "q19", "stage": 3, "label": "售票機點餐", "q": "拉麵店要用售票機點餐，全是日文，你會？", "options": [["tan", "隨便按一個，開獎！"], ["en", "請後面的客人幫忙"], ["dao", "翻譯 App 一照，幫大家點"], ["ji", "早就查好要點哪一碗"]], "scene": "拉麵店"}, {"id": "q20", "stage": 3, "label": "人擠人的時候", "q": "想去的景點人超多，你會？", "options": [["dao", "帶大家改去附近人少的地方"], ["ji", "拿出備案行程"], ["le", "人多也好玩，一起擠吧"], ["tan", "鑽進小巷子找私房景點"]], "scene": "熱門景點"}, {"id": "q21", "stage": 3, "label": "和服體驗", "q": "朋友提議穿和服拍照，你會？", "options": [["le", "好啊！我來想拍照姿勢"], ["hu", "幫大家整理衣服和頭髮"], ["ji", "先查哪一家方便又合理"], ["en", "請路人幫忙拍，順便聊天"]], "scene": "和服體驗"}, {"id": "q22", "stage": 3, "label": "沒網路迷路", "q": "手機沒網路，大家迷路了，你會？", "options": [["dao", "看路標，帶大家走"], ["en", "去問路邊的店家"], ["tan", "那就隨便走走，看會遇到什麼"], ["hu", "先找個地方讓大家坐下休息"]], "scene": "迷路"}, {"id": "q23", "stage": 3, "label": "朋友購物停不下來", "q": "朋友在藥妝店買到停不下來，你會？", "options": [["ji", "提醒他預算和行李重量"], ["le", "一起買！開心最重要"], ["hu", "幫他提東西、注意時間"], ["dao", "約好集合時間，大家分頭買"]], "scene": "藥妝店"}, {"id": "q24", "stage": 4, "label": "居酒屋", "q": "晚上去居酒屋，你會？", "options": [["le", "帶大家乾杯，把氣氛炒熱"], ["en", "跟隔壁桌的上班族聊起來"], ["tan", "點菜單上看不懂的那道"], ["hu", "注意大家有沒有喝太多"]], "scene": "居酒屋"}, {"id": "q25", "stage": 4, "label": "朋友害羞", "q": "要泡溫泉了，但朋友很害羞，你會？", "options": [["hu", "陪他，先教他泡湯的規矩"], ["le", "說「大家都一樣啦！」讓他放鬆"], ["dao", "帶他挑人少的時段去"], ["en", "分享自己第一次泡湯的糗事"]], "scene": "泡溫泉"}, {"id": "q26", "stage": 4, "label": "同伴生病", "q": "旅途中有人感冒了，你會？", "options": [["hu", "去藥妝店買藥，陪他休息"], ["dao", "重新安排行程，大家不用勉強"], ["ji", "早就帶了感冒藥"], ["le", "傳搞笑影片給他，讓他心情好一點"]], "scene": "有人感冒"}, {"id": "q27", "stage": 4, "label": "突然下雨", "q": "突然下大雨，原本要去公園，你會？", "options": [["ji", "改去室內景點，行程照走"], ["tan", "買把傘，雨中的日本也很美"], ["le", "找間咖啡廳玩桌遊"], ["dao", "當場決定新的去處"]], "scene": "突然下雨"}, {"id": "q28", "stage": 4, "label": "寫繪馬", "q": "在神社看到繪馬（許願木牌），你會寫？", "options": [["en", "「希望遇見更多好人」"], ["hu", "「希望大家平安健康」"], ["tan", "「希望去更多地方」"], ["dao", "「希望我能帶好大家」"]], "scene": "繪馬"}, {"id": "q29", "stage": 4, "label": "看夜景", "q": "大家一起看夜景時，你在想什麼？", "options": [["le", "「這張照片一定要拍好」"], ["en", "「好想把這一刻分享給更多人」"], ["ji", "「明天幾點起床才來得及」"], ["tan", "「下次要看哪裡的夜景」"]], "scene": "夜景"}, {"id": "q30", "stage": 4, "label": "錢包不見了", "q": "朋友的錢包不見了，你會？", "options": [["hu", "先安撫他，借他錢用"], ["dao", "冷靜帶他去派出所（交番）"], ["ji", "提醒他先打電話停卡"], ["en", "問附近的店家有沒有人撿到"]], "scene": "錢包不見"}, {"id": "q31", "stage": 5, "label": "買伴手禮", "q": "要買伴手禮了，你會？", "options": [["ji", "照名單一個一個買"], ["en", "每個人都挑不一樣的"], ["hu", "先想到家人和同事需要什麼"], ["tan", "買最特別、沒看過的"]], "scene": "伴手禮"}, {"id": "q32", "stage": 5, "label": "最後一晚", "q": "旅行的最後一晚，你最想做什麼？", "options": [["le", "大家一起玩到天亮"], ["en", "寫明信片給路上遇到的人"], ["dao", "帶大家去吃一頓最好的"], ["hu", "幫大家收行李，檢查有沒有東西忘了"]], "scene": "最後一晚"}, {"id": "q33", "stage": 5, "label": "行李超重", "q": "行李超重了，你會？", "options": [["ji", "早就算好重量，沒問題"], ["hu", "幫朋友分擔一點"], ["tan", "直接穿在身上，誰怕誰"], ["le", "在機場地上重新打包，笑成一團"]], "scene": "行李超重"}, {"id": "q34", "stage": 5, "label": "回家後", "q": "回到家第一件事，你會？", "options": [["le", "把照片剪成影片分享"], ["en", "傳訊息謝謝旅途中幫過你的人"], ["ji", "記帳，算算這趟花了多少"], ["tan", "開始找下一個目的地"]], "scene": "回家後"}, {"id": "q35", "stage": 1, "label": "理想旅伴", "q": "你最想跟誰一起去日本？", "options": [["le", "最會玩的那群朋友"], ["hu", "家人，帶爸媽出去走走"], ["tan", "自己一個人"], ["en", "網路上認識的同好"]], "scene": "旅伴"}, {"id": "q36", "stage": 1, "label": "理想行程", "q": "你理想中的行程表是？", "options": [["ji", "精準到每一個小時"], ["tan", "只寫目的地，其他隨緣"], ["dao", "我定大方向，大家再補細節"], ["hu", "每天都留一段休息時間"]], "scene": "行程表"}, {"id": "q37", "stage": 3, "label": "自動販賣機", "q": "看到一整排自動販賣機，你會？", "options": [["tan", "買一瓶完全不知道是什麼的飲料"], ["le", "找最好笑的商品拍照"], ["hu", "幫大家各買一瓶"], ["ji", "買上次在網路上看到的那款"]], "scene": "自動販賣機"}, {"id": "q38", "stage": 3, "label": "奈良的鹿", "q": "在奈良，鹿一直跟著你要餅乾，你會？", "options": [["le", "跟鹿合照，笑到不行"], ["hu", "保護旁邊怕鹿的朋友"], ["tan", "一次餵好幾隻，被包圍也不怕"], ["en", "跟旁邊也在餵鹿的人交換心得"]], "scene": "奈良的鹿"}, {"id": "q39", "stage": 4, "label": "朋友吵架", "q": "旅途中兩個朋友吵架了，你會？", "options": [["dao", "出面調解，決定接下來怎麼走"], ["le", "講個笑話化解尷尬"], ["hu", "分別陪兩個人聊一聊"], ["en", "找一件大家都喜歡的事一起做"]], "scene": "朋友吵架"}, {"id": "q40", "stage": 5, "label": "回家前的心情", "q": "在機場準備回家時，你心裡想的是？", "options": [["en", "「這趟認識的人，以後一定要再聯絡」"], ["dao", "「下次換我帶大家去更遠的地方」"], ["ji", "「下次的行程我已經有點子了」"], ["hu", "「大家平安回家就好」"]], "scene": "機場告別"}];
+const STAGE = {"q1": 1, "q2": 1, "q3": 3, "q4": 3, "q5": 4, "q6": 3, "q7": 4, "q8": 4, "q9": 5, "q10": 5};
+const SAYS = {"dao": ["你天生有方向感，大家跟著你很安心", "關鍵時刻，你敢做決定"], "ji": ["準備充分，旅途就更從容", "有你在，行程不會亂"], "tan": ["好奇心帶你走到別人沒去過的地方", "你會把意外變成冒險"], "hu": ["你總是第一個發現誰需要幫忙", "有你在，大家都很安心"], "le": ["有你在，再普通的路也會變成回憶", "你的笑聲是最好的伴手禮"], "en": ["你走到哪都交得到朋友", "路上的相遇，常常因為你而開始"]};
+const BANK = [...QUESTIONS.filter((q) => /^q\d+$/.test(q.id)), ...MORE];
+for (const q of BANK) if (q.stage == null) q.stage = STAGE[q.id] ?? 0;
+// 新題目的分析：選的那句話＋一句對應性格的話
+for (const q of MORE) ANSWER_MEDIA.push([q.id, q.label, Object.fromEntries(q.options.map(([t, x], i) => [t, `${/^「/.test(x) ? x : `「${x}」`}——${SAYS[t][(parseInt(q.id.slice(1), 10) + i) % SAYS[t].length]}`]))]);
+export const BANK_SIZE = BANK.length;
+export function drawQuestions() {
+  const n = 8 + Math.floor(Math.random() * 3), tags = Object.keys(TAGS);
+  let best = null;
+  for (let tr = 0; tr < 400; tr++) {
+    const pick = [...BANK].sort(() => Math.random() - .5).slice(0, n), c = {};
+    for (const q of pick) for (const [t] of q.options) c[t] = (c[t] || 0) + 1;
+    const min = Math.min(...tags.map((t) => c[t] || 0));
+    if (!best || min > best.min) best = { pick, min };
+    if (min >= Math.floor(n * 4 / tags.length)) break;            // 每種性格出現的次數差不多，才公平
+  }
+  return best.pick.sort((a, b) => a.stage - b.stage).map((q) => q.id);
+}
+export function questionsFor(ids) {
+  const head = QUESTIONS.find((q) => q.id === 'name'), tail = QUESTIONS.find((q) => q.id === 'sex');
+  return [head, ...(ids || []).map((id) => BANK.find((q) => q.id === id)).filter(Boolean), tail];
 }

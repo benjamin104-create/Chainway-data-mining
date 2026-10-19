@@ -201,11 +201,12 @@ export function standById(id, owner = '') {
 
 export function computeStand(a) {
   const count = {};
-  for (const q of QUESTIONS) if (/^q\d+$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
+  for (const k of Object.keys(a)) if (/^q\d+$/.test(k) && TAGS[a[k]]) count[a[k]] = (count[a[k]] || 0) + 1;   // 抽到哪幾題就算哪幾題
   const best = Math.max(0, ...Object.values(count));
   // 同分時，以第五題（抽籤）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
-  const tagId = tied.includes(a.q5) ? a.q5 : tied[0] || 'shou';
+  const first = a[a._qs?.[0]];   // 同分時，以這次抽到的第一題為準
+  const tagId = tied.includes(first) ? first : tied[0] || 'shou';
   const second = Object.keys(count).filter((k) => k !== tagId).sort((x, y) => count[y] - count[x])[0] || null;
   const pair = Object.keys(STANDS).filter((id) => STANDS[id].tagId === tagId);
   let style = a.sex;
@@ -216,4 +217,30 @@ export function computeStand(a) {
   }
   const id = pair.find((k) => STANDS[k].style === style) || pair[0];
   return { ...standById(id, (a.name || '').trim() || '有福之人'), second, counts: count, answers: a };
+}
+
+// ── 題庫：原本 10 題＋新增 30 題，每次隨機抽 8～10 題（六種性格都有機會出現；有劇情的篇依劇情順序排）──
+const MORE = [{"id": "q11", "stage": 1, "label": "出門的習慣", "q": "要去廟裡拜拜，出門前你會？", "options": [["shou", "查好要準備什麼，照規矩來"], ["chuang", "直接出發，到了再說"], ["yuan", "揪家人朋友一起去"], ["zhi", "先查這間廟拜的是哪位神明"]], "scene": "出門前"}, {"id": "q12", "stage": 1, "label": "找車位", "q": "廟口停車位好難找，你會？", "options": [["zhi", "早就查好附近哪裡有停車場"], ["yuan", "問廟口的阿伯哪裡好停"], ["shou", "停遠一點，走路也是運動"], ["wang", "乾脆搭計程車，時間最寶貴"]], "scene": "停車"}, {"id": "q13", "stage": 1, "label": "金紙攤", "q": "金紙攤老闆熱情推銷大套組，你會？", "options": [["xin", "先問清楚每一樣是拿來做什麼的"], ["shou", "買基本的就好，心意到了就好"], ["yuan", "跟老闆聊開了，還學會拜拜的順序"], ["wang", "大方買一套，給神明留個好印象"]], "scene": "金紙攤"}, {"id": "q14", "stage": 2, "label": "排隊的時候", "q": "拜拜的人好多要排隊，你會？", "options": [["shou", "慢慢排，不急"], ["zhi", "看看別人怎麼拜，順便學"], ["yuan", "跟前面的阿姨聊起來"], ["chuang", "先去拜人少的那一殿，晚點再回來"]], "scene": "排隊"}, {"id": "q15", "stage": 2, "label": "添香油錢", "q": "添香油錢時，你會放多少？", "options": [["xin", "固定的金額，每次都一樣"], ["wang", "多放一點，當作投資好運"], ["shou", "量力而為，心意最重要"], ["chuang", "看今天的心情和直覺"]], "scene": "香油錢"}, {"id": "q16", "stage": 2, "label": "路過月老", "q": "旁邊就是月老殿，你會？", "options": [["yuan", "當然要拜，人緣也是財緣"], ["chuang", "幫單身的朋友求一條紅線"], ["xin", "專心拜今天要拜的就好"], ["wang", "順便求事業上遇到好夥伴"]], "scene": "月老殿"}, {"id": "q17", "stage": 3, "label": "聽完解籤", "q": "解籤的老師說：「今年財運要靠自己爭取」，你心想？", "options": [["chuang", "太好了，我本來就想自己闖"], ["zhi", "那我要多學一點本事"], ["yuan", "爭取之外，也要找人一起"], ["shou", "那我先把現在的工作顧好"]], "scene": "解籤"}, {"id": "q18", "stage": 3, "label": "拿到錢母", "q": "廟方在發開運錢母，你會？", "options": [["shou", "好好收在錢包裡，捨不得花"], ["wang", "拿去當第一筆投資的本金"], ["yuan", "多求一個，送給朋友"], ["xin", "照廟方說的，明年記得回來還"]], "scene": "發錢母"}, {"id": "q19", "stage": 4, "label": "廟埕小吃", "q": "廟埕有好多小吃攤，你會？", "options": [["zhi", "找排最長的那攤，一定有原因"], ["chuang", "挑沒吃過的新口味"], ["shou", "吃熟悉的老店最安心"], ["yuan", "買一堆跟大家分著吃"]], "scene": "廟埕小吃"}, {"id": "q20", "stage": 4, "label": "看到喜歡的東西", "q": "看到很可愛的紀念品，但有點貴，你會？", "options": [["shou", "拍照就好，不一定要買"], ["wang", "喜歡就買，好東西值得"], ["zhi", "好奇它為什麼賣這個價錢"], ["chuang", "心想：這我也做得出來"]], "scene": "文創小物"}, {"id": "q21", "stage": 0, "label": "發薪日", "q": "發薪日那天，你第一件事是？", "options": [["shou", "先轉一筆到存款帳戶"], ["wang", "想想下一步怎麼讓錢變多"], ["xin", "先把該繳的帳單繳掉"], ["yuan", "請家人或朋友吃頓好的"]], "scene": "先聊聊你"}, {"id": "q22", "stage": 0, "label": "朋友借錢", "q": "好朋友開口跟你借錢，你會？", "options": [["xin", "借，但先說好什麼時候還"], ["yuan", "借！朋友有難一定幫"], ["shou", "借一個「沒還也沒關係」的數字"], ["zhi", "先了解他遇到什麼事，也許有更好的辦法"]], "scene": "先聊聊你"}, {"id": "q23", "stage": 0, "label": "中發票", "q": "發票中了一千塊，你會？", "options": [["shou", "存起來"], ["yuan", "請同事喝飲料"], ["chuang", "當作副業的第一筆資金"], ["wang", "再補一點，買個好東西犒賞自己"]], "scene": "先聊聊你"}, {"id": "q24", "stage": 0, "label": "聽到投資話題", "q": "聽到同事在聊投資，你會？", "options": [["zhi", "回家自己研究，弄懂了再說"], ["chuang", "跟著試一點點，邊做邊學"], ["shou", "我還是習慣定存"], ["yuan", "請他吃飯，跟他請教"]], "scene": "先聊聊你"}, {"id": "q25", "stage": 0, "label": "加薪的機會", "q": "主管說要幫你加薪，但工作也會變多，你會？", "options": [["wang", "接！這是往上走的機會"], ["xin", "先問清楚多了哪些事，確定做得好再接"], ["zhi", "接，剛好學新東西"], ["shou", "想想身體和生活會不會太累"]], "scene": "先聊聊你"}, {"id": "q26", "stage": 0, "label": "擺攤邀約", "q": "朋友找你一起去市集擺攤，你會？", "options": [["chuang", "好啊！我來想要賣什麼"], ["yuan", "去，順便認識一堆新朋友"], ["zhi", "先研究什麼東西最好賣"], ["xin", "我負責收錢記帳"]], "scene": "先聊聊你"}, {"id": "q27", "stage": 0, "label": "網購習慣", "q": "購物車裡放了一堆東西，你會？", "options": [["shou", "放三天，還想要再買"], ["wang", "一次結帳，享受生活"], ["zhi", "比價、等折扣碼"], ["xin", "只買清單上原本要買的"]], "scene": "先聊聊你"}, {"id": "q28", "stage": 0, "label": "收到紅包", "q": "過年收到紅包，你會？", "options": [["shou", "全部存起來"], ["xin", "記下誰給的，明年也要回禮"], ["chuang", "拿一部分去學新東西"], ["wang", "買一個能用很久的好東西"]], "scene": "先聊聊你"}, {"id": "q29", "stage": 0, "label": "用錢實現的夢想", "q": "如果有一筆錢可以實現一個夢想，你選？", "options": [["chuang", "開一間自己的小店"], ["wang", "帶家人去環遊世界"], ["zhi", "出國進修"], ["yuan", "成立一個幫助別人的基金"]], "scene": "先聊聊你"}, {"id": "q30", "stage": 0, "label": "你的貴人", "q": "你覺得「貴人」最可能是？", "options": [["yuan", "平常就互相幫忙的朋友"], ["xin", "看過你認真做事的主管"], ["zhi", "學習路上遇到的老師"], ["wang", "願意投資你的前輩"]], "scene": "先聊聊你"}, {"id": "q31", "stage": 0, "label": "犯錯的時候", "q": "工作上出了錯，讓公司少賺一筆，你會？", "options": [["xin", "第一時間承認，想辦法補救"], ["zhi", "找出原因，寫下來不再犯"], ["chuang", "想一個新方案把錢賺回來"], ["yuan", "請有經驗的同事一起幫忙"]], "scene": "先聊聊你"}, {"id": "q32", "stage": 0, "label": "存錢方式", "q": "你存錢的方式比較像？", "options": [["shou", "每個月固定存，雷打不動"], ["wang", "設一個大目標，努力衝"], ["chuang", "與其省，不如多賺一點"], ["xin", "記帳記得清清楚楚"]], "scene": "先聊聊你"}, {"id": "q33", "stage": 0, "label": "吃飯付錢", "q": "跟朋友吃飯，你通常？", "options": [["yuan", "常常順手就請了"], ["xin", "各付各的，清清楚楚"], ["wang", "這次我請，下次你請"], ["shou", "挑平價又好吃的店"]], "scene": "先聊聊你"}, {"id": "q34", "stage": 0, "label": "合夥邀約", "q": "朋友找你合夥做生意，你的第一個念頭是？", "options": [["chuang", "好刺激，我想試試"], ["xin", "要先講好怎麼分工、怎麼分錢"], ["zhi", "先看看計畫書"], ["shou", "我還是想保住正職"]], "scene": "先聊聊你"}, {"id": "q35", "stage": 0, "label": "最捨得花錢的地方", "q": "你在哪裡花錢最大方？", "options": [["zhi", "買書、上課"], ["yuan", "請朋友、送禮"], ["shou", "家人需要的東西"], ["wang", "能讓生活變更好的東西"]], "scene": "先聊聊你"}, {"id": "q36", "stage": 0, "label": "中樂透", "q": "如果中了頭獎，你第一個打給誰？", "options": [["shou", "家人，叫他們先別說出去"], ["yuan", "最好的朋友"], ["xin", "理財專員，先問怎麼安排"], ["wang", "先打給自己——冷靜，想清楚再說"]], "scene": "先聊聊你"}, {"id": "q37", "stage": 5, "label": "還願", "q": "去年許的願望實現了，你會？", "options": [["xin", "一定回來還願，說到做到"], ["yuan", "帶朋友一起來，分享好運"], ["wang", "捐一筆錢給廟裡做公益"], ["chuang", "再許一個更大的願"]], "scene": "還願"}, {"id": "q38", "stage": 3, "label": "擲到笑筊", "q": "擲筊連續三次都是笑筊，你會？", "options": [["shou", "不急，換個問法再問"], ["chuang", "笑一笑，神明大概覺得我想太多"], ["zhi", "想想是不是問題問得不清楚"], ["yuan", "問旁邊的人都怎麼擲"]], "scene": "擲筊"}, {"id": "q39", "stage": 2, "label": "跟神明說話", "q": "站在神明面前，你通常會說得？", "options": [["xin", "很仔細：名字、住址、想求什麼"], ["wang", "直接說出最大的願望"], ["shou", "簡單說聲謝謝就好"], ["chuang", "說說最近想做的新計畫"]], "scene": "神明面前"}, {"id": "q40", "stage": 4, "label": "當志工", "q": "廟裡在找廟會志工，你會？", "options": [["yuan", "報名！認識新朋友也不錯"], ["zhi", "想學學廟會是怎麼辦起來的"], ["xin", "答應了就一定準時到"], ["wang", "幫忙找更多人一起來"]], "scene": "廟會志工"}];
+const STAGE = {"q1": 1, "q2": 1, "q3": 2, "q4": 2, "q5": 3, "q6": 4, "q7": 4, "q8": 5, "q9": 2, "q10": 6};
+const SAYS = {"shou": ["穩紮穩打，你的財富會越滾越大", "懂得守，就是最好的開始"], "xin": ["說到做到，信用就是你的本錢", "清清楚楚，別人最放心把事交給你"], "zhi": ["肯學肯想，腦袋就是你的財庫", "你懂得先弄清楚再出手"], "chuang": ["敢試敢闖，機會常常是你自己開出來的", "你看到的是別人還沒看到的機會"], "yuan": ["好人緣會替你帶來好財運", "你給出去的善意，常常會繞回來"], "wang": ["你看得遠，接得住大機會", "捨得投資，也懂得享受成果"]};
+const BANK = [...QUESTIONS.filter((q) => /^q\d+$/.test(q.id)), ...MORE];
+for (const q of BANK) if (q.stage == null) q.stage = STAGE[q.id] ?? 0;
+// 新題目的分析：選的那句話＋一句對應性格的話
+for (const q of MORE) ANSWER_MEDIA.push([q.id, q.label, Object.fromEntries(q.options.map(([t, x], i) => [t, `${/^「/.test(x) ? x : `「${x}」`}——${SAYS[t][(parseInt(q.id.slice(1), 10) + i) % SAYS[t].length]}`]))]);
+export const BANK_SIZE = BANK.length;
+export function drawQuestions() {
+  const n = 8 + Math.floor(Math.random() * 3), tags = Object.keys(TAGS);
+  let best = null;
+  for (let tr = 0; tr < 400; tr++) {
+    const pick = [...BANK].sort(() => Math.random() - .5).slice(0, n), c = {};
+    for (const q of pick) for (const [t] of q.options) c[t] = (c[t] || 0) + 1;
+    const min = Math.min(...tags.map((t) => c[t] || 0));
+    if (!best || min > best.min) best = { pick, min };
+    if (min >= Math.floor(n * 4 / tags.length)) break;            // 每種性格出現的次數差不多，才公平
+  }
+  return best.pick.sort((a, b) => a.stage - b.stage).map((q) => q.id);
+}
+export function questionsFor(ids) {
+  const head = QUESTIONS.find((q) => q.id === 'name'), tail = QUESTIONS.find((q) => q.id === 'sex');
+  return [head, ...(ids || []).map((id) => BANK.find((q) => q.id === id)).filter(Boolean), tail];
 }

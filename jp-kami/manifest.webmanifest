@@ -1,7 +1,7 @@
 {
   "name": "旅神偵測器・日本篇",
   "short_name": "旅神偵測器",
-  "description": "誰是守護你出門的神？一趟日本旅行的十個選擇，再請神獸或神明和你合照。",
+  "description": "誰是守護你出門的神？一趟日本旅行的 8～10 個選擇，再請神獸或神明和你合照。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

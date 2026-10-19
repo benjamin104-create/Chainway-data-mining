@@ -1,6 +1,6 @@
 import { FilesetResolver, ImageSegmenter, FaceDetector, FaceLandmarker } from './lib/vision_bundle.mjs';
 import { createBeautyGL } from './beauty-gl.js';
-import { QUESTIONS, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
+import { drawQuestions, questionsFor, BANK_SIZE, STANDS, STAT_KEYS, STAT_INFO, LANGS, MEDIA, ANSWER_MEDIA, TAGS, PACK, computeStand, standById } from './quiz.js';
 
 const GRADE_V = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
@@ -256,6 +256,9 @@ function show(id) {
 
 // ── 測驗 ─────────────────────────────────────────────
 let qi = 0, answers = {};
+// 每次作答從題庫隨機抽 8～10 題；抽到的題號存在 answers._qs，中途離開回來也是同一組
+let QUESTIONS = questionsFor(drawQuestions());
+const freshRun = () => { const ids = drawQuestions(); QUESTIONS = questionsFor(ids); answers = { _qs: ids }; qi = 0; };
 function renderQuestion() {
   const Q = QUESTIONS[qi];
   $('count').textContent = `${qi + 1} / ${QUESTIONS.length}`;
@@ -297,11 +300,11 @@ function advance() {
 }
 $('begin').onclick = () => {
   const p = store.get('stand-progress');
-  if (p?.answers) { qi = p.qi; answers = p.answers; } else { qi = 0; answers = {}; }
+  if (p?.answers?._qs) { qi = p.qi; answers = p.answers; QUESTIONS = questionsFor(answers._qs); } else freshRun();
   renderQuestion(); show('quiz');
 };
 $('back').onclick = () => { if (qi === 0) show('intro'); else { qi--; renderQuestion(); } };
-$('redo').onclick = () => { qi = 0; answers = {}; store.set('stand-progress', null); renderQuestion(); show('quiz'); };
+$('redo').onclick = () => { freshRun(); store.set('stand-progress', null); renderQuestion(); show('quiz'); };
 $('skip').onclick = () => {
   const ids = Object.keys(STANDS), id = ids[Math.floor(Math.random() * ids.length)];
   useStand(standById(id)); show('cam'); $('go').click();
@@ -340,7 +343,7 @@ function useStand(s) {
   loadArt(s.id + '_front').catch(() => {});   // 正中央／片頭構圖用的正面立繪
   for (const k of ['_left', '_right']) loadArt(s.id + k).catch(() => {});   // 左側／右側構圖各有一個不同的 pose
 }
-// 自媒體建議：全部依本人的 10 個答案，不看守護神的六角圖
+// 分析：全部依本人這次的答案，不看守護神的六角圖
 // 主標籤給定位，副標籤給混搭，每一題選的選項各給一句具體建議
 function renderMedia(s) {
   const m = MEDIA[s.tagId], counts = s.counts || {}, a = s.answers || {};
@@ -427,7 +430,7 @@ $('copy').onclick = async () => {
 const progress = store.get('stand-progress');
 if (progress?.answers) $('begin').textContent = `繼續作答（第 ${progress.qi + 1} 步）`;
 const saved = store.get('stand-answers');
-if (saved?.q5) {
+if (saved && Object.keys(saved).some((k) => /^q\d+$/.test(k))) {
   const b = document.createElement('button'); b.className = 'secondary'; b.textContent = '查看上次的守護神';
   b.onclick = () => { answers = saved; showResult(computeStand(saved)); };
   $('skip').before(b);
@@ -1491,7 +1494,7 @@ $('shot').onclick = () => {
 };
 function shareText() {
   const s = state.stand, url = location.origin + location.pathname;
-  return s ? `我的守護神是《${s.name}》${s.zh}！你的守護神是誰？10 題測出來 → ${url}` : url;
+  return s ? `我的守護神是《${s.name}》${s.zh}！你的守護神是誰？來測測看 → ${url}` : url;
 }
 $('share').onclick = async () => {
   const s = state.stand, file = new File([lastBlob], lastName, { type: lastType });

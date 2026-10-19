@@ -216,11 +216,12 @@ export function standById(id, owner = '') {
 
 export function computeStand(a) {
   const count = {};
-  for (const q of QUESTIONS) if (/^q\d+$/.test(q.id) && a[q.id]) count[a[q.id]] = (count[a[q.id]] || 0) + 1;
+  for (const k of Object.keys(a)) if (/^q\d+$/.test(k) && TAGS[a[k]]) count[a[k]] = (count[a[k]] || 0) + 1;   // 抽到哪幾題就算哪幾題
   const best = Math.max(0, ...Object.values(count));
   // 同分時，以第五題（最想要的超能力）為準，其次按題目順序
   const tied = Object.keys(count).filter((k) => count[k] === best);
-  const tagId = tied.includes(a.q5) ? a.q5 : tied[0] || 'courage';
+  const first = a[a._qs?.[0]];   // 同分時，以這次抽到的第一題為準
+  const tagId = tied.includes(first) ? first : tied[0] || 'courage';
   // 副標籤：主標籤以外，次多的那一個
   const second = Object.keys(count).filter((k) => k !== tagId).sort((x, y) => count[y] - count[x])[0] || null;
   const pair = Object.keys(STANDS).filter((id) => STANDS[id].tagId === tagId);
@@ -232,4 +233,30 @@ export function computeStand(a) {
   }
   const id = pair.find((k) => STANDS[k].sex === sex) || pair[0];
   return { ...standById(id, (a.name || '').trim() || '無名的勇者'), second, counts: count, answers: a };
+}
+
+// ── 題庫：原本 10 題＋新增 30 題，每次隨機抽 8～10 題（六種性格都有機會出現；有劇情的篇依劇情順序排）──
+const MORE = [{"id": "q11", "stage": 0, "label": "早上的你", "q": "早上鬧鐘響了三次，你會？", "options": [["freedom", "再睡五分鐘，人生不用那麼趕"], ["guard", "馬上起床，今天還有人在等我"], ["create", "躺著想今天要穿什麼、做點什麼新鮮事"], ["courage", "直接跳起來，冷水洗臉清醒！"]]}, {"id": "q12", "stage": 0, "label": "臨時邀約", "q": "朋友突然約你今晚吃火鍋，但你原本想在家耍廢，你會？", "options": [["bond", "當然去！跟朋友吃飯最重要"], ["freedom", "老實說今天想自己待著"], ["guard", "問一下還有誰，要不要順便去接人"], ["wisdom", "先查一下那家店的評價"]]}, {"id": "q13", "stage": 0, "label": "最後的電量", "q": "手機只剩 5% 的電，你會拿來？", "options": [["bond", "傳訊息給在乎的人"], ["wisdom", "查好回家的路線"], ["create", "拍下眼前這個好看的畫面"], ["courage", "管他的，用完再說"]]}, {"id": "q14", "stage": 0, "label": "路上的小插曲", "q": "路上有人東西掉了一地，你會？", "options": [["guard", "馬上蹲下來幫忙撿"], ["courage", "喊旁邊的人一起來幫"], ["wisdom", "先看看有沒有東西會滾到馬路上"], ["bond", "幫忙撿完，還跟對方聊了兩句"]]}, {"id": "q15", "stage": 0, "label": "想體驗的工作", "q": "如果可以換一種工作體驗一個月，你選？", "options": [["create", "動畫師或設計師"], ["freedom", "到處跑的旅遊記者"], ["wisdom", "博物館研究員"], ["guard", "消防員或救難隊"]]}, {"id": "q16", "stage": 0, "label": "意見不合時", "q": "跟朋友意見不合，你通常？", "options": [["courage", "直接講清楚，不想憋著"], ["bond", "先聽完他的想法再說"], ["wisdom", "把兩邊的理由列出來比一比"], ["freedom", "各自保留意見，不用一定要一樣"]]}, {"id": "q17", "stage": 0, "label": "手機桌布", "q": "你的手機桌布最可能是？", "options": [["create", "自己拍的照片或畫的圖"], ["bond", "跟朋友或家人的合照"], ["freedom", "一片大海或天空"], ["guard", "家裡的寵物"]]}, {"id": "q18", "stage": 0, "label": "新環境第一天", "q": "到新學校、新公司的第一天，你會？", "options": [["courage", "主動跟旁邊的人打招呼"], ["wisdom", "先觀察大家都在做什麼"], ["bond", "找一個看起來也很緊張的人聊天"], ["create", "把桌面布置成自己喜歡的樣子"]]}, {"id": "q19", "stage": 0, "label": "聽到瘋狂點子", "q": "朋友說：「我有一個很瘋的點子……」你的反應是？", "options": [["courage", "「好啊！什麼時候開始？」"], ["create", "「然後呢？還可以再加這個！」"], ["wisdom", "「等等，先想想可不可行」"], ["guard", "「好，但要注意安全喔」"]]}, {"id": "q20", "stage": 0, "label": "一個人的晚上", "q": "一個人在家的晚上，你最常？", "options": [["create", "畫畫、寫東西、剪影片"], ["wisdom", "追紀錄片或看書"], ["freedom", "出門散步，走到哪算哪"], ["bond", "開視訊跟朋友聊天"]]}, {"id": "q21", "stage": 0, "label": "群組裡的你", "q": "在朋友群組裡，你通常是？", "options": [["bond", "最會接話的開心果"], ["wisdom", "默默把重點整理出來的人"], ["guard", "提醒大家時間、記得帶傘的人"], ["freedom", "已讀之後，隔天才回的人"]]}, {"id": "q22", "stage": 0, "label": "前一晚", "q": "考試或報告的前一晚，你是？", "options": [["guard", "早就準備好了，還幫朋友複習"], ["courage", "熬夜衝刺，相信自己可以"], ["create", "用自己的方法畫重點圖"], ["freedom", "該睡就睡，盡力就好"]]}, {"id": "q23", "stage": 0, "label": "最能說動你的話", "q": "哪一句話最能說動你？", "options": [["courage", "「你敢不敢？」"], ["wisdom", "「你知道為什麼嗎？」"], ["bond", "「我們一起去吧」"], ["create", "「這是全新的東西」"]]}, {"id": "q24", "stage": 0, "label": "朋友失戀時", "q": "朋友失戀，半夜打給你，你會？", "options": [["guard", "馬上衝去陪他"], ["bond", "聽他說到天亮"], ["wisdom", "幫他想想問題出在哪"], ["freedom", "約他明天去海邊吹吹風"]]}, {"id": "q25", "stage": 0, "label": "買東西的習慣", "q": "你買東西的習慣是？", "options": [["wisdom", "比價、看評價，研究很久才買"], ["courage", "看到喜歡就買，不想太多"], ["create", "喜歡獨特、別人沒有的款式"], ["guard", "先買家人需要的"]]}, {"id": "q26", "stage": 0, "label": "神話寵物", "q": "如果可以養一隻神話裡的動物，你選？", "options": [["courage", "會噴火的龍"], ["wisdom", "會說話的貓頭鷹"], ["freedom", "有翅膀的飛馬"], ["guard", "三個頭的看門狗"]]}, {"id": "q27", "stage": 0, "label": "打動你的角色", "q": "看電影時，哪種角色最打動你？", "options": [["guard", "為了保護大家挺身而出的人"], ["bond", "一路陪著主角的好朋友"], ["freedom", "不被規則綁住的浪子"], ["create", "老是發明奇怪東西的怪咖"]]}, {"id": "q28", "stage": 0, "label": "最浪費時間的事", "q": "你覺得最浪費時間的是？", "options": [["freedom", "開了很久還沒有結論的會"], ["create", "每天重複做一樣的事"], ["courage", "想了很久還不開始"], ["bond", "大家坐在一起，卻各滑各的手機"]]}, {"id": "q29", "stage": 0, "label": "背包裡的必需品", "q": "出門旅行，你的背包裡一定有？", "options": [["guard", "急救包和行動電源，誰需要都有"], ["create", "筆記本或相機"], ["wisdom", "旅遊書和地圖"], ["freedom", "只有手機和錢包，其他到了再買"]]}, {"id": "q30", "stage": 0, "label": "最想聽到的稱讚", "q": "被稱讚時，你最開心聽到？", "options": [["courage", "「你好勇敢！」"], ["wisdom", "「你好聰明！」"], ["create", "「這是你做的？好厲害！」"], ["bond", "「有你在真好」"]]}, {"id": "q31", "stage": 0, "label": "想發的貼文", "q": "如果今天要在社群發一篇文，你會發？", "options": [["create", "自己的作品"], ["bond", "跟朋友出去玩的照片"], ["wisdom", "最近學到的有趣知識"], ["courage", "剛完成的一個挑戰"]]}, {"id": "q32", "stage": 0, "label": "下雨沒帶傘", "q": "下雨了，你沒帶傘，你會？", "options": [["courage", "直接衝，淋點雨也不錯"], ["freedom", "找間咖啡店等雨停"], ["guard", "先把包包裡重要的東西包好"], ["bond", "打給朋友：「你在附近嗎？」"]]}, {"id": "q33", "stage": 0, "label": "理想住處", "q": "最想住在哪一種地方？", "options": [["freedom", "海邊的小屋，每天看海"], ["bond", "有很多鄰居朋友的熱鬧社區"], ["create", "可以自己改造的老房子"], ["wisdom", "圖書館旁邊的公寓"]]}, {"id": "q34", "stage": 0, "label": "口頭禪", "q": "你最常說的口頭禪比較像？", "options": [["courage", "「衝了啦！」"], ["guard", "「你還好嗎？」"], ["wisdom", "「真的假的？我查一下」"], ["freedom", "「都可以啦～」"]]}, {"id": "q35", "stage": 0, "label": "遊戲角色", "q": "玩遊戲時，你喜歡當？", "options": [["courage", "衝第一個的戰士"], ["guard", "保護隊友的坦克"], ["wisdom", "出主意的法師"], ["create", "蓋房子、造東西的建築師"]]}, {"id": "q36", "stage": 0, "label": "送生日禮物", "q": "朋友生日，你會送？", "options": [["create", "親手做的卡片或小禮物"], ["bond", "揪大家一起幫他慶生"], ["guard", "他最近剛好需要的東西"], ["freedom", "一張說走就走的車票"]]}, {"id": "q37", "stage": 0, "label": "一整個月的假", "q": "如果明天開始放一整個月的假，你會？", "options": [["freedom", "背包出國，不訂回程"], ["create", "完成一直想做的作品"], ["wisdom", "把一個新技能學起來"], ["bond", "每天約不同的朋友見面"]]}, {"id": "q38", "stage": 0, "label": "紓壓方式", "q": "壓力很大的時候，你會？", "options": [["courage", "去運動，流一身汗"], ["create", "畫畫、聽音樂、做手作"], ["bond", "找人聊一聊"], ["freedom", "一個人出去走走"]]}, {"id": "q39", "stage": 0, "label": "合照位置", "q": "大家拍團體照時，你通常？", "options": [["courage", "站最前面，比最大的姿勢"], ["guard", "站邊邊，幫大家看有沒有人被擋到"], ["create", "負責想姿勢和角度"], ["bond", "擠在正中間，跟大家黏在一起"]]}, {"id": "q40", "stage": 0, "label": "給未來的信", "q": "寫一封信給十年後的自己，你會寫？", "options": [["guard", "「希望你身邊的人都平安」"], ["wisdom", "「希望你還保有好奇心」"], ["freedom", "「希望你活成自己想要的樣子」"], ["courage", "「希望你沒有因為害怕而放棄」"]]}];
+const STAGE = {};
+const SAYS = {"courage": ["敢衝敢試，是你最大的魅力", "你的行動力會帶著大家往前"], "wisdom": ["你習慣先想清楚，判斷很可靠", "好奇心就是你的超能力"], "guard": ["你總是先想到別人，是大家的靠山", "可靠，是你給人的第一印象"], "freedom": ["你需要自己的節奏，才能發光", "不被框住，你才做得出最好的自己"], "create": ["你的點子總讓人眼睛一亮", "動手做東西，是你最快樂的時候"], "bond": ["你讓身邊的人覺得被在乎", "人和人的連結，是你的能量來源"]};
+const BANK = [...QUESTIONS.filter((q) => /^q\d+$/.test(q.id)), ...MORE];
+for (const q of BANK) if (q.stage == null) q.stage = STAGE[q.id] ?? 0;
+// 新題目的分析：選的那句話＋一句對應性格的話
+for (const q of MORE) ANSWER_MEDIA.push([q.id, q.label, Object.fromEntries(q.options.map(([t, x], i) => [t, `${/^「/.test(x) ? x : `「${x}」`}——${SAYS[t][(parseInt(q.id.slice(1), 10) + i) % SAYS[t].length]}`]))]);
+export const BANK_SIZE = BANK.length;
+export function drawQuestions() {
+  const n = 8 + Math.floor(Math.random() * 3), tags = Object.keys(TAGS);
+  let best = null;
+  for (let tr = 0; tr < 400; tr++) {
+    const pick = [...BANK].sort(() => Math.random() - .5).slice(0, n), c = {};
+    for (const q of pick) for (const [t] of q.options) c[t] = (c[t] || 0) + 1;
+    const min = Math.min(...tags.map((t) => c[t] || 0));
+    if (!best || min > best.min) best = { pick, min };
+    if (min >= Math.floor(n * 4 / tags.length)) break;            // 每種性格出現的次數差不多，才公平
+  }
+  return best.pick.sort((a, b) => a.stage - b.stage).map((q) => q.id);
+}
+export function questionsFor(ids) {
+  const head = QUESTIONS.find((q) => q.id === 'name'), tail = QUESTIONS.find((q) => q.id === 'sex');
+  return [head, ...(ids || []).map((id) => BANK.find((q) => q.id === id)).filter(Boolean), tail];
 }

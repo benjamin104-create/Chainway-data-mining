@@ -1,7 +1,7 @@
 {
   "name": "財神偵測器・台灣篇",
   "short_name": "財神偵測器",
-  "description": "誰是眷顧你的財神？回答十個金錢心理題，再請神明和你合照。",
+  "description": "誰是眷顧你的財神？回答 8～10 個金錢心理題，再請神明和你合照。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
