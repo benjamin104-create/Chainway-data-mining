@@ -1,0 +1,9 @@
+[build]
+  publish = "public"
+  command = ""
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

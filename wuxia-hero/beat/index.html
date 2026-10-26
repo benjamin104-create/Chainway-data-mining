@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>江湖律動擂台・全身練功比分數</title>
+<meta name="description" content="手機立起來、退後兩步，跟著武功招式卡練功：大鵬展翅、蹲馬步、金雞獨立……自動錄影，上傳分數爭奪武林盟主。">
+<meta name="theme-color" content="#0e0c0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="律動擂台">
+<meta property="og:title" content="江湖律動擂台・全身練功比分數">
+<meta property="og:description" content="跟著古箏太鼓練一套武功，自動錄影、上傳分數爭奪武林盟主！">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+TC:wght@500;700;900&family=Noto+Serif+TC:wght@900&display=swap">
+<style>
+  :root {
+    --ink: #0e0c0a; --raise: #1c1814; --line: rgba(255,255,255,.16);
+    --fg: #f6f1e6; --muted: #b3a891; --pink: #b8321f; --cyan: #e0a526; --gold: #ffd36b;
+    --latin: "Anton", "Impact", "Arial Black", sans-serif;
+    --body: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+    --badge: 72px;   /* Netlify 右下角的標籤，下方留位置 */
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); }
+  body { overflow: hidden; }
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  button:disabled { opacity: .45; }
+  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 22px) 18px calc(env(safe-area-inset-bottom, 0px) + 28px + var(--badge)); }
+  .col { max-width: 30rem; margin: 0 auto; display: grid; gap: 18px; }
+  #sHome { background: radial-gradient(120% 60% at 50% 0%, #4a1a10 0%, transparent 60%), radial-gradient(90% 50% at 100% 100%, #2a2010 0%, transparent 60%), var(--ink); }
+  .eyebrow { font: 400 15px/1 var(--latin); letter-spacing: .18em; color: var(--cyan); }
+  h1 { margin: 0; font: 900 clamp(44px, 13vw, 64px)/1.08 "Noto Serif TC", var(--body); letter-spacing: .02em;
+       background: linear-gradient(180deg, #fff 10%, #f3d9a6 45%, #e0a526 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+       filter: drop-shadow(0 4px 0 #5a1a10) drop-shadow(0 0 22px rgba(224,165,38,.35)); }
+  .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
+  .fine { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0; }
+  .label { font: 700 13px/1 var(--body); letter-spacing: .12em; color: var(--muted); margin: 6px 0 -6px; }
+  .chips { display: grid; gap: 10px; }
+  .chips.row { grid-template-columns: repeat(3, 1fr); }
+  .chip { border: 1.5px solid var(--line); background: rgba(255,255,255,.05); color: var(--fg); border-radius: 16px; padding: 14px 16px; text-align: left; cursor: pointer; display: grid; gap: 4px; }
+  .chip b { font: 900 18px/1.2 "Noto Sans TC", var(--body); }
+  .chip small { color: var(--muted); font-size: 12.5px; }
+  .chips.row .chip { text-align: center; padding: 12px 6px; }
+  .chip[aria-pressed="true"] { border-color: var(--cyan); background: linear-gradient(135deg, rgba(138,28,18,.55), rgba(224,165,38,.25)); box-shadow: 0 0 0 1px var(--cyan), 0 0 22px rgba(224,165,38,.25); }
+  .chip.small { padding: 9px 12px; text-align: center; }
+  .chip.small:not([aria-pressed="true"]) { opacity: .8; }
+  .primary { border: 0; color: #fff; padding: 18px 26px; border-radius: 999px; font: 900 19px/1 "Noto Sans TC", var(--body); letter-spacing: .06em; cursor: pointer;
+             background: linear-gradient(90deg, #8a1c12, #b8321f 55%, #e0a526); box-shadow: 0 8px 28px rgba(184,50,31,.4); }
+  .secondary { border: 1.5px solid var(--line); background: transparent; color: var(--fg); padding: 14px 22px; border-radius: 999px; font: 700 15px/1 var(--body); cursor: pointer; text-align: center; }
+  .tips { display: grid; gap: 8px; padding: 14px 16px; background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 16px; }
+  .tips p { margin: 0; font-size: 14px; line-height: 1.6; color: #e4dcf2; }
+  .tips p::before { content: attr(data-n); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--pink); color: #fff; font: 700 12px/1 var(--body); margin-right: 8px; }
+  .btns { display: grid; gap: 10px; }
+  .btns.two { grid-template-columns: 1fr 1fr; }
+
+  /* 遊戲畫面 */
+  #sPlay { padding: 0; overflow: hidden; background: #000; position: relative; }
+  #stage { position: absolute; inset: 0; display: grid; place-items: center; }
+  #view { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .hudbtn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 72px); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: rgba(14,12,10,.6); color: #fff; font-size: 18px; cursor: pointer; z-index: 3; }
+  #quit { left: 12px; } #mute { left: 64px; }
+  #ready { position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 22px + var(--badge)); background: linear-gradient(transparent, rgba(14,12,10,.92) 30%); display: grid; gap: 12px; z-index: 2; text-align: center; }
+  #readyText { font: 900 20px/1.45 "Noto Sans TC", var(--body); margin: 0; text-shadow: 0 2px 8px #000; }
+  .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #readyBar { height: 100%; width: 0; background: linear-gradient(90deg, #5dffb0, var(--cyan)); transition: width .1s; }
+  #msg { position: absolute; left: 16px; right: 16px; top: 40%; padding: 16px; border-radius: 14px; background: rgba(14,12,10,.92); border: 1px solid var(--line); text-align: center; line-height: 1.6; z-index: 4; }
+
+  /* 結果 */
+  #sResult { background: radial-gradient(120% 50% at 50% 0%, #4a1a10 0%, transparent 60%), var(--ink); }
+  .score { text-align: center; display: grid; gap: 4px; }
+  #rScore { font: 400 84px/1 var(--latin); background: linear-gradient(180deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #rStars { font-size: 30px; color: var(--gold); letter-spacing: .1em; }
+  #rRank { font: 900 26px/1.2 "Noto Sans TC", var(--body); }
+  #rMeta { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  #clip { width: 100%; max-height: 52vh; border-radius: 16px; background: #000; }
+  .field { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--line); background: rgba(255,255,255,.06); color: var(--fg); font-size: 16px; }
+  .card { padding: 16px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); display: grid; gap: 12px; }
+  .card h2 { margin: 0; font: 900 18px/1.2 "Noto Sans TC", var(--body); }
+  .tabs { display: flex; gap: 8px; }
+  .tabs button { flex: 1; padding: 9px 0; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 700 14px/1 var(--body); cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+  .rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .rank li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px; }
+  .rank li:nth-child(odd) { background: rgba(255,255,255,.04); }
+  .rank li span { font: 400 18px/1 var(--latin); color: var(--muted); text-align: center; }
+  .rank li:nth-child(1) span { color: var(--gold); } .rank li:nth-child(2) span { color: #dfe6f0; } .rank li:nth-child(3) span { color: #e3a26b; }
+  .rank li b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank li em { font: 400 20px/1 var(--latin); font-style: normal; color: var(--cyan); }
+  .rank li.me { background: rgba(184,50,31,.3); }
+  #submitMsg { min-height: 1.2em; }
+  .chiprow { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<section class="screen" id="sHome">
+  <div class="col">
+    <div class="eyebrow">WUXIA BEAT ・ 武俠篇</div>
+    <h1>江湖律動擂台</h1>
+    <p class="lead">少俠，上擂台吧！手機立起來、退後兩步，跟著古箏太鼓的節奏，照招式卡擺出大鵬展翅、蹲馬步、金雞獨立……鏡頭即時判斷你的架勢，練完自動產生影片和分數，上傳排行榜爭奪武林盟主。</p>
+    <p class="label">配樂</p>
+    <div class="chips" id="songs"></div>
+    <p class="label">難度</p>
+    <div class="chips row" id="diffs"></div>
+    <div class="tips">
+      <p data-n="1">手機直立靠著水壺或牆，鏡頭對著你</p>
+      <p data-n="2">退後 2～3 步，讓頭到腳都進畫面</p>
+      <p data-n="3">招式卡跑到左邊的圓圈時，擺出一樣的架勢</p>
+    </div>
+    <div class="btns">
+      <button class="primary" id="go" type="button">上擂台</button>
+      <button class="secondary" id="boardBtn" type="button">🏆 英雄榜</button>
+      <a class="secondary" href="../" style="text-decoration:none">← 回到「你是哪一位武學奇才」</a>
+    </div>
+    <p class="fine">影像只在你的手機上分析，不會上傳；只有你按「上傳成績」時，才會送出暱稱和分數。影片存在你的手機裡，要不要分享由你決定。</p>
+  </div>
+</section>
+
+<section class="screen" id="sPlay" hidden>
+  <div id="stage"><canvas id="view"></canvas></div>
+  <video id="video" playsinline muted></video>
+  <button class="hudbtn" id="quit" type="button" aria-label="離開">✕</button>
+  <button class="hudbtn" id="mute" type="button" aria-label="聲音開關">🔊</button>
+  <div id="ready">
+    <p id="readyText">載入中…</p>
+    <div class="bar"><div id="readyBar"></div></div>
+    <button class="secondary" id="skipReady" type="button">直接開始</button>
+  </div>
+  <p id="msg" hidden></p>
+</section>
+
+<section class="screen" id="sResult" hidden>
+  <div class="col">
+    <div class="score">
+      <div class="eyebrow">YOUR SCORE</div>
+      <div id="rScore">0</div>
+      <div id="rStars"></div>
+      <div id="rRank"></div>
+      <div id="rMeta"></div>
+    </div>
+    <video id="clip" playsinline controls loop hidden></video>
+    <div class="btns two">
+      <button class="secondary" id="saveVid" type="button">存影片</button>
+      <button class="secondary" id="shareVid" type="button">分享影片</button>
+    </div>
+    <div class="card">
+      <h2>上傳成績</h2>
+      <input class="field" id="nick" maxlength="12" placeholder="你的暱稱（最多 12 字）" autocomplete="nickname">
+      <button class="primary" id="submit" type="button">上傳成績到排行榜</button>
+      <p class="fine" id="submitMsg"></p>
+    </div>
+    <div class="card">
+      <h2>🏆 英雄榜</h2>
+      <div class="tabs" id="rTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
+      <div id="rBoard"></div>
+    </div>
+    <div class="btns two">
+      <button class="primary" id="again" type="button">再戰一場</button>
+      <button class="secondary" id="home" type="button">換難度</button>
+    </div>
+    <button class="secondary" id="shareText" type="button">複製邀請文字＋網址</button>
+  </div>
+</section>
+
+<section class="screen" id="sBoard" hidden>
+  <div class="col">
+    <div class="eyebrow">LEADERBOARD</div>
+    <h1 style="font-size:44px">英雄榜</h1>
+    <div class="chiprow" id="bSongs"></div>
+    <div class="chiprow" id="bDiffs"></div>
+    <div class="tabs" id="bTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
+    <div id="bList"></div>
+    <button class="secondary" id="boardBack" type="button">回首頁</button>
+  </div>
+</section>
+<script type="module" src="app.js"></script>
+</body>
+</html>

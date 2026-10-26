@@ -527,11 +527,12 @@ const poseRow = document.createElement('div'); poseRow.className = 'modes'; pose
 let poseMode = null;
 const armGuide = () => setGuide(poseMode === 'learn' && curMove, () => { const m = poseMode; setTimeout(() => { if (poseMode === m) armGuide(); }, 7000); });   // 成功後過一陣子再提示一次
 const modeBtns = {};
-for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['game', '🥁 挑戰'], ['pick', '🀄 換英雄']]) {
+for (const [id, name] of [[null, '一般'], ['learn', '⚔️ 練一招'], ['game', '🥁 挑戰'], ['beat', '🥋 擂台'], ['pick', '🀄 換英雄']]) {
   const b = document.createElement('button'); b.className = 'mode'; b.type = 'button'; b.textContent = name;
   b.setAttribute('aria-pressed', String(id === null));
   b.onclick = () => {
     if (id === 'pick') { $('movesTool')?.click(); return; }
+    if (id === 'beat') { stopCamera(); location.href = 'beat/'; return; }   // 全身律動擂台（另一頁）
     if (gameState.on) { stopGame(); if (rec) stopRec(); }       // 離開挑戰：停止遊戲和錄影
     poseMode = id;
     for (const x of poseRow.children) x.setAttribute('aria-pressed', String(x === b));

@@ -87,7 +87,8 @@ const LEAD = [
 ];
 let music = null;
 export function startMusic() {
-  if (!ac || muted) return;
+  if (!ac) return null;
+  if (muted) return ac.currentTime + .06;
   stopMusic(.05);
   const bus = ac.createGain(); bus.gain.value = .6; bus.connect(master);
   // 一點點殘響（讓古箏和笛子有空間感）：用回授延遲模擬
@@ -97,7 +98,11 @@ export function startMusic() {
   music = { bus, verb, step: 0, next: ac.currentTime + .06, timer: null };
   const tick = () => { while (music && music.next < ac.currentTime + .15) { playStep(music.step, music.next, bus, verb); music.step++; music.next += SPB; } };
   tick(); music.timer = setInterval(tick, 25);
+  return music.next - music.step * SPB;        // 第 0 拍的時間（律動擂台用）
 }
+// 律動擂台的時鐘：扣掉喇叭延遲，畫面跟聽到的拍子對齊
+export function clock() { return ac ? ac.currentTime - (ac.outputLatency || ac.baseLatency || 0) : performance.now() / 1000; }
+export const running = () => !!ac && ac.state === 'running';
 export function stopMusic(fade = .6) {
   if (!music) return;
   const m = music; music = null; clearInterval(m.timer);

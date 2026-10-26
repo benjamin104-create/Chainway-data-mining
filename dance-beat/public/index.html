@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>全民律動王・跟著跳、比分數</title>
+<meta name="description" content="手機立起來、退後兩步，跟著畫面上的動作卡跳舞。三首原創歌、三種難度，自動錄影，上傳分數跟大家比。">
+<meta name="theme-color" content="#0b0618">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="律動王">
+<meta property="og:title" content="全民律動王・跟著跳、比分數">
+<meta property="og:description" content="手機立起來跟著跳，AI 幫你打分數，自動錄影上傳排行榜！">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+  :root {
+    --ink: #0b0618; --raise: #1a1033; --line: rgba(255,255,255,.16);
+    --fg: #fbf7ff; --muted: #b9aed0; --pink: #ff3fd2; --cyan: #2ff3ff; --gold: #ffcf2e;
+    --latin: "Anton", "Impact", "Arial Black", sans-serif;
+    --body: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+    --badge: 72px;   /* Netlify 右下角的標籤，下方留位置 */
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); }
+  body { overflow: hidden; }
+  button { font-family: inherit; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  button:disabled { opacity: .45; }
+  .screen { height: 100%; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 22px) 18px calc(env(safe-area-inset-bottom, 0px) + 28px + var(--badge)); }
+  .col { max-width: 30rem; margin: 0 auto; display: grid; gap: 18px; }
+  #sHome { background: radial-gradient(120% 60% at 50% 0%, #3a1270 0%, transparent 60%), radial-gradient(90% 50% at 100% 100%, #072a4a 0%, transparent 60%), var(--ink); }
+  .eyebrow { font: 400 15px/1 var(--latin); letter-spacing: .18em; color: var(--cyan); }
+  h1 { margin: 0; font: 900 clamp(46px, 14vw, 68px)/1.05 "Noto Sans TC", var(--body); letter-spacing: .02em;
+       background: linear-gradient(180deg, #fff 10%, #ffd6f6 45%, var(--pink) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+       filter: drop-shadow(0 4px 0 #3b0a5e) drop-shadow(0 0 22px rgba(255,63,210,.45)); transform: skewX(-6deg); }
+  .lead { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0; }
+  .fine { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0; }
+  .label { font: 700 13px/1 var(--body); letter-spacing: .12em; color: var(--muted); margin: 6px 0 -6px; }
+  .chips { display: grid; gap: 10px; }
+  .chips.row { grid-template-columns: repeat(3, 1fr); }
+  .chip { border: 1.5px solid var(--line); background: rgba(255,255,255,.05); color: var(--fg); border-radius: 16px; padding: 14px 16px; text-align: left; cursor: pointer; display: grid; gap: 4px; }
+  .chip b { font: 900 18px/1.2 "Noto Sans TC", var(--body); }
+  .chip small { color: var(--muted); font-size: 12.5px; }
+  .chips.row .chip { text-align: center; padding: 12px 6px; }
+  .chip[aria-pressed="true"] { border-color: var(--pink); background: linear-gradient(135deg, rgba(123,47,247,.45), rgba(241,7,163,.35)); box-shadow: 0 0 0 1px var(--pink), 0 0 22px rgba(255,63,210,.3); }
+  .chip.small { padding: 9px 12px; text-align: center; }
+  .chip.small:not([aria-pressed="true"]) { opacity: .8; }
+  .primary { border: 0; color: #fff; padding: 18px 26px; border-radius: 999px; font: 900 19px/1 "Noto Sans TC", var(--body); letter-spacing: .06em; cursor: pointer;
+             background: linear-gradient(90deg, #7b2ff7, #f107a3 60%, #ff7a00); box-shadow: 0 8px 28px rgba(241,7,163,.4); }
+  .secondary { border: 1.5px solid var(--line); background: transparent; color: var(--fg); padding: 14px 22px; border-radius: 999px; font: 700 15px/1 var(--body); cursor: pointer; text-align: center; }
+  .tips { display: grid; gap: 8px; padding: 14px 16px; background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 16px; }
+  .tips p { margin: 0; font-size: 14px; line-height: 1.6; color: #e4dcf2; }
+  .tips p::before { content: attr(data-n); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--pink); color: #fff; font: 700 12px/1 var(--body); margin-right: 8px; }
+  .btns { display: grid; gap: 10px; }
+  .btns.two { grid-template-columns: 1fr 1fr; }
+
+  /* 遊戲畫面 */
+  #sPlay { padding: 0; overflow: hidden; background: #000; position: relative; }
+  #stage { position: absolute; inset: 0; display: grid; place-items: center; }
+  #view { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .hudbtn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 72px); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: rgba(11,6,24,.6); color: #fff; font-size: 18px; cursor: pointer; z-index: 3; }
+  #quit { left: 12px; } #mute { left: 64px; }
+  #ready { position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 22px + var(--badge)); background: linear-gradient(transparent, rgba(11,6,24,.92) 30%); display: grid; gap: 12px; z-index: 2; text-align: center; }
+  #readyText { font: 900 20px/1.45 "Noto Sans TC", var(--body); margin: 0; text-shadow: 0 2px 8px #000; }
+  .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #readyBar { height: 100%; width: 0; background: linear-gradient(90deg, #5dffb0, var(--cyan)); transition: width .1s; }
+  #msg { position: absolute; left: 16px; right: 16px; top: 40%; padding: 16px; border-radius: 14px; background: rgba(11,6,24,.92); border: 1px solid var(--line); text-align: center; line-height: 1.6; z-index: 4; }
+
+  /* 結果 */
+  #sResult { background: radial-gradient(120% 50% at 50% 0%, #3a1270 0%, transparent 60%), var(--ink); }
+  .score { text-align: center; display: grid; gap: 4px; }
+  #rScore { font: 400 84px/1 var(--latin); background: linear-gradient(180deg, #fff, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #rStars { font-size: 30px; color: var(--gold); letter-spacing: .1em; }
+  #rRank { font: 900 26px/1.2 "Noto Sans TC", var(--body); }
+  #rMeta { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  #clip { width: 100%; max-height: 52vh; border-radius: 16px; background: #000; }
+  .field { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--line); background: rgba(255,255,255,.06); color: var(--fg); font-size: 16px; }
+  .card { padding: 16px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); display: grid; gap: 12px; }
+  .card h2 { margin: 0; font: 900 18px/1.2 "Noto Sans TC", var(--body); }
+  .tabs { display: flex; gap: 8px; }
+  .tabs button { flex: 1; padding: 9px 0; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 700 14px/1 var(--body); cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+  .rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .rank li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px; }
+  .rank li:nth-child(odd) { background: rgba(255,255,255,.04); }
+  .rank li span { font: 400 18px/1 var(--latin); color: var(--muted); text-align: center; }
+  .rank li:nth-child(1) span { color: var(--gold); } .rank li:nth-child(2) span { color: #dfe6f0; } .rank li:nth-child(3) span { color: #e3a26b; }
+  .rank li b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank li em { font: 400 20px/1 var(--latin); font-style: normal; color: var(--cyan); }
+  .rank li.me { background: rgba(255,63,210,.22); }
+  #submitMsg { min-height: 1.2em; }
+  .chiprow { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<section class="screen" id="sHome">
+  <div class="col">
+    <div class="eyebrow">BEAT MOVE ・ DANCE CHALLENGE</div>
+    <h1>全民律動王</h1>
+    <p class="lead">手機立起來、退後兩步，跟著動作卡跳舞！鏡頭會即時判斷你的動作，跳完自動產生影片和分數，上傳排行榜跟大家比。</p>
+    <p class="label">選一首歌</p>
+    <div class="chips" id="songs"></div>
+    <p class="label">難度</p>
+    <div class="chips row" id="diffs"></div>
+    <div class="tips">
+      <p data-n="1">手機直立靠著水壺或牆，鏡頭對著你</p>
+      <p data-n="2">退後 2～3 步，讓頭到腳都進畫面</p>
+      <p data-n="3">動作卡跑到左邊的圓圈時，做出一樣的動作</p>
+    </div>
+    <div class="btns">
+      <button class="primary" id="go" type="button">開始跳舞</button>
+      <button class="secondary" id="boardBtn" type="button">🏆 排行榜</button>
+    </div>
+    <p class="fine">影像只在你的手機上分析，不會上傳；只有你按「上傳成績」時，才會送出暱稱和分數。影片存在你的手機裡，要不要分享由你決定。</p>
+  </div>
+</section>
+
+<section class="screen" id="sPlay" hidden>
+  <div id="stage"><canvas id="view"></canvas></div>
+  <video id="video" playsinline muted></video>
+  <button class="hudbtn" id="quit" type="button" aria-label="離開">✕</button>
+  <button class="hudbtn" id="mute" type="button" aria-label="聲音開關">🔊</button>
+  <div id="ready">
+    <p id="readyText">載入中…</p>
+    <div class="bar"><div id="readyBar"></div></div>
+    <button class="secondary" id="skipReady" type="button">直接開始</button>
+  </div>
+  <p id="msg" hidden></p>
+</section>
+
+<section class="screen" id="sResult" hidden>
+  <div class="col">
+    <div class="score">
+      <div class="eyebrow">YOUR SCORE</div>
+      <div id="rScore">0</div>
+      <div id="rStars"></div>
+      <div id="rRank"></div>
+      <div id="rMeta"></div>
+    </div>
+    <video id="clip" playsinline controls loop hidden></video>
+    <div class="btns two">
+      <button class="secondary" id="saveVid" type="button">存影片</button>
+      <button class="secondary" id="shareVid" type="button">分享影片</button>
+    </div>
+    <div class="card">
+      <h2>上傳成績</h2>
+      <input class="field" id="nick" maxlength="12" placeholder="你的暱稱（最多 12 字）" autocomplete="nickname">
+      <button class="primary" id="submit" type="button">上傳成績到排行榜</button>
+      <p class="fine" id="submitMsg"></p>
+    </div>
+    <div class="card">
+      <h2>🏆 這首歌的排行榜</h2>
+      <div class="tabs" id="rTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
+      <div id="rBoard"></div>
+    </div>
+    <div class="btns two">
+      <button class="primary" id="again" type="button">再跳一次</button>
+      <button class="secondary" id="home" type="button">換歌</button>
+    </div>
+    <button class="secondary" id="shareText" type="button">複製邀請文字＋網址</button>
+  </div>
+</section>
+
+<section class="screen" id="sBoard" hidden>
+  <div class="col">
+    <div class="eyebrow">LEADERBOARD</div>
+    <h1 style="font-size:44px">排行榜</h1>
+    <div class="chiprow" id="bSongs"></div>
+    <div class="chiprow" id="bDiffs"></div>
+    <div class="tabs" id="bTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
+    <div id="bList"></div>
+    <button class="secondary" id="boardBack" type="button">回首頁</button>
+  </div>
+</section>
+<script type="module" src="app.js"></script>
+</body>
+</html>

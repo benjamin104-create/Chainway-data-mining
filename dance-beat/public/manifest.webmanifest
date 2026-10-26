@@ -1,0 +1,16 @@
+{
+  "name": "全民律動王",
+  "short_name": "律動王",
+  "description": "手機立起來跟著跳，自動錄影、上傳分數比排行榜。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0618",
+  "theme_color": "#0b0618",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
