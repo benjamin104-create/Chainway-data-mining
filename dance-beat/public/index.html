@@ -50,6 +50,12 @@
   .chip b { font: 900 18px/1.2 "Noto Sans TC", var(--body); }
   .chip small { color: var(--muted); font-size: 12.5px; }
   .chips.row .chip { text-align: center; padding: 12px 6px; }
+  .chips.two { grid-template-columns: 1fr 1fr; }
+  .chips.two .chip { text-align: center; padding: 12px 6px; }
+  #practiceBar { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(env(safe-area-inset-bottom, 0px) + 14px + var(--badge)); display: flex; gap: 12px; align-items: center; justify-content: space-between; background: linear-gradient(transparent, rgba(11,6,24,.9) 40%); z-index: 2; font: 700 16px/1.3 var(--body); }
+  .snaps { display: flex; gap: 10px; justify-content: center; }
+  .snaps img { width: 30%; border-radius: 10px; border: 3px solid #fff; transform: rotate(-2deg); }
+  .snaps img:nth-child(2) { transform: rotate(2deg); }
   .chip[aria-pressed="true"] { border-color: var(--pink); background: linear-gradient(135deg, rgba(123,47,247,.45), rgba(241,7,163,.35)); box-shadow: 0 0 0 1px var(--pink), 0 0 22px rgba(255,63,210,.3); }
   .chip.small { padding: 9px 12px; text-align: center; }
   .chip.small:not([aria-pressed="true"]) { opacity: .8; }
@@ -109,15 +115,21 @@
     <p class="lead">手機立起來、退後兩步，跟著動作卡跳舞！鏡頭會即時判斷你的動作，跳完自動產生影片和分數，上傳排行榜跟大家比。</p>
     <p class="label">選一首歌</p>
     <div class="chips" id="songs"></div>
+    <input type="file" id="songFile" accept="audio/*,.mp3,.m4a,.wav,.aac" hidden>
+    <p class="fine" id="songMsg" hidden></p>
     <p class="label">難度</p>
     <div class="chips row" id="diffs"></div>
+    <p class="label">玩家</p>
+    <div class="chips two" id="players"></div>
     <div class="tips">
       <p data-n="1">手機直立靠著水壺或牆，鏡頭對著你</p>
       <p data-n="2">退後 2～3 步，讓頭到腳都進畫面</p>
-      <p data-n="3">動作卡跑到左邊的圓圈時，做出一樣的動作</p>
+      <p data-n="3">開始前會數「5、6、7、8」，然後跟著右上的舞者，一拍一個動作</p>
+      <p data-n="4">每個舞步會重複一到兩小節；金色卡是加分大招，中間有一段自由舞</p>
     </div>
     <div class="btns">
       <button class="primary" id="go" type="button">開始跳舞</button>
+      <button class="secondary" id="practice" type="button">🎓 先練習動作（一個一個學）</button>
       <button class="secondary" id="boardBtn" type="button">🏆 排行榜</button>
     </div>
     <p class="fine">影像只在你的手機上分析，不會上傳；只有你按「上傳成績」時，才會送出暱稱和分數。影片存在你的手機裡，要不要分享由你決定。</p>
@@ -134,6 +146,7 @@
     <div class="bar"><div id="readyBar"></div></div>
     <button class="secondary" id="skipReady" type="button">直接開始</button>
   </div>
+  <div id="practiceBar" hidden><span id="practiceStep"></span><button class="secondary" id="practiceNext" type="button">跳過這個</button></div>
   <p id="msg" hidden></p>
 </section>
 
@@ -146,18 +159,19 @@
       <div id="rRank"></div>
       <div id="rMeta"></div>
     </div>
+    <div class="snaps" id="snaps" hidden></div>
     <video id="clip" playsinline controls loop hidden></video>
     <div class="btns two">
       <button class="secondary" id="saveVid" type="button">存影片</button>
       <button class="secondary" id="shareVid" type="button">分享影片</button>
     </div>
-    <div class="card">
+    <div class="card" id="submitCard">
       <h2>上傳成績</h2>
       <input class="field" id="nick" maxlength="12" placeholder="你的暱稱（最多 12 字）" autocomplete="nickname">
       <button class="primary" id="submit" type="button">上傳成績到排行榜</button>
       <p class="fine" id="submitMsg"></p>
     </div>
-    <div class="card">
+    <div class="card" id="boardCard">
       <h2>🏆 這首歌的排行榜</h2>
       <div class="tabs" id="rTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
       <div id="rBoard"></div>

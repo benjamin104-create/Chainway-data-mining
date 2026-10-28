@@ -39,7 +39,7 @@ export default async (req) => {
   const name = cleanName(b.name), score = Number(b.score), id = String(b.id || '');
   if (!BOARDS.test(b.board || '')) return json({ error: 'bad board' }, 400, cors);
   if (!name) return json({ error: 'name' }, 400, cors);
-  if (!Number.isInteger(score) || score < 0 || score > 10000) return json({ error: 'score' }, 400, cors);
+  if (!Number.isInteger(score) || score < 0 || score > 13333) return json({ error: 'score' }, 400, cors);
   if (!/^[a-z0-9]{4,16}$/.test(id)) return json({ error: 'id' }, 400, cors);
 
   const keys = periodKeys(), rank = {}; let improved = false;

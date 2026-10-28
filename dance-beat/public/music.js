@@ -80,7 +80,17 @@ export function play(id) {
 export function stop(fade = .6) {
   if (!song) return;
   const m = song; song = null; clearInterval(m.timer);
-  try { m.bus.gain.setTargetAtTime(0, ac.currentTime, Math.max(.01, fade / 3)); setTimeout(() => m.bus.disconnect(), fade * 1000 + 600); } catch {}
+  try { m.bus.gain.setTargetAtTime(0, ac.currentTime, Math.max(.01, fade / 3)); setTimeout(() => { try { m.src?.stop(); } catch {} m.bus.disconnect(); }, fade * 1000 + 600); } catch {}
+}
+// 音檔（AI 做的歌、玩家自己的歌）：解碼一次，之後直接播；回傳第 0 拍（beat0 秒）的時間
+export async function decode(arrayBuffer) { unlock(); return await ac.decodeAudioData(arrayBuffer); }
+export function playBuffer(buf, beat0 = 0) {
+  unlock(); stop(.05);
+  const bus = ac.createGain(); bus.gain.value = .9; bus.connect(master);
+  const src = ac.createBufferSource(); src.buffer = buf; src.connect(bus);
+  const t0 = ac.currentTime + .25; src.start(t0);
+  song = { bus, src, timer: null };
+  return t0 + beat0;
 }
 function section(bar, n) {
   if (bar < 2) return 'intro';
@@ -140,11 +150,39 @@ function stepAt(m, i, t) {
       const idx = S.lead[(bar % 2) * 16 + st];
       if (idx >= 0) {
         let len = 1; while (len < 4 && S.lead[((bar % 2) * 16 + st + len * 2) % 32] === -1 && ((bar % 2) * 16 + st + len * 2) % 16 !== 0) len++;
-        lead(bus, verb, t, croot + 12 + tones[idx], spb * 2 * len * .9, k.lead, full ? .16 : .1);
+        lead(bus, verb, t, croot + 12 + tones[idx], spb * 2 * len * .9, k.lead, full ? .11 : .1);
+        if (full) vox(bus, verb, t, st % 4 === 0 ? 'a' : 'o', NOTE(croot + 12 + tones[idx]), spb * 2 * len * .95, .2);   // 副歌：像有人在唱「啊—喔—」
       }
     }
   }
   if (sec === 'break' && st === 0) chord(m, t, croot, tones, spb * 16, .14, 'pad');
+  // ── 人聲（合成的母音：hey!、oh、yeah）──
+  const vb = croot + 12;
+  if (bar === 1 && st === 12) vox(bus, verb, t, 'hey', NOTE(vb + 7), .32, .5);                               // 倒數最後一拍：Hey!
+  if (sec === 'build' && st % 4 === 0) vox(bus, verb, t, 'o', NOTE(vb + [0, 2, 4, 5, 7, 9, 11, 12][(bar - 10) * 4 + st / 4]), spb * 3.2, .34);   // oh-oh-oh 往上爬
+  if (full && bar % 2 === 1 && st === 12) vox(bus, verb, t, 'hey', NOTE(vb + 7), .3, .55);                    // 副歌每兩小節一次 Hey!
+  if (full && bar % 4 === 2 && (st === 10 || st === 14)) vox(bus, verb, t, 'o', NOTE(vb + (st === 10 ? 4 : 7)), spb * 1.6, .3);
+  if (sec === 'break' && bar === 20 && st === 0) vox(bus, verb, t, 'yeah', NOTE(vb + 7), .7, .5);
+  if (sec === 'break' && bar === 21 && st === 8) vox(bus, verb, t, 'hey', NOTE(vb + 7), .3, .55);
+}
+// 母音合成：鋸齒波（聲帶）＋三個共振峰濾波器（嘴型）。hey＝氣音 h＋e；yeah＝i 滑到 a
+const FORMANT = { a: [800, 1150, 2900], e: [530, 1840, 2480], o: [500, 800, 2400], i: [300, 2200, 3000] };
+function vox(out, verb, t, kind, f0, dur, peak) {
+  const seq = kind === 'hey' ? ['e', 'e'] : kind === 'yeah' ? ['i', 'a'] : [kind, kind];
+  const src = ac.createOscillator(), src2 = ac.createOscillator(), g = ac.createGain(), mix = ac.createGain();
+  src.type = src2.type = 'sawtooth';
+  const fall = kind === 'hey' ? .8 : kind === 'yeah' ? .92 : 1;
+  for (const [o, det] of [[src, 1], [src2, 1.006]]) { o.frequency.setValueAtTime(f0 * det * 1.02, t); o.frequency.exponentialRampToValueAtTime(f0 * det * fall, t + dur); o.connect(mix); }
+  const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = 5.2; vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(f0 * .012, t + dur * .6); vib.connect(vg); vg.connect(src.frequency); vg.connect(src2.frequency);
+  [0, 1, 2].forEach((k) => {
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = [6, 9, 11][k];
+    bp.frequency.setValueAtTime(FORMANT[seq[0]][k], t); bp.frequency.linearRampToValueAtTime(FORMANT[seq[1]][k], t + dur * .7);
+    const kg = ac.createGain(); kg.gain.value = [1, .55, .3][k]; mix.connect(bp); bp.connect(kg); kg.connect(g);
+  });
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + .03); g.gain.setValueAtTime(peak * .85, t + dur * .7); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  g.connect(out); g.connect(verb);
+  for (const o of [src, src2, vib]) { o.start(t); o.stop(t + dur + .05); }
+  if (kind === 'hey') nz(out, t - .02, .07, 'bandpass', 2400, 1.2, peak * .5, .005);   // h 的氣音
 }
 function kick(out, t, kind) {
   const hard = kind === 'hard', soft = kind === 'soft';
@@ -195,6 +233,8 @@ function lead(out, verb, t, n, dur, kind, peak) {
 const on = () => ac && !muted && ac.state === 'running';
 export function hit(id) {
   if (!on()) return; const t = ac.currentTime;
+  if (id === 'yeah') { for (const [f, d] of [[1047, 0], [1319, .06], [1568, .12], [2093, .18]]) osc(master, 'square', f, t + d, .22, .1); nz(master, t, .5, 'highpass', 5000, .7, .14); return; }
+  if (id === 'super') id = 'great'; else if (id === 'ok') id = 'good';
   if (id === 'perfect') { osc(master, 'sine', 1568, t, .25, .22); osc(master, 'sine', 2349, t + .05, .3, .16); nz(master, t, .15, 'highpass', 6000, .7, .1); }
   else if (id === 'great') { osc(master, 'sine', 1319, t, .2, .2); osc(master, 'sine', 1976, t + .04, .2, .1); }
   else if (id === 'good') osc(master, 'triangle', 880, t, .15, .16);
@@ -206,4 +246,6 @@ export function cheer() {
   for (let i = 0; i < 40; i++) nz(master, t + Math.random() * 1.8, .03, 'bandpass', 1500 + Math.random() * 2000, 1.5, .12);   // 拍手聲
   for (const d of [.3, .9]) osc(master, 'sine', 2200, t + d, .35, .06, .02, 2900);                                          // 口哨
 }
+// 練習用節拍器：一拍一聲，循環開頭高一點
+export function metro(accent) { if (on()) osc(master, 'square', accent ? 1760 : 1175, ac.currentTime, .05, .1); }
 export function go() { if (on()) { const t = ac.currentTime; osc(master, 'square', 1760, t, .18, .12); crash(master, t); } }

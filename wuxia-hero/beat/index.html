@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>江湖律動擂台・全身練功比分數</title>
-<meta name="description" content="手機立起來、退後兩步，跟著武功招式卡練功：大鵬展翅、蹲馬步、金雞獨立……自動錄影，上傳分數爭奪武林盟主。">
+<meta name="description" content="手機立起來、退後兩步，跟著古箏太鼓一拍一式練武功：抱拳開掌、大鵬斜飛、馬步沖拳……自動錄影，上傳分數爭奪武林盟主。">
 <meta name="theme-color" content="#0e0c0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -50,6 +50,12 @@
   .chip b { font: 900 18px/1.2 "Noto Sans TC", var(--body); }
   .chip small { color: var(--muted); font-size: 12.5px; }
   .chips.row .chip { text-align: center; padding: 12px 6px; }
+  .chips.two { grid-template-columns: 1fr 1fr; }
+  .chips.two .chip { text-align: center; padding: 12px 6px; }
+  #practiceBar { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(env(safe-area-inset-bottom, 0px) + 14px + var(--badge)); display: flex; gap: 12px; align-items: center; justify-content: space-between; background: linear-gradient(transparent, rgba(14,12,10,.9) 40%); z-index: 2; font: 700 16px/1.3 var(--body); }
+  .snaps { display: flex; gap: 10px; justify-content: center; }
+  .snaps img { width: 30%; border-radius: 10px; border: 3px solid #fff; transform: rotate(-2deg); }
+  .snaps img:nth-child(2) { transform: rotate(2deg); }
   .chip[aria-pressed="true"] { border-color: var(--cyan); background: linear-gradient(135deg, rgba(138,28,18,.55), rgba(224,165,38,.25)); box-shadow: 0 0 0 1px var(--cyan), 0 0 22px rgba(224,165,38,.25); }
   .chip.small { padding: 9px 12px; text-align: center; }
   .chip.small:not([aria-pressed="true"]) { opacity: .8; }
@@ -106,18 +112,24 @@
   <div class="col">
     <div class="eyebrow">WUXIA BEAT ・ 武俠篇</div>
     <h1>江湖律動擂台</h1>
-    <p class="lead">少俠，上擂台吧！手機立起來、退後兩步，跟著古箏太鼓的節奏，照招式卡擺出大鵬展翅、蹲馬步、金雞獨立……鏡頭即時判斷你的架勢，練完自動產生影片和分數，上傳排行榜爭奪武林盟主。</p>
+    <p class="lead">少俠，上擂台吧！手機立起來、退後兩步，跟著古箏太鼓的節奏，一拍一式練一套武功：抱拳開掌、大鵬斜飛、馬步沖拳……鏡頭即時判斷你的架勢，練完自動產生影片和分數，上傳排行榜爭奪武林盟主。</p>
     <p class="label">配樂</p>
     <div class="chips" id="songs"></div>
+    <input type="file" id="songFile" accept="audio/*,.mp3,.m4a,.wav,.aac" hidden>
+    <p class="fine" id="songMsg" hidden></p>
     <p class="label">難度</p>
     <div class="chips row" id="diffs"></div>
+    <p class="label">玩家</p>
+    <div class="chips two" id="players"></div>
     <div class="tips">
       <p data-n="1">手機直立靠著水壺或牆，鏡頭對著你</p>
       <p data-n="2">退後 2～3 步，讓頭到腳都進畫面</p>
-      <p data-n="3">招式卡跑到左邊的圓圈時，擺出一樣的架勢</p>
+      <p data-n="3">開始前會數「5、6、7、8」，然後跟著右上的師父，一拍一式</p>
+      <p data-n="4">每套招式會重複一到兩小節；金色卡是絕招，中間有一段自創招式</p>
     </div>
     <div class="btns">
       <button class="primary" id="go" type="button">上擂台</button>
+      <button class="secondary" id="practice" type="button">🎓 先練招式（一式一式學）</button>
       <button class="secondary" id="boardBtn" type="button">🏆 英雄榜</button>
       <a class="secondary" href="../" style="text-decoration:none">← 回到「你是哪一位武學奇才」</a>
     </div>
@@ -135,6 +147,7 @@
     <div class="bar"><div id="readyBar"></div></div>
     <button class="secondary" id="skipReady" type="button">直接開始</button>
   </div>
+  <div id="practiceBar" hidden><span id="practiceStep"></span><button class="secondary" id="practiceNext" type="button">跳過這個</button></div>
   <p id="msg" hidden></p>
 </section>
 
@@ -147,18 +160,19 @@
       <div id="rRank"></div>
       <div id="rMeta"></div>
     </div>
+    <div class="snaps" id="snaps" hidden></div>
     <video id="clip" playsinline controls loop hidden></video>
     <div class="btns two">
       <button class="secondary" id="saveVid" type="button">存影片</button>
       <button class="secondary" id="shareVid" type="button">分享影片</button>
     </div>
-    <div class="card">
+    <div class="card" id="submitCard">
       <h2>上傳成績</h2>
       <input class="field" id="nick" maxlength="12" placeholder="你的暱稱（最多 12 字）" autocomplete="nickname">
       <button class="primary" id="submit" type="button">上傳成績到排行榜</button>
       <p class="fine" id="submitMsg"></p>
     </div>
-    <div class="card">
+    <div class="card" id="boardCard">
       <h2>🏆 英雄榜</h2>
       <div class="tabs" id="rTabs"><button type="button" data-p="day" aria-pressed="true">今日</button><button type="button" data-p="week" aria-pressed="false">本週</button><button type="button" data-p="all" aria-pressed="false">總榜</button></div>
       <div id="rBoard"></div>
